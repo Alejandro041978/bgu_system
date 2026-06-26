@@ -49,11 +49,15 @@ async function runSync(request: NextRequest) {
   )
 
   // Crear log de sincronización
-  const { data: syncLog } = await supabase
+  const { data: syncLog, error: logError } = await supabase
     .from('sync_logs')
     .insert({ sync_type: 'full', status: 'running' })
     .select()
     .single()
+
+  if (logError) {
+    return NextResponse.json({ error: 'DB error creating log', detail: logError.message }, { status: 500 })
+  }
 
   const logId = syncLog?.id
 
