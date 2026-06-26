@@ -32,10 +32,14 @@ async function zohoGet(path: string, token: string) {
   return res.json()
 }
 
-export async function POST(request: NextRequest) {
+async function runSync(request: NextRequest) {
   // Verificar que viene de Vercel Cron o de una llamada autorizada
   const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+  const cronHeader = request.headers.get('x-vercel-cron')
+  const isVercelCron = cronHeader === '1'
+  const isAuthorized = authHeader === `Bearer ${CRON_SECRET}`
+
+  if (!isVercelCron && !isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -179,4 +183,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: message }, { status: 500 })
   }
+}
+
+export async function POST(request: NextRequest) {
+  return runSync(request)
+}
+
+export async function GET(request: NextRequest) {
+  return runSync(request)
 }
