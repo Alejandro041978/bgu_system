@@ -68,12 +68,31 @@ async function runSync(request: NextRequest) {
     let from = 0
     const limit = 100
 
-    // Sincronizar todos los tickets paginando
-    while (true) {
-      const data = await zohoGet(
-        `/tickets?from=${from}&limit=${limit}`,
-        token
-      )
+    // Determinar fecha de última sync para sync incremental
+    const { data: lastSync } = await supabase
+      .from('sync_logs')
+      .select('finished_at')
+      .eq('status', 'success')
+      .order('finished_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    // En la primera sync traemos solo los últimos 500 tickets
+    // En syncs posteriores traemos solo los modificados desde la última sync
+    const isFirstSync = !lastSync?.finished_at
+    const modifiedAfter = isFirstSync
+      ? null
+      : new Date(lastSync.finished_at).toISOString().replace('T', ' ').substring(0, 19)
+
+    const maxTickets = isFirstSync ? 500 : 10000
+
+    // Sincronizar tickets paginando
+    while (ticketsSynced < maxTickets) {
+      const queryParams = modifiedAfter
+        ? `/tickets?from=${from}&limit=${limit}&modifiedTimeRange=${modifiedAfter},${new Date().toISOString().replace('T', ' ').substring(0, 19)}`
+        : `/tickets?from=${from}&limit=${limit}`
+
+      const data = await zohoGet(queryParams, token)
 
       const tickets = data.data ?? []
       if (tickets.length === 0) break
