@@ -71,7 +71,7 @@ async function runSync(request: NextRequest) {
     // Sincronizar todos los tickets paginando
     while (true) {
       const data = await zohoGet(
-        `/tickets?from=${from}&limit=${limit}&sortBy=modifiedTime&sortOrder=desc&include=contacts,assignee,departments,team`,
+        `/tickets?from=${from}&limit=${limit}&sortBy=modifiedTime&sortOrder=desc`,
         token
       )
 
