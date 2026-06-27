@@ -27,24 +27,26 @@ export default async function MetricsPage({ searchParams }: { searchParams: Prom
   const monthEnd   = new Date(year, mon, 1).toISOString()
 
   // Tickets per agent this month
-  const { data: tickets } = await supabase
+  const { data: ticketsRaw } = await supabase
     .from('desk_tickets')
     .select('assignee_id, closed_time, zoho_created_at')
     .gte('zoho_created_at', monthStart)
     .lt('zoho_created_at', monthEnd)
     .not('assignee_id', 'is', null)
+  const tickets = (ticketsRaw ?? []) as { assignee_id: string; closed_time: string | null; zoho_created_at: string }[]
 
   // Happiness ratings this month
-  const { data: ratings } = await supabase
+  const { data: ratingsRaw } = await supabase
     .from('desk_happiness_ratings')
     .select('agent_id, rating')
     .gte('rated_time', monthStart)
     .lt('rated_time', monthEnd)
+  const ratings = (ratingsRaw ?? []) as { agent_id: string; rating: string }[]
 
   // Aggregate per agent
   const agentIds = Object.keys(AGENTS).filter(id => id !== '1095985000000139001')
   const metrics = agentIds.map(agentId => {
-    const agentTickets = tickets?.filter(t => t.assignee_id === agentId) ?? []
+    const agentTickets = tickets.filter(t => t.assignee_id === agentId)
     const closed = agentTickets.filter(t => t.closed_time)
     const resolutionHours = closed.map(t => {
       const ms = new Date(t.closed_time!).getTime() - new Date(t.zoho_created_at).getTime()
@@ -54,7 +56,7 @@ export default async function MetricsPage({ searchParams }: { searchParams: Prom
       ? resolutionHours.reduce((a, b) => a + b, 0) / resolutionHours.length
       : null
 
-    const agentRatings = ratings?.filter(r => r.agent_id === agentId) ?? []
+    const agentRatings = ratings.filter(r => r.agent_id === agentId)
     const good = agentRatings.filter(r => r.rating === 'GOOD').length
     const ok   = agentRatings.filter(r => r.rating === 'OK').length
     const bad  = agentRatings.filter(r => r.rating === 'BAD').length
