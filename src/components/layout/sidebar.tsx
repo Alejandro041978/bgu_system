@@ -30,6 +30,7 @@ const navigation = [
     label: 'Atención al Cliente',
     items: [
       { name: 'Tickets', href: '/desk', icon: Headphones },
+      { name: 'Métricas', href: '/desk/metrics', icon: BarChart3 },
     ],
   },
   {
