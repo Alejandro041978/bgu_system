@@ -3,11 +3,10 @@
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Search, Filter } from 'lucide-react'
 import { useCallback } from 'react'
-import type { ZohoDepartment } from '@/types/zoho'
 import { cn } from '@/lib/utils'
 
 interface TicketFiltersBarProps {
-  departments: ZohoDepartment[]
+  departments: { id: string; name: string }[]
 }
 
 const STATUS_OPTIONS = [
