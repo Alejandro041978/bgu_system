@@ -175,6 +175,65 @@ async function runSync(request: NextRequest) {
       await new Promise(r => setTimeout(r, 200))
     }
 
+    // Sincronizar happiness ratings (solo los nuevos desde última sync)
+    let happinessSynced = 0
+    try {
+      const deptId = process.env.ZOHO_ORGANIZATION_ID === '880669474'
+        ? '1095985000000006907'
+        : process.env.ZOHO_DEPARTMENT_ID ?? '1095985000000006907'
+
+      const { data: lastHappiness } = await supabase
+        .from('desk_happiness_ratings')
+        .select('rated_time')
+        .order('rated_time', { ascending: false })
+        .limit(1)
+        .single()
+
+      // Fetch last 50 pages of ratings (2500 max) — enough for nightly delta
+      let hFrom = 0
+      const hLimit = 50
+      const cutoff = lastHappiness?.rated_time
+        ? new Date(lastHappiness.rated_time).getTime()
+        : 0
+
+      outerHappiness: while (hFrom < 2500) {
+        const hData = await zohoGet(
+          `/customerHappiness?from=${hFrom}&limit=${hLimit}&department=${deptId}`,
+          token
+        )
+        const ratings = hData.data ?? []
+        if (ratings.length === 0) break
+
+        const newRatings = ratings.filter(
+          (r: any) => new Date(r.ratedTime).getTime() > cutoff
+        )
+        if (newRatings.length === 0) break outerHappiness
+
+        const rows = newRatings.map((h: any) => ({
+          id: h.id,
+          ticket_id: h.ticketId,
+          agent_id: h.agentId,
+          contact_id: h.contactId ?? null,
+          department_id: h.departmentId ?? null,
+          rating: h.rating,
+          feedback: h.feedback?.trim() || null,
+          rated_time: h.ratedTime,
+          synced_at: new Date().toISOString(),
+        }))
+
+        await supabase
+          .from('desk_happiness_ratings')
+          .upsert(rows, { onConflict: 'id' })
+
+        happinessSynced += rows.length
+        if (ratings.length < hLimit) break
+        hFrom += hLimit
+        await new Promise(r => setTimeout(r, 200))
+      }
+    } catch {
+      // happiness sync failure is non-fatal
+    }
+
     // Actualizar log como exitoso
     await supabase
       .from('sync_logs')
@@ -190,6 +249,7 @@ async function runSync(request: NextRequest) {
       success: true,
       tickets_synced: ticketsSynced,
       conversations_synced: conversationsSynced,
+      happiness_synced: happinessSynced,
     })
 
   } catch (error) {
