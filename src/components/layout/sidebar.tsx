@@ -14,6 +14,9 @@ import {
   LogOut,
   ChevronDown,
   Building2,
+  Bot,
+  Shield,
+  FileSignature,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -56,6 +59,20 @@ const navigation = [
     items: [
       { name: 'Colaboradores', href: '/hr', icon: UserCog },
       { name: 'KPIs & Bonos', href: '/kpis', icon: BarChart3 },
+      { name: 'Contratos', href: '/contracts', icon: FileSignature },
+    ],
+  },
+  {
+    label: 'IA',
+    items: [
+      { name: 'Sofia · Chat', href: '/chat', icon: Bot },
+      { name: 'Sofia · Config', href: '/settings/sofia', icon: Bot },
+    ],
+  },
+  {
+    label: 'Administración',
+    items: [
+      { name: 'Usuarios y permisos', href: '/settings/users', icon: Shield },
     ],
   },
 ]
