@@ -1,33 +1,30 @@
 import { createClient } from '@supabase/supabase-js'
-import { ContractTemplatesManager } from '@/components/contracts/contract-templates-manager'
-import { SendContractForm } from '@/components/contracts/send-contract-form'
 import { ContractInstancesList } from '@/components/contracts/contract-instances-list'
 
-async function getData() {
+async function getInstances() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
-  const [{ data: templates }, { data: employees }, { data: instances }] = await Promise.all([
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any).from('contract_templates').select('*').order('created_at', { ascending: false }),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any).from('hr_employees').select('id, full_name, email, phone, position, document_number, document_type, birth_date, address').order('full_name'),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any).from('contract_instances').select('*, template:contract_templates(name)').order('created_at', { ascending: false }),
-  ])
-  return { templates: templates ?? [], employees: employees ?? [], instances: instances ?? [] }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any)
+    .from('contract_instances')
+    .select('*, template:contract_templates(name)')
+    .order('created_at', { ascending: false })
+  return data ?? []
 }
 
 export const revalidate = 0
 
-export default async function ContractsPage() {
-  const { templates, employees, instances } = await getData()
+export default async function ContractsListPage() {
+  const instances = await getInstances()
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-8">
-      <SendContractForm templates={templates} employees={employees} />
+    <div className="p-6 max-w-4xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-gray-900">Contratos enviados</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Historial de contratos digitales y su estado de firma</p>
+      </div>
       <ContractInstancesList instances={instances} />
-      <ContractTemplatesManager initialTemplates={templates} />
     </div>
   )
 }

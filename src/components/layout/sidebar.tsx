@@ -3,31 +3,23 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard,
-  Headphones,
-  DollarSign,
-  Users,
-  BarChart3,
-  Share2,
-  UserCog,
-  Settings,
-  LogOut,
-  ChevronDown,
-  Building2,
-  Bot,
-  Shield,
-  FileSignature,
+  LayoutDashboard, Headphones, DollarSign, Users, BarChart3,
+  Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
+  Building2, Bot, Shield, FileSignature, List, Plus, FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
-const navigation = [
+type SubItem = { name: string; href: string; icon: React.ElementType }
+type NavItem = { name: string; href: string; icon: React.ElementType; children?: SubItem[] }
+type NavGroup = { label: string; items: NavItem[] }
+
+const navigation: NavGroup[] = [
   {
     label: 'General',
-    items: [
-      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    ],
+    items: [{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }],
   },
   {
     label: 'Atención al Cliente',
@@ -38,28 +30,29 @@ const navigation = [
   },
   {
     label: 'Finanzas',
-    items: [
-      { name: 'Contabilidad', href: '/finance', icon: DollarSign },
-    ],
+    items: [{ name: 'Contabilidad', href: '/finance', icon: DollarSign }],
   },
   {
     label: 'CRM',
-    items: [
-      { name: 'Contactos', href: '/crm', icon: Users },
-    ],
+    items: [{ name: 'Contactos', href: '/crm', icon: Users }],
   },
   {
     label: 'Redes Sociales',
-    items: [
-      { name: 'Métricas', href: '/social', icon: Share2 },
-    ],
+    items: [{ name: 'Métricas', href: '/social', icon: Share2 }],
   },
   {
     label: 'Talento Humano',
     items: [
       { name: 'Colaboradores', href: '/hr', icon: UserCog },
       { name: 'KPIs & Bonos', href: '/kpis', icon: BarChart3 },
-      { name: 'Contratos', href: '/contracts', icon: FileSignature },
+      {
+        name: 'Contratos', href: '/contracts', icon: FileSignature,
+        children: [
+          { name: 'Lista', href: '/contracts', icon: List },
+          { name: 'Nuevo', href: '/contracts/new', icon: Plus },
+          { name: 'Plantillas', href: '/contracts/templates', icon: FileText },
+        ],
+      },
     ],
   },
   {
@@ -71,15 +64,29 @@ const navigation = [
   },
   {
     label: 'Administración',
-    items: [
-      { name: 'Usuarios y permisos', href: '/settings/users', icon: Shield },
-    ],
+    items: [{ name: 'Usuarios y permisos', href: '/settings/users', icon: Shield }],
   },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+
+  // Track which parent items are expanded
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+
+  // Auto-expand if current path matches a child
+  useEffect(() => {
+    const next: Record<string, boolean> = {}
+    for (const group of navigation) {
+      for (const item of group.items) {
+        if (item.children?.some(c => pathname === c.href || pathname.startsWith(c.href + '/'))) {
+          next[item.href] = true
+        }
+      }
+    }
+    setExpanded(prev => ({ ...prev, ...next }))
+  }, [pathname])
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -107,21 +114,71 @@ export function Sidebar() {
             </p>
             <ul className="space-y-0.5">
               {group.items.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                const hasChildren = !!item.children?.length
+                const isChildActive = hasChildren && item.children!.some(
+                  c => pathname === c.href || (c.href !== item.href && pathname.startsWith(c.href))
+                )
+                const isActive = !hasChildren && (pathname === item.href || pathname.startsWith(item.href + '/'))
+                const isOpen = expanded[item.href] ?? false
+
                 return (
                   <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                        isActive
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                      )}
-                    >
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      {item.name}
-                    </Link>
+                    {hasChildren ? (
+                      <>
+                        <button
+                          onClick={() => setExpanded(prev => ({ ...prev, [item.href]: !isOpen }))}
+                          className={cn(
+                            'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors',
+                            isChildActive
+                              ? 'bg-gray-800 text-white'
+                              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                          )}
+                        >
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                          <span className="flex-1 text-left">{item.name}</span>
+                          {isOpen
+                            ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+                            : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />}
+                        </button>
+                        {isOpen && (
+                          <ul className="mt-0.5 ml-4 pl-3 border-l border-gray-800 space-y-0.5">
+                            {item.children!.map(child => {
+                              const childActive = pathname === child.href ||
+                                (child.href !== item.href && pathname.startsWith(child.href + '/'))
+                              return (
+                                <li key={child.href}>
+                                  <Link
+                                    href={child.href}
+                                    className={cn(
+                                      'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-colors',
+                                      childActive
+                                        ? 'bg-blue-600 text-white'
+                                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                                    )}
+                                  >
+                                    <child.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                                    {child.name}
+                                  </Link>
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        )}
+                      </>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                          isActive
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                        )}
+                      >
+                        <item.icon className="w-4 h-4 flex-shrink-0" />
+                        {item.name}
+                      </Link>
+                    )}
                   </li>
                 )
               })}

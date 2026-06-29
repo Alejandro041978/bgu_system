@@ -78,11 +78,13 @@ function formatDate(iso: string | null | undefined) {
 export function SendContractForm({
   templates,
   employees,
+  alwaysOpen = false,
 }: {
   templates: Template[]
   employees: Employee[]
+  alwaysOpen?: boolean
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(alwaysOpen)
   const [templateId, setTemplateId] = useState('')
   const [employeeId, setEmployeeId] = useState('')
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
@@ -184,12 +186,14 @@ export function SendContractForm({
 
   return (
     <div className="bg-white rounded-xl border border-green-200 p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-sm font-semibold text-gray-900">Enviar contrato a firma</h2>
-        <button onClick={reset} className="p-1 text-gray-400 hover:text-gray-600">
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+      {!alwaysOpen && (
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-sm font-semibold text-gray-900">Enviar contrato a firma</h2>
+          <button onClick={reset} className="p-1 text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {sent ? (
         <div className="text-center py-6">
