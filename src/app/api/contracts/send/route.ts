@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         start_date: start_date ?? null,
         end_date: end_date ?? null,
         salary: salary ?? null,
-        currency: currency ?? 'PEN',
+        currency: currency ?? 'USD',
       })
       .select()
       .single()

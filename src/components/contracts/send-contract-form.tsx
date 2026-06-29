@@ -50,7 +50,7 @@ export function SendContractForm({
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [salary, setSalary] = useState('')
-  const [currency, setCurrency] = useState('PEN')
+  const [currency, setCurrency] = useState('USD')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState<{ name: string; email: string } | null>(null)
