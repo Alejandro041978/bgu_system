@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, ChevronDown, ChevronRight, Trash2, Calendar, Circle } from 'lucide-react'
+import { Plus, ChevronDown, ChevronRight, Trash2, Calendar, Circle, Pencil, Check, X } from 'lucide-react'
 
 type Semester = { id: string; name: string; start_date: string | null; end_date: string | null; status: string }
 type Year = { id: string; name: string; start_date: string | null; end_date: string | null; status: string; semesters: Semester[] }
@@ -31,6 +31,11 @@ export function YearsManager({ initial }: { initial: Year[] }) {
   const [semForm, setSemForm] = useState<Record<string, { name: string; start_date: string; end_date: string; status: string }>>({})
   const [showSemForm, setShowSemForm] = useState<Record<string, boolean>>({})
   const [savingSem, setSavingSem] = useState<Record<string, boolean>>({})
+
+  // Edit semester inline
+  const [editingSemId, setEditingSemId] = useState<string | null>(null)
+  const [editSemForm, setEditSemForm] = useState({ name: '', start_date: '', end_date: '' })
+  const [savingSemEdit, setSavingSemEdit] = useState(false)
 
   async function createYear() {
     setSavingYear(true)
@@ -76,6 +81,37 @@ export function YearsManager({ initial }: { initial: Year[] }) {
       ? { ...y, semesters: y.semesters.map(s => s.id === semId ? { ...s, status } : s) }
       : y
     ))
+  }
+
+  function startEditSemester(sem: Semester) {
+    setEditingSemId(sem.id)
+    setEditSemForm({
+      name: sem.name,
+      start_date: sem.start_date ? sem.start_date.split('T')[0] : '',
+      end_date: sem.end_date ? sem.end_date.split('T')[0] : '',
+    })
+  }
+
+  async function saveSemesterEdit(semId: string, yearId: string) {
+    setSavingSemEdit(true)
+    const res = await fetch(`/api/academic/semesters/${semId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: editSemForm.name,
+        start_date: editSemForm.start_date || null,
+        end_date: editSemForm.end_date || null,
+      }),
+    })
+    if (res.ok) {
+      setYears(prev => prev.map(y => y.id === yearId
+        ? { ...y, semesters: y.semesters.map(s => s.id === semId
+            ? { ...s, name: editSemForm.name, start_date: editSemForm.start_date || null, end_date: editSemForm.end_date || null }
+            : s) }
+        : y
+      ))
+      setEditingSemId(null)
+    }
+    setSavingSemEdit(false)
   }
 
   async function deleteSemester(semId: string, yearId: string) {
@@ -168,7 +204,35 @@ export function YearsManager({ initial }: { initial: Year[] }) {
                 {year.semesters.length === 0 && !showSemForm[year.id] && (
                   <p className="text-xs text-gray-400 py-2">No hay semestres. Agrega el primero.</p>
                 )}
-                {year.semesters.map(sem => (
+                {year.semesters.map(sem => editingSemId === sem.id ? (
+                  <div key={sem.id} className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        value={editSemForm.name}
+                        onChange={e => setEditSemForm(p => ({ ...p, name: e.target.value }))}
+                        placeholder="Nombre del semestre"
+                        className="col-span-2 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      <input type="date"
+                        value={editSemForm.start_date}
+                        onChange={e => setEditSemForm(p => ({ ...p, start_date: e.target.value }))}
+                        className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      <input type="date"
+                        value={editSemForm.end_date}
+                        onChange={e => setEditSemForm(p => ({ ...p, end_date: e.target.value }))}
+                        className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => saveSemesterEdit(sem.id, year.id)} disabled={!editSemForm.name || savingSemEdit}
+                        className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-medium rounded-lg transition-colors">
+                        <Check className="w-3.5 h-3.5" /> {savingSemEdit ? 'Guardando...' : 'Guardar'}
+                      </button>
+                      <button onClick={() => setEditingSemId(null)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-white transition-colors">
+                        <X className="w-3.5 h-3.5" /> Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <div key={sem.id} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-gray-50 group">
                     <Circle className="w-2 h-2 text-gray-300 flex-shrink-0" />
                     <div className="flex-1">
@@ -186,6 +250,10 @@ export function YearsManager({ initial }: { initial: Year[] }) {
                       <option value="active">Activo</option>
                       <option value="closed">Cerrado</option>
                     </select>
+                    <button onClick={() => startEditSemester(sem)}
+                      className="p-1 text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
                     <button onClick={() => deleteSemester(sem.id, year.id)}
                       className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
                       <Trash2 className="w-3.5 h-3.5" />
