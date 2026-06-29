@@ -1,5 +1,19 @@
 import { PDFDocument, StandardFonts, rgb, PageSizes } from 'pdf-lib'
 
+// Normaliza caracteres Unicode que WinAnsi no puede codificar
+function sanitize(text: string): string {
+  return text
+    .replace(/ﬀ/g, 'ff').replace(/ﬁ/g, 'fi').replace(/ﬂ/g, 'fl')
+    .replace(/ﬃ/g, 'ffi').replace(/ﬄ/g, 'ffl')
+    .replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
+    .replace(/–/g, '-').replace(/—/g, '--')
+    .replace(/…/g, '...').replace(/ /g, ' ')
+    .replace(/[^\x00-\xFF]/g, (c) => {
+      // Intentar equivalente latin-1, si no reemplazar con '?'
+      try { return c.normalize('NFD').replace(/[̀-ͯ]/g, '') } catch { return '?' }
+    })
+}
+
 export async function generateContractPdf(params: {
   signerName: string
   signerEmail: string
@@ -11,6 +25,13 @@ export async function generateContractPdf(params: {
   const pdfDoc = await PDFDocument.create()
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica)
+
+  // Sanitize all text inputs
+  const templateName = sanitize(templateName)
+  const body = sanitize(body)
+  const signerName = sanitize(signerName)
+  const signerEmail = sanitize(signerEmail)
+  const ipAddress = sanitize(ipAddress)
 
   const blue = rgb(0.118, 0.251, 0.686)   // #1e40af
   const green = rgb(0.086, 0.639, 0.243)  // #16a34a
@@ -47,7 +68,7 @@ export async function generateContractPdf(params: {
   }
 
   // --- Build pages ---
-  const bodyLines = wrapText(params.body, helvetica, 10, contentWidth)
+  const bodyLines = wrapText(body, helvetica, 10, contentWidth)
   const signedAtStr = params.signedAt.toLocaleString('es-PE', {
     timeZone: 'America/Lima',
     day: '2-digit', month: '2-digit', year: 'numeric',
@@ -84,7 +105,7 @@ export async function generateContractPdf(params: {
     // Header on first page
     if (p === 0) {
       page.drawRectangle({ x: 0, y: pageHeight - headerHeight, width: pageWidth, height: headerHeight, color: blue })
-      page.drawText(params.templateName, {
+      page.drawText(templateName, {
         x: margin, y: pageHeight - 38,
         font: helveticaBold, size: 16, color: white,
         maxWidth: contentWidth,
@@ -96,7 +117,7 @@ export async function generateContractPdf(params: {
       y = pageHeight - headerHeight - 24
     } else {
       // Page number header
-      page.drawText(`${params.templateName}  ·  Página ${p + 1}`, {
+      page.drawText(`${templateName}  ·  Página ${p + 1}`, {
         x: margin, y: pageHeight - 28,
         font: helvetica, size: 8, color: gray,
       })
@@ -137,10 +158,10 @@ export async function generateContractPdf(params: {
       const col2x = margin + contentWidth / 2
 
       const fields: [string, string][] = [
-        ['Firmante:', params.signerName],
-        ['Correo:', params.signerEmail],
+        ['Firmante:', signerName],
+        ['Correo:', signerEmail],
         ['Fecha y hora:', `${signedAtStr} (Lima, PE)`],
-        ['IP registrada:', params.ipAddress || '—'],
+        ['IP registrada:', ipAddress || '—'],
         ['Verificación:', 'OTP por correo electrónico'],
       ]
 
