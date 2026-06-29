@@ -51,7 +51,7 @@ export async function POST(
     })
 
   await resend.emails.send({
-    from: 'noreply@ibeqa.org',
+    from: process.env.RESEND_FROM_EMAIL!,
     to: instance.signer_email,
     subject: `Tu código de firma: ${code}`,
     html: `

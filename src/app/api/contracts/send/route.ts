@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
 
     // Enviar email con el link de firma
     await resend.emails.send({
-      from: 'noreply@ibeqa.org',
+      from: process.env.RESEND_FROM_EMAIL!,
       to: signer_email,
       subject: `Tienes un contrato pendiente de firma`,
       html: `

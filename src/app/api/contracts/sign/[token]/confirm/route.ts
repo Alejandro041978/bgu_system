@@ -134,7 +134,7 @@ export async function POST(
 
   // Email de confirmación con PDF adjunto
   await resend.emails.send({
-    from: 'noreply@ibeqa.org',
+    from: process.env.RESEND_FROM_EMAIL!,
     to: instance.signer_email,
     subject: 'Confirmación de firma — ' + templateName,
     attachments: pdfUrl ? undefined : undefined, // adjunto via URL en el cuerpo
