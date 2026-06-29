@@ -27,11 +27,11 @@ export async function generateContractPdf(params: {
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
   // Sanitize all text inputs
-  const templateName = sanitize(templateName)
-  const body = sanitize(body)
-  const signerName = sanitize(signerName)
-  const signerEmail = sanitize(signerEmail)
-  const ipAddress = sanitize(ipAddress)
+  const templateName = sanitize(params.templateName)
+  const body = sanitize(params.body)
+  const signerName = sanitize(params.signerName)
+  const signerEmail = sanitize(params.signerEmail)
+  const ipAddress = sanitize(params.ipAddress)
 
   const blue = rgb(0.118, 0.251, 0.686)   // #1e40af
   const green = rgb(0.086, 0.639, 0.243)  // #16a34a
