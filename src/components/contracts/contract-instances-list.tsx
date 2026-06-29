@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, Clock, XCircle, FileText, User, Calendar, Monitor, Download, Loader2 } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, FileText, User, Calendar, Monitor, Download, Loader2, Briefcase, DollarSign, AlertTriangle } from 'lucide-react'
 
 type Instance = {
   id: string
@@ -16,6 +16,11 @@ type Instance = {
   token: string
   pdf_url: string | null
   template: { name: string } | null
+  position: string | null
+  start_date: string | null
+  end_date: string | null
+  salary: number | null
+  currency: string | null
 }
 
 const STATUS = {
@@ -39,6 +44,20 @@ function fmt(iso: string | null) {
     hour: '2-digit', minute: '2-digit',
     timeZone: 'America/Lima',
   })
+}
+
+function fmtDate(iso: string | null) {
+  if (!iso) return '—'
+  // date-only: YYYY-MM-DD, show as DD/MM/YYYY
+  const [y, m, d] = iso.split('T')[0].split('-')
+  return `${d}/${m}/${y}`
+}
+
+function daysUntil(iso: string | null): number | null {
+  if (!iso) return null
+  const end = new Date(iso.split('T')[0])
+  const today = new Date(); today.setHours(0,0,0,0)
+  return Math.ceil((end.getTime() - today.getTime()) / 86400000)
 }
 
 function GeneratePdfButton({ instanceId, onGenerated }: { instanceId: string; onGenerated: (url: string) => void }) {
@@ -124,6 +143,34 @@ export function ContractInstancesList({ instances: initial }: { instances: Insta
                   {inst.template && (
                     <p className="text-xs text-blue-600 mt-0.5">{inst.template.name}</p>
                   )}
+                  {inst.position && (
+                    <p className="text-xs text-gray-600 mt-0.5 flex items-center gap-1">
+                      <Briefcase className="w-3 h-3 text-gray-400" />{inst.position}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                    {inst.start_date && (
+                      <p className="text-xs text-gray-400">Inicio: {fmtDate(inst.start_date)}</p>
+                    )}
+                    {inst.end_date && (() => {
+                      const days = daysUntil(inst.end_date)
+                      const expiring = days !== null && days >= 0 && days <= 30
+                      const expired = days !== null && days < 0
+                      return (
+                        <p className={`text-xs flex items-center gap-1 ${expiring ? 'text-amber-600 font-medium' : expired ? 'text-red-500' : 'text-gray-400'}`}>
+                          {(expiring || expired) && <AlertTriangle className="w-3 h-3" />}
+                          Vence: {fmtDate(inst.end_date)}{expiring ? ` (${days}d)` : expired ? ' (vencido)' : ''}
+                        </p>
+                      )
+                    })()}
+                    {!inst.end_date && inst.start_date && <p className="text-xs text-gray-400">Plazo indefinido</p>}
+                    {inst.salary && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <DollarSign className="w-3 h-3 text-gray-400" />
+                        {inst.currency ?? 'PEN'} {inst.salary.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      </p>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-400 mt-1">Enviado: {fmt(inst.created_at)}</p>
                 </div>
                 {inst.status === 'signed' && (

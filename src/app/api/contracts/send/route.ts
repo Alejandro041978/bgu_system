@@ -20,7 +20,11 @@ export async function POST(req: NextRequest) {
       field_values: Record<string, string>
     }
 
-    const { template_id, signer_name, signer_email, signer_type, signer_ref_id, field_values } = body
+    const { template_id, signer_name, signer_email, signer_type, signer_ref_id, field_values,
+      position, start_date, end_date, salary, currency } = body as typeof body & {
+      position?: string; start_date?: string | null; end_date?: string | null
+      salary?: number | null; currency?: string
+    }
 
     if (!template_id || !signer_name || !signer_email || !signer_type) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
@@ -59,6 +63,11 @@ export async function POST(req: NextRequest) {
         signer_ref_id: signer_ref_id ?? null,
         field_values,
         status: 'pending',
+        position: position ?? null,
+        start_date: start_date ?? null,
+        end_date: end_date ?? null,
+        salary: salary ?? null,
+        currency: currency ?? 'PEN',
       })
       .select()
       .single()
