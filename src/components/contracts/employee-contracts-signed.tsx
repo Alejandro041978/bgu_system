@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, Clock, FileText, ChevronDown, ChevronUp, Monitor, Calendar } from 'lucide-react'
+import { CheckCircle2, Clock, FileText, ChevronDown, ChevronUp, Monitor, Calendar, Download } from 'lucide-react'
 
 type Instance = {
   id: string
@@ -10,6 +10,7 @@ type Instance = {
   signed_at: string | null
   ip_address: string | null
   token: string
+  pdf_url: string | null
   template: { name: string } | null
 }
 
@@ -68,7 +69,7 @@ export function EmployeeContractsSigned({ instances }: { instances: Instance[] }
                 {isOpen && signed && (
                   <div className="px-6 pb-4 pt-2 bg-green-50 border-t border-green-100">
                     <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-2">Evidencia de firma</p>
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 mb-3">
                       <div className="flex items-center gap-2 text-xs text-gray-700">
                         <Calendar className="w-3.5 h-3.5 text-gray-400" />
                         <span>Firmado el {fmt(inst.signed_at)} (Lima, PE)</span>
@@ -78,6 +79,16 @@ export function EmployeeContractsSigned({ instances }: { instances: Instance[] }
                         <span>IP: {inst.ip_address ?? '—'}</span>
                       </div>
                     </div>
+                    {inst.pdf_url && (
+                      <a
+                        href={inst.pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-white border border-green-300 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Descargar PDF firmado
+                      </a>
+                    )}
                   </div>
                 )}
 

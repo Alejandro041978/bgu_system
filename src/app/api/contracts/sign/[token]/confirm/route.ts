@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { generateContractPdf } from '@/lib/generate-contract-pdf'
 
 const admin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,7 +25,7 @@ export async function POST(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: instance } = await (supabase as any)
     .from('contract_instances')
-    .select('id, status, token_expires_at, signer_name, signer_email, rendered_body')
+    .select('id, status, token_expires_at, signer_name, signer_email, rendered_body, template:contract_templates(name)')
     .eq('token', token)
     .single()
 
@@ -69,17 +70,74 @@ export async function POST(
     })
     .eq('id', instance.id)
 
+  // Generar PDF
+  const templateName = instance.template?.name ?? 'Contrato'
+  let pdfUrl: string | null = null
+
+  try {
+    const pdfBuffer = await generateContractPdf({
+      signerName: instance.signer_name,
+      signerEmail: instance.signer_email,
+      templateName,
+      body: instance.rendered_body,
+      signedAt,
+      ipAddress: ip,
+    })
+
+    // Subir a Supabase Storage
+    const fileName = `${instance.id}_${Date.now()}.pdf`
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: uploadError } = await (supabase as any)
+      .storage
+      .from('contracts')
+      .upload(fileName, pdfBuffer, {
+        contentType: 'application/pdf',
+        upsert: false,
+      })
+
+    if (!uploadError) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: urlData } = (supabase as any)
+        .storage
+        .from('contracts')
+        .getPublicUrl(fileName)
+      pdfUrl = urlData?.publicUrl ?? null
+
+      // Guardar URL en la instancia
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('contract_instances')
+        .update({ pdf_url: pdfUrl })
+        .eq('id', instance.id)
+    }
+  } catch (pdfErr) {
+    console.error('Error generando PDF:', pdfErr)
+    // Continuamos aunque falle el PDF — la firma ya quedó registrada
+  }
+
   const signedAtStr = signedAt.toLocaleString('es-PE', {
     timeZone: 'America/Lima',
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
 
-  // Email de confirmación al firmante
+  const pdfButton = pdfUrl ? `
+    <table cellpadding="0" cellspacing="0" style="margin:0 auto 20px;">
+      <tr>
+        <td style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 24px;">
+          <a href="${pdfUrl}" style="color:#16a34a;text-decoration:none;font-size:14px;font-weight:600;">
+            📄 Descargar contrato firmado (PDF)
+          </a>
+        </td>
+      </tr>
+    </table>` : ''
+
+  // Email de confirmación con PDF adjunto
   await resend.emails.send({
     from: 'noreply@ibeqa.org',
     to: instance.signer_email,
-    subject: 'Confirmación de firma de documento',
+    subject: 'Confirmación de firma — ' + templateName,
+    attachments: pdfUrl ? undefined : undefined, // adjunto via URL en el cuerpo
     html: `
       <!DOCTYPE html>
       <html>
@@ -96,16 +154,17 @@ export async function POST(
               </tr>
               <tr>
                 <td style="padding:32px 40px;">
-                  <p style="margin:0 0 20px;color:#374151;font-size:15px;">
+                  <p style="margin:0 0 8px;color:#374151;font-size:15px;">
                     Hola <strong>${instance.signer_name}</strong>,
                   </p>
                   <p style="margin:0 0 24px;color:#374151;font-size:15px;">
-                    Este correo confirma que firmaste el documento el <strong>${signedAtStr}</strong>.
+                    Firmaste el documento <strong>${templateName}</strong> el <strong>${signedAtStr}</strong>.
                   </p>
+                  ${pdfButton}
                   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;margin-bottom:24px;">
                     <tr>
                       <td style="padding:16px 20px;">
-                        <p style="margin:0 0 6px;font-size:12px;color:#16a34a;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Evidencia de firma</p>
+                        <p style="margin:0 0 8px;font-size:12px;color:#16a34a;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Evidencia de firma</p>
                         <p style="margin:0 0 4px;font-size:13px;color:#374151;"><strong>Firmante:</strong> ${instance.signer_name}</p>
                         <p style="margin:0 0 4px;font-size:13px;color:#374151;"><strong>Correo:</strong> ${instance.signer_email}</p>
                         <p style="margin:0 0 4px;font-size:13px;color:#374151;"><strong>Fecha y hora:</strong> ${signedAtStr} (Lima, PE)</p>
