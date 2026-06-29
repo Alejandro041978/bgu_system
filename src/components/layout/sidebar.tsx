@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Headphones, DollarSign, Users, BarChart3,
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Building2, Bot, Shield, FileSignature, List, Plus, FileText,
+  GraduationCap, CalendarDays, BookOpen, ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -51,6 +52,22 @@ const navigation: NavGroup[] = [
           { name: 'Lista', href: '/contracts', icon: List },
           { name: 'Nuevo', href: '/contracts/new', icon: Plus },
           { name: 'Plantillas', href: '/contracts/templates', icon: FileText },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Académico',
+    items: [
+      {
+        name: 'Docentes', href: '/academic/faculty', icon: GraduationCap,
+      },
+      {
+        name: 'Gestión académica', href: '/academic/years', icon: CalendarDays,
+        children: [
+          { name: 'Años y Semestres', href: '/academic/years', icon: CalendarDays },
+          { name: 'Programas', href: '/academic/programs', icon: BookOpen },
+          { name: 'Oferta', href: '/academic/offer', icon: ClipboardList },
         ],
       },
     ],
