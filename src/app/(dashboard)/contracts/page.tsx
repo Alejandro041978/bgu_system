@@ -11,7 +11,7 @@ async function getData() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any).from('contract_templates').select('*').order('created_at', { ascending: false }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any).from('hr_employees').select('id, full_name, email, phone, position, document_number, document_type, birth_date, address, nationality').order('full_name'),
+    (supabase as any).from('hr_employees').select('id, full_name, email, phone, position, document_number, document_type, birth_date, address').order('full_name'),
   ])
   return { templates: templates ?? [], employees: employees ?? [] }
 }

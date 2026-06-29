@@ -20,7 +20,6 @@ type Employee = {
   document_type?: string | null
   birth_date?: string | null
   address?: string | null
-  nationality?: string | null
 }
 
 // Mapeo de variables del contrato → campos del empleado
@@ -44,8 +43,6 @@ const VAR_TO_EMPLOYEE: Record<string, keyof Employee> = {
   fecha_nacimiento: 'birth_date',
   address: 'address',
   direccion: 'address',
-  nationality: 'nationality',
-  nacionalidad: 'nationality',
 }
 
 const VAR_LABELS: Record<string, string> = {
