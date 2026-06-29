@@ -46,13 +46,14 @@ export function NewEmployeeForm() {
     address: '',
     notes: '',
     send_invite: true,
+    is_faculty: false,
     zoho_agent_id: '',
     zoho_agent_email: '',
     phone_prefix: '+51',
     phone_number: '',
   })
 
-  function set(key: string, value: string | boolean) {
+  function set(key: string, value: string | boolean | null) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
@@ -202,6 +203,23 @@ export function NewEmployeeForm() {
               onChange={e => set('notes', e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
+          </div>
+
+          <div className="col-span-2">
+            <label className="flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors border-gray-200 hover:border-indigo-300 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+              <input
+                type="checkbox"
+                checked={form.is_faculty}
+                onChange={e => set('is_faculty', e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <div>
+                <p className="text-sm font-medium text-gray-900">Es docente (Faculty)</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Permite asignar asignaturas por semestre y aparece en la sección Faculty para gestión académica.
+                </p>
+              </div>
+            </label>
           </div>
         </div>
       </div>

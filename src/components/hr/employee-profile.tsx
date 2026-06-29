@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Mail, Phone, MapPin, FileText, CheckCircle2, AlertCircle, Clock, Pencil, X, Save } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, MapPin, FileText, CheckCircle2, AlertCircle, Clock, Pencil, X, Save, GraduationCap } from 'lucide-react'
 import Link from 'next/link'
 
 type Employee = {
@@ -22,6 +22,7 @@ type Employee = {
   active_contract_id: string | null
   active_position: string | null
   contract_count: number
+  is_faculty: boolean | null
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -67,9 +68,10 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
     birth_date: e.birth_date ?? '',
     address: e.address ?? '',
     notes: e.notes ?? '',
+    is_faculty: e.is_faculty ?? false,
   })
 
-  function set(key: string, value: string) {
+  function set(key: string, value: string | boolean) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
@@ -89,6 +91,7 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
         birth_date: form.birth_date || null,
         address: form.address || null,
         notes: form.notes || null,
+        is_faculty: form.is_faculty,
       }),
     })
     setSaving(false)
@@ -186,6 +189,23 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
             <textarea rows={2} value={form.notes} onChange={e => set('notes', e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
           </div>
+
+          <div className="col-span-2">
+            <label className="flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors border-gray-200 hover:border-indigo-300 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+              <input
+                type="checkbox"
+                checked={form.is_faculty}
+                onChange={ev => set('is_faculty', ev.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <div>
+                <p className="text-sm font-medium text-gray-900">Es docente (Faculty)</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Permite asignar asignaturas por semestre y aparece en la sección Faculty.
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
@@ -214,11 +234,16 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
             {e.full_name.split(' ').map(n => n[0]).slice(0, 2).join('')}
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-lg font-bold text-gray-900">{e.full_name}</h1>
               <span className={`text-xs px-2 py-1 rounded-full font-medium ${TYPE_COLOR[e.employee_type]}`}>
                 {TYPE_LABEL[e.employee_type]}
               </span>
+              {e.is_faculty && (
+                <span className="flex items-center gap-1 text-xs text-indigo-700 bg-indigo-50 px-2 py-1 rounded-full font-medium">
+                  <GraduationCap className="w-3 h-3" /> Faculty
+                </span>
+              )}
               {isActive ? (
                 <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
                   <CheckCircle2 className="w-3 h-3" /> Contrato activo
