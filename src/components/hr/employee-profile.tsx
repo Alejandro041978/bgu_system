@@ -184,27 +184,25 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
-          <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Notas internas</label>
-            <textarea rows={2} value={form.notes} onChange={e => set('notes', e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-          </div>
-
-          <div className="col-span-2">
-            <label className="flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors border-gray-200 hover:border-indigo-300 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+          <div className="col-span-2 pt-1">
+            <label className="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-colors border-gray-200 hover:border-indigo-300 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
               <input
                 type="checkbox"
                 checked={form.is_faculty}
                 onChange={ev => set('is_faculty', ev.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 flex-shrink-0"
               />
               <div>
                 <p className="text-sm font-medium text-gray-900">Es docente (Faculty)</p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Permite asignar asignaturas por semestre y aparece en la sección Faculty.
-                </p>
+                <p className="text-xs text-gray-500">Permite asignar asignaturas por semestre.</p>
               </div>
             </label>
+          </div>
+
+          <div className="col-span-2">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Notas internas</label>
+            <textarea rows={2} value={form.notes} onChange={e => set('notes', e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
           </div>
         </div>
 
