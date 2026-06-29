@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, Clock, XCircle, FileText, User, Calendar, Monitor, Download } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, FileText, User, Calendar, Monitor, Download, Loader2 } from 'lucide-react'
 
 type Instance = {
   id: string
@@ -41,8 +41,47 @@ function fmt(iso: string | null) {
   })
 }
 
-export function ContractInstancesList({ instances }: { instances: Instance[] }) {
+function GeneratePdfButton({ instanceId, onGenerated }: { instanceId: string; onGenerated: (url: string) => void }) {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function generate() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/contracts/instances/${instanceId}/pdf`, { method: 'POST' })
+      const data = await res.json() as { ok?: boolean; pdf_url?: string; error?: string }
+      if (!res.ok) throw new Error(data.error)
+      onGenerated(data.pdf_url!)
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={generate}
+        disabled={loading}
+        className="inline-flex items-center gap-2 bg-white border border-green-300 text-green-700 text-xs font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50"
+      >
+        {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+        {loading ? 'Generando PDF...' : 'Generar PDF'}
+      </button>
+      {error && <span className="text-xs text-red-500">{error}</span>}
+    </div>
+  )
+}
+
+export function ContractInstancesList({ instances: initial }: { instances: Instance[] }) {
+  const [instances, setInstances] = useState(initial)
   const [expanded, setExpanded] = useState<string | null>(null)
+
+  function handlePdfGenerated(id: string, url: string) {
+    setInstances(prev => prev.map(i => i.id === id ? { ...i, pdf_url: url } : i))
+  }
 
   if (instances.length === 0) {
     return (
@@ -123,7 +162,7 @@ export function ContractInstancesList({ instances }: { instances: Instance[] }) 
                       </div>
                     </div>
                   </div>
-                  {inst.pdf_url && (
+                  {inst.pdf_url ? (
                     <a
                       href={inst.pdf_url}
                       target="_blank"
@@ -132,6 +171,8 @@ export function ContractInstancesList({ instances }: { instances: Instance[] }) 
                     >
                       <Download className="w-3.5 h-3.5" /> Descargar PDF firmado
                     </a>
+                  ) : (
+                    <GeneratePdfButton instanceId={inst.id} onGenerated={(url) => handlePdfGenerated(inst.id, url)} />
                   )}
                 </div>
               )}

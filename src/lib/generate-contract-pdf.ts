@@ -1,4 +1,4 @@
-import PDFDocument from 'pdfkit'
+import { PDFDocument, StandardFonts, rgb, PageSizes } from 'pdf-lib'
 
 export async function generateContractPdf(params: {
   signerName: string
@@ -8,76 +8,170 @@ export async function generateContractPdf(params: {
   signedAt: Date
   ipAddress: string
 }): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 72, size: 'A4' })
-    const chunks: Buffer[] = []
+  const pdfDoc = await PDFDocument.create()
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
-    doc.on('data', chunk => chunks.push(chunk as Buffer))
-    doc.on('end', () => resolve(Buffer.concat(chunks)))
-    doc.on('error', reject)
+  const blue = rgb(0.118, 0.251, 0.686)   // #1e40af
+  const green = rgb(0.086, 0.639, 0.243)  // #16a34a
+  const dark = rgb(0.067, 0.094, 0.153)   // #111827
+  const gray = rgb(0.42, 0.447, 0.502)    // #6b7280
+  const lightGray = rgb(0.961, 0.961, 0.969)
+  const lightGreen = rgb(0.94, 0.992, 0.953)
+  const white = rgb(1, 1, 1)
 
-    const blue = '#1e40af'
-    const gray = '#6b7280'
-    const dark = '#111827'
+  const margin = 50
+  const pageWidth = PageSizes.A4[0]
+  const pageHeight = PageSizes.A4[1]
+  const contentWidth = pageWidth - margin * 2
 
-    // Header
-    doc.rect(0, 0, doc.page.width, 80).fill(blue)
-    doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold')
-      .text(params.templateName, 72, 28, { width: doc.page.width - 144 })
-    doc.fillColor('#bfdbfe').fontSize(10).font('Helvetica')
-      .text('Documento firmado digitalmente', 72, 52)
+  // Helper: wrap text into lines fitting maxWidth
+  function wrapText(text: string, font: typeof helvetica, size: number, maxWidth: number): string[] {
+    const lines: string[] = []
+    for (const paragraph of text.split('\n')) {
+      if (paragraph.trim() === '') { lines.push(''); continue }
+      const words = paragraph.split(' ')
+      let current = ''
+      for (const word of words) {
+        const test = current ? `${current} ${word}` : word
+        if (font.widthOfTextAtSize(test, size) > maxWidth && current) {
+          lines.push(current)
+          current = word
+        } else {
+          current = test
+        }
+      }
+      if (current) lines.push(current)
+    }
+    return lines
+  }
 
-    doc.moveDown(3)
+  // --- Build pages ---
+  const bodyLines = wrapText(params.body, helvetica, 10, contentWidth)
+  const signedAtStr = params.signedAt.toLocaleString('es-PE', {
+    timeZone: 'America/Lima',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
 
-    // Body text
-    doc.fillColor(dark).fontSize(10).font('Helvetica')
-      .text(params.body, {
-        align: 'justify',
-        lineGap: 4,
+  // Evidence block height
+  const evidenceHeight = 110
+
+  // We'll paginate body lines
+  const lineHeight = 14
+  const headerHeight = 72
+  // First page: header + body
+  // Last page: body + evidence block at bottom
+  // Reserve space for evidence only on last page
+  const firstPageBodySpace = pageHeight - headerHeight - margin - evidenceHeight - 20
+  const otherPageBodySpace = pageHeight - margin * 2 - evidenceHeight - 20
+  const linesPerFirstPage = Math.floor(firstPageBodySpace / lineHeight)
+  const linesPerOtherPage = Math.floor(otherPageBodySpace / lineHeight)
+
+  // Split lines into pages
+  const pages: string[][] = []
+  let remaining = [...bodyLines]
+  pages.push(remaining.splice(0, linesPerFirstPage))
+  while (remaining.length > 0) {
+    pages.push(remaining.splice(0, linesPerOtherPage))
+  }
+  if (pages.length === 0) pages.push([])
+
+  for (let p = 0; p < pages.length; p++) {
+    const page = pdfDoc.addPage(PageSizes.A4)
+    let y = pageHeight
+
+    // Header on first page
+    if (p === 0) {
+      page.drawRectangle({ x: 0, y: pageHeight - headerHeight, width: pageWidth, height: headerHeight, color: blue })
+      page.drawText(params.templateName, {
+        x: margin, y: pageHeight - 38,
+        font: helveticaBold, size: 16, color: white,
+        maxWidth: contentWidth,
+      })
+      page.drawText('Documento firmado digitalmente', {
+        x: margin, y: pageHeight - 58,
+        font: helvetica, size: 9, color: rgb(0.75, 0.855, 0.988),
+      })
+      y = pageHeight - headerHeight - 24
+    } else {
+      // Page number header
+      page.drawText(`${params.templateName}  ·  Página ${p + 1}`, {
+        x: margin, y: pageHeight - 28,
+        font: helvetica, size: 8, color: gray,
+      })
+      y = pageHeight - margin - 10
+    }
+
+    // Body lines
+    for (const line of pages[p]) {
+      if (line === '') { y -= lineHeight * 0.5; continue }
+      page.drawText(line, { x: margin, y, font: helvetica, size: 10, color: dark })
+      y -= lineHeight
+    }
+
+    // Evidence block on last page
+    if (p === pages.length - 1) {
+      const blockY = margin
+      const blockH = evidenceHeight
+
+      // Separator line
+      page.drawLine({
+        start: { x: margin, y: blockY + blockH + 12 },
+        end: { x: pageWidth - margin, y: blockY + blockH + 12 },
+        thickness: 0.5, color: rgb(0.9, 0.9, 0.9),
       })
 
-    // Signature block
-    const pageBottom = doc.page.height - 72
-    const blockTop = pageBottom - 130
+      // Green background
+      page.drawRectangle({ x: margin, y: blockY, width: contentWidth, height: blockH, color: lightGreen })
+      page.drawRectangle({ x: margin, y: blockY, width: contentWidth, height: blockH, borderColor: green, borderWidth: 1 })
 
-    doc.moveTo(72, blockTop).lineTo(doc.page.width - 72, blockTop)
-      .strokeColor('#e5e7eb').lineWidth(1).stroke()
+      // Title
+      page.drawText('EVIDENCIA DE FIRMA DIGITAL', {
+        x: margin + 12, y: blockY + blockH - 20,
+        font: helveticaBold, size: 7.5, color: green,
+      })
 
-    doc.rect(72, blockTop + 16, doc.page.width - 144, 114)
-      .fillColor('#f0fdf4').fill()
-    doc.rect(72, blockTop + 16, doc.page.width - 144, 114)
-      .strokeColor('#86efac').lineWidth(1).stroke()
+      // Fields — 2 columns
+      const col1x = margin + 12
+      const col2x = margin + contentWidth / 2
 
-    doc.fillColor('#16a34a').fontSize(8).font('Helvetica-Bold')
-      .text('EVIDENCIA DE FIRMA DIGITAL', 88, blockTop + 28, { characterSpacing: 1 })
+      const fields: [string, string][] = [
+        ['Firmante:', params.signerName],
+        ['Correo:', params.signerEmail],
+        ['Fecha y hora:', `${signedAtStr} (Lima, PE)`],
+        ['IP registrada:', params.ipAddress || '—'],
+        ['Verificación:', 'OTP por correo electrónico'],
+      ]
 
-    const col1 = 88
-    const col2 = 320
-    const row1 = blockTop + 44
-    const row2 = blockTop + 66
-    const row3 = blockTop + 88
+      const fieldRows = [
+        [fields[0], fields[3]],
+        [fields[1], fields[4]],
+        [fields[2], null],
+      ]
 
-    doc.fillColor(gray).fontSize(8).font('Helvetica')
-    doc.text('Firmante:', col1, row1)
-    doc.text('Correo electrónico:', col1, row2)
-    doc.text('Fecha y hora:', col1, row3)
-    doc.text('IP registrada:', col2, row1)
-    doc.text('Método de verificación:', col2, row2)
+      let fy = blockY + blockH - 36
+      for (const row of fieldRows) {
+        const [left, right] = row
+        if (left) {
+          page.drawText(left[0], { x: col1x, y: fy, font: helveticaBold, size: 8, color: gray })
+          page.drawText(left[1], { x: col1x + 60, y: fy, font: helvetica, size: 8, color: dark, maxWidth: contentWidth / 2 - 70 })
+        }
+        if (right) {
+          page.drawText(right[0], { x: col2x, y: fy, font: helveticaBold, size: 8, color: gray })
+          page.drawText(right[1], { x: col2x + 80, y: fy, font: helvetica, size: 8, color: dark, maxWidth: contentWidth / 2 - 90 })
+        }
+        fy -= 16
+      }
 
-    doc.fillColor(dark).font('Helvetica-Bold')
-    doc.text(params.signerName, col1 + 55, row1)
-    doc.text(params.signerEmail, col1 + 110, row2)
-    doc.text(
-      params.signedAt.toLocaleString('es-PE', {
-        timeZone: 'America/Lima',
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      }) + ' (Lima, PE)',
-      col1 + 65, row3
-    )
-    doc.text(params.ipAddress || '—', col2 + 75, row1)
-    doc.text('OTP por correo electrónico', col2 + 135, row2)
+      // Footer note
+      page.drawRectangle({ x: 0, y: 0, width: pageWidth, height: margin - 8, color: lightGray })
+      page.drawText('Este documento tiene validez legal como evidencia de firma electrónica simple.', {
+        x: margin, y: 14, font: helvetica, size: 7, color: gray,
+      })
+    }
+  }
 
-    doc.end()
-  })
+  const pdfBytes = await pdfDoc.save()
+  return Buffer.from(pdfBytes)
 }

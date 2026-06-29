@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, Clock, FileText, ChevronDown, ChevronUp, Monitor, Calendar, Download } from 'lucide-react'
+import { CheckCircle2, Clock, FileText, ChevronDown, ChevronUp, Monitor, Calendar, Download, Loader2 } from 'lucide-react'
 
 type Instance = {
   id: string
@@ -14,6 +14,32 @@ type Instance = {
   template: { name: string } | null
 }
 
+function GeneratePdfButton({ instanceId, onGenerated }: { instanceId: string; onGenerated: (url: string) => void }) {
+  const [loading, setLoading] = useState(false)
+
+  async function generate() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/contracts/instances/${instanceId}/pdf`, { method: 'POST' })
+      const data = await res.json() as { pdf_url?: string }
+      if (data.pdf_url) onGenerated(data.pdf_url)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={generate}
+      disabled={loading}
+      className="inline-flex items-center gap-2 bg-white border border-green-300 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50"
+    >
+      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+      {loading ? 'Generando...' : 'Generar PDF'}
+    </button>
+  )
+}
+
 function fmt(iso: string | null) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('es-PE', {
@@ -23,8 +49,13 @@ function fmt(iso: string | null) {
   })
 }
 
-export function EmployeeContractsSigned({ instances }: { instances: Instance[] }) {
+export function EmployeeContractsSigned({ instances: initial }: { instances: Instance[] }) {
+  const [instances, setInstances] = useState(initial)
   const [expanded, setExpanded] = useState<string | null>(null)
+
+  function handlePdfGenerated(id: string, url: string) {
+    setInstances(prev => prev.map(i => i.id === id ? { ...i, pdf_url: url } : i))
+  }
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -79,7 +110,7 @@ export function EmployeeContractsSigned({ instances }: { instances: Instance[] }
                         <span>IP: {inst.ip_address ?? '—'}</span>
                       </div>
                     </div>
-                    {inst.pdf_url && (
+                    {inst.pdf_url ? (
                       <a
                         href={inst.pdf_url}
                         target="_blank"
@@ -88,6 +119,8 @@ export function EmployeeContractsSigned({ instances }: { instances: Instance[] }
                       >
                         <Download className="w-3.5 h-3.5" /> Descargar PDF firmado
                       </a>
+                    ) : (
+                      <GeneratePdfButton instanceId={inst.id} onGenerated={(url) => handlePdfGenerated(inst.id, url)} />
                     )}
                   </div>
                 )}
