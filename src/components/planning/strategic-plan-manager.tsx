@@ -66,6 +66,12 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
   // Revise (versioning) modal state: { level, id, parentId }
   const [revising, setRevising] = useState<{ level: 'dimension' | 'objective' | 'strategy' | 'action'; id: string; parentId: string } | null>(null)
   const [reviseForm, setReviseForm] = useState(emptyRevise())
+  type HistoryEntry = {
+    id: string; code: string; name: string; description: string | null
+    valid_from_year: number; valid_to_year: number | null; status: string; change_reason: string | null
+  }
+  const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const [savingRevise, setSavingRevise] = useState(false)
 
   // Responsible assignment per action
@@ -253,9 +259,15 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
     setActionsByStrat(prev => ({ ...prev, [stratId]: (prev[stratId] ?? []).filter(a => a.id !== id) }))
   }
 
-  function openRevise(level: 'dimension' | 'objective' | 'strategy' | 'action', item: { name: string; description?: string | null; valid_from_year: number }, id: string, parentId: string) {
+  function openRevise(level: 'dimension' | 'objective' | 'strategy' | 'action', item: { code: string; name: string; description?: string | null; valid_from_year: number }, id: string, parentId: string) {
     setRevising({ level, id, parentId })
     setReviseForm({ name: item.name, description: item.description ?? '', valid_from_year: currentYear, change_reason: '' })
+    setHistory([])
+    setLoadingHistory(true)
+    const historyParentId = level === 'dimension' ? selectedCycleId : parentId
+    fetch(`/api/planning/history?level=${level}&parent_id=${historyParentId}&code=${encodeURIComponent(item.code)}`)
+      .then(r => r.json())
+      .then(data => { setHistory(Array.isArray(data) ? data : []); setLoadingHistory(false) })
   }
 
   async function saveRevise() {
@@ -702,12 +714,36 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
       {/* Modal de revisión / nueva versión */}
       {revising && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setRevising(null)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5 space-y-3" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5 space-y-3 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-2">
               <History className="w-4 h-4 text-blue-600" />
-              <p className="text-sm font-semibold text-gray-900">Nueva versión (revisión)</p>
+              <p className="text-sm font-semibold text-gray-900">Historial de versiones</p>
             </div>
-            <p className="text-xs text-gray-500">Se conservará la versión anterior en el historial. Esta entrada quedará vigente desde el año indicado.</p>
+
+            {loadingHistory ? (
+              <p className="text-xs text-gray-400">Cargando historial...</p>
+            ) : history.length <= 1 ? (
+              <p className="text-xs text-gray-400">Sin revisiones anteriores. Esta es la única versión registrada.</p>
+            ) : (
+              <div className="space-y-1.5 border border-gray-100 rounded-lg p-2 bg-gray-50/50">
+                {history.map(h => (
+                  <div key={h.id} className="flex items-start gap-2 bg-white border border-gray-100 rounded-lg px-2.5 py-2">
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 ${h.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {h.valid_from_year}{h.valid_to_year ? `–${h.valid_to_year}` : '+'}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-800">{h.name}</p>
+                      {h.change_reason && <p className="text-xs text-gray-400 italic">Motivo: {h.change_reason}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="border-t border-gray-100 pt-3">
+              <p className="text-sm font-semibold text-gray-900 mb-1">Crear nueva versión</p>
+              <p className="text-xs text-gray-500">Se conservará la versión anterior en el historial. Esta entrada quedará vigente desde el año indicado.</p>
+            </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
               <input value={reviseForm.name} onChange={e => setReviseForm(p => ({ ...p, name: e.target.value }))}
