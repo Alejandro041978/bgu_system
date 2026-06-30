@@ -1,0 +1,592 @@
+'use client'
+
+import { useState } from 'react'
+import {
+  Plus, ChevronDown, ChevronRight, Trash2, Pencil, Check, X, Target,
+  Layers, ListChecks, UserCheck, History, Loader2,
+} from 'lucide-react'
+
+type Employee = { id: string; full_name: string; position: string | null }
+type Responsible = { id: string; role: string; assigned_from_year: number; assigned_to_year: number | null; employee: Employee }
+type Action = {
+  id: string; code: string; name: string; description: string | null
+  start_year: number | null; target_close_year: number | null; progress_pct: number | null
+  valid_from_year: number; status: string; responsibles: Responsible[]
+}
+type Strategy = { id: string; code: string; name: string; description: string | null; valid_from_year: number }
+type Objective = { id: string; code: string; name: string; description: string | null; valid_from_year: number }
+type Dimension = { id: string; code: string; name: string; description: string | null; valid_from_year: number }
+type Cycle = { id: string; name: string; start_year: number; end_year: number; status: string }
+
+const ACTION_STATUS: Record<string, { label: string; color: string }> = {
+  active:    { label: 'En ejecución',  color: 'bg-blue-100 text-blue-700' },
+  completed: { label: 'Completada',    color: 'bg-green-100 text-green-700' },
+  at_risk:   { label: 'En riesgo',     color: 'bg-amber-100 text-amber-700' },
+  overdue:   { label: 'Vencida',       color: 'bg-red-100 text-red-700' },
+  cancelled: { label: 'Cancelada',     color: 'bg-gray-100 text-gray-500' },
+}
+
+function emptyRevise() { return { name: '', description: '', valid_from_year: new Date().getFullYear(), change_reason: '' } }
+
+export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; faculty: Employee[] }) {
+  const [selectedCycleId, setSelectedCycleId] = useState(cycles[0]?.id ?? '')
+
+  // New cycle form
+  const [showCycleForm, setShowCycleForm] = useState(false)
+  const [cycleForm, setCycleForm] = useState({ name: '', start_year: '', end_year: '' })
+  const [savingCycle, setSavingCycle] = useState(false)
+  const [allCycles, setAllCycles] = useState(cycles)
+
+  // Dimensions
+  const [dimensions, setDimensions] = useState<Dimension[]>([])
+  const [loadingDims, setLoadingDims] = useState(false)
+  const [dimLoaded, setDimLoaded] = useState(false)
+  const [showDimForm, setShowDimForm] = useState(false)
+  const [dimForm, setDimForm] = useState({ code: '', name: '', valid_from_year: new Date().getFullYear() })
+
+  // Expand state per level
+  const [expandedDim, setExpandedDim] = useState<Record<string, boolean>>({})
+  const [expandedObj, setExpandedObj] = useState<Record<string, boolean>>({})
+  const [expandedStrat, setExpandedStrat] = useState<Record<string, boolean>>({})
+
+  // Children data keyed by parent id
+  const [objectivesByDim, setObjectivesByDim] = useState<Record<string, Objective[]>>({})
+  const [strategiesByObj, setStrategiesByObj] = useState<Record<string, Strategy[]>>({})
+  const [actionsByStrat, setActionsByStrat] = useState<Record<string, Action[]>>({})
+
+  // Add-forms per parent
+  const [showObjForm, setShowObjForm] = useState<Record<string, boolean>>({})
+  const [objForm, setObjForm] = useState<Record<string, { code: string; name: string }>>({})
+  const [showStratForm, setShowStratForm] = useState<Record<string, boolean>>({})
+  const [stratForm, setStratForm] = useState<Record<string, { code: string; name: string }>>({})
+  const [showActionForm, setShowActionForm] = useState<Record<string, boolean>>({})
+  const [actionForm, setActionForm] = useState<Record<string, { code: string; name: string; start_year: string; target_close_year: string }>>({})
+
+  // Revise (versioning) modal state: { level, id, parentId }
+  const [revising, setRevising] = useState<{ level: 'dimension' | 'objective' | 'strategy' | 'action'; id: string; parentId: string } | null>(null)
+  const [reviseForm, setReviseForm] = useState(emptyRevise())
+  const [savingRevise, setSavingRevise] = useState(false)
+
+  // Responsible assignment per action
+  const [assigningAction, setAssigningAction] = useState<string | null>(null)
+  const [assignEmployeeId, setAssignEmployeeId] = useState('')
+
+  const currentYear = new Date().getFullYear()
+
+  async function createCycle() {
+    setSavingCycle(true)
+    const res = await fetch('/api/planning/cycles', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: cycleForm.name, start_year: Number(cycleForm.start_year), end_year: Number(cycleForm.end_year) }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setAllCycles(prev => [data, ...prev])
+      setSelectedCycleId(data.id)
+      setCycleForm({ name: '', start_year: '', end_year: '' })
+      setShowCycleForm(false)
+      setDimLoaded(false)
+    }
+    setSavingCycle(false)
+  }
+
+  async function loadDimensions() {
+    if (!selectedCycleId) return
+    setLoadingDims(true)
+    const res = await fetch(`/api/planning/dimensions?cycle_id=${selectedCycleId}`)
+    const data = await res.json()
+    setDimensions(Array.isArray(data) ? data : [])
+    setLoadingDims(false)
+    setDimLoaded(true)
+  }
+
+  if (selectedCycleId && !dimLoaded && !loadingDims) loadDimensions()
+
+  async function createDimension() {
+    const res = await fetch('/api/planning/dimensions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cycle_id: selectedCycleId, code: dimForm.code, name: dimForm.name, valid_from_year: dimForm.valid_from_year }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setDimensions(prev => [...prev, data])
+      setDimForm({ code: '', name: '', valid_from_year: currentYear })
+      setShowDimForm(false)
+    }
+  }
+
+  async function deleteDimension(id: string) {
+    if (!confirm('¿Eliminar esta dimensión y todo su contenido?')) return
+    await fetch(`/api/planning/dimensions/${id}`, { method: 'DELETE' })
+    setDimensions(prev => prev.filter(d => d.id !== id))
+  }
+
+  async function loadObjectives(dimId: string) {
+    const res = await fetch(`/api/planning/objectives?dimension_id=${dimId}`)
+    const data = await res.json()
+    setObjectivesByDim(prev => ({ ...prev, [dimId]: Array.isArray(data) ? data : [] }))
+  }
+
+  function toggleDim(dimId: string) {
+    const next = !(expandedDim[dimId] ?? false)
+    setExpandedDim(prev => ({ ...prev, [dimId]: next }))
+    if (next && !objectivesByDim[dimId]) loadObjectives(dimId)
+  }
+
+  async function createObjective(dimId: string) {
+    const form = objForm[dimId] ?? { code: '', name: '' }
+    const res = await fetch('/api/planning/objectives', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dimension_id: dimId, code: form.code, name: form.name, valid_from_year: currentYear }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setObjectivesByDim(prev => ({ ...prev, [dimId]: [...(prev[dimId] ?? []), data] }))
+      setObjForm(prev => ({ ...prev, [dimId]: { code: '', name: '' } }))
+      setShowObjForm(prev => ({ ...prev, [dimId]: false }))
+    }
+  }
+
+  async function deleteObjective(id: string, dimId: string) {
+    if (!confirm('¿Eliminar este objetivo y todo su contenido?')) return
+    await fetch(`/api/planning/objectives/${id}`, { method: 'DELETE' })
+    setObjectivesByDim(prev => ({ ...prev, [dimId]: (prev[dimId] ?? []).filter(o => o.id !== id) }))
+  }
+
+  async function loadStrategies(objId: string) {
+    const res = await fetch(`/api/planning/strategies?objective_id=${objId}`)
+    const data = await res.json()
+    setStrategiesByObj(prev => ({ ...prev, [objId]: Array.isArray(data) ? data : [] }))
+  }
+
+  function toggleObj(objId: string) {
+    const next = !(expandedObj[objId] ?? false)
+    setExpandedObj(prev => ({ ...prev, [objId]: next }))
+    if (next && !strategiesByObj[objId]) loadStrategies(objId)
+  }
+
+  async function createStrategy(objId: string) {
+    const form = stratForm[objId] ?? { code: '', name: '' }
+    const res = await fetch('/api/planning/strategies', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ objective_id: objId, code: form.code, name: form.name, valid_from_year: currentYear }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setStrategiesByObj(prev => ({ ...prev, [objId]: [...(prev[objId] ?? []), data] }))
+      setStratForm(prev => ({ ...prev, [objId]: { code: '', name: '' } }))
+      setShowStratForm(prev => ({ ...prev, [objId]: false }))
+    }
+  }
+
+  async function deleteStrategy(id: string, objId: string) {
+    if (!confirm('¿Eliminar esta estrategia y todas sus acciones?')) return
+    await fetch(`/api/planning/strategies/${id}`, { method: 'DELETE' })
+    setStrategiesByObj(prev => ({ ...prev, [objId]: (prev[objId] ?? []).filter(s => s.id !== id) }))
+  }
+
+  async function loadActions(stratId: string) {
+    const res = await fetch(`/api/planning/actions?strategy_id=${stratId}`)
+    const data = await res.json()
+    setActionsByStrat(prev => ({ ...prev, [stratId]: Array.isArray(data) ? data : [] }))
+  }
+
+  function toggleStrat(stratId: string) {
+    const next = !(expandedStrat[stratId] ?? false)
+    setExpandedStrat(prev => ({ ...prev, [stratId]: next }))
+    if (next && !actionsByStrat[stratId]) loadActions(stratId)
+  }
+
+  async function createAction(stratId: string) {
+    const form = actionForm[stratId] ?? { code: '', name: '', start_year: '', target_close_year: '' }
+    const res = await fetch('/api/planning/actions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        strategy_id: stratId, code: form.code, name: form.name,
+        start_year: form.start_year ? Number(form.start_year) : null,
+        target_close_year: form.target_close_year ? Number(form.target_close_year) : null,
+        valid_from_year: currentYear,
+      }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setActionsByStrat(prev => ({ ...prev, [stratId]: [...(prev[stratId] ?? []), data] }))
+      setActionForm(prev => ({ ...prev, [stratId]: { code: '', name: '', start_year: '', target_close_year: '' } }))
+      setShowActionForm(prev => ({ ...prev, [stratId]: false }))
+    }
+  }
+
+  async function deleteAction(id: string, stratId: string) {
+    if (!confirm('¿Eliminar esta acción?')) return
+    await fetch(`/api/planning/actions/${id}`, { method: 'DELETE' })
+    setActionsByStrat(prev => ({ ...prev, [stratId]: (prev[stratId] ?? []).filter(a => a.id !== id) }))
+  }
+
+  async function updateActionField(id: string, stratId: string, patch: Partial<Action>) {
+    const res = await fetch(`/api/planning/actions/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setActionsByStrat(prev => ({ ...prev, [stratId]: (prev[stratId] ?? []).map(a => a.id === id ? data : a) }))
+    }
+  }
+
+  function openRevise(level: 'dimension' | 'objective' | 'strategy' | 'action', item: { name: string; description?: string | null; valid_from_year: number }, id: string, parentId: string) {
+    setRevising({ level, id, parentId })
+    setReviseForm({ name: item.name, description: item.description ?? '', valid_from_year: currentYear, change_reason: '' })
+  }
+
+  async function saveRevise() {
+    if (!revising) return
+    setSavingRevise(true)
+    const path = { dimension: 'dimensions', objective: 'objectives', strategy: 'strategies', action: 'actions' }[revising.level]
+    const res = await fetch(`/api/planning/${path}/${revising.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...reviseForm, revise: true }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      if (revising.level === 'dimension') setDimensions(prev => prev.map(d => d.id === revising.id ? data : d))
+      if (revising.level === 'objective') setObjectivesByDim(prev => ({ ...prev, [revising.parentId]: (prev[revising.parentId] ?? []).map(o => o.id === revising.id ? data : o) }))
+      if (revising.level === 'strategy') setStrategiesByObj(prev => ({ ...prev, [revising.parentId]: (prev[revising.parentId] ?? []).map(s => s.id === revising.id ? data : s) }))
+      if (revising.level === 'action') setActionsByStrat(prev => ({ ...prev, [revising.parentId]: (prev[revising.parentId] ?? []).map(a => a.id === revising.id ? data : a) }))
+      setRevising(null)
+    }
+    setSavingRevise(false)
+  }
+
+  async function assignResponsible(actionId: string, stratId: string) {
+    if (!assignEmployeeId) return
+    const res = await fetch('/api/planning/responsibles', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action_id: actionId, employee_id: assignEmployeeId, assigned_from_year: currentYear }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setActionsByStrat(prev => ({
+        ...prev,
+        [stratId]: (prev[stratId] ?? []).map(a => a.id === actionId ? { ...a, responsibles: [...a.responsibles, data] } : a),
+      }))
+      setAssigningAction(null)
+      setAssignEmployeeId('')
+    }
+  }
+
+  async function removeResponsible(respId: string, actionId: string, stratId: string) {
+    await fetch(`/api/planning/responsibles/${respId}`, { method: 'DELETE' })
+    setActionsByStrat(prev => ({
+      ...prev,
+      [stratId]: (prev[stratId] ?? []).map(a => a.id === actionId ? { ...a, responsibles: a.responsibles.filter(r => r.id !== respId) } : a),
+    }))
+  }
+
+  const selectedCycle = allCycles.find(c => c.id === selectedCycleId)
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Plan Estratégico</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Dimensiones, objetivos, estrategias y acciones con control de cambios</p>
+        </div>
+        <button onClick={() => setShowCycleForm(true)}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          <Plus className="w-4 h-4" /> Nuevo ciclo de plan
+        </button>
+      </div>
+
+      {showCycleForm && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-semibold text-blue-800">Nuevo ciclo de plan estratégico</p>
+          <div className="grid grid-cols-3 gap-3">
+            <input value={cycleForm.name} onChange={e => setCycleForm(p => ({ ...p, name: e.target.value }))}
+              placeholder="Ej. Plan Estratégico 2023-2028"
+              className="col-span-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="number" value={cycleForm.start_year} onChange={e => setCycleForm(p => ({ ...p, start_year: e.target.value }))}
+              placeholder="Año inicio" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="number" value={cycleForm.end_year} onChange={e => setCycleForm(p => ({ ...p, end_year: e.target.value }))}
+              placeholder="Año fin" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={createCycle} disabled={!cycleForm.name || !cycleForm.start_year || !cycleForm.end_year || savingCycle}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium rounded-lg">
+              {savingCycle ? 'Guardando...' : 'Crear ciclo'}
+            </button>
+            <button onClick={() => setShowCycleForm(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* Selector de ciclo */}
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <select value={selectedCycleId} onChange={e => { setSelectedCycleId(e.target.value); setDimLoaded(false) }}
+            className="appearance-none border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {allCycles.length === 0 && <option value="">Sin ciclos</option>}
+            {allCycles.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+        </div>
+        {selectedCycle && <span className="text-xs text-gray-400">{selectedCycle.start_year}–{selectedCycle.end_year}</span>}
+      </div>
+
+      {!selectedCycleId ? (
+        <div className="bg-white rounded-xl border border-dashed border-gray-300 py-16 text-center text-sm text-gray-400">
+          Crea un ciclo de plan estratégico para comenzar.
+        </div>
+      ) : loadingDims ? (
+        <div className="bg-white rounded-xl border border-gray-200 py-16 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>
+      ) : (
+        <div className="space-y-3">
+          {dimensions.map(dim => {
+            const isDimOpen = expandedDim[dim.id] ?? false
+            const objectives = objectivesByDim[dim.id] ?? []
+            return (
+              <div key={dim.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-gray-50 group" onClick={() => toggleDim(dim.id)}>
+                  {isDimOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                  <Target className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 text-sm">
+                      <span className="text-blue-600 mr-1.5">{dim.code}</span>{dim.name}
+                    </p>
+                    {dim.description && <p className="text-xs text-gray-400">{dim.description}</p>}
+                  </div>
+                  <span className="text-xs text-gray-400">desde {dim.valid_from_year}</span>
+                  <button onClick={e => { e.stopPropagation(); openRevise('dimension', dim, dim.id, '') }}
+                    className="p-1.5 rounded-lg text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all"><History className="w-3.5 h-3.5" /></button>
+                  <button onClick={e => { e.stopPropagation(); deleteDimension(dim.id) }}
+                    className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+
+                {isDimOpen && (
+                  <div className="border-t border-gray-100 px-5 py-3 pl-10 space-y-2">
+                    {objectives.map(obj => {
+                      const isObjOpen = expandedObj[obj.id] ?? false
+                      const strategies = strategiesByObj[obj.id] ?? []
+                      return (
+                        <div key={obj.id} className="border border-gray-100 rounded-lg overflow-hidden">
+                          <div className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 group" onClick={() => toggleObj(obj.id)}>
+                            {isObjOpen ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
+                            <Layers className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+                            <p className="flex-1 text-sm text-gray-800"><span className="text-indigo-600 mr-1.5 font-medium">{obj.code}</span>{obj.name}</p>
+                            <button onClick={e => { e.stopPropagation(); openRevise('objective', obj, obj.id, dim.id) }}
+                              className="p-1 rounded text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all"><History className="w-3 h-3" /></button>
+                            <button onClick={e => { e.stopPropagation(); deleteObjective(obj.id, dim.id) }}
+                              className="p-1 rounded text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-3 h-3" /></button>
+                          </div>
+
+                          {isObjOpen && (
+                            <div className="border-t border-gray-100 px-4 py-2.5 pl-8 space-y-2 bg-gray-50/50">
+                              {strategies.map(strat => {
+                                const isStratOpen = expandedStrat[strat.id] ?? false
+                                const actions = actionsByStrat[strat.id] ?? []
+                                return (
+                                  <div key={strat.id} className="border border-gray-100 rounded-lg overflow-hidden bg-white">
+                                    <div className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-50 group" onClick={() => toggleStrat(strat.id)}>
+                                      {isStratOpen ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
+                                      <ListChecks className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
+                                      <p className="flex-1 text-sm text-gray-800"><span className="text-purple-600 mr-1.5 font-medium">{strat.code}</span>{strat.name}</p>
+                                      <button onClick={e => { e.stopPropagation(); openRevise('strategy', strat, strat.id, obj.id) }}
+                                        className="p-1 rounded text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all"><History className="w-3 h-3" /></button>
+                                      <button onClick={e => { e.stopPropagation(); deleteStrategy(strat.id, obj.id) }}
+                                        className="p-1 rounded text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-3 h-3" /></button>
+                                    </div>
+
+                                    {isStratOpen && (
+                                      <div className="border-t border-gray-100 px-4 py-2 space-y-2">
+                                        {actions.map(action => {
+                                          const isAssigning = assigningAction === action.id
+                                          return (
+                                            <div key={action.id} className="rounded-lg border border-gray-100 p-3 space-y-2 group">
+                                              <div className="flex items-start gap-3">
+                                                <div className="flex-1">
+                                                  <p className="text-sm font-medium text-gray-800">
+                                                    <span className="text-gray-400 mr-1.5">{action.code}</span>{action.name}
+                                                  </p>
+                                                  {(action.start_year || action.target_close_year) && (
+                                                    <p className="text-xs text-gray-400 mt-0.5">{action.start_year ?? '—'} → {action.target_close_year ?? '—'}</p>
+                                                  )}
+                                                </div>
+                                                <select value={action.status} onChange={e => updateActionField(action.id, strat.id, { status: e.target.value })}
+                                                  className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${ACTION_STATUS[action.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
+                                                  {Object.entries(ACTION_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                                                </select>
+                                                <input type="number" min="0" max="100" value={action.progress_pct ?? 0}
+                                                  onChange={e => updateActionField(action.id, strat.id, { progress_pct: Number(e.target.value) })}
+                                                  className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                                <span className="text-xs text-gray-400">%</span>
+                                                <button onClick={() => openRevise('action', action, action.id, strat.id)}
+                                                  className="p-1 rounded text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all"><History className="w-3.5 h-3.5" /></button>
+                                                <button onClick={() => deleteAction(action.id, strat.id)}
+                                                  className="p-1 rounded text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                                              </div>
+
+                                              <div className="flex flex-wrap items-center gap-1.5 pl-0">
+                                                {action.responsibles.map(r => (
+                                                  <span key={r.id} className="flex items-center gap-1.5 text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">
+                                                    <UserCheck className="w-3 h-3" />{r.employee.full_name}
+                                                    <button onClick={() => removeResponsible(r.id, action.id, strat.id)} className="ml-0.5 hover:text-red-500"><X className="w-3 h-3" /></button>
+                                                  </span>
+                                                ))}
+                                                {isAssigning ? (
+                                                  <div className="flex items-center gap-1.5">
+                                                    <select value={assignEmployeeId} onChange={e => setAssignEmployeeId(e.target.value)}
+                                                      className="border border-indigo-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                                      <option value="">— Responsable —</option>
+                                                      {faculty.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
+                                                    </select>
+                                                    <button onClick={() => assignResponsible(action.id, strat.id)} disabled={!assignEmployeeId}
+                                                      className="p-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg"><Check className="w-3 h-3" /></button>
+                                                    <button onClick={() => setAssigningAction(null)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-3 h-3" /></button>
+                                                  </div>
+                                                ) : (
+                                                  <button onClick={() => { setAssigningAction(action.id); setAssignEmployeeId('') }}
+                                                    className="text-xs text-indigo-400 hover:text-indigo-600 px-1.5 py-1 border border-dashed border-indigo-200 rounded-full">+ Responsable</button>
+                                                )}
+                                              </div>
+                                            </div>
+                                          )
+                                        })}
+
+                                        {showActionForm[strat.id] ? (
+                                          <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+                                            <div className="grid grid-cols-4 gap-2">
+                                              <input value={actionForm[strat.id]?.code ?? ''} onChange={e => setActionForm(p => ({ ...p, [strat.id]: { ...(p[strat.id] ?? { code: '', name: '', start_year: '', target_close_year: '' }), code: e.target.value } }))}
+                                                placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                              <input value={actionForm[strat.id]?.name ?? ''} onChange={e => setActionForm(p => ({ ...p, [strat.id]: { ...(p[strat.id] ?? { code: '', name: '', start_year: '', target_close_year: '' }), name: e.target.value } }))}
+                                                placeholder="Nombre de la acción" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                              <input type="number" value={actionForm[strat.id]?.target_close_year ?? ''} onChange={e => setActionForm(p => ({ ...p, [strat.id]: { ...(p[strat.id] ?? { code: '', name: '', start_year: '', target_close_year: '' }), target_close_year: e.target.value } }))}
+                                                placeholder="Cierre" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                            </div>
+                                            <div className="flex gap-2">
+                                              <button onClick={() => createAction(strat.id)} disabled={!actionForm[strat.id]?.name}
+                                                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-medium rounded-lg">Crear acción</button>
+                                              <button onClick={() => setShowActionForm(p => ({ ...p, [strat.id]: false }))} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <button onClick={() => setShowActionForm(p => ({ ...p, [strat.id]: true }))}
+                                            className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 py-1"><Plus className="w-3 h-3" /> Agregar acción</button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+
+                              {showStratForm[obj.id] ? (
+                                <div className="border border-gray-200 rounded-lg p-3 space-y-2 bg-white">
+                                  <div className="grid grid-cols-3 gap-2">
+                                    <input value={stratForm[obj.id]?.code ?? ''} onChange={e => setStratForm(p => ({ ...p, [obj.id]: { ...(p[obj.id] ?? { code: '', name: '' }), code: e.target.value } }))}
+                                      placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <input value={stratForm[obj.id]?.name ?? ''} onChange={e => setStratForm(p => ({ ...p, [obj.id]: { ...(p[obj.id] ?? { code: '', name: '' }), name: e.target.value } }))}
+                                      placeholder="Nombre de la estrategia" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button onClick={() => createStrategy(obj.id)} disabled={!stratForm[obj.id]?.name}
+                                      className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-medium rounded-lg">Crear estrategia</button>
+                                    <button onClick={() => setShowStratForm(p => ({ ...p, [obj.id]: false }))} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button onClick={() => setShowStratForm(p => ({ ...p, [obj.id]: true }))}
+                                  className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 py-1"><Plus className="w-3 h-3" /> Agregar estrategia</button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+
+                    {showObjForm[dim.id] ? (
+                      <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+                        <div className="grid grid-cols-3 gap-2">
+                          <input value={objForm[dim.id]?.code ?? ''} onChange={e => setObjForm(p => ({ ...p, [dim.id]: { ...(p[dim.id] ?? { code: '', name: '' }), code: e.target.value } }))}
+                            placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <input value={objForm[dim.id]?.name ?? ''} onChange={e => setObjForm(p => ({ ...p, [dim.id]: { ...(p[dim.id] ?? { code: '', name: '' }), name: e.target.value } }))}
+                            placeholder="Nombre del objetivo" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => createObjective(dim.id)} disabled={!objForm[dim.id]?.name}
+                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-medium rounded-lg">Crear objetivo</button>
+                          <button onClick={() => setShowObjForm(p => ({ ...p, [dim.id]: false }))} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={() => setShowObjForm(p => ({ ...p, [dim.id]: true }))}
+                        className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 py-1"><Plus className="w-3 h-3" /> Agregar objetivo</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {showDimForm ? (
+            <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                <input value={dimForm.code} onChange={e => setDimForm(p => ({ ...p, code: e.target.value }))}
+                  placeholder="Código (Ej. E1)" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input value={dimForm.name} onChange={e => setDimForm(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Nombre de la dimensión" className="col-span-2 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={createDimension} disabled={!dimForm.code || !dimForm.name}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium rounded-lg">Crear dimensión</button>
+                <button onClick={() => setShowDimForm(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowDimForm(true)}
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 py-2"><Plus className="w-4 h-4" /> Agregar dimensión estratégica</button>
+          )}
+        </div>
+      )}
+
+      {/* Modal de revisión / nueva versión */}
+      {revising && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setRevising(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-blue-600" />
+              <p className="text-sm font-semibold text-gray-900">Nueva versión (revisión)</p>
+            </div>
+            <p className="text-xs text-gray-500">Se conservará la versión anterior en el historial. Esta entrada quedará vigente desde el año indicado.</p>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+              <input value={reviseForm.name} onChange={e => setReviseForm(p => ({ ...p, name: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Descripción</label>
+              <textarea value={reviseForm.description} onChange={e => setReviseForm(p => ({ ...p, description: e.target.value }))} rows={2}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Vigente desde (año)</label>
+                <input type="number" value={reviseForm.valid_from_year} onChange={e => setReviseForm(p => ({ ...p, valid_from_year: Number(e.target.value) }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Motivo del cambio</label>
+                <input value={reviseForm.change_reason} onChange={e => setReviseForm(p => ({ ...p, change_reason: e.target.value }))}
+                  placeholder="Opcional" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={saveRevise} disabled={!reviseForm.name || savingRevise}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium rounded-lg">
+                {savingRevise ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {savingRevise ? 'Guardando...' : 'Guardar nueva versión'}
+              </button>
+              <button onClick={() => setRevising(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Headphones, DollarSign, Users, BarChart3,
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Building2, Bot, Shield, FileSignature, List, Plus, FileText,
-  GraduationCap, CalendarDays, BookOpen, ClipboardList,
+  GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -70,6 +70,12 @@ const navigation: NavGroup[] = [
           { name: 'Oferta', href: '/academic/offer', icon: ClipboardList },
         ],
       },
+    ],
+  },
+  {
+    label: 'Planeamiento',
+    items: [
+      { name: 'Plan Estratégico', href: '/planning/plan', icon: Target },
     ],
   },
   {

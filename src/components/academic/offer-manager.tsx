@@ -9,7 +9,7 @@ type Assignment = { id: string; hours_per_week: number | null; employee: Employe
 type Offering = { id: string; course: Course; assignments: Assignment[] }
 type Semester = { id: string; name: string; status: string; academic_year_id: string }
 type Year = { id: string; name: string; semesters: Semester[] }
-type ProgramCourse = { id: string; name: string; code: string | null; credits: number; level: number | null; program: { name: string } }
+type ProgramCourse = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { name: string } }
 
 export function OfferManager({
   years, faculty, allCourses,
@@ -25,6 +25,7 @@ export function OfferManager({
 
   // Panel agregar curso
   const [showAddCourse, setShowAddCourse] = useState(false)
+  const [filterProgramId, setFilterProgramId] = useState('')
   const [addingCourseId, setAddingCourseId] = useState('')
   const [savingCourse, setSavingCourse] = useState(false)
 
@@ -56,6 +57,15 @@ export function OfferManager({
   // Courses not yet in this semester
   const offeredCourseIds = new Set(offerings.map(o => o.course.id))
   const availableCourses = allCourses.filter(c => !offeredCourseIds.has(c.id))
+
+  // Unique programs from available courses
+  const programsInAvailable = Array.from(
+    new Map(availableCourses.map(c => [c.program_id, c.program])).entries()
+  ).map(([id, p]) => ({ id, name: p.name })).sort((a, b) => a.name.localeCompare(b.name))
+
+  const filteredCourses = filterProgramId
+    ? availableCourses.filter(c => c.program_id === filterProgramId)
+    : availableCourses
 
   const covered = offerings.filter(o => o.assignments.length > 0).length
   const total = offerings.length
@@ -148,7 +158,7 @@ export function OfferManager({
             </div>
           )}
           {selectedSemesterId && (
-            <button onClick={() => setShowAddCourse(true)}
+            <button onClick={() => { setShowAddCourse(true); setFilterProgramId(''); setAddingCourseId('') }}
               className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
               <Plus className="w-4 h-4" /> Agregar curso
             </button>
@@ -158,26 +168,39 @@ export function OfferManager({
 
       {/* Panel agregar curso */}
       {showAddCourse && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-end gap-3">
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Asignatura del programa</label>
-            <select value={addingCourseId} onChange={e => setAddingCourseId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">— Seleccionar asignatura —</option>
-              {availableCourses.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.program.name} › {c.name}{c.code ? ` (${c.code})` : ''} — {c.credits} cr{c.level ? ` · Ciclo ${c.level}` : ''}
-                </option>
-              ))}
-            </select>
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+          <div className="flex items-end gap-3">
+            <div className="w-64">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Programa</label>
+              <select value={filterProgramId} onChange={e => { setFilterProgramId(e.target.value); setAddingCourseId('') }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">— Todos los programas —</option>
+                {programsInAvailable.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Asignatura</label>
+              <select value={addingCourseId} onChange={e => setAddingCourseId(e.target.value)}
+                disabled={filteredCourses.length === 0}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+                <option value="">— Seleccionar asignatura —</option>
+                {filteredCourses.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {!filterProgramId && `${c.program.name} › `}{c.name}{c.code ? ` (${c.code})` : ''} — {c.credits} cr{c.level ? ` · Ciclo ${c.level}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button onClick={addCourse} disabled={!addingCourseId || savingCourse}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium rounded-lg">
+              {savingCourse ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {savingCourse ? 'Agregando...' : 'Agregar'}
+            </button>
+            <button onClick={() => setShowAddCourse(false)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-white">Cancelar</button>
           </div>
-          <button onClick={addCourse} disabled={!addingCourseId || savingCourse}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium rounded-lg">
-            {savingCourse ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            {savingCourse ? 'Agregando...' : 'Agregar'}
-          </button>
-          <button onClick={() => setShowAddCourse(false)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-white">Cancelar</button>
         </div>
       )}
 
