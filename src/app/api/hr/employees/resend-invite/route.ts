@@ -54,13 +54,18 @@ export async function POST(req: NextRequest) {
 
     if (!authUserId) return NextResponse.json({ error: 'No se pudo crear la cuenta de acceso' }, { status: 500 })
 
+    // Check if user already has a confirmed email — use magiclink instead of invite
+    const { data: authUser } = await supabase.auth.admin.getUserById(authUserId)
+    const linkType = authUser?.user?.email_confirmed_at ? 'magiclink' : 'invite'
+
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: 'invite',
+      type: linkType,
       email: emp.email,
       options: { redirectTo: `${appUrl()}/dashboard` },
     })
 
     if (linkError || !linkData?.properties?.action_link) {
+      console.error('generateLink error:', linkError)
       return NextResponse.json({ error: linkError?.message ?? 'Error generando enlace' }, { status: 500 })
     }
 
@@ -104,6 +109,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err) {
+    console.error('resend-invite error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
