@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronDown, Plus, Trash2, UserCheck, AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react'
+import { ChevronDown, Plus, Trash2, UserCheck, AlertCircle, CheckCircle2, Loader2, X, Pencil, Check, CalendarDays } from 'lucide-react'
 
 type Employee = { id: string; full_name: string; position: string | null }
 type Course = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { id: string; name: string; code: string | null } }
 type Assignment = { id: string; hours_per_week: number | null; employee: Employee }
-type Offering = { id: string; course: Course; assignments: Assignment[] }
+type Offering = { id: string; course: Course; assignments: Assignment[]; start_date: string | null; end_date: string | null }
 type Semester = { id: string; name: string; status: string; academic_year_id: string; start_date: string | null; end_date: string | null }
 
 function fmtDate(d: string | null) {
@@ -33,13 +33,22 @@ export function OfferManager({
   const [showAddCourse, setShowAddCourse] = useState(false)
   const [filterProgramId, setFilterProgramId] = useState('')
   const [addingCourseId, setAddingCourseId] = useState('')
+  const [addStartDate, setAddStartDate] = useState('')
+  const [addEndDate, setAddEndDate] = useState('')
   const [savingCourse, setSavingCourse] = useState(false)
+  const [addCourseError, setAddCourseError] = useState('')
 
   // Panel asignar docente
   const [assigningOffering, setAssigningOffering] = useState<string | null>(null)
   const [assignEmployeeId, setAssignEmployeeId] = useState('')
   const [assignHours, setAssignHours] = useState('')
   const [savingAssign, setSavingAssign] = useState(false)
+
+  // Edición de fechas de una oferta ya creada
+  const [editingDatesId, setEditingDatesId] = useState<string | null>(null)
+  const [editStartDate, setEditStartDate] = useState('')
+  const [editEndDate, setEditEndDate] = useState('')
+  const [editDatesError, setEditDatesError] = useState('')
 
   const selectedYear = years.find(y => y.id === selectedYearId)
   const semesters = selectedYear?.semesters ?? []
@@ -80,17 +89,44 @@ export function OfferManager({
   async function addCourse() {
     if (!addingCourseId || !selectedSemesterId) return
     setSavingCourse(true)
+    setAddCourseError('')
     const res = await fetch('/api/academic/offerings', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ semester_id: selectedSemesterId, course_id: addingCourseId }),
+      body: JSON.stringify({ semester_id: selectedSemesterId, course_id: addingCourseId, start_date: addStartDate || null, end_date: addEndDate || null }),
     })
     const data = await res.json()
     if (res.ok) {
       setOfferings(prev => [...prev, data])
       setAddingCourseId('')
+      setAddStartDate('')
+      setAddEndDate('')
       setShowAddCourse(false)
+    } else {
+      setAddCourseError(data.error ?? 'Error al agregar la asignatura')
     }
     setSavingCourse(false)
+  }
+
+  function startEditDates(offering: Offering) {
+    setEditingDatesId(offering.id)
+    setEditStartDate(offering.start_date ?? '')
+    setEditEndDate(offering.end_date ?? '')
+    setEditDatesError('')
+  }
+
+  async function saveOfferingDates(id: string) {
+    setEditDatesError('')
+    const res = await fetch(`/api/academic/offerings/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ start_date: editStartDate || null, end_date: editEndDate || null }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setOfferings(prev => prev.map(o => o.id === id ? data : o))
+      setEditingDatesId(null)
+    } else {
+      setEditDatesError(data.error ?? 'Error al guardar las fechas')
+    }
   }
 
   async function removeOffering(id: string) {
@@ -182,6 +218,7 @@ export function OfferManager({
       {/* Panel agregar curso */}
       {showAddCourse && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+          {addCourseError && <p className="text-xs text-red-600">{addCourseError}</p>}
           <div className="flex items-end gap-3">
             <div className="w-64">
               <label className="block text-xs font-medium text-gray-700 mb-1">Programa</label>
@@ -205,6 +242,20 @@ export function OfferManager({
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+          <div className="flex items-end gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Fecha inicio</label>
+              <input type="date" value={addStartDate} onChange={e => setAddStartDate(e.target.value)}
+                min={selectedSemester?.start_date ?? undefined} max={selectedSemester?.end_date ?? undefined}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Fecha término</label>
+              <input type="date" value={addEndDate} onChange={e => setAddEndDate(e.target.value)}
+                min={selectedSemester?.start_date ?? undefined} max={selectedSemester?.end_date ?? undefined}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <button onClick={addCourse} disabled={!addingCourseId || savingCourse}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium rounded-lg">
@@ -239,6 +290,7 @@ export function OfferManager({
                 <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">Programa</th>
                 <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Ciclo</th>
                 <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Cr.</th>
+                <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-40">Fechas</th>
                 <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Docente asignado</th>
                 <th className="w-12"></th>
               </tr>
@@ -261,6 +313,17 @@ export function OfferManager({
                       <td className="px-3 py-3 text-center text-gray-500 text-xs">{offering.course.level ?? '—'}</td>
                       <td className="px-3 py-3 text-center">
                         <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{offering.course.credits}</span>
+                      </td>
+                      <td className="px-3 py-3">
+                        {offering.start_date || offering.end_date ? (
+                          <button onClick={() => startEditDates(offering)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600">
+                            <CalendarDays className="w-3 h-3" />{fmtDate(offering.start_date)} — {fmtDate(offering.end_date)}
+                          </button>
+                        ) : (
+                          <button onClick={() => startEditDates(offering)} className="flex items-center gap-1.5 text-xs text-gray-300 hover:text-blue-600">
+                            <Pencil className="w-3 h-3" /> Asignar fechas
+                          </button>
+                        )}
                       </td>
                       <td className="px-3 py-3">
                         {offering.assignments.length > 0 ? (
@@ -294,9 +357,33 @@ export function OfferManager({
                         </button>
                       </td>
                     </tr>
+                    {editingDatesId === offering.id && (
+                      <tr key={`dates-${offering.id}`} className="bg-blue-50">
+                        <td colSpan={7} className="px-5 py-3">
+                          {editDatesError && <p className="text-xs text-red-600 mb-2">{editDatesError}</p>}
+                          <div className="flex items-center gap-3">
+                            <input type="date" value={editStartDate} onChange={e => setEditStartDate(e.target.value)}
+                              min={selectedSemester?.start_date ?? undefined} max={selectedSemester?.end_date ?? undefined}
+                              className="border border-blue-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <span className="text-xs text-gray-400">—</span>
+                            <input type="date" value={editEndDate} onChange={e => setEditEndDate(e.target.value)}
+                              min={selectedSemester?.start_date ?? undefined} max={selectedSemester?.end_date ?? undefined}
+                              className="border border-blue-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <button onClick={() => saveOfferingDates(offering.id)}
+                              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm font-medium rounded-lg">
+                              <Check className="w-3.5 h-3.5" /> Guardar
+                            </button>
+                            <button onClick={() => setEditingDatesId(null)}
+                              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                     {isAssigning && (
                       <tr key={`assign-${offering.id}`} className="bg-indigo-50">
-                        <td colSpan={6} className="px-5 py-3">
+                        <td colSpan={7} className="px-5 py-3">
                           <div className="flex items-center gap-3">
                             <select value={assignEmployeeId} onChange={e => setAssignEmployeeId(e.target.value)}
                               className="flex-1 border border-indigo-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
