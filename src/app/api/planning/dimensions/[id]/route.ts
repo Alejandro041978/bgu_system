@@ -38,6 +38,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .update({ status: 'superseded', valid_to_year: body.valid_from_year ?? prev.valid_from_year })
     .eq('id', prev.id)
 
+  // Re-apunta los objetivos existentes al nuevo id, para que no queden huérfanos bajo la versión superada
+  await (supabase as any).from('strategic_objectives').update({ dimension_id: next.id }).eq('dimension_id', prev.id)
+
   return NextResponse.json(next)
 }
 

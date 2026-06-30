@@ -49,7 +49,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .update({ status: 'superseded', valid_to_year: body.valid_from_year ?? prev.valid_from_year })
     .eq('id', prev.id)
 
-  return NextResponse.json(next)
+  // Re-apunta los responsables existentes al nuevo id, para que no queden huérfanos bajo la versión superada
+  await (supabase as any).from('strategic_action_responsibles').update({ action_id: next.id }).eq('action_id', prev.id)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: refreshed } = await (supabase as any).from('strategic_actions').select(SELECT).eq('id', next.id).single()
+
+  return NextResponse.json(refreshed ?? next)
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {

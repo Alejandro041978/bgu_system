@@ -37,6 +37,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .update({ status: 'superseded', valid_to_year: body.valid_from_year ?? prev.valid_from_year })
     .eq('id', prev.id)
 
+  // Re-apunta las estrategias existentes al nuevo id, para que no queden huérfanas bajo la versión superada
+  await (supabase as any).from('strategic_strategies').update({ objective_id: next.id }).eq('objective_id', prev.id)
+
   return NextResponse.json(next)
 }
 
