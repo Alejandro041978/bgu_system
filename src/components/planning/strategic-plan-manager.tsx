@@ -56,11 +56,11 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
 
   // Add-forms per parent
   const [showObjForm, setShowObjForm] = useState<Record<string, boolean>>({})
-  const [objForm, setObjForm] = useState<Record<string, { code: string; name: string }>>({})
+  const [objForm, setObjForm] = useState<Record<string, { code: string; name: string; valid_from_year: string }>>({})
   const [showStratForm, setShowStratForm] = useState<Record<string, boolean>>({})
-  const [stratForm, setStratForm] = useState<Record<string, { code: string; name: string }>>({})
+  const [stratForm, setStratForm] = useState<Record<string, { code: string; name: string; valid_from_year: string }>>({})
   const [showActionForm, setShowActionForm] = useState<Record<string, boolean>>({})
-  const [actionForm, setActionForm] = useState<Record<string, { code: string; name: string; start_year: string; target_close_year: string }>>({})
+  const [actionForm, setActionForm] = useState<Record<string, { code: string; name: string; start_year: string; target_close_year: string; valid_from_year: string }>>({})
 
   // Revise (versioning) modal state: { level, id, parentId }
   const [revising, setRevising] = useState<{ level: 'dimension' | 'objective' | 'strategy' | 'action'; id: string; parentId: string } | null>(null)
@@ -134,15 +134,15 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
   }
 
   async function createObjective(dimId: string) {
-    const form = objForm[dimId] ?? { code: '', name: '' }
+    const form = objForm[dimId] ?? { code: '', name: '', valid_from_year: '' }
     const res = await fetch('/api/planning/objectives', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dimension_id: dimId, code: form.code, name: form.name, valid_from_year: currentYear }),
+      body: JSON.stringify({ dimension_id: dimId, code: form.code, name: form.name, valid_from_year: Number(form.valid_from_year) || currentYear }),
     })
     const data = await res.json()
     if (res.ok) {
       setObjectivesByDim(prev => ({ ...prev, [dimId]: [...(prev[dimId] ?? []), data] }))
-      setObjForm(prev => ({ ...prev, [dimId]: { code: '', name: '' } }))
+      setObjForm(prev => ({ ...prev, [dimId]: { code: '', name: '', valid_from_year: '' } }))
       setShowObjForm(prev => ({ ...prev, [dimId]: false }))
     }
   }
@@ -166,15 +166,15 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
   }
 
   async function createStrategy(objId: string) {
-    const form = stratForm[objId] ?? { code: '', name: '' }
+    const form = stratForm[objId] ?? { code: '', name: '', valid_from_year: '' }
     const res = await fetch('/api/planning/strategies', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ objective_id: objId, code: form.code, name: form.name, valid_from_year: currentYear }),
+      body: JSON.stringify({ objective_id: objId, code: form.code, name: form.name, valid_from_year: Number(form.valid_from_year) || currentYear }),
     })
     const data = await res.json()
     if (res.ok) {
       setStrategiesByObj(prev => ({ ...prev, [objId]: [...(prev[objId] ?? []), data] }))
-      setStratForm(prev => ({ ...prev, [objId]: { code: '', name: '' } }))
+      setStratForm(prev => ({ ...prev, [objId]: { code: '', name: '', valid_from_year: '' } }))
       setShowStratForm(prev => ({ ...prev, [objId]: false }))
     }
   }
@@ -198,20 +198,20 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
   }
 
   async function createAction(stratId: string) {
-    const form = actionForm[stratId] ?? { code: '', name: '', start_year: '', target_close_year: '' }
+    const form = actionForm[stratId] ?? { code: '', name: '', start_year: '', target_close_year: '', valid_from_year: '' }
     const res = await fetch('/api/planning/actions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         strategy_id: stratId, code: form.code, name: form.name,
         start_year: form.start_year ? Number(form.start_year) : null,
         target_close_year: form.target_close_year ? Number(form.target_close_year) : null,
-        valid_from_year: currentYear,
+        valid_from_year: Number(form.valid_from_year) || currentYear,
       }),
     })
     const data = await res.json()
     if (res.ok) {
       setActionsByStrat(prev => ({ ...prev, [stratId]: [...(prev[stratId] ?? []), data] }))
-      setActionForm(prev => ({ ...prev, [stratId]: { code: '', name: '', start_year: '', target_close_year: '' } }))
+      setActionForm(prev => ({ ...prev, [stratId]: { code: '', name: '', start_year: '', target_close_year: '', valid_from_year: '' } }))
       setShowActionForm(prev => ({ ...prev, [stratId]: false }))
     }
   }
@@ -453,12 +453,14 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                                         {showActionForm[strat.id] ? (
                                           <div className="border border-gray-200 rounded-lg p-3 space-y-2">
                                             <div className="grid grid-cols-4 gap-2">
-                                              <input value={actionForm[strat.id]?.code ?? ''} onChange={e => setActionForm(p => ({ ...p, [strat.id]: { ...(p[strat.id] ?? { code: '', name: '', start_year: '', target_close_year: '' }), code: e.target.value } }))}
+                                              <input value={actionForm[strat.id]?.code ?? ''} onChange={e => setActionForm(p => ({ ...p, [strat.id]: { ...(p[strat.id] ?? { code: '', name: '', start_year: '', target_close_year: '', valid_from_year: '' }), code: e.target.value } }))}
                                                 placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                              <input value={actionForm[strat.id]?.name ?? ''} onChange={e => setActionForm(p => ({ ...p, [strat.id]: { ...(p[strat.id] ?? { code: '', name: '', start_year: '', target_close_year: '' }), name: e.target.value } }))}
+                                              <input value={actionForm[strat.id]?.name ?? ''} onChange={e => setActionForm(p => ({ ...p, [strat.id]: { ...(p[strat.id] ?? { code: '', name: '', start_year: '', target_close_year: '', valid_from_year: '' }), name: e.target.value } }))}
                                                 placeholder="Nombre de la acción" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                              <input type="number" value={actionForm[strat.id]?.target_close_year ?? ''} onChange={e => setActionForm(p => ({ ...p, [strat.id]: { ...(p[strat.id] ?? { code: '', name: '', start_year: '', target_close_year: '' }), target_close_year: e.target.value } }))}
+                                              <input type="number" value={actionForm[strat.id]?.target_close_year ?? ''} onChange={e => setActionForm(p => ({ ...p, [strat.id]: { ...(p[strat.id] ?? { code: '', name: '', start_year: '', target_close_year: '', valid_from_year: '' }), target_close_year: e.target.value } }))}
                                                 placeholder="Cierre" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                              <input type="number" value={actionForm[strat.id]?.valid_from_year ?? ''} onChange={e => setActionForm(p => ({ ...p, [strat.id]: { ...(p[strat.id] ?? { code: '', name: '', start_year: '', target_close_year: '', valid_from_year: '' }), valid_from_year: e.target.value } }))}
+                                                placeholder={`Año de versión (ej. ${currentYear})`} className="col-span-4 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                             </div>
                                             <div className="flex gap-2">
                                               <button onClick={() => createAction(strat.id)} disabled={!actionForm[strat.id]?.name}
@@ -479,10 +481,12 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                               {showStratForm[obj.id] ? (
                                 <div className="border border-gray-200 rounded-lg p-3 space-y-2 bg-white">
                                   <div className="grid grid-cols-3 gap-2">
-                                    <input value={stratForm[obj.id]?.code ?? ''} onChange={e => setStratForm(p => ({ ...p, [obj.id]: { ...(p[obj.id] ?? { code: '', name: '' }), code: e.target.value } }))}
+                                    <input value={stratForm[obj.id]?.code ?? ''} onChange={e => setStratForm(p => ({ ...p, [obj.id]: { ...(p[obj.id] ?? { code: '', name: '', valid_from_year: '' }), code: e.target.value } }))}
                                       placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                    <input value={stratForm[obj.id]?.name ?? ''} onChange={e => setStratForm(p => ({ ...p, [obj.id]: { ...(p[obj.id] ?? { code: '', name: '' }), name: e.target.value } }))}
+                                    <input value={stratForm[obj.id]?.name ?? ''} onChange={e => setStratForm(p => ({ ...p, [obj.id]: { ...(p[obj.id] ?? { code: '', name: '', valid_from_year: '' }), name: e.target.value } }))}
                                       placeholder="Nombre de la estrategia" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <input type="number" value={stratForm[obj.id]?.valid_from_year ?? ''} onChange={e => setStratForm(p => ({ ...p, [obj.id]: { ...(p[obj.id] ?? { code: '', name: '', valid_from_year: '' }), valid_from_year: e.target.value } }))}
+                                      placeholder={`Año de versión (ej. ${currentYear})`} className="col-span-3 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                   </div>
                                   <div className="flex gap-2">
                                     <button onClick={() => createStrategy(obj.id)} disabled={!stratForm[obj.id]?.name}
@@ -503,10 +507,12 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                     {showObjForm[dim.id] ? (
                       <div className="border border-gray-200 rounded-lg p-3 space-y-2">
                         <div className="grid grid-cols-3 gap-2">
-                          <input value={objForm[dim.id]?.code ?? ''} onChange={e => setObjForm(p => ({ ...p, [dim.id]: { ...(p[dim.id] ?? { code: '', name: '' }), code: e.target.value } }))}
+                          <input value={objForm[dim.id]?.code ?? ''} onChange={e => setObjForm(p => ({ ...p, [dim.id]: { ...(p[dim.id] ?? { code: '', name: '', valid_from_year: '' }), code: e.target.value } }))}
                             placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                          <input value={objForm[dim.id]?.name ?? ''} onChange={e => setObjForm(p => ({ ...p, [dim.id]: { ...(p[dim.id] ?? { code: '', name: '' }), name: e.target.value } }))}
+                          <input value={objForm[dim.id]?.name ?? ''} onChange={e => setObjForm(p => ({ ...p, [dim.id]: { ...(p[dim.id] ?? { code: '', name: '', valid_from_year: '' }), name: e.target.value } }))}
                             placeholder="Nombre del objetivo" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <input type="number" value={objForm[dim.id]?.valid_from_year ?? ''} onChange={e => setObjForm(p => ({ ...p, [dim.id]: { ...(p[dim.id] ?? { code: '', name: '', valid_from_year: '' }), valid_from_year: e.target.value } }))}
+                            placeholder={`Año de versión (ej. ${currentYear})`} className="col-span-3 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
                         </div>
                         <div className="flex gap-2">
                           <button onClick={() => createObjective(dim.id)} disabled={!objForm[dim.id]?.name}
