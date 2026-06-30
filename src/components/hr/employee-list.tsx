@@ -2,18 +2,20 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Search, ChevronRight, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
+import { Search, ChevronRight, CheckCircle2, Clock, AlertCircle, Calendar } from 'lucide-react'
 
 type EmployeeRow = {
   id: string
   full_name: string
   email: string
   phone: string | null
+  position: string | null
   employee_type: 'direct' | 'contractor' | 'external'
   active_contract_id: string | null
   active_position: string | null
   latest_contract_end: string | null
   contract_count: number
+  created_at: string | null
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -132,10 +134,11 @@ export function EmployeeList({ employees }: { employees: EmployeeRow[] }) {
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Colaborador</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cargo activo</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cargo</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Contratos</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Último ingreso</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -153,7 +156,7 @@ export function EmployeeList({ employees }: { employees: EmployeeRow[] }) {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-4 text-gray-600">{e.active_position ?? <span className="text-gray-300">—</span>}</td>
+                <td className="px-4 py-4 text-gray-600">{e.active_position ?? e.position ?? <span className="text-gray-300">—</span>}</td>
                 <td className="px-4 py-4">
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${TYPE_COLOR[e.employee_type]}`}>
                     {TYPE_LABEL[e.employee_type]}
@@ -161,6 +164,14 @@ export function EmployeeList({ employees }: { employees: EmployeeRow[] }) {
                 </td>
                 <td className="px-4 py-4"><StatusBadge employee={e} /></td>
                 <td className="px-4 py-4 text-gray-500">{e.contract_count}</td>
+                <td className="px-4 py-4 text-xs text-gray-500">
+                  {e.created_at ? (
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                      {new Date(e.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                  ) : <span className="text-gray-300">—</span>}
+                </td>
                 <td className="px-4 py-4">
                   <Link href={`/hr/${e.id}`} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors inline-flex">
                     <ChevronRight className="w-4 h-4" />
