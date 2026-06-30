@@ -7,6 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Building2, Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
+  TrendingUp, Gauge,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -75,7 +76,14 @@ const navigation: NavGroup[] = [
   {
     label: 'Planeamiento',
     items: [
-      { name: 'Plan Estratégico', href: '/planning/plan', icon: Target },
+      {
+        name: 'Plan Estratégico', href: '/planning/plan', icon: Target,
+        children: [
+          { name: 'Cargar Plan', href: '/planning/plan', icon: Target },
+          { name: 'Reportar Avances', href: '/planning/progress', icon: TrendingUp },
+          { name: 'Dashboard', href: '/planning/dashboard', icon: Gauge },
+        ],
+      },
     ],
   },
   {

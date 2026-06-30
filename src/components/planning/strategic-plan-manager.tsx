@@ -22,14 +22,6 @@ type Objective = { id: string; code: string; name: string; description: string |
 type Dimension = { id: string; code: string; name: string; description: string | null; valid_from_year: number }
 type Cycle = { id: string; name: string; start_year: number; end_year: number; status: string }
 
-const ACTION_STATUS: Record<string, { label: string; color: string }> = {
-  active:    { label: 'En ejecución',  color: 'bg-blue-100 text-blue-700' },
-  completed: { label: 'Completada',    color: 'bg-green-100 text-green-700' },
-  at_risk:   { label: 'En riesgo',     color: 'bg-amber-100 text-amber-700' },
-  overdue:   { label: 'Vencida',       color: 'bg-red-100 text-red-700' },
-  cancelled: { label: 'Cancelada',     color: 'bg-gray-100 text-gray-500' },
-}
-
 function emptyRevise() { return { name: '', description: '', valid_from_year: new Date().getFullYear(), change_reason: '' } }
 
 export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; faculty: Employee[] }) {
@@ -563,14 +555,6 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                                                         </div>
                                                         <button onClick={() => startEditResp(r, action.id, strat.id)}
                                                           className="p-1 text-gray-300 hover:text-blue-500 opacity-0 group-hover/resp:opacity-100 transition-all"><Pencil className="w-3.5 h-3.5" /></button>
-                                                        <select value={r.status} onChange={e => updateResponsibleField(r.id, action.id, strat.id, { status: e.target.value })}
-                                                          className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${ACTION_STATUS[r.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
-                                                          {Object.entries(ACTION_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                                                        </select>
-                                                        <input type="number" min="0" max="100" value={r.progress_pct ?? 0}
-                                                          onChange={e => updateResponsibleField(r.id, action.id, strat.id, { progress_pct: Number(e.target.value) })}
-                                                          className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                                        <span className="text-xs text-gray-400">%</span>
                                                         <button onClick={() => removeResponsible(r.id, action.id, strat.id)} className="p-1 text-gray-300 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>
                                                       </div>
                                                     )
