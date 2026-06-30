@@ -7,7 +7,13 @@ type Employee = { id: string; full_name: string; position: string | null }
 type Course = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { id: string; name: string; code: string | null } }
 type Assignment = { id: string; hours_per_week: number | null; employee: Employee }
 type Offering = { id: string; course: Course; assignments: Assignment[] }
-type Semester = { id: string; name: string; status: string; academic_year_id: string }
+type Semester = { id: string; name: string; status: string; academic_year_id: string; start_date: string | null; end_date: string | null }
+
+function fmtDate(d: string | null) {
+  if (!d) return ''
+  const [y, m, day] = d.split('T')[0].split('-')
+  return `${day}/${m}/${y}`
+}
 type Year = { id: string; name: string; semesters: Semester[] }
 type ProgramCourse = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { name: string } }
 
@@ -37,6 +43,7 @@ export function OfferManager({
 
   const selectedYear = years.find(y => y.id === selectedYearId)
   const semesters = selectedYear?.semesters ?? []
+  const selectedSemester = semesters.find(s => s.id === selectedSemesterId)
 
   // Auto-select first semester when year changes
   useEffect(() => {
@@ -149,6 +156,12 @@ export function OfferManager({
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
         </div>
+
+        {selectedSemester && (selectedSemester.start_date || selectedSemester.end_date) && (
+          <span className="flex items-center text-xs text-gray-400 px-1">
+            {fmtDate(selectedSemester.start_date)} — {fmtDate(selectedSemester.end_date)}
+          </span>
+        )}
 
         <div className="ml-auto flex items-center gap-2">
           {total > 0 && (

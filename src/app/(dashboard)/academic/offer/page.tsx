@@ -11,7 +11,7 @@ export default async function AcademicOfferPage() {
   const [yearsRes, facultyRes, coursesRes] = await Promise.all([
     (supabase as any)
       .from('academic_years')
-      .select('id, name, semesters:academic_semesters(id, name, status)')
+      .select('id, name, semesters:academic_semesters(id, name, status, start_date, end_date)')
       .order('name', { ascending: false }),
     (supabase as any)
       .from('hr_employees')
