@@ -54,6 +54,21 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendStatus, setResendStatus] = useState<'idle' | 'ok' | 'error'>('idle')
+
+  async function handleResendInvite() {
+    setResending(true)
+    setResendStatus('idle')
+    const res = await fetch('/api/hr/employees/resend-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee_id: e.id }),
+    })
+    setResending(false)
+    setResendStatus(res.ok ? 'ok' : 'error')
+    setTimeout(() => setResendStatus('idle'), 4000)
+  }
 
   const phoneSplit = splitPhone(e.phone)
   const [form, setForm] = useState({
@@ -258,6 +273,18 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
               {hasAccess
                 ? <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">Acceso al sistema ✓</span>
                 : <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-full">Sin acceso al sistema</span>}
+              <button
+                onClick={handleResendInvite}
+                disabled={resending}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-medium transition-colors disabled:opacity-50 ${
+                  resendStatus === 'ok' ? 'bg-green-50 text-green-600' :
+                  resendStatus === 'error' ? 'bg-red-50 text-red-600' :
+                  'bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+                }`}
+              >
+                <Mail className="w-3 h-3" />
+                {resending ? 'Enviando...' : resendStatus === 'ok' ? 'Enviado ✓' : resendStatus === 'error' ? 'Error al enviar' : 'Reenviar invitación'}
+              </button>
             </div>
             {e.active_position && <p className="text-sm text-gray-500 mt-1">{e.active_position}</p>}
           </div>
