@@ -69,6 +69,7 @@ const navigation: NavGroup[] = [
           { name: 'Años y Semestres', href: '/academic/years', icon: CalendarDays },
           { name: 'Programas', href: '/academic/programs', icon: BookOpen },
           { name: 'Oferta', href: '/academic/offer', icon: ClipboardList },
+          { name: 'Cronogramas', href: '/academic/schedules', icon: CalendarDays },
         ],
       },
     ],
