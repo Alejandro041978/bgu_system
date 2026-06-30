@@ -71,7 +71,32 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
   const [assigningAction, setAssigningAction] = useState<string | null>(null)
   const [assignEmployeeId, setAssignEmployeeId] = useState('')
 
+  // Quick code edit (no versioning, code is just an identifier)
+  const [editingCode, setEditingCode] = useState<{ level: 'dimension' | 'objective' | 'strategy' | 'action'; id: string; parentId: string } | null>(null)
+  const [codeValue, setCodeValue] = useState('')
+
   const currentYear = new Date().getFullYear()
+
+  function startEditCode(level: 'dimension' | 'objective' | 'strategy' | 'action', id: string, parentId: string, code: string) {
+    setEditingCode({ level, id, parentId })
+    setCodeValue(code)
+  }
+
+  async function saveCode() {
+    if (!editingCode || !codeValue) return
+    const path = { dimension: 'dimensions', objective: 'objectives', strategy: 'strategies', action: 'actions' }[editingCode.level]
+    const res = await fetch(`/api/planning/${path}/${editingCode.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: codeValue }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      if (editingCode.level === 'dimension') setDimensions(prev => prev.map(d => d.id === editingCode.id ? data : d))
+      if (editingCode.level === 'objective') setObjectivesByDim(prev => ({ ...prev, [editingCode.parentId]: (prev[editingCode.parentId] ?? []).map(o => o.id === editingCode.id ? data : o) }))
+      if (editingCode.level === 'strategy') setStrategiesByObj(prev => ({ ...prev, [editingCode.parentId]: (prev[editingCode.parentId] ?? []).map(s => s.id === editingCode.id ? data : s) }))
+      if (editingCode.level === 'action') setActionsByStrat(prev => ({ ...prev, [editingCode.parentId]: (prev[editingCode.parentId] ?? []).map(a => a.id === editingCode.id ? data : a) }))
+      setEditingCode(null)
+    }
+  }
 
   async function createCycle() {
     setSavingCycle(true)
@@ -348,9 +373,20 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                   {isDimOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
                   <Target className="w-4 h-4 text-blue-500 flex-shrink-0" />
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-900 text-sm">
-                      <span className="text-blue-600 mr-1.5">{dim.code}</span>{dim.name}
-                    </p>
+                    {editingCode?.level === 'dimension' && editingCode.id === dim.id ? (
+                      <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                        <input autoFocus value={codeValue} onChange={e => setCodeValue(e.target.value)}
+                          className="w-20 border border-blue-300 rounded px-1.5 py-0.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <button onClick={saveCode} className="p-1 text-blue-600 hover:text-blue-700"><Check className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => setEditingCode(null)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>
+                      </div>
+                    ) : (
+                      <p className="font-semibold text-gray-900 text-sm">
+                        <span className="text-blue-600 mr-1.5">{dim.code}</span>{dim.name}
+                        <button onClick={e => { e.stopPropagation(); startEditCode('dimension', dim.id, '', dim.code) }}
+                          className="ml-1.5 p-0.5 text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all align-middle"><Pencil className="w-3 h-3 inline" /></button>
+                      </p>
+                    )}
                     {dim.description && <p className="text-xs text-gray-400">{dim.description}</p>}
                   </div>
                   <span className="text-xs text-gray-400">desde {dim.valid_from_year}</span>
@@ -370,7 +406,21 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                           <div className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 group" onClick={() => toggleObj(obj.id)}>
                             {isObjOpen ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
                             <Layers className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-                            <p className="flex-1 text-sm text-gray-800"><span className="text-indigo-600 mr-1.5 font-medium">{obj.code}</span>{obj.name}</p>
+                            {editingCode?.level === 'objective' && editingCode.id === obj.id ? (
+                              <div className="flex-1 flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                                <input autoFocus value={codeValue} onChange={e => setCodeValue(e.target.value)}
+                                  className="w-20 border border-blue-300 rounded px-1.5 py-0.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                <button onClick={saveCode} className="p-1 text-blue-600 hover:text-blue-700"><Check className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => setEditingCode(null)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>
+                              </div>
+                            ) : (
+                              <p className="flex-1 text-sm text-gray-800">
+                                <span className="text-indigo-600 mr-1.5 font-medium">{obj.code}</span>{obj.name}
+                                <button onClick={e => { e.stopPropagation(); startEditCode('objective', obj.id, dim.id, obj.code) }}
+                                  className="ml-1.5 p-0.5 text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all align-middle"><Pencil className="w-3 h-3 inline" /></button>
+                                <span className="ml-2 text-xs text-gray-400 font-normal">desde {obj.valid_from_year}</span>
+                              </p>
+                            )}
                             <button onClick={e => { e.stopPropagation(); openRevise('objective', obj, obj.id, dim.id) }}
                               className="p-1 rounded text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all"><History className="w-3 h-3" /></button>
                             <button onClick={e => { e.stopPropagation(); deleteObjective(obj.id, dim.id) }}
@@ -387,7 +437,21 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                                     <div className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-50 group" onClick={() => toggleStrat(strat.id)}>
                                       {isStratOpen ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
                                       <ListChecks className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
-                                      <p className="flex-1 text-sm text-gray-800"><span className="text-purple-600 mr-1.5 font-medium">{strat.code}</span>{strat.name}</p>
+                                      {editingCode?.level === 'strategy' && editingCode.id === strat.id ? (
+                                        <div className="flex-1 flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                                          <input autoFocus value={codeValue} onChange={e => setCodeValue(e.target.value)}
+                                            className="w-20 border border-blue-300 rounded px-1.5 py-0.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                          <button onClick={saveCode} className="p-1 text-blue-600 hover:text-blue-700"><Check className="w-3.5 h-3.5" /></button>
+                                          <button onClick={() => setEditingCode(null)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>
+                                        </div>
+                                      ) : (
+                                        <p className="flex-1 text-sm text-gray-800">
+                                          <span className="text-purple-600 mr-1.5 font-medium">{strat.code}</span>{strat.name}
+                                          <button onClick={e => { e.stopPropagation(); startEditCode('strategy', strat.id, obj.id, strat.code) }}
+                                            className="ml-1.5 p-0.5 text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all align-middle"><Pencil className="w-3 h-3 inline" /></button>
+                                          <span className="ml-2 text-xs text-gray-400 font-normal">desde {strat.valid_from_year}</span>
+                                        </p>
+                                      )}
                                       <button onClick={e => { e.stopPropagation(); openRevise('strategy', strat, strat.id, obj.id) }}
                                         className="p-1 rounded text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all"><History className="w-3 h-3" /></button>
                                       <button onClick={e => { e.stopPropagation(); deleteStrategy(strat.id, obj.id) }}
@@ -402,11 +466,22 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                                             <div key={action.id} className="rounded-lg border border-gray-100 p-3 space-y-2 group">
                                               <div className="flex items-start gap-3">
                                                 <div className="flex-1">
-                                                  <p className="text-sm font-medium text-gray-800">
-                                                    <span className="text-gray-400 mr-1.5">{action.code}</span>{action.name}
-                                                  </p>
+                                                  {editingCode?.level === 'action' && editingCode.id === action.id ? (
+                                                    <div className="flex items-center gap-1.5">
+                                                      <input autoFocus value={codeValue} onChange={e => setCodeValue(e.target.value)}
+                                                        className="w-20 border border-blue-300 rounded px-1.5 py-0.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                                      <button onClick={saveCode} className="p-1 text-blue-600 hover:text-blue-700"><Check className="w-3.5 h-3.5" /></button>
+                                                      <button onClick={() => setEditingCode(null)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>
+                                                    </div>
+                                                  ) : (
+                                                    <p className="text-sm font-medium text-gray-800">
+                                                      <span className="text-gray-400 mr-1.5">{action.code}</span>{action.name}
+                                                      <button onClick={() => startEditCode('action', action.id, strat.id, action.code)}
+                                                        className="ml-1.5 p-0.5 text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all align-middle"><Pencil className="w-3 h-3 inline" /></button>
+                                                    </p>
+                                                  )}
                                                   {(action.start_year || action.target_close_year) && (
-                                                    <p className="text-xs text-gray-400 mt-0.5">{action.start_year ?? '—'} → {action.target_close_year ?? '—'}</p>
+                                                    <p className="text-xs text-gray-400 mt-0.5">{action.start_year ?? '—'} → {action.target_close_year ?? '—'} · desde {action.valid_from_year}</p>
                                                   )}
                                                 </div>
                                                 <select value={action.status} onChange={e => updateActionField(action.id, strat.id, { status: e.target.value })}

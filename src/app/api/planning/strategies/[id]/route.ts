@@ -7,6 +7,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params
   const body = await req.json()
   const supabase = db()
+
+  if (!body.revise) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
+      .from('strategic_strategies').update({ code: body.code }).eq('id', id).select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data)
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: prev, error: prevErr } = await (supabase as any)
     .from('strategic_strategies').select('*').eq('id', id).single()

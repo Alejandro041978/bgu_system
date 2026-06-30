@@ -13,15 +13,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const supabase = db()
 
   if (!body.revise) {
+    const patch: Record<string, unknown> = {}
+    if (body.progress_pct !== undefined) patch.progress_pct = body.progress_pct
+    if (body.status !== undefined) patch.status = body.status
+    if (body.start_year !== undefined) patch.start_year = body.start_year
+    if (body.target_close_year !== undefined) patch.target_close_year = body.target_close_year
+    if (body.code !== undefined) patch.code = body.code
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
-      .from('strategic_actions')
-      .update({
-        progress_pct: body.progress_pct, status: body.status,
-        start_year: body.start_year, target_close_year: body.target_close_year,
-      })
-      .eq('id', id)
-      .select(SELECT).single()
+      .from('strategic_actions').update(patch).eq('id', id).select(SELECT).single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data)
   }
