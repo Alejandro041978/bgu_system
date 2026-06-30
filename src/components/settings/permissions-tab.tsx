@@ -43,6 +43,27 @@ const PAGE_GROUPS = [
     pages: [
       { key: 'hr', label: 'Colaboradores' },
       { key: 'kpis', label: 'KPIs & Bonos' },
+      { key: 'contracts', label: 'Contratos · Lista' },
+      { key: 'contracts_new', label: 'Contratos · Nuevo' },
+      { key: 'contracts_templates', label: 'Contratos · Plantillas' },
+    ],
+  },
+  {
+    label: 'Académico',
+    pages: [
+      { key: 'academic_faculty', label: 'Docentes' },
+      { key: 'academic_years', label: 'Años y Semestres' },
+      { key: 'academic_programs', label: 'Programas' },
+      { key: 'academic_offer', label: 'Oferta académica' },
+      { key: 'academic_schedules', label: 'Cronogramas' },
+    ],
+  },
+  {
+    label: 'Planeamiento',
+    pages: [
+      { key: 'planning_plan', label: 'Plan Estratégico · Cargar Plan' },
+      { key: 'planning_progress', label: 'Plan Estratégico · Reportar Avances' },
+      { key: 'planning_dashboard', label: 'Plan Estratégico · Dashboard' },
     ],
   },
   {
