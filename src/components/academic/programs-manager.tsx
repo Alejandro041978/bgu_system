@@ -163,56 +163,60 @@ export function ProgramsManager({ initial }: { initial: Program[] }) {
         </div>
       )}
 
-      <div className="flex gap-4 min-h-[500px]">
-        {/* Lista de programas */}
-        <div className="w-64 flex-shrink-0 space-y-1">
-          {programs.length === 0 && (
-            <div className="bg-white rounded-xl border border-dashed border-gray-300 py-10 text-center">
-              <BookOpen className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-              <p className="text-xs text-gray-400">Sin programas</p>
-            </div>
-          )}
-          {programs.map(p => editingProgram === p.id ? (
-            <div key={p.id} className="w-full px-3 py-3 rounded-xl border border-blue-200 bg-blue-50 space-y-2">
-              <input value={editProgramForm.name} onChange={e => setEditProgramForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="Nombre" className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <input value={editProgramForm.code} onChange={e => setEditProgramForm(f => ({ ...f, code: e.target.value }))}
-                placeholder="Código" className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      {programs.length === 0 ? (
+        <div className="bg-white rounded-xl border border-dashed border-gray-300 py-10 text-center">
+          <BookOpen className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+          <p className="text-xs text-gray-400">Sin programas</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Selector de programa */}
+          {editingProgram ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <input value={editProgramForm.name} onChange={e => setEditProgramForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Nombre" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input value={editProgramForm.code} onChange={e => setEditProgramForm(f => ({ ...f, code: e.target.value }))}
+                  placeholder="Código" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
               <div className="flex gap-2">
-                <button onClick={() => saveProgramEdit(p.id)} disabled={!editProgramForm.name}
-                  className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-2.5 py-1 text-xs font-medium rounded-lg"><Check className="w-3.5 h-3.5" /> Guardar</button>
-                <button onClick={() => setEditingProgram(null)} className="flex items-center gap-1 px-2.5 py-1 text-xs border border-gray-200 rounded-lg hover:bg-white"><X className="w-3.5 h-3.5" /> Cancelar</button>
+                <button onClick={() => saveProgramEdit(editingProgram)} disabled={!editProgramForm.name}
+                  className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-medium rounded-lg"><Check className="w-3.5 h-3.5" /> Guardar</button>
+                <button onClick={() => setEditingProgram(null)} className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-white"><X className="w-3.5 h-3.5" /> Cancelar</button>
               </div>
             </div>
           ) : (
-            <button key={p.id} onClick={() => setSelected(p.id)}
-              className={`w-full text-left px-4 py-3 rounded-xl border transition-colors group ${selected === p.id ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'}`}>
-              <div className="flex items-center gap-2">
-                <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${selected === p.id ? 'rotate-90 text-blue-500' : 'text-gray-400'}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{p.name}</p>
-                  {p.code && <p className="text-xs text-gray-400">{p.code}</p>}
-                  <p className="text-xs text-gray-400">{p.courses.length} asignaturas</p>
-                </div>
-                <button onClick={e => { e.stopPropagation(); startEditProgram(p) }}
-                  className="p-1 text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                {p.courses.length === 0 && (
-                  <button onClick={e => { e.stopPropagation(); deleteProgram(p.id) }}
-                    className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 max-w-xl">
+                <select value={selected ?? ''} onChange={e => setSelected(e.target.value)}
+                  className="w-full appearance-none border border-gray-300 rounded-lg pl-4 pr-10 py-2.5 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  {programs.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}{p.code ? ` (${p.code})` : ''} — {p.courses.length} asignaturas</option>
+                  ))}
+                </select>
+                <ChevronRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none rotate-90" />
               </div>
-            </button>
-          ))}
-        </div>
+              {selectedProgram && (
+                <>
+                  <button onClick={() => startEditProgram(selectedProgram)}
+                    className="flex items-center gap-1.5 px-3 py-2.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">
+                    <Pencil className="w-3.5 h-3.5" /> Editar
+                  </button>
+                  {selectedProgram.courses.length === 0 && (
+                    <button onClick={() => deleteProgram(selectedProgram.id)}
+                      className="flex items-center gap-1.5 px-3 py-2.5 text-sm border border-gray-200 rounded-lg hover:bg-red-50 text-red-500">
+                      <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
         {/* Detalle del programa seleccionado */}
-        <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {!selectedProgram ? (
-            <div className="flex items-center justify-center h-full text-sm text-gray-400">
+            <div className="flex items-center justify-center py-16 text-sm text-gray-400">
               Selecciona un programa
             </div>
           ) : (
@@ -335,7 +339,8 @@ export function ProgramsManager({ initial }: { initial: Program[] }) {
             </>
           )}
         </div>
-      </div>
+        </div>
+      )}
     </div>
   )
 }
