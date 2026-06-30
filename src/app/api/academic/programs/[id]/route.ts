@@ -14,8 +14,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const supabase = db()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (db() as any).from('academic_programs').delete().eq('id', id)
+  const { count } = await (supabase as any)
+    .from('academic_courses').select('id', { count: 'exact', head: true }).eq('program_id', id)
+  if (count && count > 0) {
+    return NextResponse.json({ error: 'No se puede eliminar un programa que tiene asignaturas. Elimina primero sus asignaturas.' }, { status: 400 })
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from('academic_programs').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

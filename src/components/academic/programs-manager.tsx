@@ -24,6 +24,10 @@ export function ProgramsManager({ initial }: { initial: Program[] }) {
   const [editingCourse, setEditingCourse] = useState<string | null>(null)
   const [editCourseForm, setEditCourseForm] = useState<Partial<Course>>({})
 
+  // Edit program inline
+  const [editingProgram, setEditingProgram] = useState<string | null>(null)
+  const [editProgramForm, setEditProgramForm] = useState({ name: '', code: '' })
+
   const selectedProgram = programs.find(p => p.id === selected)
 
   // Group courses by level
@@ -51,10 +55,29 @@ export function ProgramsManager({ initial }: { initial: Program[] }) {
   }
 
   async function deleteProgram(id: string) {
-    if (!confirm('¿Eliminar este programa y todas sus asignaturas?')) return
-    await fetch(`/api/academic/programs/${id}`, { method: 'DELETE' })
+    if (!confirm('¿Eliminar este programa?')) return
+    const res = await fetch(`/api/academic/programs/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json()
+      alert(data.error ?? 'No se pudo eliminar el programa')
+      return
+    }
     setPrograms(prev => prev.filter(p => p.id !== id))
     if (selected === id) setSelected(programs.find(p => p.id !== id)?.id ?? null)
+  }
+
+  function startEditProgram(p: Program) {
+    setEditingProgram(p.id)
+    setEditProgramForm({ name: p.name, code: p.code ?? '' })
+  }
+
+  async function saveProgramEdit(id: string) {
+    await fetch(`/api/academic/programs/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editProgramForm.name, code: editProgramForm.code || null }),
+    })
+    setPrograms(prev => prev.map(p => p.id === id ? { ...p, name: editProgramForm.name, code: editProgramForm.code || null } : p))
+    setEditingProgram(null)
   }
 
   async function createCourse() {
@@ -149,7 +172,19 @@ export function ProgramsManager({ initial }: { initial: Program[] }) {
               <p className="text-xs text-gray-400">Sin programas</p>
             </div>
           )}
-          {programs.map(p => (
+          {programs.map(p => editingProgram === p.id ? (
+            <div key={p.id} className="w-full px-3 py-3 rounded-xl border border-blue-200 bg-blue-50 space-y-2">
+              <input value={editProgramForm.name} onChange={e => setEditProgramForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Nombre" className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input value={editProgramForm.code} onChange={e => setEditProgramForm(f => ({ ...f, code: e.target.value }))}
+                placeholder="Código" className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <div className="flex gap-2">
+                <button onClick={() => saveProgramEdit(p.id)} disabled={!editProgramForm.name}
+                  className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-2.5 py-1 text-xs font-medium rounded-lg"><Check className="w-3.5 h-3.5" /> Guardar</button>
+                <button onClick={() => setEditingProgram(null)} className="flex items-center gap-1 px-2.5 py-1 text-xs border border-gray-200 rounded-lg hover:bg-white"><X className="w-3.5 h-3.5" /> Cancelar</button>
+              </div>
+            </div>
+          ) : (
             <button key={p.id} onClick={() => setSelected(p.id)}
               className={`w-full text-left px-4 py-3 rounded-xl border transition-colors group ${selected === p.id ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'}`}>
               <div className="flex items-center gap-2">
@@ -159,10 +194,16 @@ export function ProgramsManager({ initial }: { initial: Program[] }) {
                   {p.code && <p className="text-xs text-gray-400">{p.code}</p>}
                   <p className="text-xs text-gray-400">{p.courses.length} asignaturas</p>
                 </div>
-                <button onClick={e => { e.stopPropagation(); deleteProgram(p.id) }}
-                  className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                  <Trash2 className="w-3.5 h-3.5" />
+                <button onClick={e => { e.stopPropagation(); startEditProgram(p) }}
+                  className="p-1 text-gray-300 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                  <Pencil className="w-3.5 h-3.5" />
                 </button>
+                {p.courses.length === 0 && (
+                  <button onClick={e => { e.stopPropagation(); deleteProgram(p.id) }}
+                    className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </button>
           ))}
