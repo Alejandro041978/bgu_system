@@ -28,6 +28,19 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(data)
 }
 
+export async function PATCH(req: NextRequest) {
+  const authClient = await createAuthClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const { id, name, label } = await req.json() as { id: string; name: string; label: string }
+  const supabase = admin()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from('roles').update({ name, label }).eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
 export async function DELETE(req: NextRequest) {
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -36,7 +49,12 @@ export async function DELETE(req: NextRequest) {
   const { id } = await req.json() as { id: string }
   const supabase = admin()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).from('roles').delete().eq('id', id)
+  const sb = supabase as any
+  const { count } = await sb.from('hr_employees').select('id', { count: 'exact', head: true }).eq('role_id', id)
+  if (count && count > 0) {
+    return NextResponse.json({ error: `No se puede eliminar: ${count} colaborador(es) tienen este rol asignado` }, { status: 400 })
+  }
+  const { error } = await sb.from('roles').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

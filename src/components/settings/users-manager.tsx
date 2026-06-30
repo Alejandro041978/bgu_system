@@ -138,7 +138,7 @@ export function UsersManager({ employees: initial, roles: initialRoles }: { empl
         )}
 
         {tab === 'roles' && (
-          <RolesTab roles={roles} onRolesChange={setRoles} />
+          <RolesTab roles={roles} onRolesChange={setRoles} employees={employees} />
         )}
 
         {tab === 'permissions' && (
