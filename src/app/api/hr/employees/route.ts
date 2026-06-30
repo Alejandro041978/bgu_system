@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
           type: 'invite',
           email: body.email,
           options: {
-            redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+            redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')}/dashboard`,
           },
         })
 
