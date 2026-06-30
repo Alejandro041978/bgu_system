@@ -9,8 +9,12 @@ import {
 type Employee = { id: string; full_name: string; position: string | null }
 type Responsible = {
   id: string; role: string; assigned_from_year: number; assigned_to_year: number | null
-  code: string | null; name: string | null
+  code: string | null; name: string | null; years: number[]
   status: string; progress_pct: number | null; notes: string | null; employee: Employee
+}
+
+function parseYears(input: string): number[] {
+  return Array.from(new Set(input.split(',').map(s => Number(s.trim())).filter(n => Number.isInteger(n) && n > 1900))).sort((a, b) => a - b)
 }
 type Action = {
   id: string; code: string; name: string; description: string | null
@@ -67,11 +71,11 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
   // Responsible assignment per action
   const [assigningAction, setAssigningAction] = useState<string | null>(null)
   const [assignEmployeeId, setAssignEmployeeId] = useState('')
-  const [assignForm, setAssignForm] = useState({ code: '', name: '', valid_from_year: '' })
+  const [assignForm, setAssignForm] = useState({ code: '', name: '', years: '' })
 
   // Inline edit of a responsible action's code/name/year
   const [editingResp, setEditingResp] = useState<{ id: string; actionId: string; stratId: string } | null>(null)
-  const [respEditForm, setRespEditForm] = useState({ code: '', name: '', valid_from_year: '' })
+  const [respEditForm, setRespEditForm] = useState({ code: '', name: '', years: '' })
 
   // Quick code edit (no versioning, code is just an identifier)
   const [editingCode, setEditingCode] = useState<{ level: 'dimension' | 'objective' | 'strategy' | 'action'; id: string; parentId: string } | null>(null)
@@ -274,13 +278,14 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
   }
 
   async function assignResponsible(actionId: string, stratId: string) {
-    if (!assignEmployeeId || !assignForm.name) return
+    const years = parseYears(assignForm.years)
+    if (!assignEmployeeId || !assignForm.name || years.length === 0) return
     const res = await fetch('/api/planning/responsibles', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action_id: actionId, employee_id: assignEmployeeId,
         code: assignForm.code || null, name: assignForm.name,
-        assigned_from_year: Number(assignForm.valid_from_year) || currentYear,
+        assigned_from_year: years[0], years,
       }),
     })
     const data = await res.json()
@@ -289,7 +294,7 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
         ...prev,
         [stratId]: (prev[stratId] ?? []).map(a => a.id === actionId ? { ...a, responsibles: [...a.responsibles, data] } : a),
       }))
-      setAssignForm({ code: '', name: '', valid_from_year: '' })
+      setAssignForm({ code: '', name: '', years: '' })
       setAssigningAction(null)
       setAssignEmployeeId('')
     }
@@ -320,14 +325,16 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
 
   function startEditResp(r: Responsible, actionId: string, stratId: string) {
     setEditingResp({ id: r.id, actionId, stratId })
-    setRespEditForm({ code: r.code ?? '', name: r.name ?? '', valid_from_year: String(r.assigned_from_year) })
+    setRespEditForm({ code: r.code ?? '', name: r.name ?? '', years: (r.years ?? []).join(', ') })
   }
 
   async function saveRespEdit() {
     if (!editingResp || !respEditForm.name) return
+    const years = parseYears(respEditForm.years)
+    if (years.length === 0) return
     await updateResponsibleField(editingResp.id, editingResp.actionId, editingResp.stratId, {
       code: respEditForm.code || null, name: respEditForm.name,
-      assigned_from_year: Number(respEditForm.valid_from_year) || currentYear,
+      assigned_from_year: years[0], years,
     })
     setEditingResp(null)
   }
@@ -534,8 +541,8 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                                                             placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                                           <input value={respEditForm.name} onChange={e => setRespEditForm(p => ({ ...p, name: e.target.value }))}
                                                             placeholder="Descripción de la acción del responsable" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                                          <input type="number" value={respEditForm.valid_from_year} onChange={e => setRespEditForm(p => ({ ...p, valid_from_year: e.target.value }))}
-                                                            placeholder="Año" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                                          <input value={respEditForm.years} onChange={e => setRespEditForm(p => ({ ...p, years: e.target.value }))}
+                                                            placeholder="Años, ej. 2024, 2025, 2026" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                                         </div>
                                                         <div className="flex gap-2">
                                                           <button onClick={saveRespEdit} disabled={!respEditForm.name}
@@ -551,7 +558,7 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                                                             {r.code && <span className="text-gray-400 mr-1.5">{r.code}</span>}
                                                             {r.name ?? <span className="text-gray-400 italic">Sin descripción</span>}
                                                           </p>
-                                                          <p className="text-xs text-gray-400">{r.employee.full_name}{r.employee.position ? ` — ${r.employee.position}` : ''} · desde {r.assigned_from_year}</p>
+                                                          <p className="text-xs text-gray-400">{r.employee.full_name}{r.employee.position ? ` — ${r.employee.position}` : ''} · años: {(r.years ?? []).length ? r.years.join(', ') : 'sin definir'}</p>
                                                         </div>
                                                         <button onClick={() => startEditResp(r, action.id, strat.id)}
                                                           className="p-1 text-gray-300 hover:text-blue-500 opacity-0 group-hover/resp:opacity-100 transition-all"><Pencil className="w-3.5 h-3.5" /></button>
@@ -567,22 +574,22 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                                                           <option value="">— Responsable —</option>
                                                           {faculty.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
                                                         </select>
-                                                        <input type="number" value={assignForm.valid_from_year} onChange={e => setAssignForm(p => ({ ...p, valid_from_year: e.target.value }))}
-                                                          placeholder={`Año (ej. ${currentYear})`} className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                                                         <input value={assignForm.code} onChange={e => setAssignForm(p => ({ ...p, code: e.target.value }))}
                                                           placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                                                         <input value={assignForm.name} onChange={e => setAssignForm(p => ({ ...p, name: e.target.value }))}
-                                                          placeholder="Descripción de la acción del responsable" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                                          placeholder="Descripción de la acción del responsable" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                                        <input value={assignForm.years} onChange={e => setAssignForm(p => ({ ...p, years: e.target.value }))}
+                                                          placeholder={`Años en que se ejecuta, ej. ${currentYear}, ${currentYear + 1}`} className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                                                       </div>
                                                       <div className="flex gap-2">
-                                                        <button onClick={() => assignResponsible(action.id, strat.id)} disabled={!assignEmployeeId || !assignForm.name}
+                                                        <button onClick={() => assignResponsible(action.id, strat.id)} disabled={!assignEmployeeId || !assignForm.name || parseYears(assignForm.years).length === 0}
                                                           className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-medium rounded-lg"><Check className="w-3 h-3" /> Guardar</button>
-                                                        <button onClick={() => { setAssigningAction(null); setAssignForm({ code: '', name: '', valid_from_year: '' }) }}
+                                                        <button onClick={() => { setAssigningAction(null); setAssignForm({ code: '', name: '', years: '' }) }}
                                                           className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-white">Cancelar</button>
                                                       </div>
                                                     </div>
                                                   ) : (
-                                                    <button onClick={() => { setAssigningAction(action.id); setAssignEmployeeId(''); setAssignForm({ code: '', name: '', valid_from_year: '' }) }}
+                                                    <button onClick={() => { setAssigningAction(action.id); setAssignEmployeeId(''); setAssignForm({ code: '', name: '', years: '' }) }}
                                                       className="text-xs text-indigo-600 hover:text-indigo-700 px-1.5 py-1 border border-dashed border-indigo-200 rounded-full">+ Acción por responsable</button>
                                                   )}
                                                 </div>

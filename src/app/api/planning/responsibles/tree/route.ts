@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
   const { data: responsibles } = await sb
     .from('strategic_action_responsibles')
-    .select('id, code, name, assigned_from_year, action_id, employee:hr_employees(id, full_name, position)')
+    .select('id, code, name, assigned_from_year, action_id, employee:hr_employees(id, full_name, position), years:strategic_responsible_years(year)')
     .in('action_id', actionIds)
 
   const dimById = Object.fromEntries((dims ?? []).map((d: { id: string }) => [d.id, d]))
@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
     const dim = obj ? dimById[obj.dimension_id] : null
     return {
       id: r.id, code: r.code, name: r.name, assigned_from_year: r.assigned_from_year, employee: r.employee,
+      years: (r.years ?? []).map((y: { year: number }) => y.year).sort((a: number, b: number) => a - b),
       action: action ? { id: action.id, code: action.code, name: action.name } : null,
       strategy: strat ? { id: strat.id, code: strat.code, name: strat.name } : null,
       objective: obj ? { id: obj.id, code: obj.code, name: obj.name } : null,

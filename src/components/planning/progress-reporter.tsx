@@ -7,7 +7,7 @@ import { ACTION_STATUS } from './status'
 type Employee = { id: string; full_name: string; position: string | null }
 type Crumb = { id: string; code?: string; name?: string } | null
 type ResponsibleItem = {
-  id: string; code: string | null; name: string | null; assigned_from_year: number; employee: Employee
+  id: string; code: string | null; name: string | null; assigned_from_year: number; years: number[]; employee: Employee
   action: Crumb; strategy: Crumb; objective: Crumb; dimension: Crumb
 }
 type ProgressEntry = {
@@ -26,8 +26,9 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
   const [progressByResp, setProgressByResp] = useState<Record<string, ProgressEntry[]>>({})
 
   const [showForm, setShowForm] = useState<string | null>(null)
-  const [form, setForm] = useState({ year: String(new Date().getFullYear()), status: 'active', progress_pct: '0', notes: '' })
+  const [form, setForm] = useState({ year: '', status: 'active', progress_pct: '0', notes: '' })
   const [saving, setSaving] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
     if (!selectedCycleId) return
@@ -51,6 +52,7 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
 
   async function addProgress(respId: string) {
     setSaving(true)
+    setErrorMsg('')
     const res = await fetch('/api/planning/progress', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -60,10 +62,20 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
     const data = await res.json()
     if (res.ok) {
       setProgressByResp(prev => ({ ...prev, [respId]: [data, ...(prev[respId] ?? [])] }))
-      setForm({ year: String(new Date().getFullYear()), status: 'active', progress_pct: '0', notes: '' })
+      setForm({ year: '', status: 'active', progress_pct: '0', notes: '' })
       setShowForm(null)
+    } else {
+      setErrorMsg(data.error ?? 'Error al guardar el reporte')
     }
     setSaving(false)
+  }
+
+  function openProgressForm(item: ResponsibleItem) {
+    const reported = new Set((progressByResp[item.id] ?? []).map(p => p.year))
+    const availableYears = (item.years ?? []).filter(y => !reported.has(y))
+    setForm({ year: String(availableYears[0] ?? item.years?.[0] ?? ''), status: 'active', progress_pct: '0', notes: '' })
+    setErrorMsg('')
+    setShowForm(item.id)
   }
 
   async function deleteProgress(id: string, respId: string) {
@@ -121,6 +133,7 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
                     </p>
                     <p className="text-xs text-gray-400 truncate">
                       {item.dimension?.code} › {item.objective?.code} › {item.strategy?.code} › {item.action?.code} · {item.employee?.full_name}
+                      {item.years?.length ? ` · años: ${item.years.join(', ')}` : ' · sin años habilitados'}
                     </p>
                   </div>
                   {latest && (
@@ -146,11 +159,16 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
                       </div>
                     ))}
 
-                    {showForm === item.id ? (
+                    {!item.years || item.years.length === 0 ? (
+                      <p className="text-xs text-amber-600">Esta acción no tiene años habilitados. Defínelos en Cargar Plan antes de reportar avance.</p>
+                    ) : showForm === item.id ? (
                       <div className="bg-white border border-blue-200 rounded-lg p-3 space-y-2">
+                        {errorMsg && <p className="text-xs text-red-600">{errorMsg}</p>}
                         <div className="grid grid-cols-4 gap-2">
-                          <input type="number" value={form.year} onChange={e => setForm(p => ({ ...p, year: e.target.value }))}
-                            placeholder="Año" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <select value={form.year} onChange={e => setForm(p => ({ ...p, year: e.target.value }))}
+                            className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            {item.years.map(y => <option key={y} value={y}>{y}</option>)}
+                          </select>
                           <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
                             className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                             {Object.entries(ACTION_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -169,7 +187,7 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
                         </div>
                       </div>
                     ) : (
-                      <button onClick={() => setShowForm(item.id)}
+                      <button onClick={() => openProgressForm(item)}
                         className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700"><Plus className="w-3.5 h-3.5" /> Reportar avance de un año</button>
                     )}
                   </div>

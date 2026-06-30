@@ -18,8 +18,18 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
+  const supabase = db()
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (db() as any)
+  const { data: allowedYears } = await (supabase as any)
+    .from('strategic_responsible_years').select('year').eq('responsible_id', body.responsible_id)
+  if (allowedYears && allowedYears.length > 0) {
+    const ok = allowedYears.some((y: { year: number }) => y.year === Number(body.year))
+    if (!ok) return NextResponse.json({ error: `El año ${body.year} no está habilitado para esta acción. Años permitidos: ${allowedYears.map((y: { year: number }) => y.year).join(', ')}` }, { status: 400 })
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
     .from('strategic_responsible_progress')
     .insert({
       responsible_id: body.responsible_id, year: body.year,
