@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (db() as any)
     .from('strategic_actions')
-    .select('*, responsibles:strategic_action_responsibles(id, role, assigned_from_year, assigned_to_year, status, progress_pct, notes, employee:hr_employees(id, full_name, position))')
+    .select('*, responsibles:strategic_action_responsibles(id, role, assigned_from_year, assigned_to_year, code, name, status, progress_pct, notes, employee:hr_employees(id, full_name, position))')
     .eq('strategy_id', strategyId)
     .eq('status', 'active')
     .order('code')
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       start_year: body.start_year ?? null, target_close_year: body.target_close_year ?? null,
       valid_from_year: body.valid_from_year, status: 'active',
     })
-    .select('*, responsibles:strategic_action_responsibles(id, role, assigned_from_year, assigned_to_year, status, progress_pct, notes, employee:hr_employees(id, full_name, position))')
+    .select('*, responsibles:strategic_action_responsibles(id, role, assigned_from_year, assigned_to_year, code, name, status, progress_pct, notes, employee:hr_employees(id, full_name, position))')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)

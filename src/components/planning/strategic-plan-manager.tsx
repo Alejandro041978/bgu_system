@@ -9,6 +9,7 @@ import {
 type Employee = { id: string; full_name: string; position: string | null }
 type Responsible = {
   id: string; role: string; assigned_from_year: number; assigned_to_year: number | null
+  code: string | null; name: string | null
   status: string; progress_pct: number | null; notes: string | null; employee: Employee
 }
 type Action = {
@@ -74,6 +75,11 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
   // Responsible assignment per action
   const [assigningAction, setAssigningAction] = useState<string | null>(null)
   const [assignEmployeeId, setAssignEmployeeId] = useState('')
+  const [assignForm, setAssignForm] = useState({ code: '', name: '', valid_from_year: '' })
+
+  // Inline edit of a responsible action's code/name/year
+  const [editingResp, setEditingResp] = useState<{ id: string; actionId: string; stratId: string } | null>(null)
+  const [respEditForm, setRespEditForm] = useState({ code: '', name: '', valid_from_year: '' })
 
   // Quick code edit (no versioning, code is just an identifier)
   const [editingCode, setEditingCode] = useState<{ level: 'dimension' | 'objective' | 'strategy' | 'action'; id: string; parentId: string } | null>(null)
@@ -276,10 +282,14 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
   }
 
   async function assignResponsible(actionId: string, stratId: string) {
-    if (!assignEmployeeId) return
+    if (!assignEmployeeId || !assignForm.name) return
     const res = await fetch('/api/planning/responsibles', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action_id: actionId, employee_id: assignEmployeeId, assigned_from_year: currentYear }),
+      body: JSON.stringify({
+        action_id: actionId, employee_id: assignEmployeeId,
+        code: assignForm.code || null, name: assignForm.name,
+        assigned_from_year: Number(assignForm.valid_from_year) || currentYear,
+      }),
     })
     const data = await res.json()
     if (res.ok) {
@@ -287,6 +297,7 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
         ...prev,
         [stratId]: (prev[stratId] ?? []).map(a => a.id === actionId ? { ...a, responsibles: [...a.responsibles, data] } : a),
       }))
+      setAssignForm({ code: '', name: '', valid_from_year: '' })
       setAssigningAction(null)
       setAssignEmployeeId('')
     }
@@ -313,6 +324,20 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
           : a),
       }))
     }
+  }
+
+  function startEditResp(r: Responsible, actionId: string, stratId: string) {
+    setEditingResp({ id: r.id, actionId, stratId })
+    setRespEditForm({ code: r.code ?? '', name: r.name ?? '', valid_from_year: String(r.assigned_from_year) })
+  }
+
+  async function saveRespEdit() {
+    if (!editingResp || !respEditForm.name) return
+    await updateResponsibleField(editingResp.id, editingResp.actionId, editingResp.stratId, {
+      code: respEditForm.code || null, name: respEditForm.name,
+      assigned_from_year: Number(respEditForm.valid_from_year) || currentYear,
+    })
+    setEditingResp(null)
   }
 
   const selectedCycle = allCycles.find(c => c.id === selectedCycleId)
@@ -508,36 +533,72 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                                                   {action.responsibles.length === 0 && !isAssigning && (
                                                     <p className="text-xs text-gray-400">Sin responsables asignados todavía.</p>
                                                   )}
-                                                  {action.responsibles.map(r => (
-                                                    <div key={r.id} className="flex items-center gap-2 bg-white border border-gray-100 rounded-lg px-3 py-2">
-                                                      <UserCheck className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-                                                      <span className="flex-1 text-sm text-gray-800">{r.employee.full_name}
-                                                        {r.employee.position && <span className="text-gray-400"> — {r.employee.position}</span>}
-                                                      </span>
-                                                      <select value={r.status} onChange={e => updateResponsibleField(r.id, action.id, strat.id, { status: e.target.value })}
-                                                        className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${ACTION_STATUS[r.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
-                                                        {Object.entries(ACTION_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                                                      </select>
-                                                      <input type="number" min="0" max="100" value={r.progress_pct ?? 0}
-                                                        onChange={e => updateResponsibleField(r.id, action.id, strat.id, { progress_pct: Number(e.target.value) })}
-                                                        className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                                      <span className="text-xs text-gray-400">%</span>
-                                                      <button onClick={() => removeResponsible(r.id, action.id, strat.id)} className="p-1 text-gray-300 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>
-                                                    </div>
-                                                  ))}
+                                                  {action.responsibles.map(r => {
+                                                    const isEditingResp = editingResp?.id === r.id
+                                                    return isEditingResp ? (
+                                                      <div key={r.id} className="bg-white border border-blue-200 rounded-lg p-2.5 space-y-2">
+                                                        <div className="grid grid-cols-4 gap-2">
+                                                          <input value={respEditForm.code} onChange={e => setRespEditForm(p => ({ ...p, code: e.target.value }))}
+                                                            placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                                          <input value={respEditForm.name} onChange={e => setRespEditForm(p => ({ ...p, name: e.target.value }))}
+                                                            placeholder="Descripción de la acción del responsable" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                                          <input type="number" value={respEditForm.valid_from_year} onChange={e => setRespEditForm(p => ({ ...p, valid_from_year: e.target.value }))}
+                                                            placeholder="Año" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                          <button onClick={saveRespEdit} disabled={!respEditForm.name}
+                                                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-medium rounded-lg">Guardar</button>
+                                                          <button onClick={() => setEditingResp(null)} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
+                                                        </div>
+                                                      </div>
+                                                    ) : (
+                                                      <div key={r.id} className="flex items-center gap-2 bg-white border border-gray-100 rounded-lg px-3 py-2 group/resp">
+                                                        <UserCheck className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+                                                        <div className="flex-1 min-w-0">
+                                                          <p className="text-sm text-gray-800 truncate">
+                                                            {r.code && <span className="text-gray-400 mr-1.5">{r.code}</span>}
+                                                            {r.name ?? <span className="text-gray-400 italic">Sin descripción</span>}
+                                                          </p>
+                                                          <p className="text-xs text-gray-400">{r.employee.full_name}{r.employee.position ? ` — ${r.employee.position}` : ''} · desde {r.assigned_from_year}</p>
+                                                        </div>
+                                                        <button onClick={() => startEditResp(r, action.id, strat.id)}
+                                                          className="p-1 text-gray-300 hover:text-blue-500 opacity-0 group-hover/resp:opacity-100 transition-all"><Pencil className="w-3.5 h-3.5" /></button>
+                                                        <select value={r.status} onChange={e => updateResponsibleField(r.id, action.id, strat.id, { status: e.target.value })}
+                                                          className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${ACTION_STATUS[r.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
+                                                          {Object.entries(ACTION_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                                                        </select>
+                                                        <input type="number" min="0" max="100" value={r.progress_pct ?? 0}
+                                                          onChange={e => updateResponsibleField(r.id, action.id, strat.id, { progress_pct: Number(e.target.value) })}
+                                                          className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                                        <span className="text-xs text-gray-400">%</span>
+                                                        <button onClick={() => removeResponsible(r.id, action.id, strat.id)} className="p-1 text-gray-300 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>
+                                                      </div>
+                                                    )
+                                                  })}
                                                   {isAssigning ? (
-                                                    <div className="flex items-center gap-1.5">
-                                                      <select value={assignEmployeeId} onChange={e => setAssignEmployeeId(e.target.value)}
-                                                        className="border border-indigo-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                                        <option value="">— Responsable —</option>
-                                                        {faculty.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
-                                                      </select>
-                                                      <button onClick={() => assignResponsible(action.id, strat.id)} disabled={!assignEmployeeId}
-                                                        className="p-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg"><Check className="w-3 h-3" /></button>
-                                                      <button onClick={() => setAssigningAction(null)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-3 h-3" /></button>
+                                                    <div className="bg-white border border-indigo-200 rounded-lg p-2.5 space-y-2">
+                                                      <div className="grid grid-cols-2 gap-2">
+                                                        <select value={assignEmployeeId} onChange={e => setAssignEmployeeId(e.target.value)}
+                                                          className="border border-indigo-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                                          <option value="">— Responsable —</option>
+                                                          {faculty.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
+                                                        </select>
+                                                        <input type="number" value={assignForm.valid_from_year} onChange={e => setAssignForm(p => ({ ...p, valid_from_year: e.target.value }))}
+                                                          placeholder={`Año (ej. ${currentYear})`} className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                                        <input value={assignForm.code} onChange={e => setAssignForm(p => ({ ...p, code: e.target.value }))}
+                                                          placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                                        <input value={assignForm.name} onChange={e => setAssignForm(p => ({ ...p, name: e.target.value }))}
+                                                          placeholder="Descripción de la acción del responsable" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                                      </div>
+                                                      <div className="flex gap-2">
+                                                        <button onClick={() => assignResponsible(action.id, strat.id)} disabled={!assignEmployeeId || !assignForm.name}
+                                                          className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-medium rounded-lg"><Check className="w-3 h-3" /> Guardar</button>
+                                                        <button onClick={() => { setAssigningAction(null); setAssignForm({ code: '', name: '', valid_from_year: '' }) }}
+                                                          className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-white">Cancelar</button>
+                                                      </div>
                                                     </div>
                                                   ) : (
-                                                    <button onClick={() => { setAssigningAction(action.id); setAssignEmployeeId('') }}
+                                                    <button onClick={() => { setAssigningAction(action.id); setAssignEmployeeId(''); setAssignForm({ code: '', name: '', valid_from_year: '' }) }}
                                                       className="text-xs text-indigo-600 hover:text-indigo-700 px-1.5 py-1 border border-dashed border-indigo-200 rounded-full">+ Acción por responsable</button>
                                                   )}
                                                 </div>

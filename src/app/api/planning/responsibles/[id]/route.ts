@@ -10,10 +10,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.status !== undefined) patch.status = body.status
   if (body.progress_pct !== undefined) patch.progress_pct = body.progress_pct
   if (body.notes !== undefined) patch.notes = body.notes
+  if (body.code !== undefined) patch.code = body.code
+  if (body.name !== undefined) patch.name = body.name
+  if (body.assigned_from_year !== undefined) patch.assigned_from_year = body.assigned_from_year
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (db() as any)
     .from('strategic_action_responsibles').update(patch).eq('id', id)
-    .select('id, role, assigned_from_year, assigned_to_year, status, progress_pct, notes, employee:hr_employees(id, full_name, position)')
+    .select('id, role, assigned_from_year, assigned_to_year, code, name, status, progress_pct, notes, employee:hr_employees(id, full_name, position)')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)

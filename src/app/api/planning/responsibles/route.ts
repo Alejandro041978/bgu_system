@@ -11,9 +11,10 @@ export async function POST(req: NextRequest) {
     .insert({
       action_id: body.action_id, employee_id: body.employee_id,
       role: body.role ?? 'principal', assigned_from_year: body.assigned_from_year,
+      code: body.code ?? null, name: body.name ?? null,
       status: 'active', progress_pct: 0,
     })
-    .select('id, role, assigned_from_year, assigned_to_year, status, progress_pct, notes, employee:hr_employees(id, full_name, position)')
+    .select('id, role, assigned_from_year, assigned_to_year, code, name, status, progress_pct, notes, employee:hr_employees(id, full_name, position)')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)

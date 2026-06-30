@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-const SELECT = '*, responsibles:strategic_action_responsibles(id, role, assigned_from_year, assigned_to_year, status, progress_pct, notes, employee:hr_employees(id, full_name, position))'
+const SELECT = '*, responsibles:strategic_action_responsibles(id, role, assigned_from_year, assigned_to_year, code, name, status, progress_pct, notes, employee:hr_employees(id, full_name, position))'
 
 // PATCH simple = ajustar estado/avance sin versionar (ej. progress_pct, status: completed/at_risk/overdue)
 // Para cambios de redacción (name/description/valid_from_year/strategy) usar PATCH con revise=true
