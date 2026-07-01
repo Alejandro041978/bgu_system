@@ -29,8 +29,9 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute = request.nextUrl.pathname.startsWith('/login')
   const isApiRoute = request.nextUrl.pathname.startsWith('/api')
   const isPublicRoute = request.nextUrl.pathname.startsWith('/sign/')
+  const isAuthCallback = request.nextUrl.pathname.startsWith('/auth/callback')
 
-  if (!user && !isAuthRoute && !isApiRoute && !isPublicRoute) {
+  if (!user && !isAuthRoute && !isApiRoute && !isPublicRoute && !isAuthCallback) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
