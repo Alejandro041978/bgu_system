@@ -14,7 +14,7 @@ interface LinkableItem { id: string; label: string }
 
 interface PlanKPI {
   id: string; plan_id: string; kpi_id: string
-  link_type: string | null; link_id: string | null
+  link_type: string | null; link_id: string | null; link_label: string | null
   meta_operator: string | null; meta: number | null; responsible_id: string | null
   resultado: number | null; resultado_updated_at: string | null
   kpi: KPICatalog | null
@@ -58,9 +58,12 @@ export function EffectivenessPlanManager({
   const [addSaving, setAddSaving] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
 
-  // inline edit for resultado
+  // inline edit
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editResult, setEditResult] = useState({ resultado: '', resultado_updated_at: '' })
+  const [editResult, setEditResult] = useState({
+    resultado: '', resultado_updated_at: '',
+    meta_operator: '>=', meta: '', responsible_id: '',
+  })
   const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => {
@@ -141,13 +144,24 @@ export function EffectivenessPlanManager({
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id: pk.id,
+        meta_operator: editResult.meta_operator || '>=',
+        meta: editResult.meta !== '' ? parseFloat(editResult.meta) : null,
+        responsible_id: editResult.responsible_id || null,
         resultado: editResult.resultado !== '' ? parseFloat(editResult.resultado) : null,
         resultado_updated_at: editResult.resultado_updated_at || null,
       }),
     })
     if (res.ok) {
       const updated = await res.json() as PlanKPI
-      setPlanKPIs(prev => prev.map(p => p.id === pk.id ? { ...p, resultado: updated.resultado, resultado_updated_at: updated.resultado_updated_at } : p))
+      setPlanKPIs(prev => prev.map(p => p.id === pk.id ? {
+        ...p,
+        meta_operator: updated.meta_operator,
+        meta: updated.meta,
+        responsible_id: updated.responsible_id,
+        responsible: employees.find(e => e.id === updated.responsible_id) ?? null,
+        resultado: updated.resultado,
+        resultado_updated_at: updated.resultado_updated_at,
+      } : p))
       setEditingId(null)
     } else {
       const d = await res.json() as { error?: string }
@@ -376,12 +390,42 @@ export function EffectivenessPlanManager({
                         </td>
                         <td className="px-4 py-3 text-gray-900 text-xs">{pk.kpi?.name ?? '—'}</td>
                         <td className="px-4 py-3 text-xs text-gray-500">
-                          {pk.link_type ? LINK_TYPES.find(l => l.value === pk.link_type)?.label ?? pk.link_type : '—'}
+                          {pk.link_type ? (
+                            <div>
+                              <span className="text-gray-400">{LINK_TYPES.find(l => l.value === pk.link_type)?.label ?? pk.link_type}</span>
+                              {pk.link_label && <div className="text-gray-700 font-medium mt-0.5">{pk.link_label}</div>}
+                            </div>
+                          ) : '—'}
                         </td>
                         <td className="px-4 py-3 text-xs font-medium text-gray-700 font-mono">
-                          {pk.meta != null ? `${pk.meta_operator ?? '>='} ${pk.meta}` : '—'}
+                          {editingId === pk.id ? (
+                            <div className="flex gap-1">
+                              <select value={editResult.meta_operator}
+                                onChange={e => setEditResult(p => ({ ...p, meta_operator: e.target.value }))}
+                                className="w-14 border border-blue-300 rounded px-1 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white">
+                                {['>=', '>', '<=', '<', '='].map(op => <option key={op} value={op}>{op}</option>)}
+                              </select>
+                              <input type="number" step="any"
+                                value={editResult.meta}
+                                onChange={e => setEditResult(p => ({ ...p, meta: e.target.value }))}
+                                className="w-16 border border-blue-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                            </div>
+                          ) : (
+                            pk.meta != null ? `${pk.meta_operator ?? '>='} ${pk.meta}` : '—'
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-600">{empName(pk.responsible_id)}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">
+                          {editingId === pk.id ? (
+                            <select value={editResult.responsible_id}
+                              onChange={e => setEditResult(p => ({ ...p, responsible_id: e.target.value }))}
+                              className="w-36 border border-blue-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white">
+                              <option value="">— Sin asignar —</option>
+                              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.full_name}</option>)}
+                            </select>
+                          ) : (
+                            empName(pk.responsible_id)
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           {editingId === pk.id ? (
                             <input type="number" step="any" autoFocus
@@ -420,6 +464,9 @@ export function EffectivenessPlanManager({
                                 <button onClick={() => {
                                   setEditingId(pk.id)
                                   setEditResult({
+                                    meta_operator: pk.meta_operator ?? '>=',
+                                    meta: pk.meta != null ? String(pk.meta) : '',
+                                    responsible_id: pk.responsible_id ?? '',
                                     resultado: pk.resultado != null ? String(pk.resultado) : '',
                                     resultado_updated_at: pk.resultado_updated_at ?? '',
                                   })
