@@ -132,7 +132,7 @@ export function EffectivenessPlanManager({
       const data = await res.json() as { error?: string; id?: string }
       if (!res.ok) throw new Error(data.error ?? 'Error al agregar KPI')
       setShowAddKPI(false)
-      setAddForm({ kpi_id: '', link_type: '', link_id: '', meta: '', responsible_id: '' })
+      setAddForm({ kpi_id: '', link_type: '', link_id: '', meta_operator: '>=', meta: '', responsible_id: '' })
       loadPlanKPIs(selectedPlan.id)
     } catch (err) { setAddError(String(err)) }
     finally { setAddSaving(false) }
