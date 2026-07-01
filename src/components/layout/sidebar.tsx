@@ -13,46 +13,47 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { usePermissions } from '@/hooks/use-permissions'
 
-type SubItem = { name: string; href: string; icon: React.ElementType }
-type NavItem = { name: string; href: string; icon: React.ElementType; children?: SubItem[] }
+type SubItem = { name: string; href: string; icon: React.ElementType; pageKey?: string }
+type NavItem = { name: string; href: string; icon: React.ElementType; pageKey?: string; children?: SubItem[] }
 type NavGroup = { label: string; items: NavItem[] }
 
 const navigation: NavGroup[] = [
   {
     label: 'General',
-    items: [{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }],
+    items: [{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, pageKey: 'dashboard' }],
   },
   {
     label: 'Atención al Cliente',
     items: [
-      { name: 'Tickets', href: '/desk', icon: Headphones },
-      { name: 'Métricas', href: '/desk/metrics', icon: BarChart3 },
+      { name: 'Tickets', href: '/desk', icon: Headphones, pageKey: 'desk' },
+      { name: 'Métricas', href: '/desk/metrics', icon: BarChart3, pageKey: 'desk_metrics' },
     ],
   },
   {
     label: 'Finanzas',
-    items: [{ name: 'Contabilidad', href: '/finance', icon: DollarSign }],
+    items: [{ name: 'Contabilidad', href: '/finance', icon: DollarSign, pageKey: 'finance' }],
   },
   {
     label: 'CRM',
-    items: [{ name: 'Contactos', href: '/crm', icon: Users }],
+    items: [{ name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' }],
   },
   {
     label: 'Redes Sociales',
-    items: [{ name: 'Métricas', href: '/social', icon: Share2 }],
+    items: [{ name: 'Métricas', href: '/social', icon: Share2, pageKey: 'social' }],
   },
   {
     label: 'Talento Humano',
     items: [
-      { name: 'Colaboradores', href: '/hr', icon: UserCog },
-      { name: 'KPIs & Bonos', href: '/kpis', icon: BarChart3 },
+      { name: 'Colaboradores', href: '/hr', icon: UserCog, pageKey: 'hr' },
+      { name: 'KPIs & Bonos', href: '/kpis', icon: BarChart3, pageKey: 'kpis' },
       {
-        name: 'Contratos', href: '/contracts', icon: FileSignature,
+        name: 'Contratos', href: '/contracts', icon: FileSignature, pageKey: 'contracts',
         children: [
-          { name: 'Lista', href: '/contracts', icon: List },
-          { name: 'Nuevo', href: '/contracts/new', icon: Plus },
-          { name: 'Plantillas', href: '/contracts/templates', icon: FileText },
+          { name: 'Lista', href: '/contracts', icon: List, pageKey: 'contracts' },
+          { name: 'Nuevo', href: '/contracts/new', icon: Plus, pageKey: 'contracts_new' },
+          { name: 'Plantillas', href: '/contracts/templates', icon: FileText, pageKey: 'contracts_templates' },
         ],
       },
     ],
@@ -60,16 +61,14 @@ const navigation: NavGroup[] = [
   {
     label: 'Académico',
     items: [
+      { name: 'Docentes', href: '/academic/faculty', icon: GraduationCap, pageKey: 'academic_faculty' },
       {
-        name: 'Docentes', href: '/academic/faculty', icon: GraduationCap,
-      },
-      {
-        name: 'Gestión académica', href: '/academic/years', icon: CalendarDays,
+        name: 'Gestión académica', href: '/academic/years', icon: CalendarDays, pageKey: 'academic_years',
         children: [
-          { name: 'Años y Semestres', href: '/academic/years', icon: CalendarDays },
-          { name: 'Programas', href: '/academic/programs', icon: BookOpen },
-          { name: 'Oferta', href: '/academic/offer', icon: ClipboardList },
-          { name: 'Cronogramas', href: '/academic/schedules', icon: CalendarDays },
+          { name: 'Años y Semestres', href: '/academic/years', icon: CalendarDays, pageKey: 'academic_years' },
+          { name: 'Programas', href: '/academic/programs', icon: BookOpen, pageKey: 'academic_programs' },
+          { name: 'Oferta', href: '/academic/offer', icon: ClipboardList, pageKey: 'academic_offer' },
+          { name: 'Cronogramas', href: '/academic/schedules', icon: CalendarDays, pageKey: 'academic_schedules' },
         ],
       },
     ],
@@ -78,11 +77,11 @@ const navigation: NavGroup[] = [
     label: 'Planeamiento',
     items: [
       {
-        name: 'Plan Estratégico', href: '/planning/plan', icon: Target,
+        name: 'Plan Estratégico', href: '/planning/plan', icon: Target, pageKey: 'planning_plan',
         children: [
-          { name: 'Cargar Plan', href: '/planning/plan', icon: Target },
-          { name: 'Reportar Avances', href: '/planning/progress', icon: TrendingUp },
-          { name: 'Dashboard', href: '/planning/dashboard', icon: Gauge },
+          { name: 'Cargar Plan', href: '/planning/plan', icon: Target, pageKey: 'planning_plan' },
+          { name: 'Reportar Avances', href: '/planning/progress', icon: TrendingUp, pageKey: 'planning_progress' },
+          { name: 'Dashboard', href: '/planning/dashboard', icon: Gauge, pageKey: 'planning_dashboard' },
         ],
       },
     ],
@@ -90,19 +89,20 @@ const navigation: NavGroup[] = [
   {
     label: 'IA',
     items: [
-      { name: 'Sofia · Chat', href: '/chat', icon: Bot },
-      { name: 'Sofia · Config', href: '/settings/sofia', icon: Bot },
+      { name: 'Sofia · Chat', href: '/chat', icon: Bot, pageKey: 'chat' },
+      { name: 'Sofia · Config', href: '/settings/sofia', icon: Bot, pageKey: 'settings_sofia' },
     ],
   },
   {
     label: 'Administración',
-    items: [{ name: 'Usuarios y permisos', href: '/settings/users', icon: Shield }],
+    items: [{ name: 'Usuarios y permisos', href: '/settings/users', icon: Shield, pageKey: 'settings_users' }],
   },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const { canView } = usePermissions()
 
   // Track which parent items are expanded
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
@@ -139,13 +139,22 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
-        {navigation.map((group) => (
+        {navigation.map((group) => {
+          const visibleItems = group.items.filter(item => {
+            if (item.children) {
+              // Show parent if at least one child is visible
+              return item.children.some(c => !c.pageKey || canView(c.pageKey))
+            }
+            return !item.pageKey || canView(item.pageKey)
+          })
+          if (visibleItems.length === 0) return null
+          return (
           <div key={group.label}>
             <p className="px-3 mb-1 text-xs font-semibold tracking-wider text-gray-500 uppercase">
               {group.label}
             </p>
             <ul className="space-y-0.5">
-              {group.items.map((item) => {
+              {visibleItems.map((item) => {
                 const hasChildren = !!item.children?.length
                 const isChildActive = hasChildren && item.children!.some(
                   c => pathname === c.href || (c.href !== item.href && pathname.startsWith(c.href))
@@ -174,7 +183,7 @@ export function Sidebar() {
                         </button>
                         {isOpen && (
                           <ul className="mt-0.5 ml-4 pl-3 border-l border-gray-800 space-y-0.5">
-                            {item.children!.map(child => {
+                            {item.children!.filter(c => !c.pageKey || canView(c.pageKey)).map(child => {
                               const childActive = pathname === child.href ||
                                 (child.href !== item.href && pathname.startsWith(child.href + '/'))
                               return (
@@ -216,7 +225,8 @@ export function Sidebar() {
               })}
             </ul>
           </div>
-        ))}
+          )
+        })}
       </nav>
 
       <div className="px-3 py-4 border-t border-gray-800 space-y-0.5">

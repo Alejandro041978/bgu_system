@@ -1,6 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { pageKeyForPath } from '@/lib/permissions'
+
+const adminClient = () => createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -26,9 +33,10 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login')
-  const isApiRoute = request.nextUrl.pathname.startsWith('/api')
-  const isPublicRoute = request.nextUrl.pathname.startsWith('/sign/')
+  const pathname = request.nextUrl.pathname
+  const isAuthRoute = pathname.startsWith('/login')
+  const isApiRoute = pathname.startsWith('/api')
+  const isPublicRoute = pathname.startsWith('/sign/')
 
   if (!user && !isAuthRoute && !isApiRoute && !isPublicRoute) {
     const url = request.nextUrl.clone()
@@ -40,6 +48,40 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/desk'
     return NextResponse.redirect(url)
+  }
+
+  // Enforce role permissions for authenticated users on app routes
+  if (user && !isApiRoute && !isAuthRoute && !isPublicRoute) {
+    const pageKey = pageKeyForPath(pathname)
+    if (pageKey) {
+      const admin = adminClient()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = admin as any
+
+      // Get employee's role
+      const { data: emp } = await sb
+        .from('hr_employees')
+        .select('role_id')
+        .eq('user_id', user.id)
+        .single()
+
+      // If no employee record or no role → superadmin (allow all)
+      if (emp?.role_id) {
+        const { data: perm } = await sb
+          .from('role_permissions')
+          .select('can_view')
+          .eq('role_id', emp.role_id)
+          .eq('page_key', pageKey)
+          .single()
+
+        if (!perm?.can_view) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/dashboard'
+          url.search = '?forbidden=1'
+          return NextResponse.redirect(url)
+        }
+      }
+    }
   }
 
   return supabaseResponse
