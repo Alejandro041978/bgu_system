@@ -84,6 +84,14 @@ const navigation: NavGroup[] = [
           { name: 'Dashboard', href: '/planning/dashboard', icon: Gauge, pageKey: 'planning_dashboard' },
         ],
       },
+      {
+        name: 'Plan de Efectividad', href: '/planning/effectiveness/kpis', icon: Gauge, pageKey: 'effectiveness_kpis',
+        children: [
+          { name: 'KPIs', href: '/planning/effectiveness/kpis', icon: Target, pageKey: 'effectiveness_kpis' },
+          { name: 'Cargar Plan', href: '/planning/effectiveness/plan', icon: TrendingUp, pageKey: 'effectiveness_plan' },
+          { name: 'Dashboard', href: '/planning/effectiveness/dashboard', icon: Gauge, pageKey: 'effectiveness_dashboard' },
+        ],
+      },
     ],
   },
   {
