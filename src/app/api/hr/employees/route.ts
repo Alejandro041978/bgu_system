@@ -8,9 +8,15 @@ const supabaseAdmin = () => createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-async function sendInviteEmail(to: string, fullName: string, magicLink: string) {
+function generateTempPassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+  return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
+async function sendInviteEmail(to: string, fullName: string, tempPassword: string) {
   const resend = new Resend(process.env.RESEND_API_KEY!)
   const firstName = fullName.split(' ')[0]
+  const loginUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://system.blackwell.university'
 
   await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
@@ -28,13 +34,19 @@ async function sendInviteEmail(to: string, fullName: string, magicLink: string) 
     <div style="padding: 32px;">
       <p style="color: #111827; font-size: 16px; margin: 0 0 8px;">Hola, <strong>${firstName}</strong> 👋</p>
       <p style="color: #6b7280; font-size: 14px; margin: 0 0 24px; line-height: 1.6;">
-        Se ha creado tu cuenta en el sistema BGU ERP. Usa el siguiente enlace para ingresar — no necesitas contraseña.
+        Se ha creado tu cuenta en el sistema BGU ERP. Usa las siguientes credenciales para ingresar:
       </p>
-      <a href="${magicLink}" style="display: block; background: #2563eb; color: white; text-align: center; padding: 14px 24px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; margin-bottom: 24px;">
-        Ingresar al sistema →
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
+        <p style="margin: 0 0 8px; font-size: 13px; color: #64748b;">Correo electrónico</p>
+        <p style="margin: 0 0 16px; font-size: 15px; font-weight: 600; color: #1e293b;">${to}</p>
+        <p style="margin: 0 0 8px; font-size: 13px; color: #64748b;">Contraseña temporal</p>
+        <p style="margin: 0; font-size: 22px; font-weight: 700; color: #1d4ed8; letter-spacing: 2px; font-family: monospace;">${tempPassword}</p>
+      </div>
+      <a href="${loginUrl}/login" style="display: block; background: #2563eb; color: white; text-align: center; padding: 14px 24px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; margin-bottom: 24px;">
+        Ir al sistema →
       </a>
       <p style="color: #9ca3af; font-size: 12px; margin: 0; line-height: 1.6;">
-        Este enlace es válido por 24 horas y es de uso único.<br>
+        Te recomendamos cambiar tu contraseña después de ingresar por primera vez.<br>
         Si no esperabas este correo, puedes ignorarlo.
       </p>
     </div>
@@ -74,9 +86,12 @@ export async function POST(req: NextRequest) {
     let authUserId: string | null = null
 
     if (body.send_invite) {
-      // 1. Crear usuario en Auth ya confirmado (evita que Supabase envíe su propio correo)
+      const tempPassword = generateTempPassword()
+
+      // Crear usuario con contraseña temporal
       const { data: userData, error: createError } = await supabase.auth.admin.createUser({
         email: body.email,
+        password: tempPassword,
         user_metadata: { full_name: body.full_name },
         email_confirm: true,
       })
@@ -85,29 +100,19 @@ export async function POST(req: NextRequest) {
         throw new Error(createError.message)
       }
 
-      // Si ya existe, obtener su ID
       if (createError?.message?.includes('already been registered')) {
         const { data: users } = await supabase.auth.admin.listUsers()
         const existing = users.users.find(u => u.email === body.email)
         authUserId = existing?.id ?? null
+        // Actualizar contraseña del usuario existente
+        if (authUserId) {
+          await supabase.auth.admin.updateUserById(authUserId, { password: tempPassword })
+        }
       } else {
         authUserId = userData.user?.id ?? null
       }
 
-      // 2. Generar magic link (siempre magiclink — el usuario ya está confirmado)
-      if (authUserId) {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-        const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-          type: 'magiclink',
-          email: body.email,
-          options: { redirectTo: `${appUrl}/auth/callback?next=/dashboard` },
-        })
-
-        if (!linkError && linkData?.properties?.action_link) {
-          // 3. Enviar email con Resend (control total del diseño)
-          await sendInviteEmail(body.email, body.full_name, linkData.properties.action_link)
-        }
-      }
+      await sendInviteEmail(body.email, body.full_name, tempPassword)
     }
 
     // Guardar en hr_employees
