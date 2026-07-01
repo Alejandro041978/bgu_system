@@ -10,6 +10,22 @@ const LEVELS: Record<string, { table: string; parentField: string }> = {
   action: { table: 'strategic_actions', parentField: 'strategy_id' },
 }
 
+// Elimina una versión superseded del historial (no permite borrar versiones activas)
+export async function DELETE(req: NextRequest) {
+  const { id, level } = await req.json() as { id: string; level: string }
+  const conf = LEVELS[level]
+  if (!conf || !id) return NextResponse.json({ error: 'id y level requeridos' }, { status: 400 })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = db() as any
+  const { data: row } = await sb.from(conf.table).select('status').eq('id', id).single()
+  if (row?.status === 'active') return NextResponse.json({ error: 'No se puede eliminar la versión activa' }, { status: 400 })
+
+  const { error } = await sb.from(conf.table).delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
 // Devuelve todas las versiones (activas y superadas) de una entidad, identificada
 // por su código dentro de un mismo padre, ordenadas cronológicamente.
 export async function GET(req: NextRequest) {

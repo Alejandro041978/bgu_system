@@ -735,6 +735,23 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                       <p className="text-xs text-gray-800">{h.name}</p>
                       {h.change_reason && <p className="text-xs text-gray-400 italic">Motivo: {h.change_reason}</p>}
                     </div>
+                    {h.status !== 'active' && (
+                      <button
+                        title="Eliminar esta versión"
+                        onClick={async () => {
+                          if (!confirm('¿Eliminar esta versión del historial?')) return
+                          await fetch('/api/planning/history', {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: h.id, level: revising!.level }),
+                          })
+                          setHistory(prev => prev.filter(x => x.id !== h.id))
+                        }}
+                        className="p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
