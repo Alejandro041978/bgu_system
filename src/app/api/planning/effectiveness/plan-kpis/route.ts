@@ -41,8 +41,8 @@ export async function GET(req: NextRequest) {
     respIds.length ? sb.from('strategic_responsible_progress').select('id, action_id, responsible_id').in('id', respIds) : { data: [] },
   ])
 
-  const objMap = Object.fromEntries((objRes.data ?? []).map((o: { id: string; code: string; name: string }) => [o.id, `${o.code} · ${o.name}`]))
-  const actMap = Object.fromEntries((actRes.data ?? []).map((a: { id: string; code: string; name: string }) => [a.id, `${a.code} · ${a.name}`]))
+  const objMap = Object.fromEntries((objRes.data ?? []).map((o: { id: string; code: string; name: string }) => [o.id, o.code]))
+  const actMap = Object.fromEntries((actRes.data ?? []).map((a: { id: string; code: string; name: string }) => [a.id, a.code]))
 
   // For responsible actions, get action + employee names
   const respActionIds = [...new Set((respRes.data ?? []).map((r: { action_id: string }) => r.action_id))]
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     respActionIds.length ? sb.from('strategic_actions').select('id, code, name').in('id', respActionIds) : { data: [] },
     respEmpIds.length ? sb.from('hr_employees').select('id, full_name').in('id', respEmpIds) : { data: [] },
   ])
-  const raMap = Object.fromEntries((raRes.data ?? []).map((a: { id: string; code: string; name: string }) => [a.id, `${a.code} · ${a.name}`]))
+  const raMap = Object.fromEntries((raRes.data ?? []).map((a: { id: string; code: string; name: string }) => [a.id, a.code]))
   const reMap = Object.fromEntries((reRes.data ?? []).map((e: { id: string; full_name: string }) => [e.id, e.full_name]))
   const respMap = Object.fromEntries((respRes.data ?? []).map((r: { id: string; action_id: string; responsible_id: string }) => [
     r.id, `${raMap[r.action_id] ?? '—'} → ${reMap[r.responsible_id] ?? '—'}`
