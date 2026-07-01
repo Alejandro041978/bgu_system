@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   const [pkRes, kpiRes, empRes] = await Promise.all([
     sb.from('effectiveness_plan_kpis')
-      .select('id, plan_id, kpi_id, link_type, link_id, meta, responsible_id, resultado, resultado_updated_at')
+      .select('id, plan_id, kpi_id, link_type, link_id, meta_operator, meta, responsible_id, resultado, resultado_updated_at')
       .eq('plan_id', planId)
       .order('created_at', { ascending: true }),
     sb.from('effectiveness_kpis').select('id, code, level, name, formula, frequency, value_type'),
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   const rows = (pkRes.data ?? []).map((pk: {
     id: string; plan_id: string; kpi_id: string; link_type: string | null;
-    link_id: string | null; meta: number | null; responsible_id: string | null;
+    link_id: string | null; meta_operator: string | null; meta: number | null; responsible_id: string | null;
     resultado: number | null; resultado_updated_at: string | null
   }) => ({
     ...pk,
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const body = await req.json() as {
     plan_id: string; kpi_id: string; link_type?: string; link_id?: string;
-    meta?: number; responsible_id?: string; resultado?: number; resultado_updated_at?: string
+    meta_operator?: string; meta?: number; responsible_id?: string; resultado?: number; resultado_updated_at?: string
   }
   if (!body.plan_id || !body.kpi_id) {
     return NextResponse.json({ error: 'plan_id y kpi_id requeridos' }, { status: 400 })
@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
       kpi_id: body.kpi_id,
       link_type: body.link_type ?? null,
       link_id: body.link_id ?? null,
+      meta_operator: body.meta_operator ?? '>=',
       meta: body.meta ?? null,
       responsible_id: body.responsible_id ?? null,
       resultado: body.resultado ?? null,

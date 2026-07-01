@@ -15,7 +15,7 @@ interface LinkableItem { id: string; label: string }
 interface PlanKPI {
   id: string; plan_id: string; kpi_id: string
   link_type: string | null; link_id: string | null
-  meta: number | null; responsible_id: string | null
+  meta_operator: string | null; meta: number | null; responsible_id: string | null
   resultado: number | null; resultado_updated_at: string | null
   kpi: KPICatalog | null
   responsible: Employee | null
@@ -52,7 +52,7 @@ export function EffectivenessPlanManager({
 
   // add KPI to plan form
   const [showAddKPI, setShowAddKPI] = useState(false)
-  const [addForm, setAddForm] = useState({ kpi_id: '', link_type: '', link_id: '', meta: '', responsible_id: '' })
+  const [addForm, setAddForm] = useState({ kpi_id: '', link_type: '', link_id: '', meta_operator: '>=', meta: '', responsible_id: '' })
   const [linkItems, setLinkItems] = useState<LinkableItem[]>([])
   const [loadingLinks, setLoadingLinks] = useState(false)
   const [addSaving, setAddSaving] = useState(false)
@@ -121,6 +121,7 @@ export function EffectivenessPlanManager({
           kpi_id: addForm.kpi_id,
           link_type: addForm.link_type || null,
           link_id: addForm.link_id || null,
+          meta_operator: addForm.meta_operator || '>=',
           meta: addForm.meta ? parseFloat(addForm.meta) : null,
           responsible_id: addForm.responsible_id || null,
         }),
@@ -306,10 +307,17 @@ export function EffectivenessPlanManager({
 
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Meta</label>
-                    <input type="number" step="any" value={addForm.meta}
-                      onChange={e => setAddForm(p => ({ ...p, meta: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Ej. 85" />
+                    <div className="flex gap-2">
+                      <select value={addForm.meta_operator}
+                        onChange={e => setAddForm(p => ({ ...p, meta_operator: e.target.value }))}
+                        className="w-16 border border-gray-200 rounded-lg px-2 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        {['>=', '>', '<=', '<', '='].map(op => <option key={op} value={op}>{op}</option>)}
+                      </select>
+                      <input type="number" step="any" value={addForm.meta}
+                        onChange={e => setAddForm(p => ({ ...p, meta: e.target.value }))}
+                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Ej. 85" />
+                    </div>
                   </div>
 
                   <div>
@@ -325,7 +333,7 @@ export function EffectivenessPlanManager({
                 {addError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{addError}</p>}
                 <div className="flex justify-end gap-3">
                   <button type="button"
-                    onClick={() => { setShowAddKPI(false); setAddForm({ kpi_id: '', link_type: '', link_id: '', meta: '', responsible_id: '' }); setAddError(null) }}
+                    onClick={() => { setShowAddKPI(false); setAddForm({ kpi_id: '', link_type: '', link_id: '', meta_operator: '>=', meta: '', responsible_id: '' }); setAddError(null) }}
                     className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
                   <button type="submit" disabled={addSaving}
                     className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
@@ -370,8 +378,8 @@ export function EffectivenessPlanManager({
                         <td className="px-4 py-3 text-xs text-gray-500">
                           {pk.link_type ? LINK_TYPES.find(l => l.value === pk.link_type)?.label ?? pk.link_type : '—'}
                         </td>
-                        <td className="px-4 py-3 text-xs font-medium text-gray-700">
-                          {pk.meta != null ? pk.meta : '—'}
+                        <td className="px-4 py-3 text-xs font-medium text-gray-700 font-mono">
+                          {pk.meta != null ? `${pk.meta_operator ?? '>='} ${pk.meta}` : '—'}
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-600">{empName(pk.responsible_id)}</td>
                         <td className="px-4 py-3">

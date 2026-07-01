@@ -8,7 +8,7 @@ interface EffectivenessPlan { id: string; name: string; year: number }
 interface PlanKPI {
   id: string; kpi_id: string
   link_type: string | null
-  meta: number | null; responsible_id: string | null
+  meta_operator: string | null; meta: number | null; responsible_id: string | null
   resultado: number | null; resultado_updated_at: string | null
   kpi: {
     code: string; level: string; name: string; formula?: string
@@ -63,15 +63,27 @@ export function EffectivenessDashboard({ plans }: { plans: EffectivenessPlan[] }
 
   const selectedPlan = plans.find(p => p.id === selectedPlanId)
 
-  // Summary stats
-  const withResult = kpis.filter(k => k.resultado != null && k.meta != null && k.meta > 0)
-  const avgPct = withResult.length > 0
-    ? withResult.reduce((sum, k) => sum + Math.min(((k.resultado! / k.meta!) * 100), 100), 0) / withResult.length
-    : null
+  function calcPct(k: PlanKPI): number | null {
+    if (k.resultado == null || k.meta == null || k.meta === 0) return null
+    const op = k.meta_operator ?? '>='
+    if (op === '<' || op === '<=') {
+      // lower is better: success = meta / resultado * 100
+      return Math.min((k.meta / k.resultado) * 100, 200)
+    }
+    if (op === '=') {
+      return k.resultado === k.meta ? 100 : (k.resultado / k.meta) * 100
+    }
+    return Math.min((k.resultado / k.meta) * 100, 200)
+  }
 
-  const greenCount = withResult.filter(k => (k.resultado! / k.meta!) * 100 >= 90).length
-  const yellowCount = withResult.filter(k => { const p = (k.resultado! / k.meta!) * 100; return p >= 70 && p < 90 }).length
-  const redCount = withResult.filter(k => (k.resultado! / k.meta!) * 100 < 70).length
+  // Summary stats
+  const withResult = kpis.filter(k => calcPct(k) != null)
+  const pcts = withResult.map(k => calcPct(k)!)
+  const avgPct = pcts.length > 0 ? pcts.reduce((a, b) => a + b, 0) / pcts.length : null
+
+  const greenCount = pcts.filter(p => p >= 90).length
+  const yellowCount = pcts.filter(p => p >= 70 && p < 90).length
+  const redCount = pcts.filter(p => p < 70).length
 
   return (
     <div className="space-y-6">
@@ -147,8 +159,7 @@ export function EffectivenessDashboard({ plans }: { plans: EffectivenessPlan[] }
             </thead>
             <tbody className="divide-y divide-gray-100">
               {kpis.map(pk => {
-                const hasBoth = pk.meta != null && pk.meta > 0 && pk.resultado != null
-                const pct = hasBoth ? Math.min((pk.resultado! / pk.meta!) * 100, 200) : null
+                const pct = calcPct(pk)
                 const vt = pk.kpi?.value_type ?? 'decimal'
                 return (
                   <tr key={pk.id} className="hover:bg-gray-50">
@@ -164,8 +175,8 @@ export function EffectivenessDashboard({ plans }: { plans: EffectivenessPlan[] }
                     <td className="px-4 py-3 text-xs text-gray-500">
                       {vt === 'porcentaje' ? '%' : vt === 'entero' ? 'Entero' : 'Decimal'}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-700">
-                      {pk.meta != null ? formatValue(pk.meta, vt) : '—'}
+                    <td className="px-4 py-3 text-xs text-gray-700 font-mono">
+                      {pk.meta != null ? `${pk.meta_operator ?? '>='} ${formatValue(pk.meta, vt)}` : '—'}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-700">
                       {pk.resultado != null ? formatValue(pk.resultado, vt) : '—'}
