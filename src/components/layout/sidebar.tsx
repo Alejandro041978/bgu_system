@@ -103,9 +103,18 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { canView } = usePermissions()
+  const [userName, setUserName] = useState<string | null>(null)
 
   // Track which parent items are expanded
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const name = user?.user_metadata?.full_name as string | undefined
+      setUserName(name ?? user?.email ?? null)
+    })
+  }, [])
 
   // Auto-expand if current path matches a child
   useEffect(() => {
@@ -137,6 +146,17 @@ export function Sidebar() {
           <p className="text-xs text-gray-400">Sistema Empresarial</p>
         </div>
       </div>
+
+      {userName && (
+        <div className="px-4 py-3 border-b border-gray-800 bg-gray-900/50">
+          <p className="text-xs text-gray-500">Sesión activa</p>
+          <p className="text-sm font-medium text-white truncate">
+            {userName.split(' ')[0] !== userName
+              ? `Hola, ${userName.split(' ')[0]}`
+              : `Hola, ${userName}`}
+          </p>
+        </div>
+      )}
 
       <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
         {navigation.map((group) => {
