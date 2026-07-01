@@ -9,6 +9,7 @@ interface KPI {
   level: string
   name: string
   formula?: string
+  scope?: string
   frequency: string
   value_type: string
   created_at: string
@@ -35,13 +36,13 @@ const LEVEL_COLORS: Record<string, string> = {
   operativo: 'bg-green-100 text-green-700',
 }
 
-const emptyForm = { code: '', level: 'institucional', name: '', formula: '', frequency: 'anual', value_type: 'porcentaje' }
+const emptyForm = { code: '', level: 'institucional', name: '', formula: '', scope: '', frequency: 'anual', value_type: 'porcentaje' }
 
 export function EffectivenessKPICatalog() {
   const [kpis, setKpis] = useState<KPI[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ ...emptyForm })
+  const [form, setForm] = useState<typeof emptyForm>({ ...emptyForm })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -145,6 +146,13 @@ export function EffectivenessKPICatalog() {
               </select>
             </div>
             <div className="col-span-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Alcance</label>
+              <textarea rows={2} value={form.scope}
+                onChange={e => setForm(p => ({ ...p, scope: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                placeholder="Descripción del alcance y propósito de este KPI" />
+            </div>
+            <div className="col-span-3">
               <label className="block text-xs font-medium text-gray-700 mb-1">Fórmula</label>
               <input value={form.formula}
                 onChange={e => setForm(p => ({ ...p, formula: e.target.value }))}
@@ -181,6 +189,7 @@ export function EffectivenessKPICatalog() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-24">Código</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-28">Nivel</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">Denominación</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">Alcance</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">Fórmula</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-24">Tipo</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-24">Frecuencia</th>
@@ -197,6 +206,7 @@ export function EffectivenessKPICatalog() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-900">{kpi.name}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{kpi.scope ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{kpi.formula ?? '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-600">
                     {VALUE_TYPES.find(v => v.value === kpi.value_type)?.label ?? kpi.value_type}
