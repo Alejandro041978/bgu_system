@@ -74,11 +74,11 @@ export async function POST(req: NextRequest) {
     let authUserId: string | null = null
 
     if (body.send_invite) {
-      // 1. Crear usuario en Auth (sin enviar email de Supabase)
+      // 1. Crear usuario en Auth ya confirmado (evita que Supabase envíe su propio correo)
       const { data: userData, error: createError } = await supabase.auth.admin.createUser({
         email: body.email,
         user_metadata: { full_name: body.full_name },
-        email_confirm: false,
+        email_confirm: true,
       })
 
       if (createError && !createError.message?.includes('already been registered')) {
@@ -94,14 +94,13 @@ export async function POST(req: NextRequest) {
         authUserId = userData.user?.id ?? null
       }
 
-      // 2. Generar magic link de invitación
+      // 2. Generar magic link (siempre magiclink — el usuario ya está confirmado)
       if (authUserId) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
         const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-          type: 'invite',
+          type: 'magiclink',
           email: body.email,
-          options: {
-            redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')}/dashboard`,
-          },
+          options: { redirectTo: `${appUrl}/dashboard` },
         })
 
         if (!linkError && linkData?.properties?.action_link) {

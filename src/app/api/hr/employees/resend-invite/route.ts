@@ -54,12 +54,11 @@ export async function POST(req: NextRequest) {
 
     if (!authUserId) return NextResponse.json({ error: 'No se pudo crear la cuenta de acceso' }, { status: 500 })
 
-    // Check if user already has a confirmed email — use magiclink instead of invite
-    const { data: authUser } = await supabase.auth.admin.getUserById(authUserId)
-    const linkType = authUser?.user?.email_confirmed_at ? 'magiclink' : 'invite'
+    // Asegurar que el usuario esté confirmado (por si fue creado antes del fix)
+    await supabase.auth.admin.updateUserById(authUserId, { email_confirm: true })
 
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: linkType,
+      type: 'magiclink',
       email: emp.email,
       options: { redirectTo: `${appUrl()}/dashboard` },
     })
