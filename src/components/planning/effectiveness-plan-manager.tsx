@@ -58,6 +58,8 @@ export function EffectivenessPlanManager({
   const [addSaving, setAddSaving] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
 
+  const [filterLink, setFilterLink] = useState('')
+
   // inline edit
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editResult, setEditResult] = useState({
@@ -82,7 +84,7 @@ export function EffectivenessPlanManager({
   }, [])
 
   function selectPlan(plan: EffectivenessPlan) {
-    setSelectedPlan(plan); setPlanKPIs([]); setShowAddKPI(false)
+    setSelectedPlan(plan); setPlanKPIs([]); setShowAddKPI(false); setFilterLink('')
     loadPlanKPIs(plan.id)
   }
 
@@ -357,6 +359,31 @@ export function EffectivenessPlanManager({
               </form>
             )}
 
+            {!loadingKPIs && planKPIs.length > 0 && (() => {
+              const linkOptions = [...new Map(
+                planKPIs.filter(k => k.link_label != null).map(k => [k.link_label!, { label: k.link_label!, type: LINK_TYPES.find(l => l.value === k.link_type)?.label ?? '' }])
+              ).entries()].sort((a, b) => a[0].localeCompare(b[0]))
+              if (linkOptions.length === 0) return null
+              return (
+                <div className="flex items-center gap-3">
+                  <label className="text-xs font-medium text-gray-600 whitespace-nowrap">Filtrar por:</label>
+                  <select
+                    value={filterLink}
+                    onChange={e => setFilterLink(e.target.value)}
+                    className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Todos los objetivos / acciones</option>
+                    {linkOptions.map(([val, info]) => (
+                      <option key={val} value={val ?? ''}>{info.label}: {val}</option>
+                    ))}
+                  </select>
+                  {filterLink && (
+                    <button onClick={() => setFilterLink('')} className="text-xs text-blue-600 hover:text-blue-700">Limpiar</button>
+                  )}
+                </div>
+              )
+            })()}
+
             {loadingKPIs ? (
               <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
             ) : planKPIs.length === 0 ? (
@@ -378,7 +405,7 @@ export function EffectivenessPlanManager({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {planKPIs.map(pk => (
+                    {planKPIs.filter(pk => !filterLink || pk.link_label === filterLink).map(pk => (
                       <tr key={pk.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-mono text-xs font-medium text-gray-700">{pk.kpi?.code ?? '—'}</td>
                         <td className="px-4 py-3">
