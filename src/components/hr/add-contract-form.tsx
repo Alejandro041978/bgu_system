@@ -18,7 +18,7 @@ export function AddContractForm({ employeeId }: { employeeId: string }) {
     start_date: '',
     end_date: '',
     salary: '',
-    currency: 'PEN',
+    currency: 'USD',
     notes: '',
   })
 
