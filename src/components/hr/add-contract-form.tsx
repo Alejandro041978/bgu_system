@@ -1,14 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Upload, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Upload, ChevronDown, ChevronUp, FileText, X } from 'lucide-react'
 
 export function AddContractForm({ employeeId }: { employeeId: string }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
     contract_type: 'fixed_term',
@@ -17,7 +19,6 @@ export function AddContractForm({ employeeId }: { employeeId: string }) {
     end_date: '',
     salary: '',
     currency: 'PEN',
-    file_url: '',
     notes: '',
   })
 
@@ -30,6 +31,17 @@ export function AddContractForm({ employeeId }: { employeeId: string }) {
     setSaving(true)
     setError(null)
     try {
+      let file_url: string | undefined
+      if (file) {
+        const fd = new FormData()
+        fd.append('file', file)
+        fd.append('employee_id', employeeId)
+        const upRes = await fetch('/api/hr/contracts/upload', { method: 'POST', body: fd })
+        const upData = await upRes.json() as { url?: string; error?: string }
+        if (!upRes.ok) throw new Error(upData.error ?? 'Error al subir archivo')
+        file_url = upData.url
+      }
+
       const resp = await fetch('/api/hr/contracts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,14 +50,15 @@ export function AddContractForm({ employeeId }: { employeeId: string }) {
           ...form,
           salary: form.salary ? parseFloat(form.salary) : undefined,
           end_date: form.end_date || undefined,
-          file_url: form.file_url || undefined,
+          file_url,
           notes: form.notes || undefined,
         }),
       })
       const data = await resp.json() as { id?: string; error?: string }
       if (!resp.ok) throw new Error(data.error ?? 'Error al guardar')
       setOpen(false)
-      setForm({ contract_type: 'fixed_term', position: '', start_date: '', end_date: '', salary: '', currency: 'PEN', file_url: '', notes: '' })
+      setForm({ contract_type: 'fixed_term', position: '', start_date: '', end_date: '', salary: '', currency: 'PEN', notes: '' })
+      setFile(null)
       router.refresh()
     } catch (err) {
       setError(String(err))
@@ -148,15 +161,32 @@ export function AddContractForm({ employeeId }: { employeeId: string }) {
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 <Upload className="w-3 h-3 inline mr-1" />
-                URL del contrato <span className="text-gray-400">(opcional)</span>
+                Archivo del contrato <span className="text-gray-400">(opcional)</span>
               </label>
               <input
-                type="url"
-                value={form.file_url}
-                onChange={e => set('file_url', e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://drive.google.com/..."
+                ref={fileRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={e => setFile(e.target.files?.[0] ?? null)}
               />
+              {file ? (
+                <div className="flex items-center gap-2 border border-blue-200 bg-blue-50 rounded-lg px-3 py-2">
+                  <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <span className="text-sm text-blue-700 truncate flex-1">{file.name}</span>
+                  <button type="button" onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = '' }}>
+                    <X className="w-3.5 h-3.5 text-blue-400 hover:text-blue-600" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full border border-dashed border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" /> Seleccionar archivo (PDF, Word)
+                </button>
+              )}
             </div>
 
             <div className="col-span-2">
