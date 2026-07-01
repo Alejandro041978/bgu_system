@@ -4,21 +4,24 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 type PermMap = Record<string, { can_view: boolean; can_edit: boolean }>
+type State = { map: PermMap; superadmin: boolean } | null
 
-let cached: PermMap | null = null
+let cached: State = null
 
 export function usePermissions() {
-  const [perms, setPerms] = useState<PermMap | null>(cached)
-  const [loading, setLoading] = useState(cached === null)
+  const [state, setState] = useState<State>(cached)
 
   useEffect(() => {
-    if (cached !== null) { setPerms(cached); setLoading(false); return }
+    if (cached !== null) { setState(cached); return }
 
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { setPerms({}); setLoading(false); return }
+      if (!user) {
+        cached = { map: {}, superadmin: false }
+        setState(cached)
+        return
+      }
 
-      // Get employee role
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: emp } = await (supabase as any)
         .from('hr_employees')
@@ -27,10 +30,9 @@ export function usePermissions() {
         .single()
 
       if (!emp?.role_id) {
-        // No role = superadmin, allow everything
-        cached = {}
-        setPerms({})
-        setLoading(false)
+        // No employee record or no role = superadmin
+        cached = { map: {}, superadmin: true }
+        setState(cached)
         return
       }
 
@@ -42,18 +44,22 @@ export function usePermissions() {
 
       const map: PermMap = {}
       for (const r of rows ?? []) map[r.page_key] = { can_view: r.can_view, can_edit: r.can_edit }
-      cached = map
-      setPerms(map)
-      setLoading(false)
+      cached = { map, superadmin: false }
+      setState(cached)
     })
   }, [])
 
-  // null perms = still loading, treat as allowed to avoid flash
   function canView(pageKey: string): boolean {
-    if (perms === null) return true
-    if (Object.keys(perms).length === 0) return true // superadmin
-    return perms[pageKey]?.can_view ?? false
+    if (state === null) return true   // still loading → avoid flash
+    if (state.superadmin) return true  // no role = admin total
+    return state.map[pageKey]?.can_view ?? false
   }
 
-  return { perms, loading, canView }
+  function canEdit(pageKey: string): boolean {
+    if (state === null) return true
+    if (state.superadmin) return true
+    return state.map[pageKey]?.can_edit ?? false
+  }
+
+  return { loading: state === null, canView, canEdit }
 }

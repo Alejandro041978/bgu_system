@@ -65,15 +65,16 @@ export async function updateSession(request: NextRequest) {
         .eq('user_id', user.id)
         .single()
 
-      // If no employee record or no role → superadmin (allow all)
+      // No employee record or no role = superadmin, allow all
       if (emp?.role_id) {
         const { data: perm } = await sb
           .from('role_permissions')
           .select('can_view')
           .eq('role_id', emp.role_id)
           .eq('page_key', pageKey)
-          .single()
+          .maybeSingle()
 
+        // No row in role_permissions = not granted → deny
         if (!perm?.can_view) {
           const url = request.nextUrl.clone()
           url.pathname = '/dashboard'
