@@ -438,28 +438,27 @@ export function EffectivenessPlanManager({
                         </td>
                         <td className="px-4 py-3">
                           {editingId === pk.id ? (
-                            <input type="date"
-                              value={editResult.resultado_updated_at}
-                              onChange={e => setEditResult(p => ({ ...p, resultado_updated_at: e.target.value }))}
-                              className="w-28 border border-blue-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                            <div className="flex items-center gap-1">
+                              <input type="date"
+                                value={editResult.resultado_updated_at}
+                                onChange={e => setEditResult(p => ({ ...p, resultado_updated_at: e.target.value }))}
+                                className="w-28 border border-blue-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              <button onClick={() => saveResult(pk)} disabled={editSaving}
+                                className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50" title="Guardar">
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => setEditingId(null)}
+                                className="p-1 text-red-400 hover:text-red-600" title="Cancelar">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
                           ) : (
                             <span className="text-xs text-gray-500">{pk.resultado_updated_at ?? '—'}</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
-                            {editingId === pk.id ? (
-                              <>
-                                <button onClick={() => saveResult(pk)} disabled={editSaving}
-                                  className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50">
-                                  <Check className="w-3.5 h-3.5" />
-                                </button>
-                                <button onClick={() => setEditingId(null)}
-                                  className="p-1 text-gray-400 hover:text-gray-600">
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </>
-                            ) : (
+                            {editingId !== pk.id && (
                               <>
                                 <button onClick={() => {
                                   setEditingId(pk.id)
