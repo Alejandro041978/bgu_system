@@ -740,11 +740,16 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                         title="Eliminar esta versión"
                         onClick={async () => {
                           if (!confirm('¿Eliminar esta versión del historial?')) return
-                          await fetch('/api/planning/history', {
+                          const res = await fetch('/api/planning/history', {
                             method: 'DELETE',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ id: h.id, level: revising!.level }),
                           })
+                          const data = await res.json() as { ok?: boolean; error?: string }
+                          if (!res.ok) {
+                            alert(data.error ?? 'No se pudo eliminar')
+                            return
+                          }
                           setHistory(prev => prev.filter(x => x.id !== h.id))
                         }}
                         className="p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"

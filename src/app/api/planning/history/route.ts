@@ -18,11 +18,9 @@ export async function DELETE(req: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = db() as any
-  const { data: row } = await sb.from(conf.table).select('status').eq('id', id).single()
-  if (row?.status === 'active') return NextResponse.json({ error: 'No se puede eliminar la versión activa' }, { status: 400 })
-
-  const { error } = await sb.from(conf.table).delete().eq('id', id)
+  const { error, count } = await sb.from(conf.table).delete({ count: 'exact' }).eq('id', id).neq('status', 'active')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (count === 0) return NextResponse.json({ error: 'No se puede eliminar: la versión está activa o no existe' }, { status: 400 })
   return NextResponse.json({ ok: true })
 }
 
