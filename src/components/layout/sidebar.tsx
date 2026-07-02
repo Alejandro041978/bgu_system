@@ -123,7 +123,9 @@ export function Sidebar() {
   const { canView } = usePermissions()
   const [userName, setUserName] = useState<string | null>(null)
 
-  // Track which parent items are expanded
+  // One group open at a time (accordion)
+  const [openGroup, setOpenGroup] = useState<string | null>(null)
+  // Sub-item expansion within a group
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
@@ -134,18 +136,24 @@ export function Sidebar() {
     })
   }, [])
 
-  // Auto-expand if current path matches a child
+  // Auto-open the group and parent item that matches the current path
   useEffect(() => {
-    const next: Record<string, boolean> = {}
     for (const group of navigation) {
       for (const item of group.items) {
-        if (item.children?.some(c => pathname === c.href || pathname.startsWith(c.href + '/'))) {
-          next[item.href] = true
+        const directMatch = !item.children && (pathname === item.href || pathname.startsWith(item.href + '/'))
+        const childMatch = item.children?.some(c => pathname === c.href || pathname.startsWith(c.href + '/'))
+        if (directMatch || childMatch) {
+          setOpenGroup(group.label)
+          if (childMatch) setExpanded(prev => ({ ...prev, [item.href]: true }))
+          return
         }
       }
     }
-    setExpanded(prev => ({ ...prev, ...next }))
   }, [pathname])
+
+  function toggleGroup(label: string) {
+    setOpenGroup(prev => prev === label ? null : label)
+  }
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -176,93 +184,117 @@ export function Sidebar() {
         </div>
       )}
 
-      <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
+      <nav className="flex-1 px-3 py-2 overflow-y-auto">
         {navigation.map((group) => {
           const visibleItems = group.items.filter(item => {
-            if (item.children) {
-              // Show parent if at least one child is visible
-              return item.children.some(c => !c.pageKey || canView(c.pageKey))
-            }
+            if (item.children) return item.children.some(c => !c.pageKey || canView(c.pageKey))
             return !item.pageKey || canView(item.pageKey)
           })
           if (visibleItems.length === 0) return null
-          return (
-          <div key={group.label}>
-            <p className="px-3 mb-1 text-xs font-semibold tracking-wider text-gray-500 uppercase">
-              {group.label}
-            </p>
-            <ul className="space-y-0.5">
-              {visibleItems.map((item) => {
-                const hasChildren = !!item.children?.length
-                const isChildActive = hasChildren && item.children!.some(
-                  c => pathname === c.href || (c.href !== item.href && pathname.startsWith(c.href))
-                )
-                const isActive = !hasChildren && (pathname === item.href || pathname.startsWith(item.href + '/'))
-                const isOpen = expanded[item.href] ?? false
 
-                return (
-                  <li key={item.href}>
-                    {hasChildren ? (
-                      <>
-                        <button
-                          onClick={() => setExpanded(prev => ({ ...prev, [item.href]: !isOpen }))}
-                          className={cn(
-                            'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors',
-                            isChildActive
-                              ? 'bg-gray-800 text-white'
-                              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                          )}
-                        >
-                          <item.icon className="w-4 h-4 flex-shrink-0" />
-                          <span className="flex-1 text-left">{item.name}</span>
-                          {isOpen
-                            ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
-                            : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />}
-                        </button>
-                        {isOpen && (
-                          <ul className="mt-0.5 ml-4 pl-3 border-l border-gray-800 space-y-0.5">
-                            {item.children!.filter(c => !c.pageKey || canView(c.pageKey)).map(child => {
-                              const childActive = pathname === child.href ||
-                                (child.href !== item.href && pathname.startsWith(child.href + '/'))
-                              return (
-                                <li key={child.href}>
-                                  <Link
-                                    href={child.href}
-                                    className={cn(
-                                      'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-colors',
-                                      childActive
-                                        ? 'bg-blue-600 text-white'
-                                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                                    )}
-                                  >
-                                    <child.icon className="w-3.5 h-3.5 flex-shrink-0" />
-                                    {child.name}
-                                  </Link>
-                                </li>
-                              )
-                            })}
-                          </ul>
+          const isGroupOpen = openGroup === group.label
+          const groupHasActive = visibleItems.some(item => {
+            if (item.children) return item.children.some(c => pathname === c.href || pathname.startsWith(c.href + '/'))
+            return pathname === item.href || pathname.startsWith(item.href + '/')
+          })
+
+          return (
+            <div key={group.label} className="border-b border-gray-800/60 last:border-0">
+              {/* Group header — clickable accordion trigger */}
+              <button
+                onClick={() => toggleGroup(group.label)}
+                className={cn(
+                  'flex items-center justify-between w-full px-3 py-2.5 text-xs font-semibold tracking-wider uppercase transition-colors',
+                  groupHasActive && !isGroupOpen
+                    ? 'text-blue-400'
+                    : isGroupOpen
+                      ? 'text-gray-200'
+                      : 'text-gray-500 hover:text-gray-300'
+                )}
+              >
+                {group.label}
+                <ChevronDown className={cn(
+                  'w-3 h-3 transition-transform duration-200',
+                  isGroupOpen ? 'rotate-180' : 'rotate-0',
+                  groupHasActive && !isGroupOpen ? 'text-blue-400' : 'text-gray-600'
+                )} />
+              </button>
+
+              {/* Group items — only visible when open */}
+              {isGroupOpen && (
+                <ul className="pb-2 space-y-0.5">
+                  {visibleItems.map((item) => {
+                    const hasChildren = !!item.children?.length
+                    const isChildActive = hasChildren && item.children!.some(
+                      c => pathname === c.href || (c.href !== item.href && pathname.startsWith(c.href))
+                    )
+                    const isActive = !hasChildren && (pathname === item.href || pathname.startsWith(item.href + '/'))
+                    const isOpen = expanded[item.href] ?? false
+
+                    return (
+                      <li key={item.href}>
+                        {hasChildren ? (
+                          <>
+                            <button
+                              onClick={() => setExpanded(prev => ({ ...prev, [item.href]: !isOpen }))}
+                              className={cn(
+                                'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors',
+                                isChildActive
+                                  ? 'bg-gray-800 text-white'
+                                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                              )}
+                            >
+                              <item.icon className="w-4 h-4 flex-shrink-0" />
+                              <span className="flex-1 text-left">{item.name}</span>
+                              {isOpen
+                                ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+                                : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />}
+                            </button>
+                            {isOpen && (
+                              <ul className="mt-0.5 ml-4 pl-3 border-l border-gray-800 space-y-0.5">
+                                {item.children!.filter(c => !c.pageKey || canView(c.pageKey)).map(child => {
+                                  const childActive = pathname === child.href ||
+                                    (child.href !== item.href && pathname.startsWith(child.href + '/'))
+                                  return (
+                                    <li key={child.href}>
+                                      <Link
+                                        href={child.href}
+                                        className={cn(
+                                          'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-colors',
+                                          childActive
+                                            ? 'bg-blue-600 text-white'
+                                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                                        )}
+                                      >
+                                        <child.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                                        {child.name}
+                                      </Link>
+                                    </li>
+                                  )
+                                })}
+                              </ul>
+                            )}
+                          </>
+                        ) : (
+                          <Link
+                            href={item.href}
+                            className={cn(
+                              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                              isActive
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            )}
+                          >
+                            <item.icon className="w-4 h-4 flex-shrink-0" />
+                            {item.name}
+                          </Link>
                         )}
-                      </>
-                    ) : (
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                          isActive
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                        )}
-                      >
-                        <item.icon className="w-4 h-4 flex-shrink-0" />
-                        {item.name}
-                      </Link>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
           )
         })}
       </nav>
