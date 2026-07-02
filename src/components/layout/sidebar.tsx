@@ -40,6 +40,7 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' },
       { name: 'Convenios', href: '/convenios', icon: Handshake, pageKey: 'convenios' },
+      { name: 'Matrículas', href: '/admision/matriculas', icon: GraduationCap, pageKey: 'admision_matriculas' },
     ],
   },
   {
