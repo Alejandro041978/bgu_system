@@ -111,5 +111,19 @@ export async function GET(req: NextRequest) {
     results['capacitacion_beneficiados_total'] = 0
   }
 
+  // ── 4. SATISFACCIÓN CON SERVICIOS ADMINISTRATIVOS (CSAT) ─────────────────
+  const { data: allRatings } = await sb
+    .from('desk_happiness_ratings')
+    .select('rating')
+    .gte('rated_time', start)
+    .lte('rated_time', end + 'T23:59:59Z')
+
+  if (allRatings && allRatings.length > 0) {
+    const good = allRatings.filter((r: { rating: string }) => r.rating === 'GOOD').length
+    results['desk_csat_promedio'] = Math.round((good / allRatings.length) * 100 * 100) / 100
+  } else {
+    results['desk_csat_promedio'] = 0
+  }
+
   return NextResponse.json(results)
 }

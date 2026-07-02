@@ -31,6 +31,7 @@ const FORMULA_LABELS: Record<string, string> = {
   capacitacion_beneficiados_tecnologica: 'Cap. tecnológica',
   capacitacion_beneficiados_academica: 'Cap. académica',
   capacitacion_beneficiados_etica: 'Cap. ética e inclusión',
+  desk_csat_promedio: 'CSAT administrativo',
 }
 
 function formatValue(value: number, valueType: string): string {
