@@ -10,7 +10,7 @@ export default async function AcademicYearsPage() {
   const { data } = await (supabase as any)
     .from('academic_years')
     .select('*, semesters:academic_semesters(*)')
-    .order('name', { ascending: false })
+    .order('start_date', { ascending: true })
 
   return (
     <>
