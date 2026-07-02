@@ -52,6 +52,13 @@ const navigation: NavGroup[] = [
       { name: 'Colaboradores', href: '/hr', icon: UserCog, pageKey: 'hr' },
       { name: 'KPIs & Bonos', href: '/kpis', icon: BarChart3, pageKey: 'kpis' },
       {
+        name: 'Capacitaciones', href: '/hr/capacitaciones', icon: GraduationCap, pageKey: 'hr_capacitaciones',
+        children: [
+          { name: 'Registro', href: '/hr/capacitaciones', icon: ClipboardList, pageKey: 'hr_capacitaciones' },
+          { name: 'Participantes', href: '/hr/capacitaciones/participantes', icon: Users, pageKey: 'hr_capacitacion_participantes' },
+        ],
+      },
+      {
         name: 'Contratos', href: '/contracts', icon: FileSignature, pageKey: 'contracts',
         children: [
           { name: 'Lista', href: '/contracts', icon: List, pageKey: 'contracts' },

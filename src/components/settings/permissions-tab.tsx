@@ -43,6 +43,8 @@ const PAGE_GROUPS = [
     pages: [
       { key: 'hr', label: 'Colaboradores' },
       { key: 'kpis', label: 'KPIs & Bonos' },
+      { key: 'hr_capacitaciones', label: 'Capacitaciones · Registro' },
+      { key: 'hr_capacitacion_participantes', label: 'Capacitaciones · Participantes' },
       { key: 'contracts', label: 'Contratos · Lista' },
       { key: 'contracts_new', label: 'Contratos · Nuevo' },
       { key: 'contracts_templates', label: 'Contratos · Plantillas' },

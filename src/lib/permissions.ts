@@ -7,6 +7,8 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/finance', 'finance'],
   ['/crm', 'crm'],
   ['/social', 'social'],
+  ['/hr/capacitaciones/participantes', 'hr_capacitacion_participantes'],
+  ['/hr/capacitaciones', 'hr_capacitaciones'],
   ['/hr', 'hr'],
   ['/kpis', 'kpis'],
   ['/contracts/new', 'contracts_new'],
