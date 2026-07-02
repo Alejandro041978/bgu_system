@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Building2, Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge,
+  TrendingUp, Gauge, Handshake,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -38,6 +38,10 @@ const navigation: NavGroup[] = [
   {
     label: 'Admisión',
     items: [{ name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' }],
+  },
+  {
+    label: 'Convenios',
+    items: [{ name: 'Convenios', href: '/convenios', icon: Handshake, pageKey: 'convenios' }],
   },
   {
     label: 'Redes Sociales',

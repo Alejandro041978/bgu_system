@@ -59,6 +59,12 @@ const PAGE_GROUPS = [
     ],
   },
   {
+    label: 'Convenios',
+    pages: [
+      { key: 'convenios', label: 'Convenios institucionales' },
+    ],
+  },
+  {
     label: 'Planeamiento',
     pages: [
       { key: 'planning_plan', label: 'Plan Estratégico · Cargar Plan' },

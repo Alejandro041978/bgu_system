@@ -17,6 +17,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/academic/programs', 'academic_programs'],
   ['/academic/offer', 'academic_offer'],
   ['/academic/schedules', 'academic_schedules'],
+  ['/convenios', 'convenios'],
   ['/planning/effectiveness/dashboard', 'effectiveness_dashboard'],
   ['/planning/effectiveness/plan', 'effectiveness_plan'],
   ['/planning/effectiveness/kpis', 'effectiveness_kpis'],
