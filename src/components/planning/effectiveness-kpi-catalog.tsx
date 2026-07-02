@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Loader2, Zap } from 'lucide-react'
 
 interface KPI {
   id: string
@@ -12,6 +12,7 @@ interface KPI {
   scope?: string
   frequency: string
   value_type: string
+  formula_type: string | null
   created_at: string
 }
 
@@ -29,6 +30,14 @@ const VALUE_TYPES = [
   { value: 'entero', label: 'Entero' },
   { value: 'decimal', label: 'Decimal' },
 ]
+const FORMULA_TYPES = [
+  { value: '', label: 'Sin cálculo automático' },
+  { value: 'faculty_nationality_diversity', label: 'Diversidad internacional del claustro' },
+  { value: 'capacitacion_beneficiados_administrativa', label: 'Beneficiados cap. administrativa' },
+  { value: 'capacitacion_beneficiados_tecnologica', label: 'Beneficiados cap. tecnológica' },
+  { value: 'capacitacion_beneficiados_academica', label: 'Beneficiados cap. académica' },
+  { value: 'capacitacion_beneficiados_total', label: 'Beneficiados cap. total' },
+]
 
 const LEVEL_COLORS: Record<string, string> = {
   institucional: 'bg-purple-100 text-purple-700',
@@ -36,7 +45,10 @@ const LEVEL_COLORS: Record<string, string> = {
   operativo: 'bg-green-100 text-green-700',
 }
 
-const emptyForm = { code: '', level: 'institucional', name: '', formula: '', scope: '', frequency: 'anual', value_type: 'porcentaje' }
+const emptyForm = {
+  code: '', level: 'institucional', name: '', formula: '', scope: '',
+  frequency: 'anual', value_type: 'porcentaje', formula_type: '',
+}
 
 export function EffectivenessKPICatalog() {
   const [kpis, setKpis] = useState<KPI[]>([])
@@ -45,6 +57,8 @@ export function EffectivenessKPICatalog() {
   const [form, setForm] = useState<typeof emptyForm>({ ...emptyForm })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editingFormulaId, setEditingFormulaId] = useState<string | null>(null)
+  const [editingFormulaValue, setEditingFormulaValue] = useState<string>('')
 
   useEffect(() => {
     fetch('/api/planning/effectiveness/kpis')
@@ -60,7 +74,7 @@ export function EffectivenessKPICatalog() {
       const res = await fetch('/api/planning/effectiveness/kpis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, formula_type: form.formula_type || null }),
       })
       const data = await res.json() as KPI & { error?: string }
       if (!res.ok) throw new Error(data.error ?? 'Error al guardar')
@@ -77,14 +91,21 @@ export function EffectivenessKPICatalog() {
   async function handleDelete(id: string, name: string) {
     if (!confirm(`¿Eliminar el KPI "${name}"? Si está vinculado a un plan no podrá eliminarse.`)) return
     const res = await fetch('/api/planning/effectiveness/kpis', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
     })
     if (res.ok) setKpis(prev => prev.filter(k => k.id !== id))
-    else {
-      const d = await res.json() as { error?: string }
-      alert(d.error ?? 'Error al eliminar')
+    else { const d = await res.json() as { error?: string }; alert(d.error ?? 'Error al eliminar') }
+  }
+
+  async function handleSaveFormulaType(kpiId: string) {
+    const res = await fetch('/api/planning/effectiveness/kpis', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: kpiId, formula_type: editingFormulaValue || null }),
+    })
+    if (res.ok) {
+      setKpis(prev => prev.map(k => k.id === kpiId ? { ...k, formula_type: editingFormulaValue || null } : k))
+      setEditingFormulaId(null)
     }
   }
 
@@ -95,10 +116,8 @@ export function EffectivenessKPICatalog() {
           <h2 className="text-base font-semibold text-gray-900">Catálogo de KPIs</h2>
           <p className="text-sm text-gray-500">Define los indicadores que se usarán en los planes de efectividad</p>
         </div>
-        <button
-          onClick={() => setShowForm(o => !o)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-        >
+        <button onClick={() => setShowForm(o => !o)}
+          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
           <Plus className="w-4 h-4" /> Nuevo KPI
         </button>
       </div>
@@ -116,16 +135,14 @@ export function EffectivenessKPICatalog() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Nivel *</label>
-              <select value={form.level}
-                onChange={e => setForm(p => ({ ...p, level: e.target.value }))}
+              <select value={form.level} onChange={e => setForm(p => ({ ...p, level: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                 {LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Tipo de valor *</label>
-              <select value={form.value_type}
-                onChange={e => setForm(p => ({ ...p, value_type: e.target.value }))}
+              <select value={form.value_type} onChange={e => setForm(p => ({ ...p, value_type: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                 {VALUE_TYPES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
               </select>
@@ -135,15 +152,22 @@ export function EffectivenessKPICatalog() {
               <input required value={form.name}
                 onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ej. Tasa de graduación oportuna" />
+                placeholder="Ej. Diversidad internacional del claustro" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Frecuencia *</label>
-              <select value={form.frequency}
-                onChange={e => setForm(p => ({ ...p, frequency: e.target.value }))}
+              <select value={form.frequency} onChange={e => setForm(p => ({ ...p, frequency: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                 {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
               </select>
+            </div>
+            <div className="col-span-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Cálculo automático</label>
+              <select value={form.formula_type} onChange={e => setForm(p => ({ ...p, formula_type: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                {FORMULA_TYPES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+              </select>
+              <p className="text-xs text-gray-400 mt-1">Si se selecciona, el resultado se calculará automáticamente desde la base de datos usando el periodo del dashboard.</p>
             </div>
             <div className="col-span-3">
               <label className="block text-xs font-medium text-gray-700 mb-1">Alcance</label>
@@ -153,20 +177,17 @@ export function EffectivenessKPICatalog() {
                 placeholder="Descripción del alcance y propósito de este KPI" />
             </div>
             <div className="col-span-3">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Fórmula</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Fórmula (descriptiva)</label>
               <input value={form.formula}
                 onChange={e => setForm(p => ({ ...p, formula: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ej. (Graduados en tiempo / Total inscritos) × 100" />
+                placeholder="Ej. Conteo distinto de nacionalidades representadas" />
             </div>
           </div>
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex justify-end gap-3">
-            <button type="button"
-              onClick={() => { setShowForm(false); setForm({ ...emptyForm }); setError(null) }}
-              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">
-              Cancelar
-            </button>
+            <button type="button" onClick={() => { setShowForm(false); setForm({ ...emptyForm }); setError(null) }}
+              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
             <button type="submit" disabled={saving}
               className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
               {saving ? 'Guardando...' : 'Guardar KPI'}
@@ -178,9 +199,7 @@ export function EffectivenessKPICatalog() {
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
       ) : kpis.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">No hay KPIs en el catálogo. Crea el primero.</p>
-        </div>
+        <div className="text-center py-16 text-gray-400 text-sm">No hay KPIs en el catálogo. Crea el primero.</div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
@@ -192,7 +211,7 @@ export function EffectivenessKPICatalog() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">Alcance</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">Fórmula</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-24">Tipo</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-24">Frecuencia</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-40">Cálculo auto</th>
                 <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
@@ -205,14 +224,37 @@ export function EffectivenessKPICatalog() {
                       {LEVELS.find(l => l.value === kpi.level)?.label ?? kpi.level}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-900">{kpi.name}</td>
+                  <td className="px-4 py-3 text-gray-900 text-xs">{kpi.name}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{kpi.scope ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{kpi.formula ?? '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-600">
                     {VALUE_TYPES.find(v => v.value === kpi.value_type)?.label ?? kpi.value_type}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
-                    {FREQUENCIES.find(f => f.value === kpi.frequency)?.label ?? kpi.frequency}
+                  <td className="px-4 py-3">
+                    {editingFormulaId === kpi.id ? (
+                      <div className="flex gap-1">
+                        <select value={editingFormulaValue} onChange={e => setEditingFormulaValue(e.target.value)}
+                          className="flex-1 border border-blue-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                          {FORMULA_TYPES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                        </select>
+                        <button onClick={() => handleSaveFormulaType(kpi.id)}
+                          className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">✓</button>
+                        <button onClick={() => setEditingFormulaId(null)}
+                          className="px-2 py-1 border border-gray-200 text-gray-500 text-xs rounded hover:bg-gray-50">✗</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => { setEditingFormulaId(kpi.id); setEditingFormulaValue(kpi.formula_type ?? '') }}
+                        className="flex items-center gap-1 group">
+                        {kpi.formula_type ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                            <Zap className="w-3 h-3" />
+                            {FORMULA_TYPES.find(f => f.value === kpi.formula_type)?.label ?? kpi.formula_type}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400 group-hover:text-blue-500">+ Asignar</span>
+                        )}
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <button onClick={() => handleDelete(kpi.id, kpi.name)}

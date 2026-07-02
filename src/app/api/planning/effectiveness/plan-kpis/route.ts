@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
       .select('id, plan_id, kpi_id, link_type, link_id, meta_operator, meta, responsible_id, resultado, resultado_updated_at')
       .eq('plan_id', planId)
       .order('created_at', { ascending: true }),
-    sb.from('effectiveness_kpis').select('id, code, level, name, formula, frequency, value_type'),
+    sb.from('effectiveness_kpis').select('id, code, level, name, formula, frequency, value_type, formula_type'),
     sb.from('hr_employees').select('id, full_name'),
   ])
 
