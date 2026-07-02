@@ -37,11 +37,10 @@ const navigation: NavGroup[] = [
   },
   {
     label: 'Admisión',
-    items: [{ name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' }],
-  },
-  {
-    label: 'Convenios',
-    items: [{ name: 'Convenios', href: '/convenios', icon: Handshake, pageKey: 'convenios' }],
+    items: [
+      { name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' },
+      { name: 'Convenios', href: '/convenios', icon: Handshake, pageKey: 'convenios' },
+    ],
   },
   {
     label: 'Redes Sociales',
