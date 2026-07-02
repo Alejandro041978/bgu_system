@@ -23,6 +23,7 @@ const TIPOS = [
   { value: 'academica', label: 'Académica' },
   { value: 'administrativa', label: 'Administrativa' },
   { value: 'tecnologica', label: 'Tecnológica' },
+  { value: 'etica', label: 'Ética e Inclusión' },
 ]
 const MODALIDADES = [
   { value: 'presencial', label: 'Presencial' },
@@ -50,6 +51,7 @@ const TIPO_COLORS: Record<string, string> = {
   academica: 'bg-blue-100 text-blue-700',
   administrativa: 'bg-purple-100 text-purple-700',
   tecnologica: 'bg-green-100 text-green-700',
+  etica: 'bg-orange-100 text-orange-700',
 }
 
 const emptyForm = {

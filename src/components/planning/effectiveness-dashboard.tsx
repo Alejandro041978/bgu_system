@@ -30,7 +30,7 @@ const FORMULA_LABELS: Record<string, string> = {
   capacitacion_beneficiados_administrativa: 'Cap. administrativa',
   capacitacion_beneficiados_tecnologica: 'Cap. tecnológica',
   capacitacion_beneficiados_academica: 'Cap. académica',
-  capacitacion_beneficiados_total: 'Cap. total',
+  capacitacion_beneficiados_etica: 'Cap. ética e inclusión',
 }
 
 function formatValue(value: number, valueType: string): string {

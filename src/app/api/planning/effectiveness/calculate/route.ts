@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 2. BENEFICIADOS POR TIPO DE CAPACITACIÓN ─────────────────────────────
-  const tipos = ['administrativa', 'tecnologica', 'academica']
+  const tipos = ['administrativa', 'tecnologica', 'academica', 'etica']
 
   for (const tipo of tipos) {
     const { data: caps } = await sb

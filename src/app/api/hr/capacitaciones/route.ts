@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const body = await req.json() as {
     id_capacitacion: string; fecha_inicio: string; fecha_termino?: string;
-    tipo: string; modalidad: string; gestion: string; financiamiento: string;
+    tipo: 'academica' | 'administrativa' | 'tecnologica' | 'etica'; modalidad: string; gestion: string; financiamiento: string;
     tematica?: string; denominacion: string; tipo_programa: string; entidad_capacitadora?: string
   }
   if (!body.id_capacitacion || !body.fecha_inicio || !body.tipo || !body.modalidad ||

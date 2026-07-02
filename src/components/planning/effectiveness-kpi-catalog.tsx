@@ -36,7 +36,7 @@ const FORMULA_TYPES = [
   { value: 'capacitacion_beneficiados_administrativa', label: 'Beneficiados cap. administrativa' },
   { value: 'capacitacion_beneficiados_tecnologica', label: 'Beneficiados cap. tecnológica' },
   { value: 'capacitacion_beneficiados_academica', label: 'Beneficiados cap. académica' },
-  { value: 'capacitacion_beneficiados_total', label: 'Beneficiados cap. total' },
+  { value: 'capacitacion_beneficiados_etica', label: 'Beneficiados cap. ética e inclusión' },
 ]
 
 const LEVEL_COLORS: Record<string, string> = {
