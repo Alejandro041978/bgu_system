@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Trash2, Loader2, FileText, Upload, X, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, Loader2, FileText, Upload, X, ExternalLink, ChevronDown, ChevronUp, GraduationCap } from 'lucide-react'
+import { ConvenioMatriculasPanel } from './convenio-matriculas-panel'
 
 interface Convenio {
   id: string
@@ -56,6 +57,8 @@ export function ConveniosManager() {
   const [error, setError] = useState<string | null>(null)
   const [filterTipo, setFilterTipo] = useState('')
   const [filterPais, setFilterPais] = useState('')
+  const [matriculasConvenio, setMatriculasConvenio] = useState<{ id: string; nombre: string } | null>(null)
+  const [matriculasCounts, setMatriculasCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
     fetch('/api/convenios')
@@ -287,7 +290,7 @@ export function ConveniosManager() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-24">Inicio</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-24">Término</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-28">Oportunidad</th>
-                <th className="px-4 py-3 w-16" />
+                <th className="px-4 py-3 w-24" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -316,6 +319,18 @@ export function ConveniosManager() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setMatriculasConvenio({ id: c.id, nombre: c.contraparte })}
+                        className="p-1 text-gray-400 hover:text-blue-500 transition-colors relative"
+                        title="Ver matrículas"
+                      >
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        {(matriculasCounts[c.id] ?? 0) > 0 && (
+                          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                            {matriculasCounts[c.id]}
+                          </span>
+                        )}
+                      </button>
                       {c.archivo_url && (
                         <a href={c.archivo_url} target="_blank" rel="noopener noreferrer"
                           className="p-1 text-gray-400 hover:text-blue-500 transition-colors" title="Ver archivo">
@@ -333,6 +348,17 @@ export function ConveniosManager() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {matriculasConvenio && (
+        <ConvenioMatriculasPanel
+          convenioId={matriculasConvenio.id}
+          convenioNombre={matriculasConvenio.nombre}
+          onClose={() => setMatriculasConvenio(null)}
+          onCountChange={(count) =>
+            setMatriculasCounts(prev => ({ ...prev, [matriculasConvenio.id]: count }))
+          }
+        />
       )}
     </div>
   )
