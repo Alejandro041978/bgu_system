@@ -149,5 +149,34 @@ export async function GET(req: NextRequest) {
     results['convenios_alianzas_activas'] = 0
   }
 
+  // ── 6. DIVERSIDAD GEOGRÁFICA DEL ALUMNADO ────────────────────────────────
+  // Países únicos de estudiantes cuyo enrollment_date cae dentro del periodo
+  const { data: enrollmentsInPeriod } = await sb
+    .from('academic_student_enrollments')
+    .select('student_id')
+    .gte('enrollment_date', start)
+    .lte('enrollment_date', end + 'T23:59:59Z')
+
+  const studentIds = [...new Set(
+    (enrollmentsInPeriod ?? []).map((e: { student_id: string }) => e.student_id)
+  )]
+
+  if (studentIds.length > 0) {
+    const { data: studentCountries } = await sb
+      .from('academic_students')
+      .select('country')
+      .in('id', studentIds)
+      .not('country', 'is', null)
+
+    const uniqueCountries = new Set(
+      (studentCountries ?? [])
+        .map((s: { country: string }) => s.country?.toLowerCase().trim())
+        .filter(Boolean)
+    )
+    results['student_geographic_diversity'] = uniqueCountries.size
+  } else {
+    results['student_geographic_diversity'] = 0
+  }
+
   return NextResponse.json(results)
 }
