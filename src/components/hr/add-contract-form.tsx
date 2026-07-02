@@ -4,7 +4,13 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Upload, ChevronDown, ChevronUp, FileText, X } from 'lucide-react'
 
-export function AddContractForm({ employeeId }: { employeeId: string }) {
+type AcademicYear = { id: string; name: string }
+
+export function AddContractForm({ employeeId, isFaculty = false, academicYears = [] }: {
+  employeeId: string
+  isFaculty?: boolean
+  academicYears?: AcademicYear[]
+}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -13,13 +19,14 @@ export function AddContractForm({ employeeId }: { employeeId: string }) {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
-    contract_type: 'fixed_term',
+    contract_type: 'contractor',
     position: '',
     start_date: '',
     end_date: '',
     salary: '',
     currency: 'USD',
     notes: '',
+    academic_year_id: '',
   })
 
   function set(key: string, value: string) {
@@ -50,6 +57,7 @@ export function AddContractForm({ employeeId }: { employeeId: string }) {
           ...form,
           salary: form.salary ? parseFloat(form.salary) : undefined,
           end_date: form.end_date || undefined,
+          academic_year_id: form.academic_year_id || undefined,
           file_url,
           notes: form.notes || undefined,
         }),
@@ -57,7 +65,7 @@ export function AddContractForm({ employeeId }: { employeeId: string }) {
       const data = await resp.json() as { id?: string; error?: string }
       if (!resp.ok) throw new Error(data.error ?? 'Error al guardar')
       setOpen(false)
-      setForm({ contract_type: 'fixed_term', position: '', start_date: '', end_date: '', salary: '', currency: 'PEN', notes: '' })
+      setForm({ contract_type: 'contractor', position: '', start_date: '', end_date: '', salary: '', currency: 'USD', notes: '', academic_year_id: '' })
       setFile(null)
       router.refresh()
     } catch (err) {
@@ -92,10 +100,9 @@ export function AddContractForm({ employeeId }: { employeeId: string }) {
                 onChange={e => set('contract_type', e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
-                <option value="indefinite">Indefinido</option>
-                <option value="fixed_term">Plazo fijo</option>
-                <option value="services">Locación de servicios</option>
-                <option value="internship">Prácticas</option>
+                <option value="contractor">Contractor</option>
+                <option value="external">Externo</option>
+                <option value="employee">Empleado</option>
               </select>
             </div>
 
@@ -110,6 +117,22 @@ export function AddContractForm({ employeeId }: { employeeId: string }) {
                 placeholder="Ej. Coordinadora Académica"
               />
             </div>
+
+            {isFaculty && academicYears.length > 0 && (
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Año académico que cubre este contrato</label>
+                <select
+                  value={form.academic_year_id}
+                  onChange={e => set('academic_year_id', e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">— Sin año académico específico —</option>
+                  {academicYears.map(y => (
+                    <option key={y.id} value={y.id}>{y.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Fecha de inicio *</label>

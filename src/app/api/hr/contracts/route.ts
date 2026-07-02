@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       currency?: string
       file_url?: string
       notes?: string
+      academic_year_id?: string
     }
 
     const supabase = supabaseAdmin()
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
         currency: body.currency ?? 'PEN',
         file_url: body.file_url || null,
         notes: body.notes || null,
+        academic_year_id: body.academic_year_id || null,
       })
       .select('id')
       .single()

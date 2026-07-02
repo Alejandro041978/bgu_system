@@ -32,40 +32,17 @@ const TYPE_COLOR: Record<string, string> = {
 
 function StatusBadge({ employee }: { employee: EmployeeRow }) {
   if (employee.active_contract_id) {
-    const endDate = employee.latest_contract_end
-    const daysLeft = endDate
-      ? Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000)
-      : null
-
-    if (daysLeft !== null && daysLeft <= 30) {
-      return (
-        <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
-          <AlertCircle className="w-3 h-3" />
-          Vence en {daysLeft}d
-        </span>
-      )
-    }
     return (
-      <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+      <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-medium">
         <CheckCircle2 className="w-3 h-3" />
-        Activo
+        Con contrato
       </span>
     )
   }
-
-  if (employee.contract_count === 0) {
-    return (
-      <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-        <Clock className="w-3 h-3" />
-        Sin contrato
-      </span>
-    )
-  }
-
   return (
-    <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full">
+    <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full font-medium">
       <AlertCircle className="w-3 h-3" />
-      Contrato vencido
+      Sin contrato
     </span>
   )
 }

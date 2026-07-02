@@ -16,15 +16,17 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   )
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [empRes, contractsRes, instancesRes, facultyRes] = await Promise.all([
+  const [empRes, contractsRes, instancesRes, facultyRes, yearsRes] = await Promise.all([
     (supabase as any).from('hr_employees_with_status').select('*').eq('id', id).single(),
     (supabase as any).from('hr_contracts').select('*').eq('employee_id', id).order('start_date', { ascending: false }),
     (supabase as any).from('contract_instances').select('*, template:contract_templates(name)').eq('signer_ref_id', id).order('created_at', { ascending: false }),
     (supabase as any).from('hr_employees').select('is_faculty').eq('id', id).single(),
+    (supabase as any).from('academic_years').select('id, name').order('start_date', { ascending: true }),
   ])
 
   if (empRes.error || !empRes.data) notFound()
-  const employee = { ...empRes.data, is_faculty: facultyRes.data?.is_faculty ?? false }
+  const isFaculty = facultyRes.data?.is_faculty ?? false
+  const employee = { ...empRes.data, is_faculty: isFaculty }
 
   return (
     <>
@@ -37,7 +39,11 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           <EmployeeProfile employee={employee} />
           <EmployeeContractsSigned instances={instancesRes.data ?? []} />
           <ContractList contracts={contractsRes.data ?? []} />
-          <AddContractForm employeeId={id} />
+          <AddContractForm
+            employeeId={id}
+            isFaculty={isFaculty}
+            academicYears={yearsRes.data ?? []}
+          />
         </div>
       </div>
     </>
