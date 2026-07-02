@@ -51,6 +51,7 @@ export function NewEmployeeForm() {
     zoho_agent_email: '',
     phone_prefix: '+51',
     phone_number: '',
+    nacionalidad: '',
   })
 
   function set(key: string, value: string | boolean | null) {
@@ -171,6 +172,17 @@ export function NewEmployeeForm() {
               value={form.birth_date}
               onChange={e => set('birth_date', e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Nacionalidad</label>
+            <input
+              type="text"
+              value={form.nacionalidad}
+              onChange={e => set('nacionalidad', e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ej. Peruana, Colombiana"
             />
           </div>
 

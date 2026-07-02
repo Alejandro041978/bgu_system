@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       birth_date?: string
       address?: string
       notes?: string
+      nacionalidad?: string
       send_invite: boolean
       is_faculty?: boolean
       zoho_agent_id?: string
@@ -129,6 +130,7 @@ export async function POST(req: NextRequest) {
     if (body.birth_date) insertData.birth_date = body.birth_date
     if (body.address) insertData.address = body.address
     if (body.notes) insertData.notes = body.notes
+    if (body.nacionalidad) insertData.nacionalidad = body.nacionalidad
     if (authUserId) insertData.user_id = authUserId
     if (body.zoho_agent_id) insertData.zoho_agent_id = body.zoho_agent_id
     if (body.zoho_agent_email) insertData.zoho_agent_email = body.zoho_agent_email
