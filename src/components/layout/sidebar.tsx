@@ -36,7 +36,7 @@ const navigation: NavGroup[] = [
     items: [{ name: 'Contabilidad', href: '/finance', icon: DollarSign, pageKey: 'finance' }],
   },
   {
-    label: 'CRM',
+    label: 'Admisión',
     items: [{ name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' }],
   },
   {
