@@ -1,5 +1,5 @@
 import { Topbar } from '@/components/layout/topbar'
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import {
   Users, GraduationCap, Handshake, BookOpen,
@@ -17,8 +17,14 @@ const COLOR_MAP: Record<string, { bg: string; icon: string; border: string; acce
   teal:   { bg: 'bg-teal-50',   icon: 'text-teal-600',   border: 'border-teal-100',   accent: 'text-teal-700' },
 }
 
+const db = () => createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
 export default async function DashboardPage() {
-  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = db() as any
 
   const [
     { count: colaboradores },
