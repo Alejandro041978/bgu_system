@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { Topbar } from '@/components/layout/topbar'
 import { GraduationCap, Users } from 'lucide-react'
+import { MatriculasFilters } from '@/components/admision/matriculas-filters'
 
 export const revalidate = 0
 
@@ -9,7 +10,15 @@ const db = () => createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export default async function MatriculasPage() {
+export default async function MatriculasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ year?: string; block?: string }>
+}) {
+  const params = await searchParams
+  const selectedYear = params.year ? parseInt(params.year) : null
+  const selectedBlock = params.block ?? null
+
   const supabase = db()
 
   const { data: programs } = await supabase
@@ -17,27 +26,53 @@ export default async function MatriculasPage() {
     .select('id, name, code')
     .order('name')
 
-  const { data: enrollments } = await supabase
+  // Available years and blocks for filters
+  const { data: allEnrollments } = await supabase
     .from('academic_student_enrollments')
-    .select('program_id')
+    .select('term_year, term_block, program_id')
+
+  const years = [...new Set((allEnrollments ?? []).map(e => e.term_year).filter(Boolean))]
+    .sort((a, b) => a - b) as number[]
+  const blocks = [...new Set((allEnrollments ?? []).map(e => e.term_block).filter(Boolean))]
+    .sort() as string[]
+
+  // Filter enrollments
+  const filtered = (allEnrollments ?? []).filter(e => {
+    if (selectedYear && e.term_year !== selectedYear) return false
+    if (selectedBlock && e.term_block !== selectedBlock) return false
+    return true
+  })
 
   const countMap: Record<string, number> = {}
-  for (const e of enrollments ?? []) {
+  for (const e of filtered) {
     if (e.program_id) countMap[e.program_id] = (countMap[e.program_id] ?? 0) + 1
   }
 
   const rows = (programs ?? []).map(p => ({
     ...p,
     count: countMap[p.id] ?? 0,
-  })).sort((a, b) => b.count - a.count)
+  })).filter(r => r.count > 0).sort((a, b) => b.count - a.count)
 
   const total = rows.reduce((sum, r) => sum + r.count, 0)
+
+  const filterLabel = selectedYear || selectedBlock
+    ? [selectedYear ? `Año ${selectedYear}` : null, selectedBlock ? `Semestre ${selectedBlock}` : null]
+        .filter(Boolean).join(' · ')
+    : 'Todos los períodos'
 
   return (
     <>
       <Topbar title="Matrículas" subtitle="Estudiantes matriculados por programa" />
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-4xl mx-auto space-y-6">
+
+          {/* Filtros */}
+          <MatriculasFilters
+            years={years}
+            blocks={blocks}
+            selectedYear={selectedYear}
+            selectedBlock={selectedBlock}
+          />
 
           {/* Resumen */}
           <div className="grid grid-cols-2 gap-4">
@@ -47,7 +82,7 @@ export default async function MatriculasPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{rows.length}</p>
-                <p className="text-sm text-gray-500">Programas activos</p>
+                <p className="text-sm text-gray-500">Programas con matrículas</p>
               </div>
             </div>
             <div className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4">
@@ -56,7 +91,7 @@ export default async function MatriculasPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{total.toLocaleString('es-PE')}</p>
-                <p className="text-sm text-gray-500">Total matriculados</p>
+                <p className="text-sm text-gray-500">{filterLabel}</p>
               </div>
             </div>
           </div>
@@ -91,7 +126,7 @@ export default async function MatriculasPage() {
               </tbody>
             </table>
             {rows.length === 0 && (
-              <p className="text-center text-gray-400 py-10">Sin datos de matrículas</p>
+              <p className="text-center text-gray-400 py-10">Sin matrículas para el período seleccionado</p>
             )}
           </div>
 
