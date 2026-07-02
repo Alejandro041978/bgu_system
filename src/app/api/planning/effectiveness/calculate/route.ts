@@ -125,5 +125,29 @@ export async function GET(req: NextRequest) {
     results['desk_csat_promedio'] = 0
   }
 
+  // ── 5. ALIANZAS ACTIVAS CON RESULTADOS ───────────────────────────────────
+  // Vigentes: fecha_inicio <= end AND (fecha_termino IS NULL OR fecha_termino >= start)
+  const { data: conveniosVigentes } = await sb
+    .from('convenios')
+    .select('id')
+    .lte('fecha_inicio', end)
+    .or(`fecha_termino.is.null,fecha_termino.gte.${start}`)
+
+  const vigenteIds: string[] = (conveniosVigentes ?? []).map((c: { id: string }) => c.id)
+
+  if (vigenteIds.length > 0) {
+    const { data: matriculasVigentes } = await sb
+      .from('convenio_matriculas')
+      .select('convenio_id')
+      .in('convenio_id', vigenteIds)
+
+    const conResultados = new Set(
+      (matriculasVigentes ?? []).map((m: { convenio_id: string }) => m.convenio_id)
+    )
+    results['convenios_alianzas_activas'] = Math.round((conResultados.size / vigenteIds.length) * 100 * 100) / 100
+  } else {
+    results['convenios_alianzas_activas'] = 0
+  }
+
   return NextResponse.json(results)
 }

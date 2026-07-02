@@ -32,6 +32,7 @@ const FORMULA_LABELS: Record<string, string> = {
   capacitacion_beneficiados_academica: 'Cap. académica',
   capacitacion_beneficiados_etica: 'Cap. ética e inclusión',
   desk_csat_promedio: 'CSAT administrativo',
+  convenios_alianzas_activas: 'Alianzas con matrículas (%)',
 }
 
 function formatValue(value: number, valueType: string): string {

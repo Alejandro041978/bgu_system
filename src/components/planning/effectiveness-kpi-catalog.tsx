@@ -38,6 +38,7 @@ const FORMULA_TYPES = [
   { value: 'capacitacion_beneficiados_academica', label: 'Beneficiados cap. académica' },
   { value: 'capacitacion_beneficiados_etica', label: 'Beneficiados cap. ética e inclusión' },
   { value: 'desk_csat_promedio', label: 'CSAT servicios administrativos (%)' },
+  { value: 'convenios_alianzas_activas', label: 'Alianzas activas con matrículas (%)' },
 ]
 
 const LEVEL_COLORS: Record<string, string> = {
