@@ -40,11 +40,21 @@ export default function LoginPage() {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
+    // Verify email exists in academic_students first
+    const check = await fetch(`/api/students/check-email?email=${encodeURIComponent(email)}`)
+    const { exists } = await check.json() as { exists: boolean }
+    if (!exists) {
+      setError('Este correo no está registrado como estudiante. Verifica tu email.')
+      setLoading(false)
+      return
+    }
+
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/student`,
       },
     })
     setLoading(false)

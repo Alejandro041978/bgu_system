@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
+  // Supabase appends next to the hash or as a param; also check token_hash flow
   const next = searchParams.get('next') ?? '/desk'
 
   if (code) {

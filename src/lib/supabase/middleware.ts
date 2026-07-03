@@ -36,7 +36,8 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const isAuthRoute = pathname.startsWith('/login')
   const isApiRoute = pathname.startsWith('/api')
-  const isPublicRoute = pathname.startsWith('/sign/')
+  const isPublicRoute = pathname.startsWith('/sign/') || pathname.startsWith('/auth/')
+  const isStudentRoute = pathname.startsWith('/student')
 
   if (!user && !isAuthRoute && !isApiRoute && !isPublicRoute) {
     const url = request.nextUrl.clone()
@@ -45,6 +46,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isAuthRoute) {
+    // Will be redirected to correct home after role check below
     const url = request.nextUrl.clone()
     url.pathname = '/desk'
     return NextResponse.redirect(url)
@@ -52,39 +54,47 @@ export async function updateSession(request: NextRequest) {
 
   // Enforce role permissions for authenticated users on app routes
   if (user && !isApiRoute && !isAuthRoute && !isPublicRoute) {
+    const admin = adminClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = admin as any
+
+    // Check if user is staff (in hr_employees)
+    const { data: emp } = await sb
+      .from('hr_employees')
+      .select('role_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    const isStudent = !emp
+
+    // Students: only allow /student/* routes
+    if (isStudent) {
+      if (!isStudentRoute) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/student'
+        return NextResponse.redirect(url)
+      }
+      return supabaseResponse
+    }
+
+    // Staff: enforce role permissions per page
     const pageKey = pageKeyForPath(pathname)
-    if (pageKey) {
-      const admin = adminClient()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sb = admin as any
+    if (pageKey && emp?.role_id) {
+      const { data: perm } = await sb
+        .from('role_permissions')
+        .select('can_view')
+        .eq('role_id', emp.role_id)
+        .eq('page_key', pageKey)
+        .maybeSingle()
 
-      // Get employee's role
-      const { data: emp } = await sb
-        .from('hr_employees')
-        .select('role_id')
-        .eq('user_id', user.id)
-        .single()
-
-      // No employee record or no role = superadmin, allow all
-      if (emp?.role_id) {
-        const { data: perm } = await sb
-          .from('role_permissions')
-          .select('can_view')
-          .eq('role_id', emp.role_id)
-          .eq('page_key', pageKey)
-          .maybeSingle()
-
-        // No row in role_permissions = not granted → redirect to first allowed page or desk
-        if (!perm?.can_view) {
-          // Avoid redirect loop: if we're already on the fallback, just allow it
-          if (pathname === '/desk' || pathname === '/dashboard') {
-            return supabaseResponse
-          }
-          const url = request.nextUrl.clone()
-          url.pathname = '/desk'
-          url.search = '?forbidden=1'
-          return NextResponse.redirect(url)
+      if (!perm?.can_view) {
+        if (pathname === '/desk' || pathname === '/dashboard') {
+          return supabaseResponse
         }
+        const url = request.nextUrl.clone()
+        url.pathname = '/desk'
+        url.search = '?forbidden=1'
+        return NextResponse.redirect(url)
       }
     }
   }
