@@ -9,7 +9,8 @@ type Course = { id: string; name: string; code: string | null; credits: number; 
 type Offering = { id: string; start_date: string | null; end_date: string | null; course: Course; assignments: Assignment[] }
 type SemesterBlock = { id: string; name: string; start_date: string | null; end_date: string | null; offerings: Offering[] }
 
-type Program = { id: string; name: string; code: string | null }
+type Program = { id: string; name: string; code: string | null; category_id: string | null }
+type Category = { id: string; name: string }
 type Semester = { id: string; name: string }
 type Year = { id: string; name: string; semesters: Semester[] }
 
@@ -19,7 +20,9 @@ function fmtDate(d: string | null) {
   return `${day}/${m}/${y}`
 }
 
-export function SchedulesView({ programs, years }: { programs: Program[]; years: Year[] }) {
+export function SchedulesView({ programs, years, categories }: { programs: Program[]; years: Year[]; categories: Category[] }) {
+  const [categoryId, setCategoryId] = useState('')
+  const filteredPrograms = categoryId ? programs.filter(p => p.category_id === categoryId) : programs
   const [programId, setProgramId] = useState(programs[0]?.id ?? '')
   const [yearId, setYearId] = useState(years[0]?.id ?? '')
   const [semesterId, setSemesterId] = useState('')
@@ -51,12 +54,24 @@ export function SchedulesView({ programs, years }: { programs: Program[]; years:
       </div>
 
       <div className="flex flex-wrap gap-3">
+        {categories.length > 0 && (
+          <div className="relative">
+            <select value={categoryId} onChange={e => { setCategoryId(e.target.value); setProgramId('') }}
+              className="appearance-none border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Todas las categorías</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          </div>
+        )}
+
         <div className="relative">
           <select value={programId} onChange={e => setProgramId(e.target.value)}
             className="appearance-none border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px]">
-            {programs.length === 0
-              ? <option value="">Sin programas</option>
-              : programs.map(p => <option key={p.id} value={p.id}>{p.name}{p.code ? ` (${p.code})` : ''}</option>)}
+            <option value="">Selecciona un programa</option>
+            {filteredPrograms.length === 0
+              ? <option disabled>Sin programas en esta categoría</option>
+              : filteredPrograms.map(p => <option key={p.id} value={p.id}>{p.name}{p.code ? ` (${p.code})` : ''}</option>)}
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
         </div>

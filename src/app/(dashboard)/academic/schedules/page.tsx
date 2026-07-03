@@ -8,9 +8,10 @@ export default async function AcademicSchedulesPage() {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [programsRes, yearsRes] = await Promise.all([
-    (supabase as any).from('academic_programs').select('id, name, code').order('name'),
+  const [programsRes, yearsRes, categoriesRes] = await Promise.all([
+    (supabase as any).from('academic_programs').select('id, name, code, category_id').order('name'),
     (supabase as any).from('academic_years').select('id, name, semesters:academic_semesters(id, name)').order('name', { ascending: false }),
+    (supabase as any).from('academic_programs_category').select('id, name').order('name'),
   ])
 
   return (
@@ -18,7 +19,7 @@ export default async function AcademicSchedulesPage() {
       <Topbar title="Cronogramas" subtitle="Gestión académica" />
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-6xl mx-auto">
-          <SchedulesView programs={programsRes.data ?? []} years={yearsRes.data ?? []} />
+          <SchedulesView programs={programsRes.data ?? []} years={yearsRes.data ?? []} categories={categoriesRes.data ?? []} />
         </div>
       </div>
     </>
