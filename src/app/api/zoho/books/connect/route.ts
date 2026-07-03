@@ -5,7 +5,7 @@ const REDIRECT_URI = process.env.ZOHO_REDIRECT_URI ?? 'https://bgu-system.vercel
 
 export async function GET() {
   const params = new URLSearchParams({
-    scope: 'ZohoBooks.reports.READ,ZohoBooks.accountants.READ,ZohoBooks.dashboard.READ',
+    scope: 'ZohoBooks.reports.READ,ZohoBooks.invoices.READ,ZohoBooks.expenses.READ',
     client_id: process.env.ZOHO_CLIENT_ID!,
     response_type: 'code',
     redirect_uri: REDIRECT_URI,
