@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import { ChevronDown, Plus, Trash2, UserCheck, AlertCircle, CheckCircle2, Loader2, X, Pencil, Check, CalendarDays } from 'lucide-react'
 
 type Employee = { id: string; full_name: string; position: string | null }
-type Course = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { id: string; name: string; code: string | null } }
+type Course = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { id: string; name: string; code: string | null; category_id?: string | null } }
 type Assignment = { id: string; hours_per_week: number | null; employee: Employee }
 type Offering = { id: string; course: Course; assignments: Assignment[]; start_date: string | null; end_date: string | null }
 type Semester = { id: string; name: string; status: string; academic_year_id: string; start_date: string | null; end_date: string | null }
+type Category = { id: string; name: string }
 
 function fmtDate(d: string | null) {
   if (!d) return ''
@@ -18,17 +19,22 @@ type Year = { id: string; name: string; semesters: Semester[] }
 type ProgramCourse = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { name: string } }
 
 export function OfferManager({
-  years, faculty, allCourses, contractMap = {},
+  years, faculty, allCourses, contractMap = {}, categories = [],
 }: {
   years: Year[]
   faculty: Employee[]
   allCourses: ProgramCourse[]
   contractMap?: Record<string, string[]>
+  categories?: Category[]
 }) {
   const [selectedYearId, setSelectedYearId] = useState(years[0]?.id ?? '')
   const [selectedSemesterId, setSelectedSemesterId] = useState('')
   const [offerings, setOfferings] = useState<Offering[]>([])
   const [loading, setLoading] = useState(false)
+
+  // Filtros de tabla
+  const [filterCategoryId, setFilterCategoryId] = useState('')
+  const [filterProgramIdTable, setFilterProgramIdTable] = useState('')
 
   // Panel agregar curso
   const [showAddCourse, setShowAddCourse] = useState(false)
@@ -84,8 +90,26 @@ export function OfferManager({
     ? availableCourses.filter(c => c.program_id === filterProgramId)
     : availableCourses
 
-  const covered = offerings.filter(o => o.assignments.length > 0).length
-  const total = offerings.length
+  // Programas únicos en las offerings del semestre actual
+  const programsInOfferings = Array.from(
+    new Map(offerings.map(o => [o.course.program_id, o.course.program])).entries()
+  ).map(([id, p]) => ({ id, name: p.name, category_id: p.category_id ?? null }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  // Programas filtrados por categoría seleccionada
+  const programsForFilter = filterCategoryId
+    ? programsInOfferings.filter(p => p.category_id === filterCategoryId)
+    : programsInOfferings
+
+  // Offerings filtradas por categoría + programa
+  const filteredOfferings = offerings.filter(o => {
+    if (filterCategoryId && o.course.program.category_id !== filterCategoryId) return false
+    if (filterProgramIdTable && o.course.program_id !== filterProgramIdTable) return false
+    return true
+  })
+
+  const covered = filteredOfferings.filter(o => o.assignments.length > 0).length
+  const total = filteredOfferings.length
 
   async function addCourse() {
     if (!addingCourseId || !selectedSemesterId) return
@@ -175,7 +199,7 @@ export function OfferManager({
       </div>
 
       {/* Selector año + semestre */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <div className="relative">
           <select value={selectedYearId} onChange={e => setSelectedYearId(e.target.value)}
             className="appearance-none border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -198,6 +222,29 @@ export function OfferManager({
           <span className="flex items-center text-xs text-gray-400 px-1">
             {fmtDate(selectedSemester.start_date)} — {fmtDate(selectedSemester.end_date)}
           </span>
+        )}
+
+        {/* Filtros categoría + programa */}
+        {categories.length > 0 && offerings.length > 0 && (
+          <>
+            <div className="relative">
+              <select value={filterCategoryId} onChange={e => { setFilterCategoryId(e.target.value); setFilterProgramIdTable('') }}
+                className="appearance-none border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-600">
+                <option value="">Todas las categorías</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            </div>
+            <div className="relative">
+              <select value={filterProgramIdTable} onChange={e => setFilterProgramIdTable(e.target.value)}
+                disabled={programsForFilter.length === 0}
+                className="appearance-none border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-600 disabled:opacity-50">
+                <option value="">Todos los programas</option>
+                {programsForFilter.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            </div>
+          </>
         )}
 
         <div className="ml-auto flex items-center gap-2">
@@ -282,6 +329,10 @@ export function OfferManager({
         <div className="bg-white rounded-xl border border-dashed border-gray-300 py-16 text-center text-sm text-gray-400">
           Sin asignaturas en este semestre. Agrega cursos usando el botón de arriba.
         </div>
+      ) : filteredOfferings.length === 0 ? (
+        <div className="bg-white rounded-xl border border-dashed border-gray-300 py-16 text-center text-sm text-gray-400">
+          Sin asignaturas para los filtros seleccionados.
+        </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
@@ -297,7 +348,7 @@ export function OfferManager({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {offerings.map(offering => {
+              {filteredOfferings.map(offering => {
                 const isAssigning = assigningOffering === offering.id
                 const assigned = offering.assignments[0] ?? null
 
