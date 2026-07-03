@@ -164,11 +164,12 @@ export async function POST(req: NextRequest) {
       messages: { role: 'user' | 'assistant'; content: string }[]
       contactEmail?: string
       studentContext?: string
-      // Confirmación explícita del usuario para crear ticket
+      sessionId?: string
+      source?: string
       confirmTicket?: { subject: string; description: string; contactName?: string }
     }
 
-    const { messages, contactEmail, studentContext, confirmTicket } = body
+    const { messages, contactEmail, studentContext, sessionId, source, confirmTicket } = body
 
     // Si el usuario confirmó la creación del ticket, crearlo directamente
     if (confirmTicket) {
@@ -208,6 +209,7 @@ export async function POST(req: NextRequest) {
           })
 
           let toolUseBlock: { id: string; name: string; input: Record<string, unknown> } | null = null
+          let assistantText = ''
 
           for await (const event of anthropicStream) {
             if (event.type === 'content_block_start' && event.content_block.type === 'tool_use') {
@@ -218,6 +220,7 @@ export async function POST(req: NextRequest) {
               }
             } else if (event.type === 'content_block_delta') {
               if (event.delta.type === 'text_delta') {
+                assistantText += event.delta.text
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`))
               } else if (event.delta.type === 'input_json_delta' && toolUseBlock) {
                 // Acumulamos el JSON del tool input (llega en chunks)
@@ -247,6 +250,22 @@ export async function POST(req: NextRequest) {
           }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+
+          // Persist conversation for daily supervisor analysis
+          if (sessionId && messages.length > 0) {
+            const allMessages = [
+              ...messages,
+              { role: 'assistant' as const, content: assistantText },
+            ].filter(m => m.content)
+            supabaseAdmin.from('sofia_conversations').upsert({
+              session_id: sessionId,
+              messages: allMessages,
+              message_count: allMessages.length,
+              contact_email: contactEmail ?? null,
+              source: source ?? 'web',
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'session_id' }).then(() => {/* fire-and-forget */})
+          }
         } catch (err) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: String(err) })}\n\n`))
         } finally {

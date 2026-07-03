@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { Send, Bot, User, RefreshCw, Ticket, CheckCircle, XCircle } from 'lucide-react'
 
 interface Message {
@@ -34,6 +34,7 @@ export function ChatUI({
   showReset = false,
   compact = false,
 }: Props) {
+  const sessionId = useMemo(() => crypto.randomUUID(), [])
   const [messages, setMessages] = useState<Message[]>([{ role: 'assistant', content: initialMessage }])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -65,6 +66,8 @@ export function ChatUI({
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           contactEmail,
           studentContext,
+          sessionId,
+          source: compact ? 'widget' : 'web',
         }),
       })
 

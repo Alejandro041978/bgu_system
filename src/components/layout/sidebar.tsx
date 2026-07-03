@@ -111,6 +111,7 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Sofia · Chat', href: '/chat', icon: Bot, pageKey: 'chat' },
       { name: 'Sofia · Config', href: '/settings/sofia', icon: Bot, pageKey: 'settings_sofia' },
+      { name: 'Sofia · Supervisor', href: '/ia/sofia-supervisor', icon: Shield, pageKey: 'sofia_supervisor' },
     ],
   },
   {

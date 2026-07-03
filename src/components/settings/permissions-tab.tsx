@@ -79,6 +79,7 @@ const PAGE_GROUPS = [
     pages: [
       { key: 'chat', label: 'Sofia · Chat' },
       { key: 'settings_sofia', label: 'Sofia · Configuración' },
+      { key: 'sofia_supervisor', label: 'Sofia · Supervisor' },
     ],
   },
   {
