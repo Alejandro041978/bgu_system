@@ -3,16 +3,77 @@
 import { useState, useEffect } from 'react'
 import { ExternalLink, RefreshCw, FileText, AlertCircle, LayoutTemplate, Clock } from 'lucide-react'
 
+type VisualElement = {
+  type: 'background' | 'image' | string
+  content: string
+  styles: Record<string, string>
+}
+
 type Template = {
   id: number
   name: string
   format: string
   is_portrait: boolean
   use_two_side: boolean
-  created_at: string
   updated_at: string
-  preview_url: string | null
+  elements: VisualElement[]
   simplecert_url: string
+}
+
+// Canvas dimensions used by SimpleCert (Letter landscape = 640×480)
+const CANVAS_W = 640
+const CANVAS_H = 480
+
+function CertificatePreview({ elements, is_portrait }: { elements: VisualElement[]; is_portrait: boolean }) {
+  const w = is_portrait ? CANVAS_H : CANVAS_W
+  const h = is_portrait ? CANVAS_W : CANVAS_H
+  const bg = elements.find(e => e.type === 'background')
+  const images = elements.filter(e => e.type === 'image')
+
+  return (
+    <div
+      className="relative overflow-hidden w-full"
+      style={{ aspectRatio: `${w}/${h}` }}
+    >
+      {/* Background layer */}
+      {bg ? (
+        <img
+          src={bg.content}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          crossOrigin="anonymous"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gray-100" />
+      )}
+
+      {/* Image layers (logos, signatures, QR, etc.) */}
+      {images.map((el, i) => {
+        const s = el.styles
+        // Convert px values to percentages relative to canvas
+        const toPercX = (v: string) => v ? (parseFloat(v) / w * 100) + '%' : undefined
+        const toPercY = (v: string) => v ? (parseFloat(v) / h * 100) + '%' : undefined
+        const toPercW = (v: string) => v ? (parseFloat(v) / w * 100) + '%' : undefined
+        const toPercH = (v: string) => v ? (parseFloat(v) / h * 100) + '%' : undefined
+
+        return (
+          <img
+            key={i}
+            src={el.content}
+            alt=""
+            crossOrigin="anonymous"
+            className="absolute object-contain"
+            style={{
+              top: toPercY(s.top),
+              left: toPercX(s.left),
+              width: toPercW(s.width),
+              height: toPercH(s.height),
+            }}
+          />
+        )
+      })}
+    </div>
+  )
 }
 
 function TemplateBadge({ label }: { label: string }) {
@@ -20,6 +81,55 @@ function TemplateBadge({ label }: { label: string }) {
     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
       {label}
     </span>
+  )
+}
+
+function TemplateCard({ template: t }: { template: Template }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group">
+      {/* Preview */}
+      <div className="relative bg-gray-50 overflow-hidden">
+        <CertificatePreview elements={t.elements} is_portrait={t.is_portrait} />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
+        <a
+          href={t.simplecert_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <span className="flex items-center gap-1.5 bg-white text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md">
+            <ExternalLink className="w-3.5 h-3.5" /> Abrir en SimpleCert
+          </span>
+        </a>
+      </div>
+
+      {/* Info */}
+      <div className="p-4">
+        <p className="text-sm font-semibold text-gray-900 truncate" title={t.name}>{t.name}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <TemplateBadge label={t.format} />
+          {t.is_portrait && <TemplateBadge label="Vertical" />}
+          {t.use_two_side && <TemplateBadge label="Doble cara" />}
+        </div>
+        <p className="mt-2 flex items-center gap-1 text-xs text-gray-400">
+          <Clock className="w-3 h-3" />
+          Actualizado {new Date(t.updated_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function TemplateGroup({ title, templates }: { title: string; templates: Template[] }) {
+  return (
+    <div className="space-y-3">
+      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+        <FileText className="w-4 h-4" /> {title} · {templates.length} formatos
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {templates.map(t => <TemplateCard key={t.id} template={t} />)}
+      </div>
+    </div>
   )
 }
 
@@ -39,8 +149,7 @@ export function FormatsView() {
       const d = await res.json().catch(() => ({})) as { error?: string }
       setError(d.error ?? 'Error al cargar formatos')
     } else {
-      const data = await res.json() as Template[]
-      setTemplates(data)
+      setTemplates(await res.json() as Template[])
     }
 
     setLoading(false)
@@ -91,7 +200,7 @@ export function FormatsView() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
-              <div className="bg-gray-100 h-40" />
+              <div className="bg-gray-100" style={{ aspectRatio: '640/480' }} />
               <div className="p-4 space-y-2">
                 <div className="h-4 bg-gray-200 rounded w-3/4" />
                 <div className="h-3 bg-gray-100 rounded w-1/2" />
@@ -106,79 +215,10 @@ export function FormatsView() {
         </div>
       ) : (
         <div className="space-y-6">
-          {bguTemplates.length > 0 && (
-            <TemplateGroup title="BGU" templates={bguTemplates} />
-          )}
-          {blackwellTemplates.length > 0 && (
-            <TemplateGroup title="Blackwell" templates={blackwellTemplates} />
-          )}
+          {bguTemplates.length > 0 && <TemplateGroup title="BGU" templates={bguTemplates} />}
+          {blackwellTemplates.length > 0 && <TemplateGroup title="Blackwell" templates={blackwellTemplates} />}
         </div>
       )}
-    </div>
-  )
-}
-
-function TemplateGroup({ title, templates }: { title: string; templates: Template[] }) {
-  return (
-    <div className="space-y-3">
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-        <FileText className="w-4 h-4" /> {title} · {templates.length} formatos
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {templates.map(t => (
-          <TemplateCard key={t.id} template={t} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function TemplateCard({ template: t }: { template: Template }) {
-  const [imgError, setImgError] = useState(false)
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group">
-      {/* Preview */}
-      <div className="relative bg-gray-50 h-44 flex items-center justify-center overflow-hidden">
-        {t.preview_url && !imgError ? (
-          <img
-            src={t.preview_url}
-            alt={t.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <div className="flex flex-col items-center gap-2 text-gray-300">
-            <LayoutTemplate className="w-12 h-12" />
-            <p className="text-xs">Sin previsualización</p>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        <a
-          href={t.simplecert_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <span className="flex items-center gap-1.5 bg-white text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md">
-            <ExternalLink className="w-3.5 h-3.5" /> Abrir en SimpleCert
-          </span>
-        </a>
-      </div>
-
-      {/* Info */}
-      <div className="p-4">
-        <p className="text-sm font-semibold text-gray-900 truncate" title={t.name}>{t.name}</p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <TemplateBadge label={t.format} />
-          {t.is_portrait && <TemplateBadge label="Vertical" />}
-          {t.use_two_side && <TemplateBadge label="Doble cara" />}
-        </div>
-        <p className="mt-2 flex items-center gap-1 text-xs text-gray-400">
-          <Clock className="w-3 h-3" />
-          Actualizado {new Date(t.updated_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })}
-        </p>
-      </div>
     </div>
   )
 }
