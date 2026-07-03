@@ -38,13 +38,19 @@ export async function GET() {
     `${BASE}/reports/profitandloss?organization_id=${orgId}&from_date=${yearStart}&to_date=${todayStr}&cash_based=false`,
     { headers: { Authorization: `Zoho-oauthtoken ${token}` } }
   )
-  const plData = await plRes.json()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const plData = await plRes.json() as Record<string, any>
 
-  const expRes = await fetch(
-    `${BASE}/reports/expensedetails?organization_id=${orgId}&from_date=${yearStart}&to_date=${todayStr}`,
-    { headers: { Authorization: `Zoho-oauthtoken ${token}` } }
-  )
-  const expData = await expRes.json()
+  // Return only structure, not full data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function summarize(obj: any, depth = 0): any {
+    if (depth > 2) return typeof obj
+    if (Array.isArray(obj)) return `Array[${obj.length}] sample: ${JSON.stringify(obj[0]).slice(0, 200)}`
+    if (obj && typeof obj === 'object') {
+      return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, summarize(v, depth + 1)]))
+    }
+    return obj
+  }
 
-  return NextResponse.json({ pl: plData, exp_keys: Object.keys(expData), exp_sample: expData })
+  return NextResponse.json({ pl_status: plRes.status, pl_structure: summarize(plData) })
 }
