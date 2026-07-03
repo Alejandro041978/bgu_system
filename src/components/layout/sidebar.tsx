@@ -73,6 +73,7 @@ const navigation: NavGroup[] = [
     label: 'Académico',
     items: [
       { name: 'Docentes', href: '/academic/faculty', icon: GraduationCap, pageKey: 'academic_faculty' },
+      { name: 'Credencial', href: '/academic/credentials', icon: Shield, pageKey: 'academic_credentials' },
       {
         name: 'Gestión académica', href: '/academic/years', icon: CalendarDays, pageKey: 'academic_years',
         children: [
