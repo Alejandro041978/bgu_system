@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const BOOKS_BASE = 'https://www.zohoapis.com/books/v3'
-const ORG_ID = process.env.ZOHO_ORGANIZATION_ID!
+const ORG_ID = process.env.ZOHO_BOOKS_ORG_ID ?? process.env.ZOHO_ORGANIZATION_ID!
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
