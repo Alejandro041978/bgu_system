@@ -27,9 +27,11 @@ const PAGE_GROUPS = [
     ],
   },
   {
-    label: 'CRM',
+    label: 'Admisión',
     pages: [
-      { key: 'crm', label: 'Contactos' },
+      { key: 'crm', label: 'Contactos / CRM' },
+      { key: 'convenios', label: 'Convenios institucionales' },
+      { key: 'admision_matriculas', label: 'Matrículas' },
     ],
   },
   {
@@ -54,16 +56,11 @@ const PAGE_GROUPS = [
     label: 'Académico',
     pages: [
       { key: 'academic_faculty', label: 'Docentes' },
+      { key: 'academic_credentials', label: 'Credencial' },
       { key: 'academic_years', label: 'Años y Semestres' },
       { key: 'academic_programs', label: 'Programas' },
       { key: 'academic_offer', label: 'Oferta académica' },
       { key: 'academic_schedules', label: 'Cronogramas' },
-    ],
-  },
-  {
-    label: 'Convenios',
-    pages: [
-      { key: 'convenios', label: 'Convenios institucionales' },
     ],
   },
   {
