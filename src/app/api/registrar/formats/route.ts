@@ -18,6 +18,13 @@ async function getSimpleCertSession(): Promise<string | null> {
   return match ? match[1] : null
 }
 
+type RawElement = {
+  type: string
+  content?: string
+  styles?: Record<string, string>
+  hideSpan?: boolean
+}
+
 export async function GET() {
   const sessionToken = await getSimpleCertSession()
   if (!sessionToken) {
@@ -35,24 +42,28 @@ export async function GET() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw: any[] = await res.json()
-  if (!Array.isArray(raw)) {
-    return NextResponse.json([])
-  }
+  if (!Array.isArray(raw)) return NextResponse.json([])
 
   const templates = raw.map(t => {
-    const bgElement = Array.isArray(t.elements)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? t.elements.find((el: any) => el.type === 'background')
-      : null
+    const elements: RawElement[] = Array.isArray(t.elements) ? t.elements : []
+
+    // Extract visual elements for client-side rendering
+    const visualElements = elements
+      .filter(el => ['background', 'image'].includes(el.type) && el.content)
+      .map(el => ({
+        type: el.type,
+        content: el.content!,
+        styles: el.styles ?? {},
+      }))
+
     return {
       id: t.id as number,
       name: t.name as string,
       format: (t.format ?? 'Letter') as string,
       is_portrait: !!t.is_portrait,
       use_two_side: !!t.use_two_side,
-      created_at: t.created_at as string,
       updated_at: t.updated_at as string,
-      preview_url: (bgElement?.content as string | undefined) ?? null,
+      elements: visualElements,
       simplecert_url: `https://app.simplecert.net/build/${t.id}`,
     }
   })
