@@ -9,6 +9,7 @@ type TopExpense = { name: string; amount: number }
 
 type BooksData = {
   ok: boolean
+  needs_auth?: boolean
   error?: string
   cashflow: CashflowPoint[]
   incomeExpense: IncomeExpensePoint[]
@@ -239,24 +240,38 @@ export function FinanceDashboard() {
         </div>
       )}
 
-      {/* API error — but still show Zoho Books link */}
-      {!loading && data && !data.ok && (
+      {/* Needs auth — connect Zoho Books */}
+      {!loading && data?.needs_auth && (
+        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
+          <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4">
+            <DollarSign className="w-7 h-7 text-indigo-600" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Conectar Zoho Books</h2>
+          <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+            Para ver el dashboard financiero necesitas autorizar el acceso a Zoho Books con tu cuenta.
+          </p>
+          <a
+            href="/api/zoho/books/connect"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" /> Conectar con Zoho Books
+          </a>
+        </div>
+      )}
+
+      {/* API error */}
+      {!loading && data && !data.ok && !data.needs_auth && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-amber-800">No se pudo conectar con Zoho Books</p>
-              <p className="text-xs text-amber-700 mt-1">{data.error}</p>
-              <p className="text-xs text-amber-600 mt-2">
-                Verifica que el token de Zoho incluya el scope <code className="bg-amber-100 px-1 rounded">ZohoBooks.reports.READ</code> y que esté configurado en Vercel.
-              </p>
+              <p className="text-sm font-semibold text-amber-800">Error al conectar con Zoho Books</p>
+              <p className="text-xs text-amber-700 mt-1 font-mono">{data.error}</p>
               <a
-                href="https://books.zoho.com"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/api/zoho/books/connect"
                 className="inline-flex items-center gap-1.5 mt-3 text-xs font-medium text-amber-800 underline hover:text-amber-900"
               >
-                <ExternalLink className="w-3.5 h-3.5" /> Ver dashboard en Zoho Books directamente
+                <ExternalLink className="w-3.5 h-3.5" /> Reconectar Zoho Books
               </a>
             </div>
           </div>

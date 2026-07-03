@@ -1,21 +1,36 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 const BOOKS_BASE = 'https://www.zohoapis.com/books/v3'
 const ORG_ID = process.env.ZOHO_ORGANIZATION_ID!
 
-async function getAccessToken(): Promise<string> {
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+async function getBooksRefreshToken(): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'zoho_books_refresh_token')
+    .single()
+  return data?.value ?? null
+}
+
+async function getAccessToken(refreshToken: string): Promise<string> {
   const res = await fetch('https://accounts.zoho.com/oauth/v2/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      refresh_token: process.env.ZOHO_REFRESH_TOKEN!,
+      refresh_token: refreshToken,
       client_id: process.env.ZOHO_CLIENT_ID!,
       client_secret: process.env.ZOHO_CLIENT_SECRET!,
       grant_type: 'refresh_token',
     }),
   })
-  const data = await res.json() as { access_token?: string }
-  if (!data.access_token) throw new Error('No access token')
+  const data = await res.json() as { access_token?: string; error?: string }
+  if (!data.access_token) throw new Error(data.error ?? 'No access token from Zoho Books')
   return data.access_token
 }
 
@@ -28,7 +43,7 @@ async function booksGet(path: string, token: string, params: Record<string, stri
   })
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(`Zoho Books ${res.status}: ${text.slice(0, 200)}`)
+    throw new Error(`Zoho Books ${res.status}: ${text.slice(0, 300)}`)
   }
   return res.json()
 }
@@ -42,30 +57,40 @@ function dateRange(monthsBack: number) {
 }
 
 export async function GET() {
+  // Check if Books token is configured
+  const refreshToken = await getBooksRefreshToken()
+  if (!refreshToken) {
+    return NextResponse.json({ ok: false, needs_auth: true })
+  }
+
   try {
-    const token = await getAccessToken()
+    const token = await getAccessToken(refreshToken)
     const range12 = dateRange(12)
-    const rangeYear = dateRange(11) // fiscal year ≈ last 12 months
+    const rangeYear = dateRange(11)
 
     const [cashflowRaw, plRaw, expensesRaw] = await Promise.allSettled([
       booksGet('/reports/cashflow', token, range12),
-      booksGet('/reports/profitandloss', token, { ...rangeYear, filter_by: 'Date.CustomDate' }),
+      booksGet('/reports/profitandloss', token, {
+        ...rangeYear,
+        filter_by: 'Date.CustomDate',
+        cash_based: 'false',
+      }),
       booksGet('/reports/expensedetails', token, range12),
     ])
 
-    // Cash flow monthly data
+    // Cash flow
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let cashflow: { month: string; cash: number }[] = []
     if (cashflowRaw.status === 'fulfilled') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rows: any[] = cashflowRaw.value?.cashflow ?? cashflowRaw.value?.data ?? []
+      const rows: any[] = cashflowRaw.value?.cashflow ?? cashflowRaw.value?.cash_flow ?? []
       cashflow = rows.map((r: any) => ({
         month: r.date ?? r.month ?? r.period ?? '',
-        cash: parseFloat(r.closing_balance ?? r.amount ?? r.balance ?? 0),
+        cash: parseFloat(r.closing_balance ?? r.total ?? r.balance ?? 0),
       }))
     }
 
-    // P&L monthly income/expense
+    // P&L
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let incomeExpense: { month: string; income: number; expense: number }[] = []
     let totalIncome = 0
@@ -84,7 +109,7 @@ export async function GET() {
       }))
     }
 
-    // Top expenses by category
+    // Top expenses
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let topExpenses: { name: string; amount: number }[] = []
     if (expensesRaw.status === 'fulfilled') {
@@ -101,13 +126,18 @@ export async function GET() {
         .slice(0, 6)
     }
 
+    // Log what came back to help debug response shape
+    console.log('[finance/books] cashflow rows:', cashflow.length, '| pl status:', plRaw.status, '| expenses:', expensesRaw.status)
+    if (plRaw.status === 'rejected') console.error('[finance/books] pl error:', plRaw.reason)
+    if (expensesRaw.status === 'rejected') console.error('[finance/books] expenses error:', expensesRaw.reason)
+
     return NextResponse.json({
+      ok: true,
       cashflow,
       incomeExpense,
       totalIncome,
       totalExpense,
       topExpenses,
-      ok: true,
     })
   } catch (err) {
     return NextResponse.json({ ok: false, error: String(err) }, { status: 200 })
