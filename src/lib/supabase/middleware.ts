@@ -74,10 +74,14 @@ export async function updateSession(request: NextRequest) {
           .eq('page_key', pageKey)
           .maybeSingle()
 
-        // No row in role_permissions = not granted → deny
+        // No row in role_permissions = not granted → redirect to first allowed page or desk
         if (!perm?.can_view) {
+          // Avoid redirect loop: if we're already on the fallback, just allow it
+          if (pathname === '/desk' || pathname === '/dashboard') {
+            return supabaseResponse
+          }
           const url = request.nextUrl.clone()
-          url.pathname = '/dashboard'
+          url.pathname = '/desk'
           url.search = '?forbidden=1'
           return NextResponse.redirect(url)
         }
