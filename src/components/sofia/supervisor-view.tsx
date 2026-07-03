@@ -71,7 +71,8 @@ export function SupervisorView({ reports: initialReports }: { reports: Report[] 
   async function runToday() {
     setRunning(true)
     setRunError(null)
-    const res = await fetch('/api/sofia/run-supervisor', { method: 'POST' })
+    const today = new Date().toISOString().slice(0, 10)
+    const res = await fetch(`/api/sofia/run-supervisor?date=${today}`, { method: 'POST' })
     if (!res.ok) {
       const d = await res.json().catch(() => ({})) as { error?: string }
       setRunError(d.error ?? 'Error al ejecutar análisis')
