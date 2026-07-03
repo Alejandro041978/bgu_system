@@ -71,10 +71,7 @@ export function SupervisorView({ reports: initialReports }: { reports: Report[] 
   async function runToday() {
     setRunning(true)
     setRunError(null)
-    const res = await fetch('/api/cron/sofia-supervisor', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ''}` },
-    })
+    const res = await fetch('/api/sofia/run-supervisor', { method: 'POST' })
     if (!res.ok) {
       const d = await res.json().catch(() => ({})) as { error?: string }
       setRunError(d.error ?? 'Error al ejecutar análisis')
