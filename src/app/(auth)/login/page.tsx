@@ -26,8 +26,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/desk')
-    router.refresh()
+    window.location.href = '/desk'
   }
 
   return (
