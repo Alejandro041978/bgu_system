@@ -69,13 +69,20 @@ export async function updateSession(request: NextRequest) {
       ? await sb.from('hr_employees').select('id, role_id').eq('email', user.email).maybeSingle()
       : { data: null }
 
-    // If found by email but not by user_id, backfill user_id so future lookups are fast
+    // If found by email but not by user_id, backfill user_id
     if (!empById && empByEmail) {
       await sb.from('hr_employees').update({ user_id: user.id }).eq('id', empByEmail.id)
     }
 
     const emp = empById ?? empByEmail
-    const isStudent = !emp
+
+    // Only redirect to /student if explicitly registered as a student — superadmin and devs
+    // are not in hr_employees but should NOT be treated as students
+    const { data: student } = !emp && user.email
+      ? await sb.from('academic_students').select('id').eq('email', user.email).eq('disabled', false).maybeSingle()
+      : { data: null }
+
+    const isStudent = !emp && !!student
 
     // Students: only allow /student/* routes
     if (isStudent) {
