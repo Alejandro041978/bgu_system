@@ -58,13 +58,23 @@ export async function updateSession(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = admin as any
 
-    // Check if user is staff (in hr_employees)
-    const { data: emp } = await sb
+    // Check if user is staff (in hr_employees) — match by user_id OR email
+    const { data: empById } = await sb
       .from('hr_employees')
-      .select('role_id')
+      .select('id, role_id')
       .eq('user_id', user.id)
       .maybeSingle()
 
+    const { data: empByEmail } = !empById && user.email
+      ? await sb.from('hr_employees').select('id, role_id').eq('email', user.email).maybeSingle()
+      : { data: null }
+
+    // If found by email but not by user_id, backfill user_id so future lookups are fast
+    if (!empById && empByEmail) {
+      await sb.from('hr_employees').update({ user_id: user.id }).eq('id', empByEmail.id)
+    }
+
+    const emp = empById ?? empByEmail
     const isStudent = !emp
 
     // Students: only allow /student/* routes
