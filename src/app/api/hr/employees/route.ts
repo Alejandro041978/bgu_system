@@ -105,12 +105,15 @@ export async function POST(req: NextRequest) {
         const { data: users } = await supabase.auth.admin.listUsers()
         const existing = users.users.find(u => u.email === body.email)
         authUserId = existing?.id ?? null
-        // Actualizar contraseña del usuario existente
         if (authUserId) {
-          await supabase.auth.admin.updateUserById(authUserId, { password: tempPassword })
+          await supabase.auth.admin.updateUserById(authUserId, { password: tempPassword, email_confirm: true })
         }
       } else {
         authUserId = userData.user?.id ?? null
+        // Force-confirm email (email_confirm on createUser is not always reliable)
+        if (authUserId) {
+          await supabase.auth.admin.updateUserById(authUserId, { email_confirm: true })
+        }
       }
 
       await sendInviteEmail(body.email, body.full_name, tempPassword)

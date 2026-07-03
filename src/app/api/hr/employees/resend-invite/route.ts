@@ -56,9 +56,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Actualizar contraseña temporal
+    // Actualizar contraseña temporal y confirmar email
     if (authUserId) {
-      await supabase.auth.admin.updateUserById(authUserId, { password: tempPassword })
+      await supabase.auth.admin.updateUserById(authUserId, { password: tempPassword, email_confirm: true })
     }
 
     const loginUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://system.blackwell.university'
