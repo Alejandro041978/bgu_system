@@ -64,6 +64,12 @@ const PAGE_GROUPS = [
     ],
   },
   {
+    label: 'Registrar',
+    pages: [
+      { key: 'registrar_formatos', label: 'Formatos de certificados' },
+    ],
+  },
+  {
     label: 'Planeamiento',
     pages: [
       { key: 'planning_plan', label: 'Plan Estratégico · Cargar Plan' },
