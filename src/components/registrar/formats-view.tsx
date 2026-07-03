@@ -28,50 +28,21 @@ function CertificatePreview({ elements, is_portrait }: { elements: VisualElement
   const w = is_portrait ? CANVAS_H : CANVAS_W
   const h = is_portrait ? CANVAS_W : CANVAS_H
   const bg = elements.find(e => e.type === 'background')
-  const images = elements.filter(e => e.type === 'image')
 
   return (
     <div
       className="relative overflow-hidden w-full"
       style={{ aspectRatio: `${w}/${h}` }}
     >
-      {/* Background layer */}
       {bg ? (
         <img
           src={bg.content}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          crossOrigin="anonymous"
         />
       ) : (
         <div className="absolute inset-0 bg-gray-100" />
       )}
-
-      {/* Image layers (logos, signatures, QR, etc.) */}
-      {images.map((el, i) => {
-        const s = el.styles
-        // Convert px values to percentages relative to canvas
-        const toPercX = (v: string) => v ? (parseFloat(v) / w * 100) + '%' : undefined
-        const toPercY = (v: string) => v ? (parseFloat(v) / h * 100) + '%' : undefined
-        const toPercW = (v: string) => v ? (parseFloat(v) / w * 100) + '%' : undefined
-        const toPercH = (v: string) => v ? (parseFloat(v) / h * 100) + '%' : undefined
-
-        return (
-          <img
-            key={i}
-            src={el.content}
-            alt=""
-            crossOrigin="anonymous"
-            className="absolute object-contain"
-            style={{
-              top: toPercY(s.top),
-              left: toPercX(s.left),
-              width: toPercW(s.width),
-              height: toPercH(s.height),
-            }}
-          />
-        )
-      })}
     </div>
   )
 }
