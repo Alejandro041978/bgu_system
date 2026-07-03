@@ -93,40 +93,40 @@ export async function GET() {
       }))
     }
 
-    // P&L
+    // P&L — Zoho Books returns profit_and_loss[] with nested account_transactions[]
+    // Structure: profit_and_loss[0] = Gross Profit section (income - COGS)
+    //            profit_and_loss[1] = Operating section (operating expenses)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let incomeExpense: { month: string; income: number; expense: number }[] = []
+    let topExpenses: { name: string; amount: number }[] = []
+    const incomeExpense: { month: string; income: number; expense: number }[] = []
     let totalIncome = 0
     let totalExpense = 0
     if (plRaw.status === 'fulfilled') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pl = plRaw.value as any
-      totalIncome = parseFloat(pl?.total_income?.total ?? pl?.income?.total ?? 0)
-      totalExpense = parseFloat(pl?.total_expense?.total ?? pl?.expenses?.total ?? 0)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const monthlyData: any[] = pl?.monthly_data ?? pl?.data ?? []
-      incomeExpense = monthlyData.map((m: any) => ({
-        month: m.date ?? m.month ?? m.period ?? '',
-        income: parseFloat(m.income ?? m.total_income ?? 0),
-        expense: parseFloat(m.expense ?? m.total_expense ?? 0),
-      }))
-    }
-
-    // Top expenses
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let topExpenses: { name: string; amount: number }[] = []
-    if (expensesRaw.status === 'fulfilled') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rows: any[] = expensesRaw.value?.expense_details ?? expensesRaw.value?.data ?? []
-      const byCategory: Record<string, number> = {}
-      for (const r of rows) {
-        const cat = r.account_name ?? r.category ?? 'Others'
-        byCategory[cat] = (byCategory[cat] ?? 0) + parseFloat(r.total ?? r.amount ?? 0)
+      const sections: any[] = plRaw.value?.profit_and_loss ?? []
+      for (const section of sections) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const txn of section.account_transactions ?? [] as any[]) {
+          const name: string = txn.name ?? txn.total_label ?? ''
+          const total: number = parseFloat(txn.total ?? 0)
+          if (name.toLowerCase().includes('income') || name.toLowerCase().includes('revenue')) {
+            totalIncome += total
+          } else if (
+            name.toLowerCase().includes('expense') ||
+            name.toLowerCase().includes('cost')
+          ) {
+            totalExpense += total
+            // Collect sub-accounts as top expenses
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            for (const sub of txn.account_transactions ?? [] as any[]) {
+              if (sub.name && parseFloat(sub.total ?? 0) > 0) {
+                topExpenses.push({ name: sub.name, amount: parseFloat(sub.total) })
+              }
+            }
+          }
+        }
       }
-      topExpenses = Object.entries(byCategory)
-        .map(([name, amount]) => ({ name, amount }))
-        .sort((a, b) => b.amount - a.amount)
-        .slice(0, 6)
+      topExpenses = topExpenses.sort((a, b) => b.amount - a.amount).slice(0, 6)
     }
 
     // Log what came back to help debug response shape
