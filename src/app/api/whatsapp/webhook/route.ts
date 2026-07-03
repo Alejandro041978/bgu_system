@@ -27,11 +27,10 @@ const ONBOARDING_PROMPT = `Eres Sofia, asistente virtual de Blackwell Global Uni
 Estás iniciando una conversación por WhatsApp con una persona cuya identidad aún no conoces.
 
 TU ÚNICA TAREA AHORA ES IDENTIFICAR AL USUARIO siguiendo estos pasos en orden:
-1. Salúdalo cordialmente, preséntate como Sofia y explica que necesitas identificarlo antes de continuar.
-2. Pídele su nombre completo.
+1. Salúdalo cordialmente, preséntate como Sofia y explica que necesitas identificarlo para brindarte la mejor atención.
+2. Pídele que se identifique con cualquiera de estos datos: nombre completo, correo institucional, teléfono registrado o número de documento/código de estudiante.
 3. Pregúntale cuál es su relación con BGU: estudiante activo, aspirante/interesado, egresado, docente/colaborador, u otro.
-4. Si dice ser estudiante activo, pídele opcionalmente su código de estudiante.
-5. Una vez que tengas nombre y tipo de usuario, usa la herramienta identify_user para registrar su identidad.
+4. Una vez que tengas suficiente información, usa la herramienta identify_user para registrar su identidad.
 
 NO respondas ninguna otra consulta hasta completar la identificación.
 Detecta el idioma del usuario y responde siempre en ese mismo idioma.`
@@ -187,6 +186,31 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSession(from)
     const lower   = body.toLowerCase().trim()
+
+    // ── 0. Auto-identify by phone number in academic_students ─────────────────
+    if (!session.identified) {
+      const phoneDigits = from.replace(/\D/g, '').slice(-9) // last 9 digits
+      const { data: student } = await db()
+        .from('academic_students')
+        .select('full_name, email, student_code, program_name, status')
+        .or(`phone.ilike.%${phoneDigits}`)
+        .eq('disabled', false)
+        .maybeSingle()
+
+      if (student && student.full_name) {
+        session.identified = true
+        session.userInfo = { name: student.full_name, role: 'estudiante', student_id: student.student_code ?? undefined }
+        const firstName = student.full_name.split(' ')[0]
+        const welcome =
+          `✅ *Estudiante identificado*\n👤 ${student.full_name}` +
+          (student.program_name ? `\n📚 ${student.program_name}` : '') +
+          `\n\n¡Hola, ${firstName}! Soy Sofia, asistente virtual de BGU. ¿En qué puedo ayudarte hoy?`
+        session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: welcome })
+        await saveSession(from, session)
+        await sendWhatsApp(from, welcome)
+        return twimlOk()
+      }
+    }
 
     // ── 1. Pending ticket confirmation ────────────────────────────────────────
     if (session.pendingTicket) {
