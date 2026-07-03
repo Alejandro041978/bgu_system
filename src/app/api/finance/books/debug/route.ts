@@ -27,16 +27,24 @@ export async function GET() {
   if (!tokenData.access_token) return NextResponse.json({ token_error: tokenData })
 
   const token = tokenData.access_token
+  const orgId = process.env.ZOHO_BOOKS_ORG_ID ?? process.env.ZOHO_ORGANIZATION_ID!
+  const BASE = 'https://www.zohoapis.com/books/v3'
 
-  // List all organizations this token can access
-  const orgsRes = await fetch('https://www.zohoapis.com/books/v3/organizations', {
-    headers: { Authorization: `Zoho-oauthtoken ${token}` },
-  })
-  const orgsData = await orgsRes.json()
+  const today = new Date()
+  const yearStart = new Date(today.getFullYear(), 0, 1).toISOString().slice(0, 10)
+  const todayStr = today.toISOString().slice(0, 10)
 
-  return NextResponse.json({
-    current_org_id_env: process.env.ZOHO_ORGANIZATION_ID,
-    orgs_status: orgsRes.status,
-    orgs: orgsData,
-  })
+  const plRes = await fetch(
+    `${BASE}/reports/profitandloss?organization_id=${orgId}&from_date=${yearStart}&to_date=${todayStr}&cash_based=false`,
+    { headers: { Authorization: `Zoho-oauthtoken ${token}` } }
+  )
+  const plData = await plRes.json()
+
+  const expRes = await fetch(
+    `${BASE}/reports/expensedetails?organization_id=${orgId}&from_date=${yearStart}&to_date=${todayStr}`,
+    { headers: { Authorization: `Zoho-oauthtoken ${token}` } }
+  )
+  const expData = await expRes.json()
+
+  return NextResponse.json({ pl: plData, exp_keys: Object.keys(expData), exp_sample: expData })
 }
