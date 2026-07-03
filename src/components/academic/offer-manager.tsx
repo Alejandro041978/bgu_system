@@ -18,11 +18,12 @@ type Year = { id: string; name: string; semesters: Semester[] }
 type ProgramCourse = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { name: string } }
 
 export function OfferManager({
-  years, faculty, allCourses,
+  years, faculty, allCourses, contractMap = {},
 }: {
   years: Year[]
   faculty: Employee[]
   allCourses: ProgramCourse[]
+  contractMap?: Record<string, string[]>
 }) {
   const [selectedYearId, setSelectedYearId] = useState(years[0]?.id ?? '')
   const [selectedSemesterId, setSelectedSemesterId] = useState('')
@@ -388,13 +389,17 @@ export function OfferManager({
                             <select value={assignEmployeeId} onChange={e => setAssignEmployeeId(e.target.value)}
                               className="flex-1 border border-indigo-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                               <option value="">— Seleccionar docente —</option>
-                              {faculty.map(f => (
-                                <option key={f.id} value={f.id}
-                                  disabled={offering.assignments.some(a => a.employee.id === f.id)}>
-                                  {f.full_name}{f.position ? ` — ${f.position}` : ''}
-                                  {offering.assignments.some(a => a.employee.id === f.id) ? ' (ya asignado)' : ''}
-                                </option>
-                              ))}
+                              {faculty.map(f => {
+                                const alreadyAssigned = offering.assignments.some(a => a.employee.id === f.id)
+                                const hasContract = contractMap[selectedYearId]?.includes(f.id) ?? false
+                                const disabled = alreadyAssigned || !hasContract
+                                return (
+                                  <option key={f.id} value={f.id} disabled={disabled}>
+                                    {f.full_name}{f.position ? ` — ${f.position}` : ''}
+                                    {alreadyAssigned ? ' (ya asignado)' : !hasContract ? ' (sin contrato)' : ''}
+                                  </option>
+                                )
+                              })}
                             </select>
                             <input type="number" min="1" max="40" value={assignHours}
                               onChange={e => setAssignHours(e.target.value)}
