@@ -11,7 +11,12 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
   const [programs, setPrograms] = useState(initial)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const filteredPrograms = selectedCategory === 'all' ? programs : programs.filter(p => p.category?.id === selectedCategory)
-  const [selected, setSelected] = useState<string | null>(initial[0]?.id ?? null)
+  const [selected, setSelected] = useState<string | null>(null)
+
+  function handleCategoryChange(catId: string) {
+    setSelectedCategory(catId)
+    setSelected(null)
+  }
 
   // Program form
   const [showProgramForm, setShowProgramForm] = useState(false)
