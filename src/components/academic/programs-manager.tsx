@@ -4,10 +4,13 @@ import { useState } from 'react'
 import { Plus, Trash2, BookOpen, ChevronRight, Pencil, Check, X } from 'lucide-react'
 
 type Course = { id: string; name: string; code: string | null; credits: number; level: number | null }
-type Program = { id: string; name: string; code: string | null; description: string | null; courses: Course[] }
+type Category = { id: string; name: string }
+type Program = { id: string; name: string; code: string | null; description: string | null; courses: Course[]; category?: Category | null }
 
-export function ProgramsManager({ initial }: { initial: Program[] }) {
+export function ProgramsManager({ initial, categories = [] }: { initial: Program[]; categories?: Category[] }) {
   const [programs, setPrograms] = useState(initial)
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const filteredPrograms = selectedCategory === 'all' ? programs : programs.filter(p => p.category?.id === selectedCategory)
   const [selected, setSelected] = useState<string | null>(initial[0]?.id ?? null)
 
   // Program form
@@ -130,6 +133,24 @@ export function ProgramsManager({ initial }: { initial: Program[] }) {
         </button>
       </div>
 
+      {categories.length > 0 && (
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">Categoría</label>
+          <select
+            value={selectedCategory}
+            onChange={e => { setSelectedCategory(e.target.value); setSelected(null) }}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">Todas las categorías ({programs.length} programas)</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({programs.filter(p => p.category?.id === c.id).length} programas)
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {showProgramForm && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
           <p className="text-sm font-semibold text-blue-800">Nuevo programa académico</p>
@@ -163,10 +184,10 @@ export function ProgramsManager({ initial }: { initial: Program[] }) {
         </div>
       )}
 
-      {programs.length === 0 ? (
+      {filteredPrograms.length === 0 ? (
         <div className="bg-white rounded-xl border border-dashed border-gray-300 py-10 text-center">
           <BookOpen className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-xs text-gray-400">Sin programas</p>
+          <p className="text-xs text-gray-400">Sin programas en esta categoría</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -190,7 +211,7 @@ export function ProgramsManager({ initial }: { initial: Program[] }) {
               <div className="relative flex-1 max-w-xl">
                 <select value={selected ?? ''} onChange={e => setSelected(e.target.value)}
                   className="w-full appearance-none border border-gray-300 rounded-lg pl-4 pr-10 py-2.5 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  {programs.map(p => (
+                  {filteredPrograms.map(p => (
                     <option key={p.id} value={p.id}>{p.name}{p.code ? ` (${p.code})` : ''} — {p.courses.length} asignaturas</option>
                   ))}
                 </select>

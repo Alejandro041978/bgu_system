@@ -7,17 +7,17 @@ export const revalidate = 0
 export default async function AcademicProgramsPage() {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (supabase as any)
-    .from('academic_programs')
-    .select('*, courses:academic_courses(*)')
-    .order('name')
+  const [{ data }, { data: categories }] = await Promise.all([
+    (supabase as any).from('academic_programs').select('*, courses:academic_courses(*), category:academic_programs_category(id, name)').order('name'),
+    (supabase as any).from('academic_programs_category').select('id, name').order('name'),
+  ])
 
   return (
     <>
       <Topbar title="Programas Académicos" subtitle="Gestión académica" />
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-5xl mx-auto">
-          <ProgramsManager initial={data ?? []} />
+          <ProgramsManager initial={data ?? []} categories={categories ?? []} />
         </div>
       </div>
     </>
