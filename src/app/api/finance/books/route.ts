@@ -10,15 +10,15 @@ const supabaseAdmin = createClient(
 )
 
 async function getBooksRefreshToken(): Promise<string | null> {
-  // 1. Try env var first (set in Vercel)
-  if (process.env.ZOHO_BOOKS_REFRESH_TOKEN) return process.env.ZOHO_BOOKS_REFRESH_TOKEN
-  // 2. Fallback: Supabase app_settings (set via OAuth flow)
+  // 1. Supabase first (set via OAuth flow — always up to date)
   const { data } = await supabaseAdmin
     .from('app_settings')
     .select('value')
     .eq('key', 'zoho_books_refresh_token')
     .single()
-  return data?.value ?? null
+  if (data?.value) return data.value
+  // 2. Fallback: env var
+  return process.env.ZOHO_BOOKS_REFRESH_TOKEN ?? null
 }
 
 async function getAccessToken(refreshToken: string): Promise<string> {
