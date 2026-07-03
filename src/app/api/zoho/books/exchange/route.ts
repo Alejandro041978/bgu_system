@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
       code,
       client_id: process.env.ZOHO_CLIENT_ID!,
       client_secret: process.env.ZOHO_CLIENT_SECRET!,
-      redirect_uri: process.env.ZOHO_REDIRECT_URI ?? 'https://bgu-system.vercel.app/api/zoho/callback',
       grant_type: 'authorization_code',
+      // Self Client tokens do NOT use redirect_uri
     }),
   })
 
