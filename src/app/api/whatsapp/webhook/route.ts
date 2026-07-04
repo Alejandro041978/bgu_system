@@ -188,15 +188,24 @@ export async function POST(req: NextRequest) {
     const session = await getSession(from)
     const lower   = body.toLowerCase().trim()
 
-    // ── 0. Auto-identify by phone number in academic_students ─────────────────
+    // ── 0. Auto-identify by phone / email / código en academic_students ───────
     if (!session.identified) {
-      const phoneDigits = from.replace(/\D/g, '').slice(-9) // last 9 digits
-      const { data: student } = await db()
+      // Buscar por teléfono (siempre) y por correo o código si aparecen en el mensaje
+      const phoneDigits = from.replace(/\D/g, '').slice(-9)
+      const emailMatch = body.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]
+      const codeMatch = body.match(/\b[A-Za-z]?\d{5,}\b/)?.[0] // código/documento: 5+ dígitos
+
+      const orConditions = [`phone.ilike.%${phoneDigits}%`]
+      if (emailMatch) orConditions.push(`email.ilike.${emailMatch}`)
+      if (codeMatch) orConditions.push(`student_code.ilike.%${codeMatch}%`)
+
+      const { data: rows } = await db()
         .from('academic_students')
         .select('full_name, email, student_code, program_name, status')
-        .or(`phone.ilike.%${phoneDigits}`)
+        .or(orConditions.join(','))
         .eq('disabled', false)
-        .maybeSingle()
+        .limit(1)
+      const student = rows?.[0]
 
       if (student && student.full_name) {
         session.identified = true
