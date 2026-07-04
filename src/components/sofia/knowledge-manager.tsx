@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, BookOpen, Loader2, Trash2, Pencil, Save, X, CheckCircle, AlertCircle, Power } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, BookOpen, Loader2, Trash2, Pencil, Save, X, CheckCircle, AlertCircle, Power, Upload } from 'lucide-react'
 
 interface Article {
   id: string
@@ -24,7 +24,9 @@ export function KnowledgeManager() {
   const [editing, setEditing] = useState<string | 'new' | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   async function load() {
     setLoading(true)
@@ -92,6 +94,62 @@ export function KnowledgeManager() {
     if (!confirm('¿Eliminar este artículo de la base de conocimientos? Esta acción no se puede deshacer.')) return
     await fetch(`/api/sofia/knowledge/${id}`, { method: 'DELETE' })
     await load()
+  }
+
+  // Mapea un registro JSONL/JSON a { title, content, category } de forma tolerante.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function mapRecord(r: any): { title: string; content: string; category: string | null } | null {
+    const title = (r.pregunta ?? r.question ?? r.title ?? r.titulo ?? '').toString().trim()
+    const answer = (r.respuesta ?? r.answer ?? r.content ?? r.text ?? r.contenido ?? '').toString().trim()
+    if (!title && !answer) return null
+    const keywords = Array.isArray(r.palabras_clave) ? r.palabras_clave
+      : Array.isArray(r.keywords) ? r.keywords : []
+    const contentParts = [title, answer]
+    if (keywords.length) contentParts.push(`Palabras clave: ${keywords.join(', ')}`)
+    if (r.fuente ?? r.source) contentParts.push(`Fuente: ${r.fuente ?? r.source}`)
+    const cat = [r.categoria ?? r.category, r.subcategoria ?? r.subcategory].filter(Boolean).join(' / ')
+    return {
+      title: (title || answer).slice(0, 200),
+      content: contentParts.filter(Boolean).join('\n'),
+      category: cat || null,
+    }
+  }
+
+  async function importFile(file: File) {
+    setImporting(true)
+    setStatus(null)
+    try {
+      const text = await file.text()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let raw: any[]
+      const trimmed = text.trim()
+      if (trimmed.startsWith('[')) {
+        raw = JSON.parse(trimmed) // JSON array
+      } else {
+        raw = trimmed.split('\n').filter(l => l.trim()).map(l => JSON.parse(l)) // JSONL
+      }
+      const records = raw.map(mapRecord).filter(Boolean)
+      if (records.length === 0) throw new Error('No se encontraron registros válidos en el archivo.')
+
+      const res = await fetch('/api/sofia/knowledge/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Error al importar')
+      setStatus({
+        type: 'success',
+        msg: `Importados ${data.imported} artículos (${data.chunks} fragmentos)` +
+          (data.skipped ? ` · ${data.skipped} ya existían` : ''),
+      })
+      await load()
+    } catch (err) {
+      setStatus({ type: 'error', msg: String(err) })
+    } finally {
+      setImporting(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
   }
 
   // ── Editor form ──────────────────────────────────────────────────────────
@@ -194,9 +252,26 @@ export function KnowledgeManager() {
             Artículos que Sofia consulta para responder. El prompt define <em>cómo</em> se comporta; esto define <em>qué</em> sabe.
           </p>
         </div>
-        <button onClick={startNew} className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-          <Plus className="w-4 h-4" /> Nuevo artículo
-        </button>
+        <div className="flex gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".jsonl,.json,application/json"
+            className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) importFile(f) }}
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            {importing ? 'Importando...' : 'Importar JSON/JSONL'}
+          </button>
+          <button onClick={startNew} className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <Plus className="w-4 h-4" /> Nuevo artículo
+          </button>
+        </div>
       </div>
 
       {status && (
