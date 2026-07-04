@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Bot, BookOpen } from 'lucide-react'
 import { SofiaPromptEditor } from './prompt-editor'
 import { KnowledgeManager } from './knowledge-manager'
@@ -18,6 +18,14 @@ export function SofiaConfigTabs({ bots }: { bots: BotRow[] }) {
   const [botKey, setBotKey] = useState(bots[0]?.key ?? 'sofia')
   const [tab, setTab] = useState<'prompt' | 'knowledge'>('prompt')
   const bot = list.find(b => b.key === botKey) ?? list[0]
+
+  // Refrescar desde la BD al montar (evita datos cacheados al navegar entre páginas)
+  useEffect(() => {
+    fetch('/api/sofia/bots')
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data.bots) && data.bots.length) setList(data.bots) })
+      .catch(() => {})
+  }, [])
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -65,7 +73,7 @@ export function SofiaConfigTabs({ bots }: { bots: BotRow[] }) {
 
       {tab === 'prompt' ? (
         <SofiaPromptEditor
-          key={botKey}
+          key={`${botKey}:${bot?.updated_at ?? ''}`}
           botKey={botKey}
           botName={bot?.name ?? ''}
           initialPrompt={bot?.prompt ?? ''}
