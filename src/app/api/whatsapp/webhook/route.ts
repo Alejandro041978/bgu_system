@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { createZohoTicket } from '@/app/api/chat/route'
+import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
 import crypto from 'crypto'
 
 export const maxDuration = 60
@@ -297,10 +298,13 @@ export async function POST(req: NextRequest) {
         (session.userInfo.student_id ? `\n- Código: ${session.userInfo.student_id}` : '')
       : ''
 
+    // Recuperar conocimiento relevante a la última pregunta (RAG)
+    const knowledgeContext = await buildKnowledgeContext(body)
+
     const aiResponse = await client.messages.create({
       model:       'claude-opus-4-8',
       max_tokens:  1024,
-      system:      masterPrompt + userContext,
+      system:      [masterPrompt + userContext, knowledgeContext].filter(Boolean).join('\n\n'),
       tools:       [TICKET_TOOL],
       tool_choice: { type: 'auto' },
       messages:    session.messages.slice(-MAX_HISTORY),

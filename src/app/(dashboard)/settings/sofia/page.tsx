@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { Topbar } from '@/components/layout/topbar'
-import { SofiaPromptEditor } from '@/components/sofia/prompt-editor'
+import { SofiaConfigTabs } from '@/components/sofia/config-tabs'
 
 export default async function SofiaSettingsPage() {
   const supabase = createClient(
@@ -16,9 +16,9 @@ export default async function SofiaSettingsPage() {
 
   return (
     <>
-      <Topbar title="Sofia IA · Configuración" subtitle="Prompt maestro del asistente virtual" />
+      <Topbar title="Sofia IA · Configuración" subtitle="Prompt maestro y base de conocimientos del asistente virtual" />
       <div className="flex-1 p-6 overflow-auto">
-        <SofiaPromptEditor
+        <SofiaConfigTabs
           initialPrompt={data?.prompt ?? ''}
           ticketCount={data?.ticket_count ?? 0}
           convCount={data?.conversation_count ?? 0}

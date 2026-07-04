@@ -62,6 +62,15 @@ export async function POST(req: NextRequest) {
   const { data: promptRow } = await db.from('ai_master_prompt').select('prompt').eq('id', 1).single()
   const currentPrompt = promptRow?.prompt ?? ''
 
+  // Get current knowledge base inventory (titles only) to detect gaps
+  const { data: kbRows } = await db
+    .from('sofia_knowledge')
+    .select('title, category')
+    .eq('enabled', true)
+  const kbInventory = (kbRows ?? []).length > 0
+    ? (kbRows ?? []).map((k: any) => `- ${k.title}${k.category ? ` (${k.category})` : ''}`).join('\n')
+    : '(La base de conocimientos está vacía)'
+
   // Format conversations for analysis
   const convSamples = convList.slice(0, 50).map((c: any, i: number) => {
     const msgs = (c.messages as { role: string; content: string }[]) ?? []
@@ -84,6 +93,11 @@ export async function POST(req: NextRequest) {
 PROMPT ACTUAL DE SOFIA:
 ---
 ${currentPrompt.slice(0, 3000)}
+---
+
+BASE DE CONOCIMIENTOS ACTUAL (temas que Sofia ya tiene documentados):
+---
+${kbInventory}
 ---
 
 ESTADÍSTICAS DEL DÍA:
@@ -111,10 +125,13 @@ Lista numerada de errores, confusiones o respuestas inadecuadas detectadas.
 SECCIÓN 4 - TEMAS FRECUENTES:
 Top 5 temas más consultados con frecuencia estimada.
 
-SECCIÓN 5 - RECOMENDACIONES PARA EL PROMPT:
-Cambios concretos y específicos que se deben hacer al prompt para mejorar a Sofia. Incluye el texto exacto sugerido para cada cambio.
+SECCIÓN 5 - RECOMENDACIONES PARA EL PROMPT (fallos de COMPORTAMIENTO):
+Cambios al prompt para corregir cómo se COMPORTA Sofia: tono, reglas, cuándo proponer un ticket, cómo estructurar respuestas. Incluye el texto exacto sugerido para cada cambio. NO incluyas aquí datos que le falten — eso va en la sección 6.
 
-SECCIÓN 6 - SCORE DE CALIDAD:
+SECCIÓN 6 - VACÍOS DE CONOCIMIENTO (fallos por FALTA DE INFORMACIÓN):
+Casos donde Sofia falló porque NO TENÍA el dato, no porque se portara mal. Compara las preguntas del día contra la BASE DE CONOCIMIENTOS ACTUAL listada arriba. Lista los temas concretos que los usuarios preguntaron y que Sofia no supo responder o respondió con imprecisión, y que deberían agregarse como artículos a la base de conocimientos. Para cada uno sugiere un título de artículo y qué debería contener.
+
+SECCIÓN 7 - SCORE DE CALIDAD:
 Puntuación del 1 al 10 con justificación breve.
 
 Responde con JSON con esta estructura exacta:
@@ -124,6 +141,7 @@ Responde con JSON con esta estructura exacta:
   "weaknesses": "texto",
   "frequent_topics": "texto",
   "recommendations": "texto",
+  "knowledge_gaps": "texto",
   "quality_score": 8,
   "quality_justification": "texto"
 }`
@@ -136,6 +154,7 @@ Responde con JSON con esta estructura exacta:
     weaknesses: string
     frequent_topics: string
     recommendations: string
+    knowledge_gaps: string
     quality_score: number
     quality_justification: string
   }
@@ -179,9 +198,13 @@ TEMAS FRECUENTES
 ----------------
 ${result.frequent_topics}
 
-RECOMENDACIONES PARA EL PROMPT
--------------------------------
+RECOMENDACIONES PARA EL PROMPT (comportamiento)
+------------------------------------------------
 ${result.recommendations}
+
+VACÍOS DE CONOCIMIENTO (agregar a la base de conocimientos)
+-----------------------------------------------------------
+${result.knowledge_gaps ?? 'No se detectaron vacíos de conocimiento.'}
 
 JUSTIFICACIÓN DEL SCORE
 ------------------------
@@ -196,6 +219,7 @@ Generado: ${new Date().toLocaleString('es-PE')}
     strengths: result.strengths,
     weaknesses: result.weaknesses,
     recommendations: result.recommendations,
+    knowledge_gaps: result.knowledge_gaps ?? null,
     prompt_suggestions: result.frequent_topics,
     full_report: fullReport,
     quality_score: result.quality_score,

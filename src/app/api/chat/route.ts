@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
+import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
 
 export const maxDuration = 60
 
@@ -189,9 +190,14 @@ export async function POST(req: NextRequest) {
     }
 
     const masterPrompt = await getMasterPrompt()
-    const systemPrompt = studentContext
-      ? `${masterPrompt}\n\n${studentContext}`
-      : masterPrompt
+
+    // Recuperar conocimiento relevante a la última pregunta del usuario (RAG)
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
+    const knowledgeContext = await buildKnowledgeContext(lastUserMsg)
+
+    const systemPrompt = [masterPrompt, studentContext, knowledgeContext]
+      .filter(Boolean)
+      .join('\n\n')
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 

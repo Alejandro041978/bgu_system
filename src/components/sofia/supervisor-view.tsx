@@ -13,6 +13,7 @@ type Report = {
   strengths: string | null
   weaknesses: string | null
   recommendations: string | null
+  knowledge_gaps: string | null
   prompt_suggestions: string | null
   full_report: string | null
   quality_score: number | null
@@ -169,6 +170,7 @@ export function SupervisorView({ reports: initialReports }: { reports: Report[] 
                   <Section title="Debilidades y Fallos" content={r.weaknesses} />
                   <Section title="Temas Frecuentes" content={r.prompt_suggestions} />
                   <Section title="Recomendaciones para el Prompt" content={r.recommendations} />
+                  <Section title="Vacíos de Conocimiento (agregar a la base de conocimientos)" content={r.knowledge_gaps} />
                 </div>
               )}
               {expanded === r.id && r.status === 'failed' && (
