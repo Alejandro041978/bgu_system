@@ -46,14 +46,16 @@ export async function reindexArticle(id: string, content: string): Promise<numbe
   return chunks.length
 }
 
-// GET — lista de artículos
-export async function GET() {
+// GET — lista de artículos (filtrada por bot)
+export async function GET(req: NextRequest) {
   const user = await requireAuth()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const botKey = req.nextUrl.searchParams.get('bot') ?? 'sofia'
   const { data, error } = await (db() as any)
     .from('sofia_knowledge')
     .select('id, title, category, enabled, chunk_count, updated_at')
+    .eq('bot_key', botKey)
     .order('updated_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -66,8 +68,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
-    const { title, content, category, enabled } = await req.json() as {
-      title?: string; content?: string; category?: string; enabled?: boolean
+    const { title, content, category, enabled, bot } = await req.json() as {
+      title?: string; content?: string; category?: string; enabled?: boolean; bot?: string
     }
     if (!title?.trim() || !content?.trim()) {
       return NextResponse.json({ error: 'Título y contenido son obligatorios' }, { status: 400 })
@@ -75,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await (db() as any)
       .from('sofia_knowledge')
-      .insert({ title: title.trim(), content, category: category ?? null, enabled: enabled ?? true })
+      .insert({ title: title.trim(), content, category: category ?? null, enabled: enabled ?? true, bot_key: bot ?? 'sofia' })
       .select('id')
       .single()
     if (error) throw new Error(error.message)

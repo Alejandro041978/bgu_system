@@ -5,18 +5,44 @@ import { Bot, BookOpen } from 'lucide-react'
 import { SofiaPromptEditor } from './prompt-editor'
 import { KnowledgeManager } from './knowledge-manager'
 
-interface Props {
-  initialPrompt: string
-  ticketCount: number
-  convCount: number
-  updatedAt: string | null
+interface BotRow {
+  key: string
+  name: string
+  role: string | null
+  prompt: string
+  updated_at: string | null
 }
 
-export function SofiaConfigTabs({ initialPrompt, ticketCount, convCount, updatedAt }: Props) {
+export function SofiaConfigTabs({ bots }: { bots: BotRow[] }) {
+  const [botKey, setBotKey] = useState(bots[0]?.key ?? 'sofia')
   const [tab, setTab] = useState<'prompt' | 'knowledge'>('prompt')
+  const bot = bots.find(b => b.key === botKey) ?? bots[0]
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Selector de bot */}
+      {bots.length > 1 && (
+        <div className="flex gap-2 mb-5">
+          {bots.map(b => (
+            <button
+              key={b.key}
+              onClick={() => setBotKey(b.key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                botKey === b.key
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {b.name}
+              <span className={`text-xs ${botKey === b.key ? 'text-blue-100' : 'text-gray-400'}`}>
+                · {b.role ?? 'bot'}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Pestañas */}
       <div className="flex gap-1 mb-6 border-b border-gray-200">
         <button
           onClick={() => setTab('prompt')}
@@ -38,13 +64,14 @@ export function SofiaConfigTabs({ initialPrompt, ticketCount, convCount, updated
 
       {tab === 'prompt' ? (
         <SofiaPromptEditor
-          initialPrompt={initialPrompt}
-          ticketCount={ticketCount}
-          convCount={convCount}
-          updatedAt={updatedAt}
+          key={botKey}
+          botKey={botKey}
+          botName={bot?.name ?? ''}
+          initialPrompt={bot?.prompt ?? ''}
+          updatedAt={bot?.updated_at ?? null}
         />
       ) : (
-        <KnowledgeManager />
+        <KnowledgeManager key={botKey} botKey={botKey} />
       )}
     </div>
   )

@@ -28,8 +28,8 @@ function extractKeywords(query: string): string[] {
   return [...new Set(words)].filter(w => !STOPWORDS.has(w)).slice(0, 6)
 }
 
-/** Búsqueda vectorial (semántica) por embeddings. */
-async function vectorSearch(query: string, matchCount: number): Promise<KnowledgeMatch[]> {
+/** Búsqueda vectorial (semántica) por embeddings, filtrada por bot. */
+async function vectorSearch(query: string, matchCount: number, botKey: string): Promise<KnowledgeMatch[]> {
   if (!process.env.OPENAI_API_KEY) return []
   try {
     const embedding = await embedText(query)
@@ -37,6 +37,7 @@ async function vectorSearch(query: string, matchCount: number): Promise<Knowledg
       query_embedding: JSON.stringify(embedding),
       match_threshold: 0.20,
       match_count: matchCount,
+      p_bot_key: botKey,
     })
     if (error) { console.error('vectorSearch RPC error:', error.message); return [] }
     return (data ?? []) as KnowledgeMatch[]
@@ -47,7 +48,7 @@ async function vectorSearch(query: string, matchCount: number): Promise<Knowledg
 }
 
 /** Búsqueda por palabra clave (literal) — confiable para nombres, cargos y trámites. */
-async function keywordSearch(query: string): Promise<KnowledgeMatch[]> {
+async function keywordSearch(query: string, botKey: string): Promise<KnowledgeMatch[]> {
   const kws = extractKeywords(query)
   if (kws.length === 0) return []
   try {
@@ -56,6 +57,7 @@ async function keywordSearch(query: string): Promise<KnowledgeMatch[]> {
       .from('sofia_knowledge')
       .select('id, title, content')
       .eq('enabled', true)
+      .eq('bot_key', botKey)
       .or(orFilter)
       .limit(5)
     if (error) { console.error('keywordSearch error:', error.message); return [] }
@@ -69,15 +71,15 @@ async function keywordSearch(query: string): Promise<KnowledgeMatch[]> {
 }
 
 /**
- * Búsqueda HÍBRIDA: combina búsqueda semántica (vector) + palabra clave (literal).
- * La palabra clave rescata nombres/cargos exactos; el vector aporta cercanía semántica.
+ * Búsqueda HÍBRIDA: combina búsqueda semántica (vector) + palabra clave (literal),
+ * limitada a la base de conocimientos del bot indicado.
  * Nunca lanza — el chat debe seguir funcionando aunque la KB falle.
  */
-export async function searchKnowledge(query: string, matchCount = 8): Promise<KnowledgeMatch[]> {
+export async function searchKnowledge(query: string, botKey = 'sofia', matchCount = 8): Promise<KnowledgeMatch[]> {
   if (!query?.trim()) return []
   const [vec, kw] = await Promise.all([
-    vectorSearch(query, matchCount),
-    keywordSearch(query),
+    vectorSearch(query, matchCount, botKey),
+    keywordSearch(query, botKey),
   ])
   // La palabra clave (artículos completos) tiene prioridad; luego se agregan
   // los fragmentos vectoriales de OTROS artículos no cubiertos por palabra clave.
@@ -90,8 +92,8 @@ export async function searchKnowledge(query: string, matchCount = 8): Promise<Kn
  * Recupera conocimiento relevante y lo formatea como bloque para inyectar al system prompt.
  * Devuelve '' si no hay coincidencias.
  */
-export async function buildKnowledgeContext(query: string): Promise<string> {
-  const matches = await searchKnowledge(query)
+export async function buildKnowledgeContext(query: string, botKey = 'sofia'): Promise<string> {
+  const matches = await searchKnowledge(query, botKey)
   if (matches.length === 0) return ''
 
   const blocks = matches

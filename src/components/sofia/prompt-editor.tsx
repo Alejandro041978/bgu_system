@@ -4,19 +4,17 @@ import { useState } from 'react'
 import { Save, RefreshCw, Bot, Info, CheckCircle, AlertCircle } from 'lucide-react'
 
 interface Props {
+  botKey: string
+  botName: string
   initialPrompt: string
-  ticketCount: number
-  convCount: number
   updatedAt: string | null
 }
 
-export function SofiaPromptEditor({ initialPrompt, ticketCount, convCount, updatedAt }: Props) {
+export function SofiaPromptEditor({ botKey, botName, initialPrompt, updatedAt }: Props) {
   const [prompt, setPrompt] = useState(initialPrompt)
   const [saving, setSaving] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
-
-  const CRON_SECRET = process.env.NEXT_PUBLIC_CRON_SECRET
 
   async function savePrompt() {
     setSaving(true)
@@ -25,7 +23,7 @@ export function SofiaPromptEditor({ initialPrompt, ticketCount, convCount, updat
       const resp = await fetch('/api/sofia/save-prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, bot: botKey }),
       })
       if (!resp.ok) throw new Error('Error al guardar')
       setStatus({ type: 'success', msg: 'Prompt guardado correctamente.' })
@@ -67,20 +65,6 @@ export function SofiaPromptEditor({ initialPrompt, ticketCount, convCount, updat
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'Tickets en base de conocimiento', value: ticketCount.toLocaleString() },
-          { label: 'Conversaciones analizadas', value: convCount.toLocaleString() },
-          { label: 'Última actualización', value: lastUpdate },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-            <p className="text-xs text-gray-500 mt-1">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
       {/* Editor */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -89,19 +73,21 @@ export function SofiaPromptEditor({ initialPrompt, ticketCount, convCount, updat
               <Bot className="w-4 h-4 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Prompt Maestro de Sofia</p>
-              <p className="text-xs text-gray-500">Este texto define toda la personalidad, conocimiento y comportamiento del asistente.</p>
+              <p className="text-sm font-semibold text-gray-900">Prompt Maestro de {botName}</p>
+              <p className="text-xs text-gray-500">Este texto define toda la personalidad y comportamiento del asistente. Última actualización: {lastUpdate}</p>
             </div>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={regeneratePrompt}
-              disabled={regenerating || saving}
-              className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
-              {regenerating ? 'Regenerando...' : 'Regenerar con IA'}
-            </button>
+            {botKey === 'sofia' && (
+              <button
+                onClick={regeneratePrompt}
+                disabled={regenerating || saving}
+                className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
+                {regenerating ? 'Regenerando...' : 'Regenerar con IA'}
+              </button>
+            )}
             <button
               onClick={savePrompt}
               disabled={saving || regenerating}

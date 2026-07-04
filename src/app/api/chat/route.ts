@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
+import { getBotPrompt } from '@/lib/bots'
 
 export const maxDuration = 60
 
@@ -11,31 +12,10 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 }
 
-const FALLBACK_SYSTEM_PROMPT = `Eres Sofia, asistente virtual de Blackwell Global University (BGU).
-Ayudas a estudiantes con consultas sobre programas académicos, matrículas, pagos, trámites y más.
-Detecta automáticamente el idioma en que el estudiante escribe y responde siempre en ese mismo idioma.
-Si el estudiante cambia de idioma durante la conversación, adáptate de inmediato.
-
-REGLAS ESTRICTAS SOBRE TICKETS DE SOPORTE:
-- NUNCA crees ni propongas crear un ticket como cierre genérico de una respuesta.
-- SOLO propón crear un ticket cuando realmente no puedas resolver la consulta con tu base de conocimiento.
-- Antes de proponer un ticket, pregunta explícitamente: "¿Te gustaría que cree un ticket de soporte para que un asesor te ayude directamente? ¿Estás de acuerdo?"
-- NUNCA crees el ticket sin que el estudiante diga explícitamente que sí.
-- Si el estudiante dice que sí, usa la herramienta propose_ticket con los datos recopilados.`
-
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
-async function getMasterPrompt(): Promise<string> {
-  const { data } = await supabaseAdmin
-    .from('ai_master_prompt')
-    .select('prompt')
-    .eq('id', 1)
-    .single()
-  return data?.prompt ?? FALLBACK_SYSTEM_PROMPT
-}
 
 async function getZohoToken(): Promise<string> {
   const body = new URLSearchParams({
@@ -167,10 +147,12 @@ export async function POST(req: NextRequest) {
       studentContext?: string
       sessionId?: string
       source?: string
+      bot?: string
       confirmTicket?: { subject: string; description: string; contactName?: string }
     }
 
     const { messages, contactEmail, studentContext, sessionId, source, confirmTicket } = body
+    const botKey = body.bot ?? 'sofia'
 
     // Si el usuario confirmó la creación del ticket, crearlo directamente
     if (confirmTicket) {
@@ -189,11 +171,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No messages provided' }, { status: 400 })
     }
 
-    const masterPrompt = await getMasterPrompt()
+    const masterPrompt = await getBotPrompt(botKey)
 
     // Recuperar conocimiento relevante a la última pregunta del usuario (RAG)
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
-    const knowledgeContext = await buildKnowledgeContext(lastUserMsg)
+    const knowledgeContext = await buildKnowledgeContext(lastUserMsg, botKey)
 
     const systemPrompt = [masterPrompt, studentContext, knowledgeContext]
       .filter(Boolean)
@@ -269,6 +251,7 @@ export async function POST(req: NextRequest) {
               message_count: allMessages.length,
               contact_email: contactEmail ?? null,
               source: source ?? 'web',
+              bot_key: botKey,
               updated_at: new Date().toISOString(),
             }, { onConflict: 'session_id' }).then(() => {/* fire-and-forget */})
           }

@@ -3,10 +3,11 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt } = await req.json() as { prompt?: string }
+    const { prompt, bot } = await req.json() as { prompt?: string; bot?: string }
     if (!prompt || prompt.trim().length < 10) {
       return NextResponse.json({ error: 'Prompt demasiado corto' }, { status: 400 })
     }
+    const botKey = bot ?? 'sofia'
 
     // Verificar autenticación con cliente normal
     const authClient = await createClient()
@@ -16,9 +17,17 @@ export async function POST(req: NextRequest) {
     // Usar service client para escribir en tabla con RLS
     const supabase = await createServiceClient()
     const { error } = await (supabase as any) // eslint-disable-line @typescript-eslint/no-explicit-any
-      .from('ai_master_prompt')
+      .from('bots')
       .update({ prompt: prompt.trim(), updated_at: new Date().toISOString() })
-      .eq('id', 1)
+      .eq('key', botKey)
+
+    // Mantener ai_master_prompt sincronizado para Sofia (compatibilidad con "Regenerar con IA")
+    if (botKey === 'sofia') {
+      await (supabase as any)
+        .from('ai_master_prompt')
+        .update({ prompt: prompt.trim(), updated_at: new Date().toISOString() })
+        .eq('id', 1)
+    }
 
     if (error) throw error
 

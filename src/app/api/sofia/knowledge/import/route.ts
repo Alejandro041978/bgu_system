@@ -21,16 +21,17 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
-    const { records } = await req.json() as { records: ImportRecord[] }
+    const { records, bot } = await req.json() as { records: ImportRecord[]; bot?: string }
+    const botKey = bot ?? 'sofia'
     if (!Array.isArray(records) || records.length === 0) {
       return NextResponse.json({ error: 'No se recibieron registros' }, { status: 400 })
     }
 
     const sb = db() as any
 
-    // Filtrar válidos y quitar los que ya existen por título
+    // Filtrar válidos y quitar los que ya existen por título (dentro del mismo bot)
     const valid = records.filter(r => r.title?.trim() && r.content?.trim())
-    const { data: existing } = await sb.from('sofia_knowledge').select('title')
+    const { data: existing } = await sb.from('sofia_knowledge').select('title').eq('bot_key', botKey)
     const existingTitles = new Set((existing ?? []).map((r: any) => (r.title ?? '').trim()))
     const toImport = valid.filter(r => !existingTitles.has(r.title!.trim()))
     const skipped = valid.length - toImport.length
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
         content: r.content,
         category: r.category ?? null,
         enabled: true,
+        bot_key: botKey,
       })))
       .select('id')
     if (insErr) throw new Error(insErr.message)

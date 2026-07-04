@@ -18,7 +18,7 @@ interface FullArticle extends Article {
 
 const emptyForm = { title: '', category: '', content: '', enabled: true }
 
-export function KnowledgeManager() {
+export function KnowledgeManager({ botKey = 'sofia' }: { botKey?: string }) {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<string | 'new' | null>(null)
@@ -30,7 +30,7 @@ export function KnowledgeManager() {
 
   async function load() {
     setLoading(true)
-    const res = await fetch('/api/sofia/knowledge')
+    const res = await fetch(`/api/sofia/knowledge?bot=${botKey}`)
     const data = await res.json()
     setArticles(data.articles ?? [])
     setLoading(false)
@@ -67,7 +67,7 @@ export function KnowledgeManager() {
       const res = await fetch(isNew ? '/api/sofia/knowledge' : `/api/sofia/knowledge/${editing}`, {
         method: isNew ? 'POST' : 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(isNew ? { ...form, bot: botKey } : form),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error al guardar')
@@ -134,7 +134,7 @@ export function KnowledgeManager() {
       const res = await fetch('/api/sofia/knowledge/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records }),
+        body: JSON.stringify({ records, bot: botKey }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error al importar')
