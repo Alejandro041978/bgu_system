@@ -14,31 +14,76 @@ export interface KnowledgeMatch {
   similarity: number
 }
 
-/**
- * Busca en la base de conocimientos los fragmentos más relevantes a la consulta.
- * Devuelve [] si no hay OPENAI_API_KEY, si falla la búsqueda, o si no hay coincidencias.
- * Nunca lanza — el chat debe seguir funcionando aunque la KB falle.
- */
-export async function searchKnowledge(query: string, matchCount = 8): Promise<KnowledgeMatch[]> {
-  if (!query?.trim() || !process.env.OPENAI_API_KEY) return []
+// Palabras vacías que no aportan a la búsqueda por palabra clave
+const STOPWORDS = new Set([
+  'sabes','quien','quién','cual','cuál','como','cómo','donde','dónde','cuando','cuándo',
+  'para','porque','sobre','este','esta','esto','esos','esas','tiene','hace','hacer','está',
+  'universidad','institucion','institución','favor','hola','gracias','puedes','quiero','saber',
+  'necesito','buenas','noches','dias','días','tardes','algunas','cosas','algo','sabe','cargo',
+  'nombre','persona','responsable','encargado','area','área',
+])
+
+function extractKeywords(query: string): string[] {
+  const words = query.toLowerCase().match(/[a-záéíóúñü]{4,}/gi) ?? []
+  return [...new Set(words)].filter(w => !STOPWORDS.has(w)).slice(0, 6)
+}
+
+/** Búsqueda vectorial (semántica) por embeddings. */
+async function vectorSearch(query: string, matchCount: number): Promise<KnowledgeMatch[]> {
+  if (!process.env.OPENAI_API_KEY) return []
   try {
     const embedding = await embedText(query)
     const { data, error } = await (db() as any).rpc('match_sofia_knowledge', {
       query_embedding: JSON.stringify(embedding),
-      // Umbral más permisivo: preferimos traer contexto cercano y dejar que
-      // Sofia interprete, en vez de no encontrar nada por una diferencia de fraseo.
       match_threshold: 0.20,
       match_count: matchCount,
     })
-    if (error) {
-      console.error('searchKnowledge RPC error:', error.message)
-      return []
-    }
+    if (error) { console.error('vectorSearch RPC error:', error.message); return [] }
     return (data ?? []) as KnowledgeMatch[]
   } catch (err) {
-    console.error('searchKnowledge error:', err)
+    console.error('vectorSearch error:', err)
     return []
   }
+}
+
+/** Búsqueda por palabra clave (literal) — confiable para nombres, cargos y trámites. */
+async function keywordSearch(query: string): Promise<KnowledgeMatch[]> {
+  const kws = extractKeywords(query)
+  if (kws.length === 0) return []
+  try {
+    const orFilter = kws.map(w => `content.ilike.%${w}%`).join(',')
+    const { data, error } = await (db() as any)
+      .from('sofia_knowledge')
+      .select('id, title, content')
+      .eq('enabled', true)
+      .or(orFilter)
+      .limit(5)
+    if (error) { console.error('keywordSearch error:', error.message); return [] }
+    return (data ?? []).map((a: any) => ({
+      chunk_id: a.id, knowledge_id: a.id, title: a.title, content: a.content, similarity: 1,
+    })) as KnowledgeMatch[]
+  } catch (err) {
+    console.error('keywordSearch error:', err)
+    return []
+  }
+}
+
+/**
+ * Búsqueda HÍBRIDA: combina búsqueda semántica (vector) + palabra clave (literal).
+ * La palabra clave rescata nombres/cargos exactos; el vector aporta cercanía semántica.
+ * Nunca lanza — el chat debe seguir funcionando aunque la KB falle.
+ */
+export async function searchKnowledge(query: string, matchCount = 8): Promise<KnowledgeMatch[]> {
+  if (!query?.trim()) return []
+  const [vec, kw] = await Promise.all([
+    vectorSearch(query, matchCount),
+    keywordSearch(query),
+  ])
+  // La palabra clave (artículos completos) tiene prioridad; luego se agregan
+  // los fragmentos vectoriales de OTROS artículos no cubiertos por palabra clave.
+  const kwIds = new Set(kw.map(m => m.knowledge_id))
+  const merged = [...kw, ...vec.filter(m => !kwIds.has(m.knowledge_id))]
+  return merged.slice(0, matchCount)
 }
 
 /**
