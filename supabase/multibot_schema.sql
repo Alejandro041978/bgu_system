@@ -36,6 +36,7 @@ create index if not exists sofia_conversations_bot_key_idx on sofia_conversation
 
 -- 3. whatsapp_sessions: permitir el mismo teléfono en distintos bots
 alter table whatsapp_sessions drop constraint if exists whatsapp_sessions_pkey;
+alter table whatsapp_sessions drop constraint if exists whatsapp_sessions_phone_key;
 drop index if exists whatsapp_sessions_phone_key;
 create unique index if not exists whatsapp_sessions_phone_bot_key on whatsapp_sessions(phone, bot_key);
 
