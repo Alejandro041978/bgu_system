@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceRole } from '@supabase/supabase-js'
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,15 +10,19 @@ export async function POST(req: NextRequest) {
     }
     const botKey = bot ?? 'sofia'
 
-    // Verificar autenticación con cliente normal
+    // Verificar autenticación con cliente normal (lee cookie del usuario)
     const authClient = await createClient()
     const { data: { user } } = await authClient.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    // Usar service client para escribir en tabla con RLS
-    const supabase = await createServiceClient()
+    // Escribir con service role REAL (bypasa RLS). El helper SSR usa la cookie
+    // del usuario y NO bypasa RLS, por eso fallaba en la tabla bots.
+    const service = createServiceRole(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = supabase as any
+    const sb = service as any
 
     // Upsert por si la fila del bot no existiera aún
     const { data, error } = await sb
