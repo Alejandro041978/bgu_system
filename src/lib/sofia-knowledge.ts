@@ -24,7 +24,7 @@ export async function searchKnowledge(query: string, matchCount = 5): Promise<Kn
   try {
     const embedding = await embedText(query)
     const { data, error } = await (db() as any).rpc('match_sofia_knowledge', {
-      query_embedding: embedding,
+      query_embedding: JSON.stringify(embedding),
       match_threshold: 0.30,
       match_count: matchCount,
     })

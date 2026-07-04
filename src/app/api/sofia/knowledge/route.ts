@@ -35,7 +35,8 @@ export async function reindexArticle(id: string, content: string): Promise<numbe
     knowledge_id: id,
     content: c,
     chunk_index: i,
-    embedding: embeddings[i],
+    // pgvector espera el formato de texto "[0.1,0.2,...]", NO un array JS.
+    embedding: JSON.stringify(embeddings[i]),
   }))
 
   const { error } = await sb.from('sofia_knowledge_chunks').insert(rows)

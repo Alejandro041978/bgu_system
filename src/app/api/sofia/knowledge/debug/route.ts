@@ -12,6 +12,28 @@ const db = () => createClient(
 // para diagnosticar por qué la búsqueda no encuentra algo.
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')
+
+  // ?inspect=1 → revisa el estado crudo de los embeddings en la BD
+  if (req.nextUrl.searchParams.get('inspect') === '1') {
+    const { data, error } = await (db() as any)
+      .from('sofia_knowledge_chunks')
+      .select('id, chunk_index, embedding, content')
+      .limit(5)
+    if (error) return NextResponse.json({ error: error.message })
+    return NextResponse.json({
+      total_sample: (data ?? []).length,
+      chunks: (data ?? []).map((c: any) => ({
+        chunk_index: c.chunk_index,
+        embedding_is_null: c.embedding === null,
+        embedding_type: typeof c.embedding,
+        embedding_preview: typeof c.embedding === 'string'
+          ? c.embedding.slice(0, 60)
+          : Array.isArray(c.embedding) ? `array(${c.embedding.length})` : String(c.embedding),
+        content_preview: c.content?.slice(0, 80),
+      })),
+    })
+  }
+
   if (!q) return NextResponse.json({ error: 'Pasa ?q=tu pregunta' })
 
   try {
@@ -22,7 +44,7 @@ export async function GET(req: NextRequest) {
 
     // Sin umbral (threshold 0) para ver TODOS los puntajes top
     const { data, error } = await (db() as any).rpc('match_sofia_knowledge', {
-      query_embedding: embedding,
+      query_embedding: JSON.stringify(embedding),
       match_threshold: 0,
       match_count: 10,
     })
