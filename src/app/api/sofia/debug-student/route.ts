@@ -41,5 +41,13 @@ export async function GET(req: NextRequest) {
     .limit(5)
   result.phone_samples = sample ?? []
 
+  // Dump de TODAS las columnas de un estudiante para ver los nombres reales de campos
+  const { data: anyRow } = await sb
+    .from('academic_students')
+    .select('*')
+    .limit(1)
+  result.total_students_check = anyRow ?? []
+  result.columns = anyRow?.[0] ? Object.keys(anyRow[0]) : []
+
   return NextResponse.json(result)
 }
