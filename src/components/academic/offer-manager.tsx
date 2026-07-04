@@ -59,6 +59,10 @@ export function OfferManager({
   const [editEndDate, setEditEndDate] = useState('')
   const [editDatesError, setEditDatesError] = useState('')
 
+  // Edición del grupo de una oferta ya creada
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+  const [editGroupLabel, setEditGroupLabel] = useState('')
+
   const selectedYear = years.find(y => y.id === selectedYearId)
   const semesters = selectedYear?.semesters ?? []
   const selectedSemester = semesters.find(s => s.id === selectedSemesterId)
@@ -167,6 +171,24 @@ export function OfferManager({
     if (!confirm('¿Quitar esta asignatura de la oferta?')) return
     await fetch(`/api/academic/offerings/${id}`, { method: 'DELETE' })
     setOfferings(prev => prev.filter(o => o.id !== id))
+  }
+
+  function startEditGroup(offering: Offering) {
+    setEditingGroupId(offering.id)
+    setEditGroupLabel(offering.group_label ?? '')
+  }
+
+  async function saveOfferingGroup(offering: Offering) {
+    // Enviar también las fechas actuales para no borrarlas (el PATCH las reescribe)
+    const res = await fetch(`/api/academic/offerings/${offering.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ start_date: offering.start_date || null, end_date: offering.end_date || null, group_label: editGroupLabel || null }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setOfferings(prev => prev.map(o => o.id === offering.id ? data : o))
+      setEditingGroupId(null)
+    }
   }
 
   async function assignFaculty(offeringId: string) {
@@ -384,13 +406,28 @@ export function OfferManager({
                   <>
                     <tr key={offering.id} className="group hover:bg-gray-50/50">
                       <td className="px-5 py-3">
-                        <p className="font-medium text-gray-800 flex items-center gap-2">
-                          {offering.course.name}
-                          {offering.group_label && (
-                            <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">{offering.group_label}</span>
-                          )}
-                        </p>
+                        <p className="font-medium text-gray-800">{offering.course.name}</p>
                         {offering.course.code && <p className="text-xs text-gray-400">{offering.course.code}</p>}
+                        {editingGroupId === offering.id ? (
+                          <div className="flex items-center gap-1 mt-1">
+                            <input value={editGroupLabel} onChange={e => setEditGroupLabel(e.target.value)}
+                              autoFocus placeholder="Grupo" list="offer-group-suggestions"
+                              onKeyDown={e => { if (e.key === 'Enter') saveOfferingGroup(offering); if (e.key === 'Escape') setEditingGroupId(null) }}
+                              className="w-28 border border-gray-300 rounded px-2 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                            <button onClick={() => saveOfferingGroup(offering)} className="text-green-600 hover:text-green-700"><Check className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => setEditingGroupId(null)} className="text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>
+                          </div>
+                        ) : offering.group_label ? (
+                          <button onClick={() => startEditGroup(offering)}
+                            className="mt-1 text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full hover:bg-indigo-100">
+                            {offering.group_label}
+                          </button>
+                        ) : (
+                          <button onClick={() => startEditGroup(offering)}
+                            className="mt-1 flex items-center gap-1 text-xs text-gray-300 hover:text-indigo-600">
+                            <Pencil className="w-3 h-3" /> Grupo
+                          </button>
+                        )}
                       </td>
                       <td className="px-3 py-3 text-xs text-gray-500 truncate max-w-[120px]">
                         {offering.course.program?.name ?? '—'}
