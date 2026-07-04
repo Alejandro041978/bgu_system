@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 const SELECT = `
-  id, created_at, start_date, end_date,
+  id, created_at, start_date, end_date, group_label,
   course:academic_courses(id, name, code, credits, level, program_id,
     program:academic_programs(id, name, code)),
   assignments:faculty_assignments(
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('semester_offerings')
-    .insert({ semester_id: body.semester_id, course_id: body.course_id, start_date: body.start_date || null, end_date: body.end_date || null })
+    .insert({ semester_id: body.semester_id, course_id: body.course_id, start_date: body.start_date || null, end_date: body.end_date || null, group_label: body.group_label?.trim() || null })
     .select(SELECT)
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   const { data: offerings } = await sb
     .from('semester_offerings')
-    .select('id, start_date, end_date, semester_id, course_id')
+    .select('id, start_date, end_date, semester_id, course_id, group_label')
     .in('semester_id', semesterIds)
   const courseIds = Array.from(new Set((offerings ?? []).map((o: { course_id: string }) => o.course_id)))
   if (!courseIds.length) return NextResponse.json([])
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
   for (const o of relevantOfferings) {
     if (!offeringsBySemester[o.semester_id]) offeringsBySemester[o.semester_id] = []
     offeringsBySemester[o.semester_id].push({
-      id: o.id, start_date: o.start_date, end_date: o.end_date,
+      id: o.id, start_date: o.start_date, end_date: o.end_date, group_label: o.group_label,
       course: coursesById[o.course_id],
       assignments: assignmentsByOffering[o.id] ?? [],
     })

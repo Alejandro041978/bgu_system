@@ -6,7 +6,7 @@ import { ChevronDown, Loader2, CalendarDays, UserCheck, AlertCircle } from 'luci
 type Employee = { id: string; full_name: string; position: string | null }
 type Assignment = { id: string; hours_per_week: number | null; employee: Employee }
 type Course = { id: string; name: string; code: string | null; credits: number; level: number | null }
-type Offering = { id: string; start_date: string | null; end_date: string | null; course: Course; assignments: Assignment[] }
+type Offering = { id: string; start_date: string | null; end_date: string | null; course: Course; assignments: Assignment[]; group_label: string | null }
 type SemesterBlock = { id: string; name: string; start_date: string | null; end_date: string | null; offerings: Offering[] }
 
 type Program = { id: string; name: string; code: string | null; category_id: string | null }
@@ -29,9 +29,21 @@ export function SchedulesView({ programs, years, categories }: { programs: Progr
   const [blocks, setBlocks] = useState<SemesterBlock[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [groupFilter, setGroupFilter] = useState('')
 
   const selectedYear = years.find(y => y.id === yearId)
   const semesters = selectedYear?.semesters ?? []
+
+  // Grupos únicos presentes en los cronogramas cargados
+  const groups = Array.from(
+    new Set(blocks.flatMap(b => b.offerings.map(o => o.group_label)).filter((g): g is string => !!g))
+  ).sort()
+
+  // Bloques con las offerings filtradas por grupo
+  const visibleBlocks = groupFilter
+    ? blocks.map(b => ({ ...b, offerings: b.offerings.filter(o => (o.group_label ?? '') === groupFilter) }))
+        .filter(b => b.offerings.length > 0)
+    : blocks
 
   useEffect(() => { setSemesterId('') }, [yearId])
 
@@ -95,6 +107,17 @@ export function SchedulesView({ programs, years, categories }: { programs: Progr
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
         </div>
+
+        {groups.length > 0 && (
+          <div className="relative">
+            <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)}
+              className="appearance-none border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Todos los grupos</option>
+              {groups.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -109,7 +132,7 @@ export function SchedulesView({ programs, years, categories }: { programs: Progr
         </div>
       ) : (
         <div className="space-y-4">
-          {blocks.map(block => (
+          {visibleBlocks.map(block => (
             <div key={block.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
                 <CalendarDays className="w-4 h-4 text-blue-500" />
@@ -132,7 +155,12 @@ export function SchedulesView({ programs, years, categories }: { programs: Progr
                   {block.offerings.map(o => (
                     <tr key={o.id} className="hover:bg-gray-50/50">
                       <td className="px-5 py-2.5">
-                        <p className="font-medium text-gray-800">{o.course.name}</p>
+                        <p className="font-medium text-gray-800 flex items-center gap-2">
+                          {o.course.name}
+                          {o.group_label && (
+                            <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">{o.group_label}</span>
+                          )}
+                        </p>
                         {o.course.code && <p className="text-xs text-gray-400">{o.course.code}</p>}
                       </td>
                       <td className="px-3 py-2.5 text-center text-gray-500">{o.course.level ?? '—'}</td>

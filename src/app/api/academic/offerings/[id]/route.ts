@@ -18,13 +18,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const err = validateDates(body.start_date, body.end_date, semester?.start_date, semester?.end_date)
   if (err) return NextResponse.json({ error: err }, { status: 400 })
 
+  const update: Record<string, unknown> = { start_date: body.start_date || null, end_date: body.end_date || null }
+  if (body.group_label !== undefined) update.group_label = body.group_label?.trim() || null
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('semester_offerings')
-    .update({ start_date: body.start_date || null, end_date: body.end_date || null })
+    .update(update)
     .eq('id', id)
     .select(`
-      id, created_at, start_date, end_date,
+      id, created_at, start_date, end_date, group_label,
       course:academic_courses(id, name, code, credits, level, program_id,
         program:academic_programs(id, name, code)),
       assignments:faculty_assignments(id, hours_per_week, employee:hr_employees(id, full_name, position))

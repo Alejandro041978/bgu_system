@@ -6,7 +6,7 @@ import { ChevronDown, Plus, Trash2, UserCheck, AlertCircle, CheckCircle2, Loader
 type Employee = { id: string; full_name: string; position: string | null }
 type Course = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { id: string; name: string; code: string | null; category_id?: string | null } }
 type Assignment = { id: string; hours_per_week: number | null; employee: Employee }
-type Offering = { id: string; course: Course; assignments: Assignment[]; start_date: string | null; end_date: string | null }
+type Offering = { id: string; course: Course; assignments: Assignment[]; start_date: string | null; end_date: string | null; group_label: string | null }
 type Semester = { id: string; name: string; status: string; academic_year_id: string; start_date: string | null; end_date: string | null }
 type Category = { id: string; name: string }
 
@@ -35,6 +35,7 @@ export function OfferManager({
   // Filtros de tabla
   const [filterCategoryId, setFilterCategoryId] = useState('')
   const [filterProgramIdTable, setFilterProgramIdTable] = useState('')
+  const [filterGroup, setFilterGroup] = useState('')
 
   // Panel agregar curso
   const [showAddCourse, setShowAddCourse] = useState(false)
@@ -42,6 +43,7 @@ export function OfferManager({
   const [addingCourseId, setAddingCourseId] = useState('')
   const [addStartDate, setAddStartDate] = useState('')
   const [addEndDate, setAddEndDate] = useState('')
+  const [addGroupLabel, setAddGroupLabel] = useState('')
   const [savingCourse, setSavingCourse] = useState(false)
   const [addCourseError, setAddCourseError] = useState('')
 
@@ -101,10 +103,16 @@ export function OfferManager({
     ? programsInOfferings.filter(p => p.category_id === filterCategoryId)
     : programsInOfferings
 
-  // Offerings filtradas por categoría + programa
+  // Grupos únicos presentes en las offerings del semestre
+  const groupsInOfferings = Array.from(
+    new Set(offerings.map(o => o.group_label).filter((g): g is string => !!g))
+  ).sort()
+
+  // Offerings filtradas por categoría + programa + grupo
   const filteredOfferings = offerings.filter(o => {
     if (filterCategoryId && o.course.program.category_id !== filterCategoryId) return false
     if (filterProgramIdTable && o.course.program_id !== filterProgramIdTable) return false
+    if (filterGroup && (o.group_label ?? '') !== filterGroup) return false
     return true
   })
 
@@ -117,7 +125,7 @@ export function OfferManager({
     setAddCourseError('')
     const res = await fetch('/api/academic/offerings', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ semester_id: selectedSemesterId, course_id: addingCourseId, start_date: addStartDate || null, end_date: addEndDate || null }),
+      body: JSON.stringify({ semester_id: selectedSemesterId, course_id: addingCourseId, start_date: addStartDate || null, end_date: addEndDate || null, group_label: addGroupLabel || null }),
     })
     const data = await res.json()
     if (res.ok) {
@@ -125,6 +133,7 @@ export function OfferManager({
       setAddingCourseId('')
       setAddStartDate('')
       setAddEndDate('')
+      setAddGroupLabel('')
       setShowAddCourse(false)
     } else {
       setAddCourseError(data.error ?? 'Error al agregar la asignatura')
@@ -244,6 +253,16 @@ export function OfferManager({
               </select>
               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             </div>
+            {groupsInOfferings.length > 0 && (
+              <div className="relative">
+                <select value={filterGroup} onChange={e => setFilterGroup(e.target.value)}
+                  className="appearance-none border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-600">
+                  <option value="">Todos los grupos</option>
+                  {groupsInOfferings.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+              </div>
+            )}
           </>
         )}
 
@@ -305,6 +324,15 @@ export function OfferManager({
                 min={selectedSemester?.start_date ?? undefined} max={selectedSemester?.end_date ?? undefined}
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Grupo <span className="text-gray-400">(opcional)</span></label>
+              <input type="text" value={addGroupLabel} onChange={e => setAddGroupLabel(e.target.value)}
+                placeholder="Ej: Grupo A, Mañana…" list="offer-group-suggestions"
+                className="w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <datalist id="offer-group-suggestions">
+                {groupsInOfferings.map(g => <option key={g} value={g} />)}
+              </datalist>
+            </div>
             <button onClick={addCourse} disabled={!addingCourseId || savingCourse}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium rounded-lg">
               {savingCourse ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -356,7 +384,12 @@ export function OfferManager({
                   <>
                     <tr key={offering.id} className="group hover:bg-gray-50/50">
                       <td className="px-5 py-3">
-                        <p className="font-medium text-gray-800">{offering.course.name}</p>
+                        <p className="font-medium text-gray-800 flex items-center gap-2">
+                          {offering.course.name}
+                          {offering.group_label && (
+                            <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">{offering.group_label}</span>
+                          )}
+                        </p>
                         {offering.course.code && <p className="text-xs text-gray-400">{offering.course.code}</p>}
                       </td>
                       <td className="px-3 py-3 text-xs text-gray-500 truncate max-w-[120px]">
