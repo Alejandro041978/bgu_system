@@ -16,6 +16,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/contracts/templates', 'contracts_templates'],
   ['/contracts', 'contracts'],
   ['/academic/faculty', 'academic_faculty'],
+  ['/academic/grades', 'academic_grades'],
   ['/academic/years', 'academic_years'],
   ['/academic/programs', 'academic_programs'],
   ['/academic/offer', 'academic_offer'],
