@@ -77,9 +77,9 @@ export function OfferManager({
       .then(data => { setOfferings(Array.isArray(data) ? data : []); setLoading(false) })
   }, [selectedSemesterId])
 
-  // Courses not yet in this semester
-  const offeredCourseIds = new Set(offerings.map(o => o.course.id))
-  const availableCourses = allCourses.filter(c => !offeredCourseIds.has(c.id))
+  // Todas las asignaturas están siempre disponibles: una misma asignatura puede
+  // programarse varias veces en un semestre (distintos slots/meses o grupos especiales).
+  const availableCourses = allCourses
 
   // Unique programs from available courses
   const programsInAvailable = Array.from(
