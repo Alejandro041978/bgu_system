@@ -44,6 +44,12 @@ const navigation: NavGroup[] = [
     ],
   },
   {
+    label: 'Ventas',
+    items: [
+      { name: 'Prospectos', href: '/ventas/prospectos', icon: TrendingUp, pageKey: 'sales_prospectos' },
+    ],
+  },
+  {
     label: 'Redes Sociales',
     items: [{ name: 'Métricas', href: '/social', icon: Share2, pageKey: 'social' }],
   },
@@ -116,7 +122,7 @@ const navigation: NavGroup[] = [
     label: 'IA',
     items: [
       { name: 'Sofia · Chat', href: '/chat', icon: Bot, pageKey: 'chat' },
-      { name: 'Sofia · Config', href: '/settings/sofia', icon: Bot, pageKey: 'settings_sofia' },
+      { name: 'Bots · Configuración', href: '/settings/sofia', icon: Bot, pageKey: 'settings_sofia' },
       { name: 'Sofia · Supervisor', href: '/ia/sofia-supervisor', icon: Shield, pageKey: 'sofia_supervisor' },
     ],
   },

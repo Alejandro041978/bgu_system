@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
-import { getBotPrompt } from '@/lib/bots'
+import { getBot } from '@/lib/bots'
+import { extractAndSaveLead } from '@/lib/sales-leads'
 
 export const maxDuration = 60
 
@@ -171,7 +172,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No messages provided' }, { status: 400 })
     }
 
-    const masterPrompt = await getBotPrompt(botKey)
+    const bot = await getBot(botKey)
+    const masterPrompt = bot?.prompt?.trim() ? bot.prompt : 'Eres un asistente virtual de Blackwell Global University (BGU). Responde en el idioma del usuario y sé honesto: si no sabes un dato, dilo.'
+    const isSales = bot?.role === 'ventas'
 
     // Recuperar conocimiento relevante a la última pregunta del usuario (RAG)
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
@@ -191,8 +194,8 @@ export async function POST(req: NextRequest) {
             model: 'claude-opus-4-8',
             max_tokens: 1024,
             system: systemPrompt,
-            tools: [TICKET_TOOL],
-            tool_choice: { type: 'auto' },
+            // Sofia (soporte) puede proponer tickets; los bots de ventas no.
+            ...(isSales ? {} : { tools: [TICKET_TOOL], tool_choice: { type: 'auto' as const } }),
             messages: messages.map(m => ({ role: m.role, content: m.content })),
           })
 
@@ -254,6 +257,11 @@ export async function POST(req: NextRequest) {
               bot_key: botKey,
               updated_at: new Date().toISOString(),
             }, { onConflict: 'session_id' }).then(() => {/* fire-and-forget */})
+
+            // Bots de ventas: extraer y registrar el prospecto en segundo plano
+            if (isSales) {
+              extractAndSaveLead(allMessages, botKey, `web:${sessionId}`, { email: contactEmail })
+            }
           }
         } catch (err) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: String(err) })}\n\n`))
