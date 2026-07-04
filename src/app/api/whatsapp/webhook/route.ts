@@ -90,12 +90,14 @@ interface Session {
 const MAX_HISTORY = 20
 
 async function getSession(phone: string): Promise<Session> {
+  // Lee la fila más reciente (tolerante a duplicados si no hay constraint único)
   const { data } = await db()
     .from('whatsapp_sessions')
     .select('messages, pending_ticket, identified, user_info')
     .eq('phone', phone)
-    .single()
-  const row = data as { messages?: Message[]; pending_ticket?: PendingTicket; identified?: boolean; user_info?: UserInfo } | null
+    .order('updated_at', { ascending: false })
+    .limit(1)
+  const row = (data?.[0] ?? null) as { messages?: Message[]; pending_ticket?: PendingTicket; identified?: boolean; user_info?: UserInfo } | null
   return {
     messages:      row?.messages ?? [],
     pendingTicket: row?.pending_ticket ?? undefined,
@@ -105,17 +107,19 @@ async function getSession(phone: string): Promise<Session> {
 }
 
 async function saveSession(phone: string, session: Session) {
-  await db().from('whatsapp_sessions').upsert(
-    {
-      phone,
-      messages:      session.messages.slice(-MAX_HISTORY),
-      pending_ticket: session.pendingTicket ?? null,
-      identified:    session.identified,
-      user_info:     session.userInfo ?? null,
-      updated_at:    new Date().toISOString(),
-    },
-    { onConflict: 'phone' }
-  )
+  // Borra e inserta para garantizar UNA sola fila por teléfono, sin depender de
+  // un constraint único (el upsert onConflict fallaba y creaba duplicados).
+  const sb = db()
+  await sb.from('whatsapp_sessions').delete().eq('phone', phone)
+  const { error } = await sb.from('whatsapp_sessions').insert({
+    phone,
+    messages:      session.messages.slice(-MAX_HISTORY),
+    pending_ticket: session.pendingTicket ?? null,
+    identified:    session.identified,
+    user_info:     session.userInfo ?? null,
+    updated_at:    new Date().toISOString(),
+  })
+  if (error) console.error('saveSession error:', error.message)
 }
 
 // ── Twilio helpers ────────────────────────────────────────────────────────────
