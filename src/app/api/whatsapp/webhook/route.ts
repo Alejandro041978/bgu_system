@@ -190,30 +190,30 @@ export async function POST(req: NextRequest) {
 
     // ── 0. Auto-identify by phone / email / código en academic_students ───────
     if (!session.identified) {
-      // Buscar por teléfono (siempre) y por correo o código si aparecen en el mensaje
+      // Buscar por teléfono (siempre) y por correo o documento si aparecen en el mensaje
       const phoneDigits = from.replace(/\D/g, '').slice(-9)
       const emailMatch = body.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]
-      const codeMatch = body.match(/\b[A-Za-z]?\d{5,}\b/)?.[0] // código/documento: 5+ dígitos
+      const codeMatch = body.match(/\b\d{5,}\b/)?.[0] // número de documento: 5+ dígitos
 
-      const orConditions = [`phone.ilike.%${phoneDigits}%`]
+      const orConditions = [`phone_number.ilike.%${phoneDigits}%`]
       if (emailMatch) orConditions.push(`email.ilike.${emailMatch}`)
-      if (codeMatch) orConditions.push(`student_code.ilike.%${codeMatch}%`)
+      if (codeMatch) orConditions.push(`document_number.ilike.%${codeMatch}%`)
 
       const { data: rows } = await db()
         .from('academic_students')
-        .select('full_name, email, student_code, program_name, status')
+        .select('first_name, last_name, second_last_name, email, document_number')
         .or(orConditions.join(','))
         .eq('disabled', false)
         .limit(1)
       const student = rows?.[0]
 
-      if (student && student.full_name) {
+      if (student) {
+        const fullName = [student.first_name, student.last_name, student.second_last_name].filter(Boolean).join(' ')
         session.identified = true
-        session.userInfo = { name: student.full_name, role: 'estudiante', student_id: student.student_code ?? undefined }
-        const firstName = student.full_name.split(' ')[0]
+        session.userInfo = { name: fullName, role: 'estudiante', student_id: student.document_number ?? undefined }
+        const firstName = student.first_name ?? fullName.split(' ')[0]
         const welcome =
-          `✅ *Estudiante identificado*\n👤 ${student.full_name}` +
-          (student.program_name ? `\n📚 ${student.program_name}` : '') +
+          `✅ *Estudiante identificado*\n👤 ${fullName}` +
           `\n\n¡Hola, ${firstName}! Soy Sofia, asistente virtual de BGU. ¿En qué puedo ayudarte hoy?`
         session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: welcome })
         await saveSession(from, session)

@@ -24,23 +24,23 @@ export default async function StudentSofiaPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: student } = await (admin as any)
       .from('academic_students')
-      .select('full_name, email, phone, student_code, program_name, status')
+      .select('first_name, last_name, second_last_name, email, phone_number, document_number, country, city')
       .eq('email', user.email)
       .eq('disabled', false)
       .maybeSingle()
 
     if (student) {
-      studentName = student.full_name ?? ''
-      const firstName = studentName.split(' ')[0]
+      const fullName = [student.first_name, student.last_name, student.second_last_name].filter(Boolean).join(' ')
+      studentName = fullName
+      const firstName = student.first_name ?? fullName.split(' ')[0]
       initialMessage = `¡Hola, ${firstName}! Soy Sofia, asistente virtual de BGU. ¿En qué puedo ayudarte hoy?`
       studentContext = `
 === ESTUDIANTE IDENTIFICADO (portal web) ===
-Nombre: ${student.full_name}
+Nombre: ${fullName}
 Email: ${student.email}
-${student.phone ? `Teléfono: ${student.phone}` : ''}
-${student.student_code ? `Código: ${student.student_code}` : ''}
-${student.program_name ? `Programa: ${student.program_name}` : ''}
-${student.status ? `Estado: ${student.status}` : ''}
+${student.phone_number ? `Teléfono: ${student.phone_number}` : ''}
+${student.document_number ? `Documento: ${student.document_number}` : ''}
+${student.city || student.country ? `Ubicación: ${[student.city, student.country].filter(Boolean).join(', ')}` : ''}
 Instrucción: El estudiante ya está autenticado en el portal. Salúdalo por su nombre y atiende su consulta directamente.
 =============================================`
     }

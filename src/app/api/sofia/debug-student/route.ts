@@ -15,29 +15,25 @@ export async function GET(req: NextRequest) {
 
   const result: Record<string, unknown> = {}
 
+  const cols = 'id, first_name, last_name, second_last_name, email, phone_number, document_number, disabled'
+
   if (email) {
-    const { data } = await sb
-      .from('academic_students')
-      .select('id, full_name, email, phone, student_code, disabled')
-      .ilike('email', email)
-    result.by_email = data ?? []
+    const { data, error } = await sb.from('academic_students').select(cols).ilike('email', email)
+    result.by_email = error ? { error: error.message } : (data ?? [])
   }
 
   if (phone) {
     const digits = phone.replace(/\D/g, '').slice(-9)
     result.searched_digits = digits
-    const { data } = await sb
-      .from('academic_students')
-      .select('id, full_name, email, phone, student_code, disabled')
-      .ilike('phone', `%${digits}%`)
-    result.by_phone = data ?? []
+    const { data, error } = await sb.from('academic_students').select(cols).ilike('phone_number', `%${digits}%`)
+    result.by_phone = error ? { error: error.message } : (data ?? [])
   }
 
   // Muestra una muestra de cómo lucen los teléfonos guardados
   const { data: sample } = await sb
     .from('academic_students')
-    .select('full_name, phone')
-    .not('phone', 'is', null)
+    .select('first_name, phone_number')
+    .not('phone_number', 'is', null)
     .limit(5)
   result.phone_samples = sample ?? []
 
