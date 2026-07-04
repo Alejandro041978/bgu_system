@@ -9,8 +9,12 @@
       "schedule": "0 4 * * *"
     },
     {
-      "path": "/api/cron/sofia-supervisor",
+      "path": "/api/cron/sofia-supervisor?bot=sofia",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/sofia-supervisor?bot=antonella",
+      "schedule": "10 5 * * *"
     }
   ]
 }
