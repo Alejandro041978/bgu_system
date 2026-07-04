@@ -6,6 +6,7 @@ import { Download, RefreshCw, CheckCircle2, XCircle, Clock, AlertCircle, Message
 type Report = {
   id: string
   report_date: string
+  bot_key: string
   conversations_analyzed: number
   total_messages: number
   status: 'pending' | 'completed' | 'failed'
@@ -20,6 +21,8 @@ type Report = {
   generated_at: string | null
   created_at: string
 }
+
+type BotOpt = { key: string; name: string; role: string | null }
 
 function StatusBadge({ status }: { status: Report['status'] }) {
   if (status === 'completed') return (
@@ -63,41 +66,56 @@ function Section({ title, content }: { title: string; content: string | null }) 
   )
 }
 
-export function SupervisorView({ reports: initialReports }: { reports: Report[] }) {
-  const [reports, setReports] = useState(initialReports)
-  const [expanded, setExpanded] = useState<string | null>(initialReports[0]?.id ?? null)
+export function SupervisorView({ reports: initialReports, bots }: { reports: Report[]; bots: BotOpt[] }) {
+  const [botKey, setBotKey] = useState(bots[0]?.key ?? 'sofia')
+  const [expanded, setExpanded] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
   const [runError, setRunError] = useState<string | null>(null)
+
+  const reports = initialReports.filter(r => r.bot_key === botKey)
+  const botName = bots.find(b => b.key === botKey)?.name ?? 'Bot'
 
   async function runToday() {
     setRunning(true)
     setRunError(null)
     const today = new Date().toISOString().slice(0, 10)
-    const res = await fetch(`/api/sofia/run-supervisor?date=${today}`, { method: 'POST' })
+    const res = await fetch(`/api/sofia/run-supervisor?date=${today}&bot=${botKey}`, { method: 'POST' })
     if (!res.ok) {
       const d = await res.json().catch(() => ({})) as { error?: string }
       setRunError(d.error ?? 'Error al ejecutar análisis')
       setRunning(false)
       return
     }
-    // Reload page to show new report
     window.location.reload()
   }
 
   return (
     <div className="space-y-6">
+      {bots.length > 1 && (
+        <div className="flex gap-2">
+          {bots.map(b => (
+            <button
+              key={b.key}
+              onClick={() => { setBotKey(b.key); setExpanded(null) }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                botKey === b.key ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {b.name}
+              <span className={`text-xs ${botKey === b.key ? 'text-indigo-100' : 'text-gray-400'}`}>· {b.role ?? 'bot'}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Sofia · Supervisor</h1>
+          <h1 className="text-xl font-bold text-gray-900">{botName} · Supervisor</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Análisis diario de conversaciones con recomendaciones para mejorar el prompt maestro
+            Análisis diario de conversaciones con recomendaciones para mejorar el bot
           </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <a
-            href="/api/cron/sofia-supervisor"
-            className="hidden"
-          />
           <button
             onClick={runToday}
             disabled={running}

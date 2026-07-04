@@ -18,10 +18,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const url = req.nextUrl.searchParams.get('date') ?? new Date().toISOString().slice(0, 10)
+  const date = req.nextUrl.searchParams.get('date') ?? new Date().toISOString().slice(0, 10)
+  const bot = req.nextUrl.searchParams.get('bot') ?? 'sofia'
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bgu-system.vercel.app'
   const cronUrl = new URL('/api/cron/sofia-supervisor', baseUrl)
-  if (url) cronUrl.searchParams.set('date', url)
+  if (date) cronUrl.searchParams.set('date', date)
+  cronUrl.searchParams.set('bot', bot)
 
   const res = await fetch(cronUrl.toString(), {
     method: 'POST',
