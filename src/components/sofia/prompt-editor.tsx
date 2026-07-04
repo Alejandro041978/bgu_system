@@ -15,6 +15,7 @@ export function SofiaPromptEditor({ botKey, botName, initialPrompt, updatedAt, o
   const [prompt, setPrompt] = useState(initialPrompt)
   const [saving, setSaving] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
+  const [savedAt, setSavedAt] = useState<string | null>(updatedAt)
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
   async function savePrompt() {
@@ -30,6 +31,7 @@ export function SofiaPromptEditor({ botKey, botName, initialPrompt, updatedAt, o
       if (!resp.ok) throw new Error(data.error ?? 'Error al guardar')
       if (data.updated === 0) throw new Error(`No se encontró el bot "${botKey}" para guardar.`)
       setStatus({ type: 'success', msg: 'Prompt guardado correctamente.' })
+      setSavedAt(new Date().toISOString())
       onSaved?.(prompt)
     } catch (err) {
       setStatus({ type: 'error', msg: String(err) })
@@ -63,8 +65,8 @@ export function SofiaPromptEditor({ botKey, botName, initialPrompt, updatedAt, o
     }
   }
 
-  const lastUpdate = updatedAt
-    ? new Date(updatedAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })
+  const lastUpdate = savedAt
+    ? new Date(savedAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })
     : 'Nunca'
 
   return (
