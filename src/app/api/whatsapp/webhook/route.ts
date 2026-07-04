@@ -184,6 +184,15 @@ export async function POST(req: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
+  // ── Comando de reinicio (solo pruebas) ─────────────────────────────────────
+  // Clave compleja para que nadie la escriba por error. Borra la sesión completa.
+  const RESET_KEY = '#reiniciar-sofia-bgu-4917'
+  if (body === RESET_KEY) {
+    await db().from('whatsapp_sessions').delete().eq('phone', from)
+    await sendWhatsApp(from, '🔄 Sesión reiniciada. Escríbeme de nuevo para empezar desde cero.')
+    return twimlOk()
+  }
+
   try {
     const session = await getSession(from)
     const lower   = body.toLowerCase().trim()
