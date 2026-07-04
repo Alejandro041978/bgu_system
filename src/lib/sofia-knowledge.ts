@@ -19,13 +19,15 @@ export interface KnowledgeMatch {
  * Devuelve [] si no hay OPENAI_API_KEY, si falla la búsqueda, o si no hay coincidencias.
  * Nunca lanza — el chat debe seguir funcionando aunque la KB falle.
  */
-export async function searchKnowledge(query: string, matchCount = 5): Promise<KnowledgeMatch[]> {
+export async function searchKnowledge(query: string, matchCount = 8): Promise<KnowledgeMatch[]> {
   if (!query?.trim() || !process.env.OPENAI_API_KEY) return []
   try {
     const embedding = await embedText(query)
     const { data, error } = await (db() as any).rpc('match_sofia_knowledge', {
       query_embedding: JSON.stringify(embedding),
-      match_threshold: 0.30,
+      // Umbral más permisivo: preferimos traer contexto cercano y dejar que
+      // Sofia interprete, en vez de no encontrar nada por una diferencia de fraseo.
+      match_threshold: 0.20,
       match_count: matchCount,
     })
     if (error) {
@@ -53,7 +55,12 @@ export async function buildKnowledgeContext(query: string): Promise<string> {
 
   return `
 === BASE DE CONOCIMIENTOS BGU ===
-Usa la siguiente información oficial para responder con precisión. Si la respuesta está aquí, básate en ella y cítala de forma natural. Si la pregunta no se cubre aquí y no la sabes, dilo con honestidad en lugar de inventar.
+La siguiente información oficial fue recuperada como la MÁS RELEVANTE a la consulta del usuario. Úsala así:
+
+1. Si responde directamente la pregunta, contesta con seguridad y de forma natural.
+2. INTERPRETA la intención del usuario. La gente no conoce los nombres exactos de cargos, áreas ni trámites. Si preguntan "quién está a cargo del servicio al estudiante" y aquí dice "Director de Servicio al Estudiante: X", ESA es la respuesta — dala.
+3. Si lo que preguntan se PARECE a algo que está aquí pero no es idéntico, ofrécelo proactivamente en lugar de decir que no sabes. Ejemplo: "Quizá te refieres al Director de Servicio al Estudiante, Rober Aphang. Si buscabas otro cargo o área, dime y te ayudo."
+4. Solo di que no tienes el dato si REALMENTE nada de lo de abajo se relaciona con la pregunta. No seas excesivamente cauteloso: si el dato está aquí, úsalo; no lo inventes si no está.
 
 ${blocks}
 =================================`
