@@ -3,6 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { createZohoTicket } from '@/app/api/chat/route'
 import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
+import { getBotByTwilioNumber, type Bot } from '@/lib/bots'
+import { extractAndSaveLead } from '@/lib/sales-leads'
 import crypto from 'crypto'
 
 export const maxDuration = 60
@@ -89,12 +91,13 @@ interface Session {
 
 const MAX_HISTORY = 20
 
-async function getSession(phone: string): Promise<Session> {
+async function getSession(phone: string, botKey: string): Promise<Session> {
   // Lee la fila más reciente (tolerante a duplicados si no hay constraint único)
   const { data } = await db()
     .from('whatsapp_sessions')
     .select('messages, pending_ticket, identified, user_info')
     .eq('phone', phone)
+    .eq('bot_key', botKey)
     .order('updated_at', { ascending: false })
     .limit(1)
   const row = (data?.[0] ?? null) as { messages?: Message[]; pending_ticket?: PendingTicket; identified?: boolean; user_info?: UserInfo } | null
@@ -106,13 +109,13 @@ async function getSession(phone: string): Promise<Session> {
   }
 }
 
-async function saveSession(phone: string, session: Session) {
-  // Borra e inserta para garantizar UNA sola fila por teléfono, sin depender de
-  // un constraint único (el upsert onConflict fallaba y creaba duplicados).
+async function saveSession(phone: string, botKey: string, session: Session) {
+  // Borra e inserta para garantizar UNA sola fila por (teléfono, bot).
   const sb = db()
-  await sb.from('whatsapp_sessions').delete().eq('phone', phone)
+  await sb.from('whatsapp_sessions').delete().eq('phone', phone).eq('bot_key', botKey)
   const { error } = await sb.from('whatsapp_sessions').insert({
     phone,
+    bot_key:       botKey,
     messages:      session.messages.slice(-MAX_HISTORY),
     pending_ticket: session.pendingTicket ?? null,
     identified:    session.identified,
@@ -123,10 +126,10 @@ async function saveSession(phone: string, session: Session) {
 }
 
 // ── Twilio helpers ────────────────────────────────────────────────────────────
-async function sendWhatsApp(to: string, body: string) {
+async function sendWhatsApp(to: string, body: string, fromNumber?: string) {
   const sid   = process.env.TWILIO_ACCOUNT_SID!
   const token = process.env.TWILIO_AUTH_TOKEN!
-  const from  = process.env.TWILIO_WHATSAPP_NUMBER!
+  const from  = fromNumber ?? process.env.TWILIO_WHATSAPP_NUMBER!
 
   await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
     method: 'POST',
@@ -172,6 +175,36 @@ const ROLE_LABELS: Record<string, string> = {
 
 const twimlOk = () => new NextResponse('<Response/>', { headers: { 'Content-Type': 'text/xml' } })
 
+// ── Flujo de ventas (Antonella) ────────────────────────────────────────────────
+// Sin identificación de estudiante: conversa, vende y registra el prospecto en
+// sales_leads en segundo plano (el embudo lo maneja el extractor de leads).
+async function runSalesFlow(from: string, body: string, bot: Bot) {
+  const session = await getSession(from, bot.key)
+  session.messages.push({ role: 'user', content: body })
+
+  const knowledgeContext = await buildKnowledgeContext(body, bot.key)
+  const systemPrompt = [bot.prompt, knowledgeContext].filter(Boolean).join('\n\n')
+
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+  const aiResponse = await client.messages.create({
+    model:      'claude-opus-4-8',
+    max_tokens: 1024,
+    system:     systemPrompt,
+    messages:   session.messages.slice(-MAX_HISTORY),
+  })
+
+  const reply = aiResponse.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('').trim()
+    || 'Disculpa, ¿me repites tu consulta?'
+
+  session.messages.push({ role: 'assistant', content: reply })
+  await saveSession(from, bot.key, session)
+  for (const chunk of splitMessage(reply)) await sendWhatsApp(from, chunk, bot.twilio_number ?? undefined)
+
+  // Registrar/actualizar el prospecto en segundo plano
+  const phone = from.replace('whatsapp:', '')
+  extractAndSaveLead(session.messages, bot.key, phone, { phone })
+}
+
 // ── Webhook ───────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const formData = await req.formData()
@@ -179,6 +212,7 @@ export async function POST(req: NextRequest) {
   formData.forEach((v, k) => { params[k] = v.toString() })
 
   const from       = params['From']
+  const to         = params['To'] ?? ''
   const body       = params['Body']?.trim()
   const accountSid = params['AccountSid']
 
@@ -188,17 +222,26 @@ export async function POST(req: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
+  // ── Enrutamiento por número de destino: ¿qué bot recibió el mensaje? ────────
+  const routedBot = await getBotByTwilioNumber(to)
+  const botKey = routedBot?.key ?? 'sofia'
+
   // ── Comando de reinicio (solo pruebas) ─────────────────────────────────────
-  // Clave compleja para que nadie la escriba por error. Borra la sesión completa.
   const RESET_KEY = '#reiniciar-sofia-bgu-4917'
   if (body === RESET_KEY) {
-    await db().from('whatsapp_sessions').delete().eq('phone', from)
-    await sendWhatsApp(from, '🔄 Sesión reiniciada. Escríbeme de nuevo para empezar desde cero.')
+    await db().from('whatsapp_sessions').delete().eq('phone', from).eq('bot_key', botKey)
+    await sendWhatsApp(from, '🔄 Sesión reiniciada. Escríbeme de nuevo para empezar desde cero.', routedBot?.twilio_number ?? undefined)
+    return twimlOk()
+  }
+
+  // ── Bots de ventas (Antonella): flujo comercial con embudo ─────────────────
+  if (routedBot && routedBot.role === 'ventas') {
+    await runSalesFlow(from, body, routedBot)
     return twimlOk()
   }
 
   try {
-    const session = await getSession(from)
+    const session = await getSession(from, botKey)
     const lower   = body.toLowerCase().trim()
 
     // ── 0. Auto-identify by phone / email / código en academic_students ───────
@@ -229,7 +272,7 @@ export async function POST(req: NextRequest) {
           `✅ *Estudiante identificado*\n👤 ${fullName}` +
           `\n\n¡Hola, ${firstName}! Soy Sofia, asistente virtual de BGU. ¿En qué puedo ayudarte hoy?`
         session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: welcome })
-        await saveSession(from, session)
+        await saveSession(from, botKey, session)
         await sendWhatsApp(from, welcome)
         return twimlOk()
       }
@@ -248,7 +291,7 @@ export async function POST(req: NextRequest) {
         const reply = `✅ Ticket creado.\n📋 *Número:* ${ticket.ticketNumber ?? 'N/A'}\n\nUn asesor te contactará pronto. ¿Puedo ayudarte en algo más?`
         session.pendingTicket = undefined
         session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: reply })
-        await saveSession(from, session)
+        await saveSession(from, botKey, session)
         await sendWhatsApp(from, reply)
         return twimlOk()
       }
@@ -256,7 +299,7 @@ export async function POST(req: NextRequest) {
         const reply = 'Entendido, no se creará el ticket. ¿En qué más puedo ayudarte?'
         session.pendingTicket = undefined
         session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: reply })
-        await saveSession(from, session)
+        await saveSession(from, botKey, session)
         await sendWhatsApp(from, reply)
         return twimlOk()
       }
@@ -300,11 +343,11 @@ export async function POST(req: NextRequest) {
           (identifiedUser.student_id ? ` · Cód: ${identifiedUser.student_id}` : '') +
           `\n\nPerfecto, ${identifiedUser.name.split(' ')[0]}. Ahora dime, ¿en qué puedo ayudarte?`
         session.messages.push({ role: 'assistant', content: welcome })
-        await saveSession(from, session)
+        await saveSession(from, botKey, session)
         await sendWhatsApp(from, welcome)
       } else if (replyText) {
         session.messages.push({ role: 'assistant', content: replyText })
-        await saveSession(from, session)
+        await saveSession(from, botKey, session)
         for (const chunk of splitMessage(replyText)) await sendWhatsApp(from, chunk)
       }
 
@@ -350,11 +393,11 @@ export async function POST(req: NextRequest) {
         `¿Confirmas la creación del ticket? Responde *SÍ* o *NO*.`
       session.pendingTicket = { ...proposedTicket, contactName: proposedTicket.contactName ?? session.userInfo?.name }
       session.messages.push({ role: 'assistant', content: confirmMsg })
-      await saveSession(from, session)
+      await saveSession(from, botKey, session)
       await sendWhatsApp(from, confirmMsg)
     } else if (replyText) {
       session.messages.push({ role: 'assistant', content: replyText })
-      await saveSession(from, session)
+      await saveSession(from, botKey, session)
       for (const chunk of splitMessage(replyText)) await sendWhatsApp(from, chunk)
     }
 
