@@ -8,9 +8,10 @@ interface Props {
   botName: string
   initialPrompt: string
   updatedAt: string | null
+  onSaved?: (prompt: string) => void
 }
 
-export function SofiaPromptEditor({ botKey, botName, initialPrompt, updatedAt }: Props) {
+export function SofiaPromptEditor({ botKey, botName, initialPrompt, updatedAt, onSaved }: Props) {
   const [prompt, setPrompt] = useState(initialPrompt)
   const [saving, setSaving] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
@@ -25,8 +26,11 @@ export function SofiaPromptEditor({ botKey, botName, initialPrompt, updatedAt }:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, bot: botKey }),
       })
-      if (!resp.ok) throw new Error('Error al guardar')
+      const data = await resp.json() as { ok?: boolean; updated?: number; error?: string }
+      if (!resp.ok) throw new Error(data.error ?? 'Error al guardar')
+      if (data.updated === 0) throw new Error(`No se encontró el bot "${botKey}" para guardar.`)
       setStatus({ type: 'success', msg: 'Prompt guardado correctamente.' })
+      onSaved?.(prompt)
     } catch (err) {
       setStatus({ type: 'error', msg: String(err) })
     } finally {

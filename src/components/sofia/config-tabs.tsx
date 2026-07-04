@@ -14,16 +14,17 @@ interface BotRow {
 }
 
 export function SofiaConfigTabs({ bots }: { bots: BotRow[] }) {
+  const [list, setList] = useState(bots)
   const [botKey, setBotKey] = useState(bots[0]?.key ?? 'sofia')
   const [tab, setTab] = useState<'prompt' | 'knowledge'>('prompt')
-  const bot = bots.find(b => b.key === botKey) ?? bots[0]
+  const bot = list.find(b => b.key === botKey) ?? list[0]
 
   return (
     <div className="max-w-4xl mx-auto">
       {/* Selector de bot */}
-      {bots.length > 1 && (
+      {list.length > 1 && (
         <div className="flex gap-2 mb-5">
-          {bots.map(b => (
+          {list.map(b => (
             <button
               key={b.key}
               onClick={() => setBotKey(b.key)}
@@ -69,6 +70,7 @@ export function SofiaConfigTabs({ bots }: { bots: BotRow[] }) {
           botName={bot?.name ?? ''}
           initialPrompt={bot?.prompt ?? ''}
           updatedAt={bot?.updated_at ?? null}
+          onSaved={(newPrompt) => setList(prev => prev.map(b => b.key === botKey ? { ...b, prompt: newPrompt } : b))}
         />
       ) : (
         <KnowledgeManager key={botKey} botKey={botKey} />
