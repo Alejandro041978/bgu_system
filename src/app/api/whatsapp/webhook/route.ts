@@ -126,10 +126,12 @@ async function saveSession(phone: string, botKey: string, session: Session) {
 }
 
 // ── Twilio helpers ────────────────────────────────────────────────────────────
-async function sendWhatsApp(to: string, body: string, fromNumber?: string) {
-  const sid   = process.env.TWILIO_ACCOUNT_SID!
-  const token = process.env.TWILIO_AUTH_TOKEN!
-  const from  = fromNumber ?? process.env.TWILIO_WHATSAPP_NUMBER!
+interface TwilioCreds { from?: string; sid?: string; token?: string }
+
+async function sendWhatsApp(to: string, body: string, creds?: TwilioCreds) {
+  const sid   = creds?.sid ?? process.env.TWILIO_ACCOUNT_SID!
+  const token = creds?.token ?? process.env.TWILIO_AUTH_TOKEN!
+  const from  = creds?.from ?? process.env.TWILIO_WHATSAPP_NUMBER!
 
   await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
     method: 'POST',
@@ -141,8 +143,7 @@ async function sendWhatsApp(to: string, body: string, fromNumber?: string) {
   })
 }
 
-function validateTwilioSignature(req: NextRequest, params: Record<string, string>): boolean {
-  const authToken = process.env.TWILIO_AUTH_TOKEN!
+function validateTwilioSignature(req: NextRequest, params: Record<string, string>, authToken: string): boolean {
   const signature = req.headers.get('x-twilio-signature') ?? ''
   if (!signature) return false
   const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/webhook`
@@ -179,30 +180,40 @@ const twimlOk = () => new NextResponse('<Response/>', { headers: { 'Content-Type
 // Sin identificación de estudiante: conversa, vende y registra el prospecto en
 // sales_leads en segundo plano (el embudo lo maneja el extractor de leads).
 async function runSalesFlow(from: string, body: string, bot: Bot) {
-  const session = await getSession(from, bot.key)
-  session.messages.push({ role: 'user', content: body })
+  const creds: TwilioCreds = {
+    from:  bot.twilio_number ?? undefined,
+    sid:   bot.twilio_account_sid ?? undefined,
+    token: bot.twilio_auth_token ?? undefined,
+  }
+  try {
+    const session = await getSession(from, bot.key)
+    session.messages.push({ role: 'user', content: body })
 
-  const knowledgeContext = await buildKnowledgeContext(body, bot.key)
-  const systemPrompt = [bot.prompt, knowledgeContext].filter(Boolean).join('\n\n')
+    const knowledgeContext = await buildKnowledgeContext(body, bot.key)
+    const systemPrompt = [bot.prompt, knowledgeContext].filter(Boolean).join('\n\n')
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
-  const aiResponse = await client.messages.create({
-    model:      'claude-opus-4-8',
-    max_tokens: 1024,
-    system:     systemPrompt,
-    messages:   session.messages.slice(-MAX_HISTORY),
-  })
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+    const aiResponse = await client.messages.create({
+      model:      'claude-opus-4-8',
+      max_tokens: 1024,
+      system:     systemPrompt,
+      messages:   session.messages.slice(-MAX_HISTORY),
+    })
 
-  const reply = aiResponse.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('').trim()
-    || 'Disculpa, ¿me repites tu consulta?'
+    const reply = aiResponse.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('').trim()
+      || 'Disculpa, ¿me repites tu consulta?'
 
-  session.messages.push({ role: 'assistant', content: reply })
-  await saveSession(from, bot.key, session)
-  for (const chunk of splitMessage(reply)) await sendWhatsApp(from, chunk, bot.twilio_number ?? undefined)
+    session.messages.push({ role: 'assistant', content: reply })
+    await saveSession(from, bot.key, session)
+    for (const chunk of splitMessage(reply)) await sendWhatsApp(from, chunk, creds)
 
-  // Registrar/actualizar el prospecto en segundo plano
-  const phone = from.replace('whatsapp:', '')
-  extractAndSaveLead(session.messages, bot.key, phone, { phone })
+    // Registrar/actualizar el prospecto en segundo plano
+    const phone = from.replace('whatsapp:', '')
+    extractAndSaveLead(session.messages, bot.key, phone, { phone })
+  } catch (err) {
+    console.error('runSalesFlow error:', err)
+    await sendWhatsApp(from, 'Disculpa, tuve un inconveniente. ¿Puedes escribirme de nuevo?', creds)
+  }
 }
 
 // ── Webhook ───────────────────────────────────────────────────────────────────
@@ -216,21 +227,32 @@ export async function POST(req: NextRequest) {
   const body       = params['Body']?.trim()
   const accountSid = params['AccountSid']
 
-  if (!from || !body || accountSid !== process.env.TWILIO_ACCOUNT_SID) return twimlOk()
-
-  if (process.env.NODE_ENV === 'production' && !validateTwilioSignature(req, params)) {
-    return new NextResponse('Forbidden', { status: 403 })
-  }
+  if (!from || !body) return twimlOk()
 
   // ── Enrutamiento por número de destino: ¿qué bot recibió el mensaje? ────────
   const routedBot = await getBotByTwilioNumber(to)
   const botKey = routedBot?.key ?? 'sofia'
 
+  // Credenciales de la cuenta Twilio de este bot (fallback a env = cuenta de Sofia)
+  const acctSid   = routedBot?.twilio_account_sid ?? process.env.TWILIO_ACCOUNT_SID
+  const authToken = routedBot?.twilio_auth_token ?? process.env.TWILIO_AUTH_TOKEN!
+  const botCreds: TwilioCreds = {
+    from:  routedBot?.twilio_number ?? undefined,
+    sid:   routedBot?.twilio_account_sid ?? undefined,
+    token: routedBot?.twilio_auth_token ?? undefined,
+  }
+
+  // Validar que el mensaje venga de la cuenta esperada y con firma válida
+  if (accountSid !== acctSid) return twimlOk()
+  if (process.env.NODE_ENV === 'production' && !validateTwilioSignature(req, params, authToken)) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
   // ── Comando de reinicio (solo pruebas) ─────────────────────────────────────
   const RESET_KEY = '#reiniciar-sofia-bgu-4917'
   if (body === RESET_KEY) {
     await db().from('whatsapp_sessions').delete().eq('phone', from).eq('bot_key', botKey)
-    await sendWhatsApp(from, '🔄 Sesión reiniciada. Escríbeme de nuevo para empezar desde cero.', routedBot?.twilio_number ?? undefined)
+    await sendWhatsApp(from, '🔄 Sesión reiniciada. Escríbeme de nuevo para empezar desde cero.', botCreds)
     return twimlOk()
   }
 
