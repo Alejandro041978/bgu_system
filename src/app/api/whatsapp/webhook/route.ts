@@ -64,16 +64,18 @@ const IDENTIFY_TOOL: Anthropic.Tool = {
 
 const REQUEST_HUMAN_TOOL: Anthropic.Tool = {
   name: 'request_human',
-  description: 'Úsala SOLO cuando el usuario pida EXPLÍCITAMENTE hablar con una persona/asesor humano (ej: "quiero hablar con alguien", "comunícame con un asesor", "necesito una persona"). NO la uses si simplemente no puedes resolver algo — para eso propón un ticket con propose_ticket.',
+  description: 'Deriva al usuario con un asesor humano. Úsala cuando el usuario pida hablar con una persona/asesor. MUY IMPORTANTE: NO la uses en el primer mensaje ni sin contexto. Antes de derivar, PREGUNTA al usuario cuál es su tema o consulta si aún no lo ha explicado, para poder generar un resumen útil. Solo cuando ya entiendas claramente qué necesita, llama a esta herramienta. NO la uses si simplemente no puedes resolver algo — para eso propón un ticket con propose_ticket.',
   input_schema: {
     type: 'object' as const,
     properties: {
-      summary:  { type: 'string', description: 'Resumen ejecutivo (2-3 frases) de lo que necesita el usuario, para que el asesor humano entre en contexto de inmediato.' },
+      summary:  { type: 'string', description: 'Resumen ejecutivo (2-3 frases) del tema/problema REAL del usuario, basado en lo que te contó. Específico y accionable para el asesor. No pongas "quiere hablar con un humano" — pon el motivo real.' },
       language: { type: 'string', enum: ['es', 'en', 'other'], description: 'Idioma en que conversa el usuario.' },
     },
     required: ['summary', 'language'],
   },
 }
+
+const HANDOFF_INSTRUCTION = `\n\nDERIVACIÓN A UN ASESOR HUMANO: Si el usuario pide hablar con una persona/asesor, NO lo derives de inmediato. Primero pregúntale de forma amable cuál es su tema o consulta (si aún no lo ha explicado). Solo cuando tengas claro el motivo real, usa la herramienta request_human con un resumen útil para el asesor. Nunca derives sin haber entendido qué necesita.`
 
 const TICKET_TOOL: Anthropic.Tool = {
   name: 'propose_ticket',
@@ -478,7 +480,7 @@ export async function POST(req: NextRequest) {
     const aiResponse = await client.messages.create({
       model:       'claude-opus-4-8',
       max_tokens:  1024,
-      system:      [masterPrompt + userContext, knowledgeContext].filter(Boolean).join('\n\n'),
+      system:      [masterPrompt + userContext + HANDOFF_INSTRUCTION, knowledgeContext].filter(Boolean).join('\n\n'),
       tools:       [TICKET_TOOL, REQUEST_HUMAN_TOOL],
       tool_choice: { type: 'auto' },
       messages:    session.messages.slice(-MAX_HISTORY),
