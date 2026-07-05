@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Building2, Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -28,6 +28,7 @@ const navigation: NavGroup[] = [
     label: 'Atención al Cliente',
     items: [
       { name: 'Tickets', href: '/desk', icon: Headphones, pageKey: 'desk' },
+      { name: 'Buzón WhatsApp', href: '/inbox', icon: MessageSquare, pageKey: 'inbox' },
       { name: 'Métricas', href: '/desk/metrics', icon: BarChart3, pageKey: 'desk_metrics' },
     ],
   },

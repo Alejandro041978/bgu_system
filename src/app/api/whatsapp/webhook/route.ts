@@ -176,6 +176,48 @@ const ROLE_LABELS: Record<string, string> = {
 
 const twimlOk = () => new NextResponse('<Response/>', { headers: { 'Content-Type': 'text/xml' } })
 
+// ── Buzón compartido: guarda el mensaje entrante en la cola (sin IA) ───────────
+async function receiveInboxMessage(from: string, body: string, inboxKey: string) {
+  const sb = db()
+  const { data: existing } = await sb
+    .from('wa_conversations')
+    .select('id, unread_count')
+    .eq('inbox_key', inboxKey)
+    .eq('customer_phone', from)
+    .maybeSingle()
+
+  const now = new Date().toISOString()
+  let conversationId: string
+
+  if (existing) {
+    conversationId = existing.id
+    await sb.from('wa_conversations').update({
+      status: 'open',
+      unread_count: (existing.unread_count ?? 0) + 1,
+      last_message_at: now,
+      last_message_preview: body.slice(0, 120),
+      updated_at: now,
+    }).eq('id', conversationId)
+  } else {
+    const { data: created } = await sb.from('wa_conversations').insert({
+      inbox_key: inboxKey,
+      customer_phone: from,
+      status: 'open',
+      unread_count: 1,
+      last_message_at: now,
+      last_message_preview: body.slice(0, 120),
+    }).select('id').single()
+    if (!created) return
+    conversationId = created.id
+  }
+
+  await sb.from('wa_messages').insert({
+    conversation_id: conversationId,
+    direction: 'in',
+    body,
+  })
+}
+
 // ── Flujo de ventas (Antonella) ────────────────────────────────────────────────
 // Sin identificación de estudiante: conversa, vende y registra el prospecto en
 // sales_leads en segundo plano (el embudo lo maneja el extractor de leads).
@@ -271,6 +313,12 @@ export async function POST(req: NextRequest) {
   // ── Bots de ventas (Antonella): flujo comercial con embudo ─────────────────
   if (routedBot && routedBot.role === 'ventas') {
     await runSalesFlow(from, body, routedBot)
+    return twimlOk()
+  }
+
+  // ── Buzón compartido (equipo humano): guardar el mensaje, NO responder con IA ─
+  if (routedBot && routedBot.role === 'inbox') {
+    await receiveInboxMessage(from, body, routedBot.key)
     return twimlOk()
   }
 
