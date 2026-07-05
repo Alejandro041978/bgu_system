@@ -88,7 +88,7 @@ export function OfferManager({
   // Semestres del año filtrado (o todos)
   const semestersForFilter = fYear ? (years.find(y => y.id === fYear)?.semesters ?? []) : years.flatMap(y => y.semesters)
 
-  // Ofertas filtradas por los 5 criterios
+  // Ofertas filtradas por los 5 criterios, ordenadas por fecha de inicio (las sin fecha al final)
   const filteredOfferings = offerings.filter(o => {
     if (fCategory && o.course.program.category_id !== fCategory) return false
     if (fProgram && o.course.program_id !== fProgram) return false
@@ -96,6 +96,11 @@ export function OfferManager({
     if (fYear && semMeta[o.semester_id]?.yearId !== fYear) return false
     if (fSemester && o.semester_id !== fSemester) return false
     return true
+  }).sort((a, b) => {
+    if (!a.start_date && !b.start_date) return 0
+    if (!a.start_date) return 1
+    if (!b.start_date) return -1
+    return a.start_date.localeCompare(b.start_date)
   })
 
   const covered = filteredOfferings.filter(o => o.assignments.length > 0).length
