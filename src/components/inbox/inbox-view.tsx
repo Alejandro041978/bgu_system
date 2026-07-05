@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, Loader2, User, Hand, CheckCircle2, RotateCcw, MessageSquare, Inbox } from 'lucide-react'
+import { Send, Loader2, User, Hand, CheckCircle2, RotateCcw, MessageSquare, Inbox, Mail, Phone } from 'lucide-react'
 
 interface Conversation {
   id: string
-  customer_phone: string
+  channel?: string
+  customer_phone: string | null
+  customer_email?: string | null
   customer_name: string | null
+  subject?: string | null
   status: string
   assigned_to: string | null
   assigned_name: string | null
@@ -17,10 +20,16 @@ interface Conversation {
   summary?: string | null
 }
 
-const LANGS: Record<string, string> = { es: 'Español', en: 'Inglés', other: 'Otro' }
-interface Message { id: string; direction: 'in' | 'out'; body: string | null; agent_name: string | null; created_at: string }
+function convName(c: Conversation): string {
+  return c.customer_name ?? (c.channel === 'email' ? (c.customer_email ?? 'Correo') : (c.customer_phone ?? '').replace('whatsapp:', ''))
+}
+function convContact(c: Conversation): string {
+  return c.channel === 'email' ? (c.customer_email ?? '') : (c.customer_phone ?? '').replace('whatsapp:', '')
+}
 
-function phoneLabel(p: string) { return p.replace('whatsapp:', '') }
+const LANGS: Record<string, string> = { es: 'Español', en: 'Inglés', other: 'Otro' }
+interface Message { id: string; direction: 'in' | 'out'; body: string | null; subject?: string | null; agent_name: string | null; created_at: string }
+
 function timeLabel(d: string | null) {
   if (!d) return ''
   return new Date(d).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -134,10 +143,15 @@ export function InboxView() {
             <button key={c.id} onClick={() => openConv(c)}
               className={`w-full text-left px-4 py-3 hover:bg-gray-50 ${selected?.id === c.id ? 'bg-blue-50' : ''}`}>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-medium text-gray-800 truncate">{c.customer_name ?? phoneLabel(c.customer_phone)}</p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {c.channel === 'email'
+                    ? <Mail className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
+                    : <Phone className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />}
+                  <p className="text-sm font-medium text-gray-800 truncate">{convName(c)}</p>
+                </div>
                 {c.unread_count > 0 && <span className="bg-green-500 text-white rounded-full px-1.5 text-[10px] flex-shrink-0">{c.unread_count}</span>}
               </div>
-              <p className="text-xs text-gray-400 truncate mt-0.5">{c.last_message_preview ?? ''}</p>
+              <p className="text-xs text-gray-400 truncate mt-0.5">{c.channel === 'email' && c.subject ? c.subject : (c.last_message_preview ?? '')}</p>
               <div className="flex items-center justify-between mt-1">
                 <span className="text-[10px] text-gray-400">{timeLabel(c.last_message_at)}</span>
                 {c.assigned_name && <span className="text-[10px] text-indigo-500 truncate">· {c.assigned_name}</span>}
@@ -157,12 +171,16 @@ export function InboxView() {
         ) : (
           <>
             <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                  {selected.customer_name ?? phoneLabel(selected.customer_phone)}
+                  {selected.channel === 'email'
+                    ? <Mail className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                    : <Phone className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                  {convName(selected)}
                   {selected.language && <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">{LANGS[selected.language] ?? selected.language}</span>}
                 </p>
-                <p className="text-xs text-gray-400">{phoneLabel(selected.customer_phone)}
+                <p className="text-xs text-gray-400 truncate">
+                  {selected.channel === 'email' && selected.subject ? `${selected.subject} · ` : ''}{convContact(selected)}
                   {selected.assigned_name ? ` · Atiende: ${selected.assigned_name}` : ' · Sin asignar'}</p>
               </div>
               <div className="flex items-center gap-2">

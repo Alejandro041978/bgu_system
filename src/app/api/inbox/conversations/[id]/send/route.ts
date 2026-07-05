@@ -20,22 +20,51 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: conv } = await sb.from('wa_conversations').select('*').eq('id', id).maybeSingle()
   if (!conv) return NextResponse.json({ error: 'Conversación no encontrada' }, { status: 404 })
 
-  // Credenciales Twilio del número del equipo
-  const inbox = await getBot(conv.inbox_key)
-  if (!inbox?.twilio_number || !inbox?.twilio_account_sid || !inbox?.twilio_auth_token) {
-    return NextResponse.json({ error: 'El número del equipo no tiene credenciales de Twilio configuradas' }, { status: 400 })
-  }
+  let outSubject: string | null = null
 
-  const sent = await sendWhatsAppMessage(conv.customer_phone, body, {
-    from: inbox.twilio_number, sid: inbox.twilio_account_sid, token: inbox.twilio_auth_token,
-  })
-  if (!sent.ok) return NextResponse.json({ error: sent.error }, { status: 500 })
+  if (conv.channel === 'email') {
+    // ── Envío por CORREO vía N8N (Gmail, hilo nativo) ────────────────────────
+    const webhookUrl = process.env.N8N_EMAIL_WEBHOOK_URL
+    if (!webhookUrl) return NextResponse.json({ error: 'N8N_EMAIL_WEBHOOK_URL no está configurada' }, { status: 400 })
+
+    // Último mensaje entrante (para responder dentro del hilo de Gmail)
+    const { data: lastIn } = await sb.from('wa_messages')
+      .select('message_id').eq('conversation_id', id).eq('direction', 'in').not('message_id', 'is', null)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+
+    outSubject = conv.subject
+      ? (/^re:/i.test(conv.subject) ? conv.subject : `Re: ${conv.subject}`)
+      : 'Re:'
+
+    const resp = await fetch(webhookUrl, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secret: process.env.CRON_SECRET,
+        to: conv.customer_email, subject: outSubject, body,
+        threadId: conv.thread_ref, messageId: lastIn?.message_id ?? null,
+      }),
+    })
+    if (!resp.ok) {
+      const t = await resp.text().catch(() => '')
+      return NextResponse.json({ error: `Error al enviar el correo por N8N: ${t}` }, { status: 500 })
+    }
+  } else {
+    // ── Envío por WHATSAPP vía Twilio ────────────────────────────────────────
+    const inbox = await getBot(conv.inbox_key)
+    if (!inbox?.twilio_number || !inbox?.twilio_account_sid || !inbox?.twilio_auth_token) {
+      return NextResponse.json({ error: 'El número del equipo no tiene credenciales de Twilio configuradas' }, { status: 400 })
+    }
+    const sent = await sendWhatsAppMessage(conv.customer_phone, body, {
+      from: inbox.twilio_number, sid: inbox.twilio_account_sid, token: inbox.twilio_auth_token,
+    })
+    if (!sent.ok) return NextResponse.json({ error: sent.error }, { status: 500 })
+  }
 
   const { data: emp } = await sb.from('hr_employees').select('full_name').eq('user_id', user.id).maybeSingle()
   const agentNm = emp?.full_name ?? user.email ?? 'Agente'
 
   const { data: msg } = await sb.from('wa_messages').insert({
-    conversation_id: id, direction: 'out', body, agent_id: user.id, agent_name: agentNm,
+    conversation_id: id, direction: 'out', body, subject: outSubject, agent_id: user.id, agent_name: agentNm,
   }).select('*').single()
 
   const now = new Date().toISOString()
