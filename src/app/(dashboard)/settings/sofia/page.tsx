@@ -13,6 +13,7 @@ export default async function SofiaSettingsPage() {
     .from('bots')
     .select('key, name, role, prompt, updated_at')
     .eq('active', true)
+    .neq('role', 'inbox')
     .order('key')
 
   return (

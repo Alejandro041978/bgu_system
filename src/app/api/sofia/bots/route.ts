@@ -18,6 +18,7 @@ export async function GET() {
     .from('bots')
     .select('key, name, role, prompt, updated_at')
     .eq('active', true)
+    .neq('role', 'inbox')
     .order('key')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
