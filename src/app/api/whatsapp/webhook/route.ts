@@ -168,6 +168,16 @@ function validateTwilioSignature(req: NextRequest, params: Record<string, string
   catch { return false }
 }
 
+// Detección ligera de idioma para los mensajes fijos (saludo, acuse).
+function detectLang(t: string): 'en' | 'es' {
+  const s = t.toLowerCase()
+  const es = /[áéíóúñ¿¡]|\b(hola|buenos|buenas|gracias|necesito|quiero|ayuda|por favor|pago|humano|asesor|matr[ií]cula)\b/
+  const en = /\b(hello|hi|hey|good|morning|afternoon|evening|please|thanks|thank you|i need|i want|help|payment|human|agent)\b/
+  if (es.test(s)) return 'es'
+  if (en.test(s)) return 'en'
+  return 'es'
+}
+
 function splitMessage(text: string, max = 1500): string[] {
   const chunks: string[] = []
   while (text.length > max) {
@@ -204,14 +214,45 @@ async function createHandoff(customerPhone: string, botKey: string, summary: str
   return { code, link }
 }
 
-// ── Buzón compartido (puerta dura): solo abre conversación con código válido ────
+// ── Buzón compartido (puerta dura): solo abre/continúa con código válido ────────
 async function receiveInboxMessage(from: string, body: string, inboxKey: string, creds: TwilioCreds) {
   const sb = db()
   const now = new Date().toISOString()
 
-  // ¿Conversación abierta existente? → diálogo en curso, solo agregar el mensaje
+  // ¿El mensaje trae un código de enlace válido? (se consume aunque ya exista conversación)
+  const codeMatch = body.match(/ENLACE-\d{4}/i)?.[0]?.toUpperCase()
+  const { data: handoff } = codeMatch
+    ? await sb.from('handoff_codes').select('*').eq('code', codeMatch).eq('used', false).gt('expires_at', now).maybeSingle()
+    : { data: null }
+
+  // Conversación abierta existente
   const { data: openConv } = await sb.from('wa_conversations')
     .select('id, unread_count').eq('inbox_key', inboxKey).eq('customer_phone', from).eq('status', 'open').maybeSingle()
+
+  // 1) Código válido → adjunta el contexto de Sofia (crea o actualiza) + acuse automático
+  if (handoff) {
+    await sb.from('handoff_codes').update({ used: true, used_at: now }).eq('code', handoff.code)
+    if (openConv) {
+      await sb.from('wa_conversations').update({
+        customer_name: handoff.student_name ?? undefined,
+        summary: handoff.summary, language: handoff.language,
+        last_message_at: now, last_message_preview: 'Derivado por Sofía', updated_at: now,
+      }).eq('id', openConv.id)
+    } else {
+      await sb.from('wa_conversations').insert({
+        inbox_key: inboxKey, customer_phone: from, customer_name: handoff.student_name ?? null,
+        status: 'open', unread_count: 0, summary: handoff.summary, language: handoff.language,
+        last_message_at: now, last_message_preview: 'Derivado por Sofía',
+      })
+    }
+    const ack = handoff.language === 'en'
+      ? 'Thank you 🙌 A Student Services advisor will contact you shortly.'
+      : 'Gracias 🙌 En breve un asesor de Servicio al Estudiante se comunicará contigo.'
+    await sendWhatsApp(from, ack, creds)
+    return
+  }
+
+  // 2) Ya hay conversación abierta → diálogo en curso, agrega el mensaje
   if (openConv) {
     await sb.from('wa_conversations').update({
       unread_count: (openConv.unread_count ?? 0) + 1, last_message_at: now, last_message_preview: body.slice(0, 120), updated_at: now,
@@ -220,31 +261,17 @@ async function receiveInboxMessage(from: string, body: string, inboxKey: string,
     return
   }
 
-  // Sin conversación abierta → exigir código de enlace válido
-  const codeMatch = body.match(/ENLACE-\d{4}/i)?.[0]?.toUpperCase()
-  const { data: handoff } = codeMatch
-    ? await sb.from('handoff_codes').select('*').eq('code', codeMatch).eq('used', false).gt('expires_at', now).maybeSingle()
-    : { data: null }
-
-  if (!handoff) {
-    // Puerta dura: derivar a Sofia, NO crear conversación
-    const sofiaDigits = (process.env.TWILIO_WHATSAPP_NUMBER ?? '').replace(/\D/g, '')
-    const gate = sofiaDigits
-      ? `Para atenderte mejor y más rápido, primero conversa con *Sofía*, nuestra asistente 🤖: https://wa.me/${sofiaDigits}\n\nSi Sofía no resuelve tu caso, te dará un enlace para hablar con un asesor.`
-      : `Para iniciar el diálogo necesitas un código de enlace. Primero comunícate con *Sofía*, nuestra asistente virtual.`
-    await sendWhatsApp(from, gate, creds)
-    return
-  }
-
-  // Código válido → crear conversación con el contexto de Sofia
-  await sb.from('handoff_codes').update({ used: true, used_at: now }).eq('code', handoff.code)
-  const { data: created } = await sb.from('wa_conversations').insert({
-    inbox_key: inboxKey, customer_phone: from, customer_name: handoff.student_name ?? null,
-    status: 'open', unread_count: 1, summary: handoff.summary, language: handoff.language,
-    last_message_at: now, last_message_preview: 'Derivado por Sofía',
-  }).select('id').single()
-  if (!created) return
-  await sendWhatsApp(from, 'Gracias 🙌 Un asesor de Servicio al Estudiante te atenderá en breve.', creds)
+  // 3) Sin código y sin conversación → puerta dura (deriva a Sofia, no crea conversación)
+  const sofiaDigits = (process.env.TWILIO_WHATSAPP_NUMBER ?? '').replace(/\D/g, '')
+  const isEn = detectLang(body) === 'en'
+  const gate = isEn
+    ? (sofiaDigits
+        ? `To help you faster, please first chat with *Sofia*, our assistant 🤖: https://wa.me/${sofiaDigits}\n\nIf Sofia can't resolve your case, she'll give you a link to talk to an advisor.`
+        : `To start a chat you need a link code. Please contact *Sofia*, our virtual assistant, first.`)
+    : (sofiaDigits
+        ? `Para atenderte mejor y más rápido, primero conversa con *Sofía*, nuestra asistente 🤖: https://wa.me/${sofiaDigits}\n\nSi Sofía no resuelve tu caso, te dará un enlace para hablar con un asesor.`
+        : `Para iniciar el diálogo necesitas un código de enlace. Primero comunícate con *Sofía*, nuestra asistente virtual.`)
+  await sendWhatsApp(from, gate, creds)
 }
 
 // ── Flujo de ventas (Antonella) ────────────────────────────────────────────────
@@ -379,9 +406,10 @@ export async function POST(req: NextRequest) {
         session.identified = true
         session.userInfo = { name: fullName, role: 'estudiante', student_id: student.document_number ?? undefined }
         const firstName = student.first_name ?? fullName.split(' ')[0]
-        const welcome =
-          `✅ *Estudiante identificado*\n👤 ${fullName}` +
-          `\n\n¡Hola, ${firstName}! Soy Sofia, asistente virtual de BGU. ¿En qué puedo ayudarte hoy?`
+        const isEn = detectLang(body) === 'en'
+        const welcome = isEn
+          ? `✅ *Student identified*\n👤 ${fullName}\n\nHi, ${firstName}! I'm Sofia, BGU's virtual assistant. How can I help you today?`
+          : `✅ *Estudiante identificado*\n👤 ${fullName}\n\n¡Hola, ${firstName}! Soy Sofia, asistente virtual de BGU. ¿En qué puedo ayudarte hoy?`
         session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: welcome })
         await saveSession(from, botKey, session)
         await sendWhatsApp(from, welcome)
