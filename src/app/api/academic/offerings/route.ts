@@ -4,9 +4,9 @@ import { createClient } from '@supabase/supabase-js'
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 const SELECT = `
-  id, created_at, start_date, end_date, group_label,
+  id, created_at, start_date, end_date, group_label, semester_id,
   course:academic_courses(id, name, code, credits, level, program_id,
-    program:academic_programs(id, name, code)),
+    program:academic_programs(id, name, code, category_id)),
   assignments:faculty_assignments(
     id, hours_per_week,
     employee:hr_employees(id, full_name, position)
@@ -15,15 +15,12 @@ const SELECT = `
 
 export async function GET(req: NextRequest) {
   const semesterId = req.nextUrl.searchParams.get('semester_id')
-  if (!semesterId) return NextResponse.json({ error: 'semester_id requerido' }, { status: 400 })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (db() as any)
-    .from('semester_offerings')
-    .select(SELECT)
-    .eq('semester_id', semesterId)
-    .order('created_at')
+  let q = (db() as any).from('semester_offerings').select(SELECT).order('created_at')
+  if (semesterId) q = q.eq('semester_id', semesterId)  // opcional: un solo semestre
 
+  const { data, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
