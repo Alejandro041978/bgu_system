@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { createZohoTicket } from '@/app/api/chat/route'
 import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
-import { getBotByTwilioNumber, type Bot } from '@/lib/bots'
+import { getBotByTwilioNumber, getBot, type Bot } from '@/lib/bots'
 import { extractAndSaveLead } from '@/lib/sales-leads'
 import crypto from 'crypto'
 
@@ -59,6 +59,19 @@ const IDENTIFY_TOOL: Anthropic.Tool = {
       student_id: { type: 'string', description: 'Código de estudiante (solo si aplica)' },
     },
     required: ['name', 'role'],
+  },
+}
+
+const REQUEST_HUMAN_TOOL: Anthropic.Tool = {
+  name: 'request_human',
+  description: 'Úsala SOLO cuando el usuario pida EXPLÍCITAMENTE hablar con una persona/asesor humano (ej: "quiero hablar con alguien", "comunícame con un asesor", "necesito una persona"). NO la uses si simplemente no puedes resolver algo — para eso propón un ticket con propose_ticket.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      summary:  { type: 'string', description: 'Resumen ejecutivo (2-3 frases) de lo que necesita el usuario, para que el asesor humano entre en contexto de inmediato.' },
+      language: { type: 'string', enum: ['es', 'en', 'other'], description: 'Idioma en que conversa el usuario.' },
+    },
+    required: ['summary', 'language'],
   },
 }
 
@@ -176,46 +189,60 @@ const ROLE_LABELS: Record<string, string> = {
 
 const twimlOk = () => new NextResponse('<Response/>', { headers: { 'Content-Type': 'text/xml' } })
 
-// ── Buzón compartido: guarda el mensaje entrante en la cola (sin IA) ───────────
-async function receiveInboxMessage(from: string, body: string, inboxKey: string) {
+// ── Crea un código de enlace (handoff) y devuelve el link wa.me al número humano ─
+async function createHandoff(customerPhone: string, botKey: string, summary: string, language: string, userInfo?: UserInfo) {
+  const code = 'ENLACE-' + Math.floor(1000 + Math.random() * 9000)
+  await db().from('handoff_codes').insert({
+    code, customer_phone: customerPhone, bot_key: botKey, summary, language,
+    student_name: userInfo?.name ?? null, document_number: userInfo?.student_id ?? null,
+  })
+  const inbox = await getBot('servicio')
+  const humanDigits = (inbox?.twilio_number ?? '').replace(/\D/g, '')
+  const link = humanDigits ? `https://wa.me/${humanDigits}?text=${encodeURIComponent(code)}` : null
+  return { code, link }
+}
+
+// ── Buzón compartido (puerta dura): solo abre conversación con código válido ────
+async function receiveInboxMessage(from: string, body: string, inboxKey: string, creds: TwilioCreds) {
   const sb = db()
-  const { data: existing } = await sb
-    .from('wa_conversations')
-    .select('id, unread_count')
-    .eq('inbox_key', inboxKey)
-    .eq('customer_phone', from)
-    .maybeSingle()
-
   const now = new Date().toISOString()
-  let conversationId: string
 
-  if (existing) {
-    conversationId = existing.id
+  // ¿Conversación abierta existente? → diálogo en curso, solo agregar el mensaje
+  const { data: openConv } = await sb.from('wa_conversations')
+    .select('id, unread_count').eq('inbox_key', inboxKey).eq('customer_phone', from).eq('status', 'open').maybeSingle()
+  if (openConv) {
     await sb.from('wa_conversations').update({
-      status: 'open',
-      unread_count: (existing.unread_count ?? 0) + 1,
-      last_message_at: now,
-      last_message_preview: body.slice(0, 120),
-      updated_at: now,
-    }).eq('id', conversationId)
-  } else {
-    const { data: created } = await sb.from('wa_conversations').insert({
-      inbox_key: inboxKey,
-      customer_phone: from,
-      status: 'open',
-      unread_count: 1,
-      last_message_at: now,
-      last_message_preview: body.slice(0, 120),
-    }).select('id').single()
-    if (!created) return
-    conversationId = created.id
+      unread_count: (openConv.unread_count ?? 0) + 1, last_message_at: now, last_message_preview: body.slice(0, 120), updated_at: now,
+    }).eq('id', openConv.id)
+    await sb.from('wa_messages').insert({ conversation_id: openConv.id, direction: 'in', body })
+    return
   }
 
-  await sb.from('wa_messages').insert({
-    conversation_id: conversationId,
-    direction: 'in',
-    body,
-  })
+  // Sin conversación abierta → exigir código de enlace válido
+  const codeMatch = body.match(/ENLACE-\d{4}/i)?.[0]?.toUpperCase()
+  const { data: handoff } = codeMatch
+    ? await sb.from('handoff_codes').select('*').eq('code', codeMatch).eq('used', false).gt('expires_at', now).maybeSingle()
+    : { data: null }
+
+  if (!handoff) {
+    // Puerta dura: derivar a Sofia, NO crear conversación
+    const sofiaDigits = (process.env.TWILIO_WHATSAPP_NUMBER ?? '').replace(/\D/g, '')
+    const gate = sofiaDigits
+      ? `Para atenderte mejor y más rápido, primero conversa con *Sofía*, nuestra asistente 🤖: https://wa.me/${sofiaDigits}\n\nSi Sofía no resuelve tu caso, te dará un enlace para hablar con un asesor.`
+      : `Para iniciar el diálogo necesitas un código de enlace. Primero comunícate con *Sofía*, nuestra asistente virtual.`
+    await sendWhatsApp(from, gate, creds)
+    return
+  }
+
+  // Código válido → crear conversación con el contexto de Sofia
+  await sb.from('handoff_codes').update({ used: true, used_at: now }).eq('code', handoff.code)
+  const { data: created } = await sb.from('wa_conversations').insert({
+    inbox_key: inboxKey, customer_phone: from, customer_name: handoff.student_name ?? null,
+    status: 'open', unread_count: 1, summary: handoff.summary, language: handoff.language,
+    last_message_at: now, last_message_preview: 'Derivado por Sofía',
+  }).select('id').single()
+  if (!created) return
+  await sendWhatsApp(from, 'Gracias 🙌 Un asesor de Servicio al Estudiante te atenderá en breve.', creds)
 }
 
 // ── Flujo de ventas (Antonella) ────────────────────────────────────────────────
@@ -316,9 +343,9 @@ export async function POST(req: NextRequest) {
     return twimlOk()
   }
 
-  // ── Buzón compartido (equipo humano): guardar el mensaje, NO responder con IA ─
+  // ── Buzón compartido (equipo humano): puerta dura + código de enlace ─────────
   if (routedBot && routedBot.role === 'inbox') {
-    await receiveInboxMessage(from, body, routedBot.key)
+    await receiveInboxMessage(from, body, routedBot.key, botCreds)
     return twimlOk()
   }
 
@@ -452,22 +479,33 @@ export async function POST(req: NextRequest) {
       model:       'claude-opus-4-8',
       max_tokens:  1024,
       system:      [masterPrompt + userContext, knowledgeContext].filter(Boolean).join('\n\n'),
-      tools:       [TICKET_TOOL],
+      tools:       [TICKET_TOOL, REQUEST_HUMAN_TOOL],
       tool_choice: { type: 'auto' },
       messages:    session.messages.slice(-MAX_HISTORY),
     })
 
     let replyText    = ''
     let proposedTicket: PendingTicket | null = null
+    let humanRequest: { summary: string; language: string } | null = null
 
     for (const block of aiResponse.content) {
       if (block.type === 'text') replyText += block.text
       else if (block.type === 'tool_use' && block.name === 'propose_ticket') {
         proposedTicket = block.input as PendingTicket
+      } else if (block.type === 'tool_use' && block.name === 'request_human') {
+        humanRequest = block.input as { summary: string; language: string }
       }
     }
 
-    if (proposedTicket) {
+    if (humanRequest) {
+      const { link } = await createHandoff(from, botKey, humanRequest.summary, humanRequest.language, session.userInfo)
+      const msg = link
+        ? `Con gusto te conecto con un asesor 👤\n\nToca aquí para continuar:\n${link}\n\nLe paso tu caso para que te atienda de una vez.`
+        : 'En este momento no puedo conectarte con un asesor. ¿Deseas que cree un ticket de soporte?'
+      session.messages.push({ role: 'assistant', content: msg })
+      await saveSession(from, botKey, session)
+      await sendWhatsApp(from, msg)
+    } else if (proposedTicket) {
       const confirmMsg =
         `📋 *Ticket de soporte*\n\n` +
         `*Asunto:* ${proposedTicket.subject}\n` +

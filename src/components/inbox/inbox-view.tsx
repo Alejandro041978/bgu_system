@@ -13,7 +13,11 @@ interface Conversation {
   unread_count: number
   last_message_at: string | null
   last_message_preview: string | null
+  language?: string | null
+  summary?: string | null
 }
+
+const LANGS: Record<string, string> = { es: 'Español', en: 'Inglés', other: 'Otro' }
 interface Message { id: string; direction: 'in' | 'out'; body: string | null; agent_name: string | null; created_at: string }
 
 function phoneLabel(p: string) { return p.replace('whatsapp:', '') }
@@ -30,6 +34,7 @@ const TABS = [
 
 export function InboxView() {
   const [filter, setFilter] = useState<'queue' | 'mine' | 'closed'>('queue')
+  const [lang, setLang] = useState('')
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [counts, setCounts] = useState<{ queue: number; mine: number }>({ queue: 0, mine: 0 })
   const [selected, setSelected] = useState<Conversation | null>(null)
@@ -38,12 +43,14 @@ export function InboxView() {
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const filterRef = useRef(filter)
+  const langRef = useRef(lang)
   const selectedRef = useRef<string | null>(null)
   useEffect(() => { filterRef.current = filter }, [filter])
+  useEffect(() => { langRef.current = lang }, [lang])
   useEffect(() => { selectedRef.current = selected?.id ?? null }, [selected])
 
-  async function loadList(f = filterRef.current) {
-    const res = await fetch(`/api/inbox/conversations?filter=${f}`)
+  async function loadList(f = filterRef.current, l = langRef.current) {
+    const res = await fetch(`/api/inbox/conversations?filter=${f}${l ? `&lang=${l}` : ''}`)
     const data = await res.json()
     setConversations(data.conversations ?? [])
     setCounts(data.counts ?? { queue: 0, mine: 0 })
@@ -67,7 +74,8 @@ export function InboxView() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  function pickFilter(f: 'queue' | 'mine' | 'closed') { setFilter(f); loadList(f) }
+  function pickFilter(f: 'queue' | 'mine' | 'closed') { setFilter(f); loadList(f, langRef.current) }
+  function pickLang(l: string) { setLang(l); loadList(filterRef.current, l) }
   function openConv(c: Conversation) { setSelected(c); loadThread(c.id) }
 
   async function claim() {
@@ -110,6 +118,15 @@ export function InboxView() {
             </button>
           ))}
         </div>
+        <div className="px-3 py-2 border-b border-gray-50">
+          <select value={lang} onChange={e => pickLang(e.target.value)}
+            className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <option value="">Todos los idiomas</option>
+            <option value="es">Español</option>
+            <option value="en">Inglés</option>
+            <option value="other">Otro</option>
+          </select>
+        </div>
         <div className="flex-1 overflow-auto divide-y divide-gray-50">
           {conversations.length === 0 ? (
             <div className="py-16 text-center text-xs text-gray-400">Sin conversaciones</div>
@@ -141,7 +158,10 @@ export function InboxView() {
           <>
             <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-900">{selected.customer_name ?? phoneLabel(selected.customer_phone)}</p>
+                <p className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  {selected.customer_name ?? phoneLabel(selected.customer_phone)}
+                  {selected.language && <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">{LANGS[selected.language] ?? selected.language}</span>}
+                </p>
                 <p className="text-xs text-gray-400">{phoneLabel(selected.customer_phone)}
                   {selected.assigned_name ? ` · Atiende: ${selected.assigned_name}` : ' · Sin asignar'}</p>
               </div>
@@ -163,6 +183,11 @@ export function InboxView() {
               </div>
             </div>
 
+            {selected.summary && (
+              <div className="px-5 py-2.5 bg-indigo-50 border-b border-indigo-100 text-xs text-indigo-800">
+                <span className="font-semibold">📋 Contexto de Sofía:</span> {selected.summary}
+              </div>
+            )}
             <div className="flex-1 overflow-auto p-5 space-y-3 bg-gray-50/50">
               {messages.map(m => (
                 <div key={m.id} className={`flex ${m.direction === 'out' ? 'justify-end' : 'justify-start'}`}>

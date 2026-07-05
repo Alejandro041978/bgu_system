@@ -5,21 +5,23 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-const COLS = 'id, customer_phone, customer_name, status, assigned_to, assigned_name, unread_count, last_message_at, last_message_preview'
+const COLS = 'id, customer_phone, customer_name, status, assigned_to, assigned_name, unread_count, last_message_at, last_message_preview, language'
 
-// GET ?filter=queue|mine|closed → lista de conversaciones + conteos para las pestañas
+// GET ?filter=queue|mine|closed&lang=es → lista de conversaciones + conteos
 export async function GET(req: NextRequest) {
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const filter = req.nextUrl.searchParams.get('filter') ?? 'queue'
+  const lang = req.nextUrl.searchParams.get('lang')
   const sb = db()
 
   let q = sb.from('wa_conversations').select(COLS).order('last_message_at', { ascending: false, nullsFirst: false })
   if (filter === 'queue') q = q.eq('status', 'open').is('assigned_to', null)
   else if (filter === 'mine') q = q.eq('status', 'open').eq('assigned_to', user.id)
   else if (filter === 'closed') q = q.eq('status', 'closed')
+  if (lang) q = q.eq('language', lang)
   const { data, error } = await q.limit(100)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
