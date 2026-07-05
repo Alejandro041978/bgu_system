@@ -32,5 +32,5 @@ export function usePermissions() {
     return state.permissions[pageKey]?.can_edit ?? false
   }
 
-  return { loading: state === null, canView, canEdit }
+  return { loading: state === null, superadmin: state?.superadmin ?? false, canView, canEdit }
 }

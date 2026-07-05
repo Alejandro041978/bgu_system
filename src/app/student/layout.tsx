@@ -1,12 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceRole } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
-import { Building2, CalendarDays, MessageCircle, LogOut, Award } from 'lucide-react'
+import { Building2, CalendarDays, MessageCircle, LogOut, Award, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // ¿Quien mira es un estudiante real, o staff/superadmin monitoreando la interfaz?
+  const admin = createServiceRole(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: studentRow } = await (admin as any)
+    .from('academic_students').select('id').eq('email', user.email).maybeSingle()
+  const isRealStudent = !!studentRow
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -22,6 +30,11 @@ export default async function StudentLayout({ children }: { children: React.Reac
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {!isRealStudent && (
+            <Link href="/desk" className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors">
+              <ArrowLeft className="w-3.5 h-3.5" /> Panel administrativo
+            </Link>
+          )}
           <p className="text-xs text-gray-500 hidden sm:block">{user.email}</p>
           <form action="/api/auth/signout" method="POST">
             <button type="submit" className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors">
