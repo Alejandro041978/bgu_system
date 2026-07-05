@@ -225,25 +225,23 @@ async function receiveInboxMessage(from: string, body: string, inboxKey: string,
     ? await sb.from('handoff_codes').select('*').eq('code', codeMatch).eq('used', false).gt('expires_at', now).maybeSingle()
     : { data: null }
 
-  // Conversación abierta existente
-  const { data: openConv } = await sb.from('wa_conversations')
-    .select('id, unread_count').eq('inbox_key', inboxKey).eq('customer_phone', from).eq('status', 'open').maybeSingle()
+  // Conversación existente para este teléfono (cualquier estado; hay índice único por teléfono)
+  const { data: existingConv } = await sb.from('wa_conversations')
+    .select('id, unread_count, status').eq('inbox_key', inboxKey).eq('customer_phone', from).maybeSingle()
 
-  // 1) Código válido → adjunta el contexto de Sofia (crea o actualiza) + acuse automático
+  // 1) Código válido → adjunta el contexto de Sofia (reabre o crea) + acuse automático
   if (handoff) {
     await sb.from('handoff_codes').update({ used: true, used_at: now }).eq('code', handoff.code)
-    if (openConv) {
-      await sb.from('wa_conversations').update({
-        customer_name: handoff.student_name ?? undefined,
-        summary: handoff.summary, language: handoff.language,
-        last_message_at: now, last_message_preview: 'Derivado por Sofía', updated_at: now,
-      }).eq('id', openConv.id)
+    const patch = {
+      status: 'open', assigned_to: null, assigned_name: null,
+      customer_name: handoff.student_name ?? undefined,
+      summary: handoff.summary, language: handoff.language,
+      unread_count: 1, last_message_at: now, last_message_preview: 'Derivado por Sofía', updated_at: now,
+    }
+    if (existingConv) {
+      await sb.from('wa_conversations').update(patch).eq('id', existingConv.id)
     } else {
-      await sb.from('wa_conversations').insert({
-        inbox_key: inboxKey, customer_phone: from, customer_name: handoff.student_name ?? null,
-        status: 'open', unread_count: 0, summary: handoff.summary, language: handoff.language,
-        last_message_at: now, last_message_preview: 'Derivado por Sofía',
-      })
+      await sb.from('wa_conversations').insert({ inbox_key: inboxKey, customer_phone: from, ...patch })
     }
     const ack = handoff.language === 'en'
       ? 'Thank you 🙌 A Student Services advisor will contact you shortly.'
@@ -253,11 +251,11 @@ async function receiveInboxMessage(from: string, body: string, inboxKey: string,
   }
 
   // 2) Ya hay conversación abierta → diálogo en curso, agrega el mensaje
-  if (openConv) {
+  if (existingConv && existingConv.status === 'open') {
     await sb.from('wa_conversations').update({
-      unread_count: (openConv.unread_count ?? 0) + 1, last_message_at: now, last_message_preview: body.slice(0, 120), updated_at: now,
-    }).eq('id', openConv.id)
-    await sb.from('wa_messages').insert({ conversation_id: openConv.id, direction: 'in', body })
+      unread_count: (existingConv.unread_count ?? 0) + 1, last_message_at: now, last_message_preview: body.slice(0, 120), updated_at: now,
+    }).eq('id', existingConv.id)
+    await sb.from('wa_messages').insert({ conversation_id: existingConv.id, direction: 'in', body })
     return
   }
 
