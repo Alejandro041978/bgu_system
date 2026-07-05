@@ -1,23 +1,33 @@
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceRole } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
-import { Building2, CalendarDays, MessageCircle, LogOut, Award, ArrowLeft } from 'lucide-react'
+import { Building2, CalendarDays, MessageCircle, LogOut, Award, ArrowLeft, Eye } from 'lucide-react'
 import Link from 'next/link'
+import { getEffectiveStudent } from '@/lib/student-identity'
+import { ExitImpersonation } from '@/components/student/exit-impersonation'
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // ¿Quien mira es un estudiante real, o staff/superadmin monitoreando la interfaz?
-  const admin = createServiceRole(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: studentRow } = await (admin as any)
-    .from('academic_students').select('id').eq('email', user.email).maybeSingle()
-  const isRealStudent = !!studentRow
+  const student = await getEffectiveStudent({ id: user.id, email: user.email })
+  const isRealStudent = !!student && !student.impersonating
+  const impersonating = !!student && student.impersonating
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Banner de impersonación (superadmin viendo como estudiante) */}
+      {impersonating && (
+        <div className="bg-amber-100 border-b border-amber-200 px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-amber-800">
+            <Eye className="w-3.5 h-3.5" />
+            Estás viendo el portal como <span className="font-semibold">{student!.name}</span>
+            {student!.document_number ? ` (doc. ${student!.document_number})` : ''}
+          </div>
+          <ExitImpersonation />
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -47,22 +57,13 @@ export default async function StudentLayout({ children }: { children: React.Reac
       {/* Nav */}
       <nav className="bg-white border-b border-gray-100 px-4">
         <div className="flex gap-1">
-          <Link
-            href="/student"
-            className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors"
-          >
+          <Link href="/student" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
             <CalendarDays className="w-4 h-4" /> Cronogramas
           </Link>
-          <Link
-            href="/student/grades"
-            className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors"
-          >
+          <Link href="/student/grades" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
             <Award className="w-4 h-4" /> Mis Notas
           </Link>
-          <Link
-            href="/student/sofia"
-            className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors"
-          >
+          <Link href="/student/sofia" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
             <MessageCircle className="w-4 h-4" /> Sofia · Chat
           </Link>
         </div>

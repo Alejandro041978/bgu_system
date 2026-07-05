@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Search, Loader2, User } from 'lucide-react'
+import { Search, Loader2, User, Eye } from 'lucide-react'
 import { GradesTable, type Grade } from './grades-table'
 
 interface Student { document_number: string; student_name: string }
@@ -40,6 +40,14 @@ export function GradesExplorer() {
     setLoadingGrades(false)
   }
 
+  async function viewAsStudent() {
+    if (!selected) return
+    await fetch('/api/student/impersonate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ document: selected.document_number }),
+    })
+    window.location.href = '/student/grades'
+  }
+
   return (
     <div className="space-y-4">
       <div className="relative max-w-lg">
@@ -75,10 +83,14 @@ export function GradesExplorer() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <User className="w-5 h-5 text-blue-500" />
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-semibold text-gray-900">{selected.student_name}</p>
               <p className="text-xs text-gray-400">Documento: {selected.document_number}</p>
             </div>
+            <button onClick={viewAsStudent}
+              className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">
+              <Eye className="w-3.5 h-3.5" /> Ver portal de este estudiante
+            </button>
           </div>
           {loadingGrades
             ? <div className="bg-white rounded-xl border border-gray-200 py-16 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>
