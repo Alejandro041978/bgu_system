@@ -16,6 +16,31 @@ function parseEmail(from: string): { email: string; name: string } {
   return { email, name }
 }
 
+function decodeB64Url(data: string): string {
+  try { return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8') } catch { return '' }
+}
+
+// Recorre el payload de Gmail (multipart) y extrae el cuerpo text/plain y text/html.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractBody(payload: any): { text: string; html: string } {
+  let text = '', html = ''
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function walk(part: any) {
+    if (!part) return
+    const mime = part.mimeType ?? ''
+    const data = part.body?.data
+    if (mime === 'text/plain' && data) text += decodeB64Url(data)
+    else if (mime === 'text/html' && data) html += decodeB64Url(data)
+    if (Array.isArray(part.parts)) part.parts.forEach(walk)
+  }
+  walk(payload)
+  return { text, html }
+}
+
+function htmlToText(html: string): string {
+  return html.replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 // POST desde N8N (IMAP trigger). Protegido con CRON_SECRET.
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('authorization')
@@ -25,15 +50,27 @@ export async function POST(req: NextRequest) {
 
   try {
     const p = await req.json() as {
-      from?: string; subject?: string; text?: string; html?: string
+      from?: string; subject?: string; text?: string; html?: string; snippet?: string
       messageId?: string; inReplyTo?: string; references?: string; threadId?: string
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payload?: any
     }
     const fromRaw = p.from ?? ''
     if (!fromRaw) return NextResponse.json({ error: 'from requerido' }, { status: 400 })
 
     const { email, name } = parseEmail(fromRaw)
     const subject = p.subject ?? '(sin asunto)'
-    const bodyText = (p.text ?? '').trim() || '(sin contenido)'
+
+    // Cuerpo: usa text/html explícitos; si no, decodifica el payload de Gmail; si no, el snippet
+    let bodyText = (p.text ?? '').trim()
+    let bodyHtml = p.html ?? ''
+    if (!bodyText && !bodyHtml && p.payload) {
+      const ex = extractBody(p.payload)
+      bodyText = ex.text.trim()
+      bodyHtml = ex.html
+    }
+    if (!bodyText) bodyText = bodyHtml ? htmlToText(bodyHtml) : (p.snippet ?? '')
+    bodyText = bodyText || '(sin contenido)'
     const now = new Date().toISOString()
     const sb = db()
 
@@ -79,7 +116,7 @@ export async function POST(req: NextRequest) {
 
     await sb.from('wa_messages').insert({
       conversation_id: conversationId, direction: 'in', body: bodyText,
-      html: p.html ?? null, subject, message_id: p.messageId ?? null, from_addr: email,
+      html: bodyHtml || null, subject, message_id: p.messageId ?? null, from_addr: email,
     })
 
     return NextResponse.json({ ok: true, conversation_id: conversationId })
