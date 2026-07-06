@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Building2, Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -82,6 +82,7 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Docentes', href: '/academic/faculty', icon: GraduationCap, pageKey: 'academic_faculty' },
       { name: 'Notas', href: '/academic/grades', icon: Award, pageKey: 'academic_grades' },
+      { name: 'Convalidaciones', href: '/academic/transfer-credits', icon: FileCheck, pageKey: 'academic_transfer_credits' },
       { name: 'Credencial', href: '/academic/credentials', icon: Shield, pageKey: 'academic_credentials' },
       {
         name: 'Gestión académica', href: '/academic/years', icon: CalendarDays, pageKey: 'academic_years',

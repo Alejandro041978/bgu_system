@@ -13,6 +13,7 @@ export interface Grade {
   retake_grade: number | null
   passing_score: number | null
   group_number: number | null
+  source?: string | null
 }
 
 function gradeInfo(g: Grade): { value: number | null; passed: boolean | null; label: string } {
@@ -71,7 +72,10 @@ export function GradesTable({ grades }: { grades: Grade[] }) {
                   return (
                     <tr key={g.external_id} className="hover:bg-gray-50/50">
                       <td className="px-5 py-2.5">
-                        <p className="font-medium text-gray-800">{g.course_name ?? '—'}</p>
+                        <p className="font-medium text-gray-800 flex items-center gap-2">
+                          {g.course_name ?? '—'}
+                          {g.source === 'convalidacion' && <span className="text-[10px] font-medium bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full">Convalidado</span>}
+                        </p>
                         {g.course_code && <p className="text-xs text-gray-400">{g.course_code}</p>}
                       </td>
                       <td className="px-3 py-2.5 text-center text-gray-500">{g.credits ?? '—'}</td>
