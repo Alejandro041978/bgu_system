@@ -113,9 +113,9 @@ export function SkillsManager() {
           </div>
 
           <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-50">
-            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer" title="Márcalo solo en la persona que supervisa el equipo. No recibe auto-asignación; le llega solo lo que ninguna asesora en línea puede atender.">
               <input type="checkbox" checked={a.is_supervisor} onChange={e => update(a.user_id, { is_supervisor: e.target.checked })} className="rounded border-gray-300" />
-              Supervisora (recibe el triage de lo no clasificable)
+              Es la supervisora del equipo
             </label>
             <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
               <input type="checkbox" checked={a.online} onChange={e => update(a.user_id, { online: e.target.checked })} className="rounded border-gray-300" />
