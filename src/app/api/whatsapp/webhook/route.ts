@@ -70,8 +70,8 @@ const REQUEST_HUMAN_TOOL: Anthropic.Tool = {
     type: 'object' as const,
     properties: {
       summary:  { type: 'string', description: 'Resumen ejecutivo (2-3 frases) del tema/problema REAL del usuario, basado en lo que te contó. Específico y accionable para el asesor. No pongas "quiere hablar con un humano" — pon el motivo real.' },
-      language: { type: 'string', enum: ['es', 'en', 'other'], description: 'Idioma en que conversa el usuario.' },
-      topic:    { type: 'string', enum: ['pagos', 'admision', 'academico', 'tramites', 'tecnico', 'otro'], description: 'Tema principal: pagos=cobros/matrícula/Flywire; admision=inscripción/requisitos; academico=notas/cursos/docentes; tramites=documentos/certificados; tecnico=acceso/plataforma; otro=si no encaja.' },
+      language: { type: 'string', enum: ['es', 'en', 'pt', 'other'], description: 'Idioma en que conversa el usuario (es=español, en=inglés, pt=portugués).' },
+      topic:    { type: 'string', enum: ['pagos', 'notas', 'admision', 'asistencia', 'tramites', 'tecnico', 'otro'], description: 'Tema principal: pagos=cobros/matrícula/Flywire; notas=calificaciones; admision=inscripción/requisitos; asistencia=consulta general; tramites=documentos/certificados; tecnico=acceso/plataforma; otro=si no encaja.' },
     },
     required: ['summary', 'language', 'topic'],
   },

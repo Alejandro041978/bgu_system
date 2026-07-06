@@ -5,6 +5,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/desk/metrics', 'desk_metrics'],
   ['/desk', 'desk'],
   ['/inbox', 'inbox'],
+  ['/helpdesk/skills', 'helpdesk_skills'],
   ['/finance', 'finance'],
   ['/crm', 'crm'],
   ['/ventas/prospectos', 'sales_prospectos'],

@@ -29,6 +29,7 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Tickets', href: '/desk', icon: Headphones, pageKey: 'desk' },
       { name: 'Buzón WhatsApp', href: '/inbox', icon: MessageSquare, pageKey: 'inbox' },
+      { name: 'Helpdesk · Skills', href: '/helpdesk/skills', icon: UserCog, pageKey: 'helpdesk_skills' },
       { name: 'Métricas', href: '/desk/metrics', icon: BarChart3, pageKey: 'desk_metrics' },
     ],
   },

@@ -1,13 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-export interface InboundClassification { language: 'es' | 'en' | 'other'; topic: string }
+export interface InboundClassification { language: 'es' | 'en' | 'pt' | 'other'; topic: string }
 
-const TOPICS = ['pagos', 'admision', 'academico', 'tramites', 'tecnico', 'otro']
+const TOPICS = ['pagos', 'notas', 'admision', 'asistencia', 'tramites', 'tecnico', 'otro']
 
 const SYSTEM = `Clasifica el siguiente mensaje de un estudiante o interesado a una universidad. Devuelve SOLO un JSON válido:
-{"language":"es|en|other","topic":"pagos|admision|academico|tramites|tecnico|otro"}
-- language: idioma principal del mensaje.
-- topic: el tema más probable (pagos=cobros/matrícula/Flywire; admision=inscripción/requisitos; academico=notas/cursos/docentes; tramites=documentos/certificados; tecnico=acceso/plataforma; otro=si no encaja).`
+{"language":"es|en|pt|other","topic":"pagos|notas|admision|asistencia|tramites|tecnico|otro"}
+- language: idioma principal del mensaje (es=español, en=inglés, pt=portugués, other=otro).
+- topic: el tema más probable (pagos=cobros/matrícula/Flywire; notas=calificaciones/rendimiento; admision=inscripción/requisitos; asistencia=consulta general/orientación; tramites=documentos/certificados; tecnico=acceso/plataforma; otro=si no encaja).`
 
 /**
  * Clasifica un mensaje entrante por idioma y tema. Degradación segura:
@@ -27,7 +27,7 @@ export async function classifyInbound(subject: string, body: string): Promise<In
     const m = text.match(/\{[\s\S]*\}/)
     if (!m) return { language: 'es', topic: 'otro' }
     const parsed = JSON.parse(m[0]) as InboundClassification
-    const language = (['es', 'en', 'other'].includes(parsed.language) ? parsed.language : 'es') as InboundClassification['language']
+    const language = (['es', 'en', 'pt', 'other'].includes(parsed.language) ? parsed.language : 'es') as InboundClassification['language']
     const topic = TOPICS.includes(parsed.topic) ? parsed.topic : 'otro'
     return { language, topic }
   } catch {

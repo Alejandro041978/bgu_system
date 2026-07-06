@@ -47,6 +47,7 @@ export function NewEmployeeForm() {
     notes: '',
     send_invite: true,
     is_faculty: false,
+    is_helpdesk: false,
     zoho_agent_id: '',
     zoho_agent_email: '',
     phone_prefix: '+51',
@@ -229,6 +230,23 @@ export function NewEmployeeForm() {
                 <p className="text-sm font-medium text-gray-900">Es docente (Faculty)</p>
                 <p className="text-xs text-gray-500 mt-0.5">
                   Permite asignar asignaturas por semestre y aparece en la sección Faculty para gestión académica.
+                </p>
+              </div>
+            </label>
+          </div>
+
+          <div className="col-span-2">
+            <label className="flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors border-gray-200 hover:border-blue-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+              <input
+                type="checkbox"
+                checked={form.is_helpdesk}
+                onChange={e => set('is_helpdesk', e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <div>
+                <p className="text-sm font-medium text-gray-900">Equipo Helpdesk</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Atiende el buzón de WhatsApp y correo. Podrás asignarle skills (idiomas, categorías, temas) en Helpdesk · Skills.
                 </p>
               </div>
             </label>

@@ -24,6 +24,7 @@ type Employee = {
   active_position: string | null
   contract_count: number
   is_faculty: boolean | null
+  is_helpdesk: boolean | null
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -85,6 +86,7 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
     address: e.address ?? '',
     notes: e.notes ?? '',
     is_faculty: e.is_faculty ?? false,
+    is_helpdesk: e.is_helpdesk ?? false,
     nacionalidad: e.nacionalidad ?? '',
   })
 
@@ -109,6 +111,7 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
         address: form.address || null,
         notes: form.notes || null,
         is_faculty: form.is_faculty,
+        is_helpdesk: form.is_helpdesk,
         nacionalidad: form.nacionalidad || null,
       }),
     })
@@ -220,6 +223,21 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
               <div>
                 <p className="text-sm font-medium text-gray-900">Es docente (Faculty)</p>
                 <p className="text-xs text-gray-500">Permite asignar asignaturas por semestre.</p>
+              </div>
+            </label>
+          </div>
+
+          <div className="col-span-2">
+            <label className="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-colors border-gray-200 hover:border-blue-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+              <input
+                type="checkbox"
+                checked={form.is_helpdesk}
+                onChange={ev => set('is_helpdesk', ev.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
+              />
+              <div>
+                <p className="text-sm font-medium text-gray-900">Equipo Helpdesk</p>
+                <p className="text-xs text-gray-500">Atiende el buzón de WhatsApp y correo. Configura sus skills en Helpdesk · Skills.</p>
               </div>
             </label>
           </div>

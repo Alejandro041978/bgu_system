@@ -28,14 +28,15 @@ function convContact(c: Conversation): string {
   return c.channel === 'email' ? (c.customer_email ?? '') : (c.customer_phone ?? '').replace('whatsapp:', '')
 }
 
-const LANGS: Record<string, string> = { es: 'Español', en: 'Inglés', other: 'Otro' }
+const LANGS: Record<string, string> = { es: 'Español', en: 'Inglés', pt: 'Portugués', other: 'Otro' }
 const TOPICS: Record<string, { label: string; color: string }> = {
-  pagos:     { label: 'Pagos', color: 'bg-amber-100 text-amber-700' },
-  admision:  { label: 'Admisión', color: 'bg-sky-100 text-sky-700' },
-  academico: { label: 'Académico', color: 'bg-violet-100 text-violet-700' },
-  tramites:  { label: 'Trámites', color: 'bg-teal-100 text-teal-700' },
-  tecnico:   { label: 'Técnico', color: 'bg-rose-100 text-rose-700' },
-  otro:      { label: 'Otro', color: 'bg-gray-100 text-gray-600' },
+  pagos:      { label: 'Pagos', color: 'bg-amber-100 text-amber-700' },
+  notas:      { label: 'Notas', color: 'bg-violet-100 text-violet-700' },
+  admision:   { label: 'Admisión', color: 'bg-sky-100 text-sky-700' },
+  asistencia: { label: 'Asistencia', color: 'bg-blue-100 text-blue-700' },
+  tramites:   { label: 'Trámites', color: 'bg-teal-100 text-teal-700' },
+  tecnico:    { label: 'Técnico', color: 'bg-rose-100 text-rose-700' },
+  otro:       { label: 'Otro', color: 'bg-gray-100 text-gray-600' },
 }
 interface Message { id: string; direction: 'in' | 'out'; body: string | null; subject?: string | null; agent_name: string | null; created_at: string }
 

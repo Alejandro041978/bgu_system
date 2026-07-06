@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
       nacionalidad?: string
       send_invite: boolean
       is_faculty?: boolean
+      is_helpdesk?: boolean
       zoho_agent_id?: string
       zoho_agent_email?: string
     }
@@ -138,6 +139,7 @@ export async function POST(req: NextRequest) {
     if (body.zoho_agent_id) insertData.zoho_agent_id = body.zoho_agent_id
     if (body.zoho_agent_email) insertData.zoho_agent_email = body.zoho_agent_email
     insertData.is_faculty = body.is_faculty ?? false
+    insertData.is_helpdesk = body.is_helpdesk ?? false
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
