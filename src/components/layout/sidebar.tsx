@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Building2, Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -82,7 +82,14 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Docentes', href: '/academic/faculty', icon: GraduationCap, pageKey: 'academic_faculty' },
       { name: 'Notas', href: '/academic/grades', icon: Award, pageKey: 'academic_grades' },
-      { name: 'Convalidaciones', href: '/academic/transfer-credits', icon: FileCheck, pageKey: 'academic_transfer_credits' },
+      {
+        name: 'Convalidaciones', href: '/academic/transfer-credits', icon: FileCheck, pageKey: 'academic_transfer_credits',
+        children: [
+          { name: 'Individual', href: '/academic/transfer-credits', icon: FileCheck, pageKey: 'academic_transfer_credits' },
+          { name: 'Esquemas masivos', href: '/academic/transfer-schemes', icon: Layers, pageKey: 'academic_transfer_schemes' },
+          { name: 'Escalas de conversión', href: '/academic/grade-scales', icon: Calculator, pageKey: 'academic_grade_scales' },
+        ],
+      },
       { name: 'Credencial', href: '/academic/credentials', icon: Shield, pageKey: 'academic_credentials' },
       {
         name: 'Gestión académica', href: '/academic/years', icon: CalendarDays, pageKey: 'academic_years',
@@ -91,7 +98,6 @@ const navigation: NavGroup[] = [
           { name: 'Programas', href: '/academic/programs', icon: BookOpen, pageKey: 'academic_programs' },
           { name: 'Oferta', href: '/academic/offer', icon: ClipboardList, pageKey: 'academic_offer' },
           { name: 'Cronogramas', href: '/academic/schedules', icon: CalendarDays, pageKey: 'academic_schedules' },
-          { name: 'Escalas de conversión', href: '/academic/grade-scales', icon: Calculator, pageKey: 'academic_grade_scales' },
         ],
       },
     ],
