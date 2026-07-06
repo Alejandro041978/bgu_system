@@ -8,29 +8,37 @@ export interface Assignment { user_id: string; name: string }
 /**
  * Elige la agente para una conversación por idioma + tema (round-robin).
  * Reglas:
- *  - Solo agentes en línea (online) y no supervisoras.
- *  - Calificada = tiene el idioma marcado EXPLÍCITAMENTE Y el tema marcado EXPLÍCITAMENTE.
+ *  - Solo agentes en línea (online).
+ *  - Calificada = agente NO supervisora con el idioma marcado EXPLÍCITAMENTE Y el tema marcado EXPLÍCITAMENTE.
  *    (skill vacío = NO recibe; el agente solo atiende lo que configuró.)
+ *  - Si NINGÚN agente califica → cae en la SUPERVISORA (catch-all): se auto-asigna a la supervisora
+ *    en línea para que la revise y la derive manualmente.
  *  - Round-robin: la que hace más tiempo no recibe (last_assigned_at más antiguo; nunca asignada primero).
- * Devuelve null si no hay agente calificada → la conversación queda en cola para la SUPERVISORA (triage).
+ * Devuelve null solo si no hay agente calificada NI supervisora en línea → queda sin asignar en la Cola.
  */
 export async function autoAssign(language: string | null, topic: string | null): Promise<Assignment | null> {
   try {
     const sb = db()
     const { data: agents } = await sb.from('agent_skills')
-      .select('user_id, agent_name, languages, topics, last_assigned_at')
-      .eq('online', true).eq('is_supervisor', false)
+      .select('user_id, agent_name, languages, topics, last_assigned_at, is_supervisor')
+      .eq('online', true)
 
-    const qualified = (agents ?? []).filter((a: { languages: string[]; topics: string[] }) =>
+    type Row = { user_id: string; agent_name: string | null; languages: string[]; topics: string[]; last_assigned_at: string | null; is_supervisor: boolean }
+    const rows = (agents ?? []) as Row[]
+
+    // 1) Agentes calificadas (no supervisoras, con idioma+tema explícitos)
+    let pool = rows.filter(a =>
+      !a.is_supervisor &&
       !!language && a.languages.includes(language) &&
       !!topic && a.topics.includes(topic)
     )
-    if (qualified.length === 0) return null
+    // 2) Fallback catch-all: supervisoras en línea (triage manual)
+    if (pool.length === 0) pool = rows.filter(a => a.is_supervisor)
+    if (pool.length === 0) return null
 
     // Round-robin: menos recientemente asignada (null = nunca → prioridad máxima)
-    qualified.sort((a: { last_assigned_at: string | null }, b: { last_assigned_at: string | null }) =>
-      (a.last_assigned_at ?? '').localeCompare(b.last_assigned_at ?? ''))
-    const chosen = qualified[0]
+    pool.sort((a, b) => (a.last_assigned_at ?? '').localeCompare(b.last_assigned_at ?? ''))
+    const chosen = pool[0]
 
     await sb.from('agent_skills').update({ last_assigned_at: new Date().toISOString() }).eq('user_id', chosen.user_id)
     return { user_id: chosen.user_id, name: chosen.agent_name ?? 'Agente' }

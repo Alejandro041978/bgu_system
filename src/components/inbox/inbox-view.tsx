@@ -61,6 +61,7 @@ export function InboxView() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [counts, setCounts] = useState<{ queue: number; mine: number; all: number }>({ queue: 0, mine: 0, all: 0 })
   const [selected, setSelected] = useState<Conversation | null>(null)
+  const [agents, setAgents] = useState<{ user_id: string; full_name: string }[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -87,6 +88,11 @@ export function InboxView() {
     if (data.conversation) { setSelected(data.conversation); setMessages(data.messages ?? []) }
   }
 
+  // Lista de agentes helpdesk (para "Derivar a…")
+  useEffect(() => {
+    fetch('/api/helpdesk/skills').then(r => r.json()).then(d => setAgents(d.agents ?? [])).catch(() => {})
+  }, [])
+
   // Carga inicial + polling cada 5s (setState solo en callbacks async)
   useEffect(() => {
     loadList()
@@ -107,6 +113,11 @@ export function InboxView() {
   async function claim() {
     if (!selected) return
     await fetch(`/api/inbox/conversations/${selected.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'claim' }) })
+    await loadThread(selected.id); await loadList()
+  }
+  async function reassign(userId: string) {
+    if (!selected || !userId) return
+    await fetch(`/api/inbox/conversations/${selected.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reassign', to_user_id: userId }) })
     await loadThread(selected.id); await loadList()
   }
   async function close() {
@@ -209,6 +220,13 @@ export function InboxView() {
                   {selected.assigned_name ? ` · Atiende: ${selected.assigned_name}` : ' · Sin asignar'}</p>
               </div>
               <div className="flex items-center gap-2">
+                {agents.length > 0 && (
+                  <select value="" onChange={e => { if (e.target.value) { reassign(e.target.value); e.target.value = '' } }}
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[140px]">
+                    <option value="">Derivar a…</option>
+                    {agents.map(a => <option key={a.user_id} value={a.user_id}>{a.full_name}</option>)}
+                  </select>
+                )}
                 {!selected.assigned_to && (
                   <button onClick={claim} className="flex items-center gap-1.5 text-xs font-medium bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700">
                     <Hand className="w-3.5 h-3.5" /> Reclamar

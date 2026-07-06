@@ -35,12 +35,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
-  const { action } = await req.json() as { action?: string }
+  const { action, to_user_id } = await req.json() as { action?: string; to_user_id?: string }
   const sb = db()
 
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (action === 'claim') { update.assigned_to = user.id; update.assigned_name = await agentName(user.id, user.email) }
   else if (action === 'release') { update.assigned_to = null; update.assigned_name = null }
+  else if (action === 'reassign') {
+    if (!to_user_id) return NextResponse.json({ error: 'Falta to_user_id' }, { status: 400 })
+    update.assigned_to = to_user_id; update.assigned_name = await agentName(to_user_id, undefined)
+  }
   else if (action === 'close') { update.status = 'closed' }
   else if (action === 'reopen') { update.status = 'open' }
   else return NextResponse.json({ error: 'Acción inválida' }, { status: 400 })

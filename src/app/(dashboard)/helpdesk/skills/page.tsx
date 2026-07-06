@@ -14,8 +14,8 @@ export default function HelpdeskSkillsPage() {
             <p className="text-xs text-gray-500">
               <strong>Cómo se reparte:</strong> al llegar una conversación se evalúan <em>todas</em> las asesoras en línea a la vez.
               Califica quien tenga <em>marcado ese idioma Y ese tema</em>. Si alguna califica, se asigna por round-robin entre las calificadas.
-              Si <em>ninguna</em> tiene ese idioma+tema, pasa a la supervisora para triage manual. La supervisora no recibe auto-asignaciones.
-              Marca <strong>«Es la supervisora del equipo»</strong> en una sola persona.
+              Si <em>ninguna</em> tiene ese idioma+tema, se auto-asigna a la <strong>supervisora</strong> (catch-all), que la revisa y la reparte con el botón <strong>«Derivar a…»</strong> del buzón.
+              Marca <strong>«Es la supervisora del equipo»</strong> en una sola persona y déjala <strong>En línea</strong>.
             </p>
           </div>
           <SkillsManager />
