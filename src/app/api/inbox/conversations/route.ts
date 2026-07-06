@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   let q = sb.from('wa_conversations').select(COLS).order('last_message_at', { ascending: false, nullsFirst: false })
   if (filter === 'queue') q = q.eq('status', 'open').is('assigned_to', null)
   else if (filter === 'mine') q = q.eq('status', 'open').eq('assigned_to', user.id)
+  else if (filter === 'all') q = q.eq('status', 'open')
   else if (filter === 'closed') q = q.eq('status', 'closed')
   if (lang) q = q.eq('language', lang)
   if (topic) q = q.eq('topic', topic)
@@ -28,10 +29,11 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Conteos para badges
-  const [{ count: queueCount }, { count: mineCount }] = await Promise.all([
+  const [{ count: queueCount }, { count: mineCount }, { count: allCount }] = await Promise.all([
     sb.from('wa_conversations').select('id', { count: 'exact', head: true }).eq('status', 'open').is('assigned_to', null),
     sb.from('wa_conversations').select('id', { count: 'exact', head: true }).eq('status', 'open').eq('assigned_to', user.id),
+    sb.from('wa_conversations').select('id', { count: 'exact', head: true }).eq('status', 'open'),
   ])
 
-  return NextResponse.json({ conversations: data ?? [], counts: { queue: queueCount ?? 0, mine: mineCount ?? 0 } })
+  return NextResponse.json({ conversations: data ?? [], counts: { queue: queueCount ?? 0, mine: mineCount ?? 0, all: allCount ?? 0 } })
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, Loader2, User, Hand, CheckCircle2, RotateCcw, MessageSquare, Inbox, Mail, Phone } from 'lucide-react'
+import { Send, Loader2, User, Hand, CheckCircle2, RotateCcw, MessageSquare, Inbox, Mail, Phone, Layers } from 'lucide-react'
 
 interface Conversation {
   id: string
@@ -48,15 +48,18 @@ function timeLabel(d: string | null) {
 const TABS = [
   { key: 'queue', label: 'Cola', icon: Inbox },
   { key: 'mine', label: 'Mías', icon: User },
+  { key: 'all', label: 'Todas', icon: Layers },
   { key: 'closed', label: 'Cerradas', icon: CheckCircle2 },
 ] as const
 
+type Filter = 'queue' | 'mine' | 'all' | 'closed'
+
 export function InboxView() {
-  const [filter, setFilter] = useState<'queue' | 'mine' | 'closed'>('queue')
+  const [filter, setFilter] = useState<Filter>('queue')
   const [lang, setLang] = useState('')
   const [topic, setTopic] = useState('')
   const [conversations, setConversations] = useState<Conversation[]>([])
-  const [counts, setCounts] = useState<{ queue: number; mine: number }>({ queue: 0, mine: 0 })
+  const [counts, setCounts] = useState<{ queue: number; mine: number; all: number }>({ queue: 0, mine: 0, all: 0 })
   const [selected, setSelected] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -75,7 +78,7 @@ export function InboxView() {
     const res = await fetch(`/api/inbox/conversations?filter=${f}${l ? `&lang=${l}` : ''}${t ? `&topic=${t}` : ''}`)
     const data = await res.json()
     setConversations(data.conversations ?? [])
-    setCounts(data.counts ?? { queue: 0, mine: 0 })
+    setCounts(data.counts ?? { queue: 0, mine: 0, all: 0 })
   }
 
   async function loadThread(id: string) {
@@ -96,7 +99,7 @@ export function InboxView() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  function pickFilter(f: 'queue' | 'mine' | 'closed') { setFilter(f); loadList(f, langRef.current, topicRef.current) }
+  function pickFilter(f: Filter) { setFilter(f); loadList(f, langRef.current, topicRef.current) }
   function pickLang(l: string) { setLang(l); loadList(filterRef.current, l, topicRef.current) }
   function pickTopic(t: string) { setTopic(t); loadList(filterRef.current, langRef.current, t) }
   function openConv(c: Conversation) { setSelected(c); loadThread(c.id) }
@@ -138,6 +141,7 @@ export function InboxView() {
               <t.icon className="w-3.5 h-3.5" /> {t.label}
               {t.key === 'queue' && counts.queue > 0 && <span className="bg-amber-100 text-amber-700 rounded-full px-1.5 text-[10px]">{counts.queue}</span>}
               {t.key === 'mine' && counts.mine > 0 && <span className="bg-blue-100 text-blue-700 rounded-full px-1.5 text-[10px]">{counts.mine}</span>}
+              {t.key === 'all' && counts.all > 0 && <span className="bg-gray-100 text-gray-600 rounded-full px-1.5 text-[10px]">{counts.all}</span>}
             </button>
           ))}
         </div>
