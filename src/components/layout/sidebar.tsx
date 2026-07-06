@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Building2, Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -90,6 +90,7 @@ const navigation: NavGroup[] = [
           { name: 'Programas', href: '/academic/programs', icon: BookOpen, pageKey: 'academic_programs' },
           { name: 'Oferta', href: '/academic/offer', icon: ClipboardList, pageKey: 'academic_offer' },
           { name: 'Cronogramas', href: '/academic/schedules', icon: CalendarDays, pageKey: 'academic_schedules' },
+          { name: 'Escalas de conversión', href: '/academic/grade-scales', icon: Calculator, pageKey: 'academic_grade_scales' },
         ],
       },
     ],
