@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Building2, Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -333,6 +333,13 @@ export function Sidebar() {
         >
           <Settings className="w-4 h-4" />
           Configuración
+        </Link>
+        <Link
+          href="/update-password"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+        >
+          <KeyRound className="w-4 h-4" />
+          Cambiar contraseña
         </Link>
         <button
           onClick={handleSignOut}

@@ -13,13 +13,34 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [magicSent, setMagicSent] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   function switchMode(m: Mode) {
     setMode(m)
     setError(null)
     setMagicSent(false)
+    setResetSent(false)
     setEmail('')
     setPassword('')
+  }
+
+  async function handleForgotPassword() {
+    setError(null)
+    if (!email) {
+      setError('Escribe tu correo institucional arriba y vuelve a pulsar el enlace.')
+      return
+    }
+    setLoading(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/update-password`,
+    })
+    setLoading(false)
+    if (error) {
+      setError('No pudimos enviar el correo de recuperación. Verifica tu email e intenta de nuevo.')
+      return
+    }
+    setResetSent(true)
   }
 
   async function handleStaffLogin(e: React.FormEvent) {
@@ -107,8 +128,30 @@ export default function LoginPage() {
           </div>
 
           <div className="p-8">
+            {/* STAFF — reset link sent */}
+            {mode === 'staff' && resetSent && (
+              <div className="text-center space-y-4">
+                <div className="w-14 h-14 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mx-auto">
+                  <Mail className="w-7 h-7 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-white font-semibold mb-1">Revisa tu correo</p>
+                  <p className="text-sm text-gray-400 leading-relaxed">
+                    Enviamos un enlace para restablecer tu contraseña a <span className="text-white">{email}</span>.<br />
+                    Ábrelo y define tu nueva contraseña.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setResetSent(false)}
+                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  Volver
+                </button>
+              </div>
+            )}
+
             {/* STAFF */}
-            {mode === 'staff' && (
+            {mode === 'staff' && !resetSent && (
               <form onSubmit={handleStaffLogin} className="space-y-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1.5">Email institucional</label>
@@ -144,6 +187,13 @@ export default function LoginPage() {
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                   {loading ? 'Ingresando...' : 'Ingresar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="w-full text-center text-sm text-gray-500 hover:text-blue-400 transition-colors"
+                >
+                  ¿Olvidaste tu contraseña?
                 </button>
               </form>
             )}
