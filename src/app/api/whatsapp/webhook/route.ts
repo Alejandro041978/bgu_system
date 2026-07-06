@@ -5,6 +5,7 @@ import { createZohoTicket } from '@/app/api/chat/route'
 import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
 import { getBotByTwilioNumber, getBot, type Bot } from '@/lib/bots'
 import { extractAndSaveLead } from '@/lib/sales-leads'
+import { autoAssign } from '@/lib/inbox-assign'
 import crypto from 'crypto'
 
 export const maxDuration = 60
@@ -233,11 +234,13 @@ async function receiveInboxMessage(from: string, body: string, inboxKey: string,
   // 1) Código válido → adjunta el contexto de Sofia (reabre o crea) + acuse automático
   if (handoff) {
     await sb.from('handoff_codes').update({ used: true, used_at: now }).eq('code', handoff.code)
+    // Auto-asignación por especialidad (null = cola para la supervisora)
+    const assigned = await autoAssign(handoff.language, handoff.topic ?? null)
     const patch = {
-      status: 'open', assigned_to: null, assigned_name: null,
+      status: 'open', assigned_to: assigned?.user_id ?? null, assigned_name: assigned?.name ?? null,
       customer_name: handoff.student_name ?? undefined,
       summary: handoff.summary, language: handoff.language, topic: handoff.topic ?? null,
-      unread_count: 1, last_message_at: now, last_message_preview: 'Derivado por Sofía', updated_at: now,
+      unread_count: 1, first_customer_at: now, last_message_at: now, last_message_preview: 'Derivado por Sofía', updated_at: now,
     }
     if (existingConv) {
       await sb.from('wa_conversations').update(patch).eq('id', existingConv.id)

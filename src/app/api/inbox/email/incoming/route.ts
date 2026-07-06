@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { classifyInbound } from '@/lib/inbox-classify'
+import { autoAssign } from '@/lib/inbox-assign'
 
 export const maxDuration = 60
 
@@ -99,10 +100,14 @@ export async function POST(req: NextRequest) {
     // ── Crear o actualizar conversación ───────────────────────────────────────
     if (!conversationId) {
       const { language, topic } = await classifyInbound(subject, bodyText)
+      // Auto-asignación por especialidad (null = queda en cola para la supervisora)
+      const assigned = await autoAssign(language, topic)
       const { data: created } = await sb.from('wa_conversations').insert({
         inbox_key: INBOX_KEY, channel: 'email', customer_email: email, customer_name: name,
         subject, language, topic, thread_ref: p.threadId ?? p.messageId ?? null,
-        status: 'open', unread_count: 1, last_message_at: now, last_message_preview: subject.slice(0, 120),
+        assigned_to: assigned?.user_id ?? null, assigned_name: assigned?.name ?? null,
+        status: 'open', unread_count: 1, first_customer_at: now,
+        last_message_at: now, last_message_preview: subject.slice(0, 120),
       }).select('id').single()
       if (!created) return NextResponse.json({ error: 'No se pudo crear la conversación' }, { status: 500 })
       conversationId = created.id

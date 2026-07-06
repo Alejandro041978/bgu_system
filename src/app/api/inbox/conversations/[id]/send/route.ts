@@ -71,6 +71,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // Si nadie la tenía asignada, al responder queda asignada al que responde
   const patch: Record<string, unknown> = { last_message_at: now, last_message_preview: body.slice(0, 120), updated_at: now, status: 'open' }
   if (!conv.assigned_to) { patch.assigned_to = user.id; patch.assigned_name = agentNm }
+  // Métrica: primera respuesta (desde la llegada del cliente)
+  if (!conv.first_response_at) patch.first_response_at = now
   await sb.from('wa_conversations').update(patch).eq('id', id)
 
   return NextResponse.json({ message: msg })
