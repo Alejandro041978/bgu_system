@@ -17,6 +17,7 @@ interface Conversation {
   last_message_at: string | null
   last_message_preview: string | null
   language?: string | null
+  topic?: string | null
   summary?: string | null
 }
 
@@ -28,6 +29,14 @@ function convContact(c: Conversation): string {
 }
 
 const LANGS: Record<string, string> = { es: 'Español', en: 'Inglés', other: 'Otro' }
+const TOPICS: Record<string, { label: string; color: string }> = {
+  pagos:     { label: 'Pagos', color: 'bg-amber-100 text-amber-700' },
+  admision:  { label: 'Admisión', color: 'bg-sky-100 text-sky-700' },
+  academico: { label: 'Académico', color: 'bg-violet-100 text-violet-700' },
+  tramites:  { label: 'Trámites', color: 'bg-teal-100 text-teal-700' },
+  tecnico:   { label: 'Técnico', color: 'bg-rose-100 text-rose-700' },
+  otro:      { label: 'Otro', color: 'bg-gray-100 text-gray-600' },
+}
 interface Message { id: string; direction: 'in' | 'out'; body: string | null; subject?: string | null; agent_name: string | null; created_at: string }
 
 function timeLabel(d: string | null) {
@@ -44,6 +53,7 @@ const TABS = [
 export function InboxView() {
   const [filter, setFilter] = useState<'queue' | 'mine' | 'closed'>('queue')
   const [lang, setLang] = useState('')
+  const [topic, setTopic] = useState('')
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [counts, setCounts] = useState<{ queue: number; mine: number }>({ queue: 0, mine: 0 })
   const [selected, setSelected] = useState<Conversation | null>(null)
@@ -53,13 +63,15 @@ export function InboxView() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const filterRef = useRef(filter)
   const langRef = useRef(lang)
+  const topicRef = useRef(topic)
   const selectedRef = useRef<string | null>(null)
   useEffect(() => { filterRef.current = filter }, [filter])
   useEffect(() => { langRef.current = lang }, [lang])
+  useEffect(() => { topicRef.current = topic }, [topic])
   useEffect(() => { selectedRef.current = selected?.id ?? null }, [selected])
 
-  async function loadList(f = filterRef.current, l = langRef.current) {
-    const res = await fetch(`/api/inbox/conversations?filter=${f}${l ? `&lang=${l}` : ''}`)
+  async function loadList(f = filterRef.current, l = langRef.current, t = topicRef.current) {
+    const res = await fetch(`/api/inbox/conversations?filter=${f}${l ? `&lang=${l}` : ''}${t ? `&topic=${t}` : ''}`)
     const data = await res.json()
     setConversations(data.conversations ?? [])
     setCounts(data.counts ?? { queue: 0, mine: 0 })
@@ -83,8 +95,9 @@ export function InboxView() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  function pickFilter(f: 'queue' | 'mine' | 'closed') { setFilter(f); loadList(f, langRef.current) }
-  function pickLang(l: string) { setLang(l); loadList(filterRef.current, l) }
+  function pickFilter(f: 'queue' | 'mine' | 'closed') { setFilter(f); loadList(f, langRef.current, topicRef.current) }
+  function pickLang(l: string) { setLang(l); loadList(filterRef.current, l, topicRef.current) }
+  function pickTopic(t: string) { setTopic(t); loadList(filterRef.current, langRef.current, t) }
   function openConv(c: Conversation) { setSelected(c); loadThread(c.id) }
 
   async function claim() {
@@ -127,13 +140,18 @@ export function InboxView() {
             </button>
           ))}
         </div>
-        <div className="px-3 py-2 border-b border-gray-50">
+        <div className="px-3 py-2 border-b border-gray-50 flex gap-2">
           <select value={lang} onChange={e => pickLang(e.target.value)}
-            className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <option value="">Todos los idiomas</option>
             <option value="es">Español</option>
             <option value="en">Inglés</option>
             <option value="other">Otro</option>
+          </select>
+          <select value={topic} onChange={e => pickTopic(e.target.value)}
+            className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <option value="">Todos los temas</option>
+            {Object.entries(TOPICS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
         </div>
         <div className="flex-1 overflow-auto divide-y divide-gray-50">
@@ -152,9 +170,10 @@ export function InboxView() {
                 {c.unread_count > 0 && <span className="bg-green-500 text-white rounded-full px-1.5 text-[10px] flex-shrink-0">{c.unread_count}</span>}
               </div>
               <p className="text-xs text-gray-400 truncate mt-0.5">{c.channel === 'email' && c.subject ? c.subject : (c.last_message_preview ?? '')}</p>
-              <div className="flex items-center justify-between mt-1">
+              <div className="flex items-center gap-1.5 mt-1">
+                {c.topic && TOPICS[c.topic] && <span className={`text-[9px] font-medium px-1.5 rounded-full ${TOPICS[c.topic].color}`}>{TOPICS[c.topic].label}</span>}
                 <span className="text-[10px] text-gray-400">{timeLabel(c.last_message_at)}</span>
-                {c.assigned_name && <span className="text-[10px] text-indigo-500 truncate">· {c.assigned_name}</span>}
+                {c.assigned_name && <span className="text-[10px] text-indigo-500 truncate ml-auto">· {c.assigned_name}</span>}
               </div>
             </button>
           ))}
@@ -178,6 +197,7 @@ export function InboxView() {
                     : <Phone className="w-4 h-4 text-green-600 flex-shrink-0" />}
                   {convName(selected)}
                   {selected.language && <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">{LANGS[selected.language] ?? selected.language}</span>}
+                  {selected.topic && TOPICS[selected.topic] && <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${TOPICS[selected.topic].color}`}>{TOPICS[selected.topic].label}</span>}
                 </p>
                 <p className="text-xs text-gray-400 truncate">
                   {selected.channel === 'email' && selected.subject ? `${selected.subject} · ` : ''}{convContact(selected)}

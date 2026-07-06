@@ -70,8 +70,9 @@ const REQUEST_HUMAN_TOOL: Anthropic.Tool = {
     properties: {
       summary:  { type: 'string', description: 'Resumen ejecutivo (2-3 frases) del tema/problema REAL del usuario, basado en lo que te contó. Específico y accionable para el asesor. No pongas "quiere hablar con un humano" — pon el motivo real.' },
       language: { type: 'string', enum: ['es', 'en', 'other'], description: 'Idioma en que conversa el usuario.' },
+      topic:    { type: 'string', enum: ['pagos', 'admision', 'academico', 'tramites', 'tecnico', 'otro'], description: 'Tema principal: pagos=cobros/matrícula/Flywire; admision=inscripción/requisitos; academico=notas/cursos/docentes; tramites=documentos/certificados; tecnico=acceso/plataforma; otro=si no encaja.' },
     },
-    required: ['summary', 'language'],
+    required: ['summary', 'language', 'topic'],
   },
 }
 
@@ -202,10 +203,10 @@ const ROLE_LABELS: Record<string, string> = {
 const twimlOk = () => new NextResponse('<Response/>', { headers: { 'Content-Type': 'text/xml' } })
 
 // ── Crea un código de enlace (handoff) y devuelve el link wa.me al número humano ─
-async function createHandoff(customerPhone: string, botKey: string, summary: string, language: string, userInfo?: UserInfo) {
+async function createHandoff(customerPhone: string, botKey: string, summary: string, language: string, topic: string, userInfo?: UserInfo) {
   const code = 'ENLACE-' + Math.floor(1000 + Math.random() * 9000)
   await db().from('handoff_codes').insert({
-    code, customer_phone: customerPhone, bot_key: botKey, summary, language,
+    code, customer_phone: customerPhone, bot_key: botKey, summary, language, topic,
     student_name: userInfo?.name ?? null, document_number: userInfo?.student_id ?? null,
   })
   const inbox = await getBot('servicio')
@@ -235,7 +236,7 @@ async function receiveInboxMessage(from: string, body: string, inboxKey: string,
     const patch = {
       status: 'open', assigned_to: null, assigned_name: null,
       customer_name: handoff.student_name ?? undefined,
-      summary: handoff.summary, language: handoff.language,
+      summary: handoff.summary, language: handoff.language, topic: handoff.topic ?? null,
       unread_count: 1, last_message_at: now, last_message_preview: 'Derivado por Sofía', updated_at: now,
     }
     if (existingConv) {
@@ -514,19 +515,19 @@ export async function POST(req: NextRequest) {
 
     let replyText    = ''
     let proposedTicket: PendingTicket | null = null
-    let humanRequest: { summary: string; language: string } | null = null
+    let humanRequest: { summary: string; language: string; topic: string } | null = null
 
     for (const block of aiResponse.content) {
       if (block.type === 'text') replyText += block.text
       else if (block.type === 'tool_use' && block.name === 'propose_ticket') {
         proposedTicket = block.input as PendingTicket
       } else if (block.type === 'tool_use' && block.name === 'request_human') {
-        humanRequest = block.input as { summary: string; language: string }
+        humanRequest = block.input as { summary: string; language: string; topic: string }
       }
     }
 
     if (humanRequest) {
-      const { link } = await createHandoff(from, botKey, humanRequest.summary, humanRequest.language, session.userInfo)
+      const { link } = await createHandoff(from, botKey, humanRequest.summary, humanRequest.language, humanRequest.topic ?? 'otro', session.userInfo)
       const msg = link
         ? `Con gusto te conecto con un asesor 👤\n\nToca aquí para continuar:\n${link}\n\nLe paso tu caso para que te atienda de una vez.`
         : 'En este momento no puedo conectarte con un asesor. ¿Deseas que cree un ticket de soporte?'
