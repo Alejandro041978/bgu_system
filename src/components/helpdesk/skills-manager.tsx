@@ -99,15 +99,15 @@ export function SkillsManager() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <p className="text-xs font-medium text-gray-600 mb-1.5">Idiomas <span className="text-gray-400">(vacío = todos)</span></p>
+              <p className="text-xs font-medium text-gray-600 mb-1.5">Idiomas <span className="text-gray-400">(sin marcar = no recibe)</span></p>
               <Chips options={LANG_OPTS} selected={a.languages} onToggle={v => toggleArr(a.user_id, 'languages', v)} />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-600 mb-1.5">Temas <span className="text-gray-400">(vacío = todos)</span></p>
+              <p className="text-xs font-medium text-gray-600 mb-1.5">Temas <span className="text-gray-400">(sin marcar = no recibe)</span></p>
               <Chips options={TOPIC_OPTS} selected={a.topics} onToggle={v => toggleArr(a.user_id, 'topics', v)} />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-600 mb-1.5">Categorías <span className="text-gray-400">(vacío = todas)</span></p>
+              <p className="text-xs font-medium text-gray-600 mb-1.5">Categorías <span className="text-gray-400">(informativo)</span></p>
               <Chips options={categories.map(c => [c.name, c.name] as [string, string])} selected={a.categories} onToggle={v => toggleArr(a.user_id, 'categories', v)} />
             </div>
           </div>

@@ -9,7 +9,8 @@ export interface Assignment { user_id: string; name: string }
  * Elige la agente para una conversación por idioma + tema (round-robin).
  * Reglas:
  *  - Solo agentes en línea (online) y no supervisoras.
- *  - Calificada = (languages vacío O incluye el idioma) Y (topics vacío O incluye el tema).
+ *  - Calificada = tiene el idioma marcado EXPLÍCITAMENTE Y el tema marcado EXPLÍCITAMENTE.
+ *    (skill vacío = NO recibe; el agente solo atiende lo que configuró.)
  *  - Round-robin: la que hace más tiempo no recibe (last_assigned_at más antiguo; nunca asignada primero).
  * Devuelve null si no hay agente calificada → la conversación queda en cola para la SUPERVISORA (triage).
  */
@@ -21,8 +22,8 @@ export async function autoAssign(language: string | null, topic: string | null):
       .eq('online', true).eq('is_supervisor', false)
 
     const qualified = (agents ?? []).filter((a: { languages: string[]; topics: string[] }) =>
-      (a.languages.length === 0 || (language ? a.languages.includes(language) : true)) &&
-      (a.topics.length === 0 || (topic ? a.topics.includes(topic) : true))
+      !!language && a.languages.includes(language) &&
+      !!topic && a.topics.includes(topic)
     )
     if (qualified.length === 0) return null
 

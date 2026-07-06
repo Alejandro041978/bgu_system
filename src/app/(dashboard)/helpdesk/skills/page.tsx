@@ -10,11 +10,12 @@ export default function HelpdeskSkillsPage() {
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <div className="text-sm text-gray-600 mb-4 bg-blue-50 border border-blue-100 rounded-lg p-3 space-y-1">
-            <p>Asigna a cada agente sus <strong>idiomas</strong>, <strong>temas</strong> y <strong>categorías</strong> (chip vacío = atiende todos).</p>
+            <p>Asigna a cada agente sus <strong>idiomas</strong> y <strong>temas</strong>. <strong>Importante:</strong> un skill sin marcar = el agente <em>no</em> recibe eso; solo atiende lo que configuras aquí.</p>
             <p className="text-xs text-gray-500">
               <strong>Cómo se reparte:</strong> al llegar una conversación se evalúan <em>todas</em> las asesoras en línea a la vez.
-              Si <em>alguna</em> califica, se asigna por round-robin entre las calificadas. Solo si <em>ninguna</em> del equipo puede atenderla,
-              recién pasa a la supervisora para triage manual. La supervisora no recibe auto-asignaciones. Marca <strong>«Es la supervisora del equipo»</strong> en una sola persona.
+              Califica quien tenga <em>marcado ese idioma Y ese tema</em>. Si alguna califica, se asigna por round-robin entre las calificadas.
+              Si <em>ninguna</em> tiene ese idioma+tema, pasa a la supervisora para triage manual. La supervisora no recibe auto-asignaciones.
+              Marca <strong>«Es la supervisora del equipo»</strong> en una sola persona.
             </p>
           </div>
           <SkillsManager />
