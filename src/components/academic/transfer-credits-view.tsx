@@ -99,6 +99,7 @@ function NewTransferForm({ programs, scales, onCancel, onCreated }: {
   const [q, setQ] = useState('')
   const [hits, setHits] = useState<StudentHit[]>([])
   const [student, setStudent] = useState<StudentHit | null>(null)
+  const [enrolled, setEnrolled] = useState<{ id: string; name: string }[] | null>(null)
   const [originInst, setOriginInst] = useState('')
   const [originProg, setOriginProg] = useState('')
   const [destProg, setDestProg] = useState('')
@@ -111,6 +112,18 @@ function NewTransferForm({ programs, scales, onCancel, onCreated }: {
     const d = await fetch(`/api/students/search?q=${encodeURIComponent(value.trim())}`).then(r => r.json())
     setHits(d.students ?? [])
   }
+
+  async function selectStudent(h: StudentHit) {
+    setStudent(h); setHits([]); setQ(''); setDestProg(''); setEnrolled(null)
+    const d = await fetch(`/api/students/${h.id}/programs`).then(r => r.json()).catch(() => ({ programs: [] }))
+    const progs: { id: string; name: string }[] = d.programs ?? []
+    setEnrolled(progs)
+    if (progs.length === 1) setDestProg(progs[0].id)
+  }
+
+  // Programas del dropdown: los matriculados; si no hay matrícula detectada, todos (fallback)
+  const destOptions = (enrolled && enrolled.length > 0) ? enrolled : programs
+  const usingFallback = !!student && enrolled != null && enrolled.length === 0
 
   async function create() {
     if (!student || !originInst || !destProg || !scaleId) return
@@ -144,7 +157,7 @@ function NewTransferForm({ programs, scales, onCancel, onCreated }: {
             <p className="text-sm font-medium text-gray-800">{student.name}</p>
             <p className="text-xs text-gray-500">{student.document_number ?? student.email}</p>
           </div>
-          <button onClick={() => { setStudent(null); setQ('') }} className="text-xs text-blue-600">Cambiar</button>
+          <button onClick={() => { setStudent(null); setQ(''); setEnrolled(null); setDestProg('') }} className="text-xs text-blue-600">Cambiar</button>
         </div>
       ) : (
         <div className="relative mb-4">
@@ -156,7 +169,7 @@ function NewTransferForm({ programs, scales, onCancel, onCreated }: {
           {hits.length > 0 && (
             <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-auto">
               {hits.map(h => (
-                <button key={h.id} onClick={() => { setStudent(h); setHits([]) }}
+                <button key={h.id} onClick={() => selectStudent(h)}
                   className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-50 last:border-0">
                   <p className="text-sm text-gray-800">{h.name}</p>
                   <p className="text-xs text-gray-400">{h.document_number ?? h.email}</p>
@@ -179,12 +192,15 @@ function NewTransferForm({ programs, scales, onCancel, onCreated }: {
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Programa de destino</label>
-          <select value={destProg} onChange={e => setDestProg(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
-            <option value="">Elegir…</option>
-            {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Programa de destino {student && enrolled && enrolled.length > 0 && <span className="text-gray-400 font-normal">(matriculado)</span>}
+          </label>
+          <select value={destProg} onChange={e => setDestProg(e.target.value)} disabled={!student}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white disabled:bg-gray-50 disabled:text-gray-400">
+            <option value="">{student ? 'Elegir…' : 'Elige primero al estudiante'}</option>
+            {destOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
+          {usingFallback && <p className="text-[11px] text-amber-600 mt-1">No se encontró matrícula registrada; mostrando todos los programas.</p>}
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Escala de conversión (origen)</label>
