@@ -5,6 +5,27 @@ import { convertGrade } from './grade-convert'
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 /**
+ * Primer periodo del estudiante (cuando inició estudios): la matrícula más antigua
+ * en academic_student_enrollments; si no hay, la nota más antigua; si no, año actual.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function firstPeriod(sb: any, studentId: string | null, document: string | null): Promise<{ year: number | null; block: string | null }> {
+  if (studentId) {
+    const { data } = await sb.from('academic_student_enrollments')
+      .select('term_year, term_block').eq('student_id', studentId).not('term_year', 'is', null)
+      .order('term_year', { ascending: true }).order('term_block', { ascending: true }).limit(1)
+    if (data?.[0]) return { year: data[0].term_year, block: data[0].term_block }
+  }
+  if (document) {
+    const { data } = await sb.from('academic_grades')
+      .select('term_year, term_block').eq('document_number', document).eq('source', 'systemactiva').not('term_year', 'is', null)
+      .order('term_year', { ascending: true }).order('term_block', { ascending: true }).limit(1)
+    if (data?.[0]) return { year: data[0].term_year, block: data[0].term_block }
+  }
+  return { year: new Date().getFullYear(), block: 'Convalidación' }
+}
+
+/**
  * Recalcula la nota convertida de un ítem y la refleja en academic_grades
  * (source='convalidacion') para que aparezca en "Mis Notas". Idempotente:
  * usa el id del ítem como external_id. Si no hay nota, borra el reflejo.
@@ -19,7 +40,7 @@ export async function reflectItem(itemId: string): Promise<number | null> {
   if (!item) return null
 
   const { data: tc } = await sb.from('transfer_credits')
-    .select('scale_id, dest_program_id, student_document, student_name')
+    .select('scale_id, dest_program_id, student_id, student_document, student_name')
     .eq('id', item.transfer_credit_id).maybeSingle()
 
   // Escala de origen
@@ -49,6 +70,7 @@ export async function reflectItem(itemId: string): Promise<number | null> {
   await sb.from('transfer_credit_items').update({ converted_grade: converted }).eq('id', itemId)
 
   if (converted != null) {
+    const period = await firstPeriod(sb, tc?.student_id ?? null, tc?.student_document ?? null)
     await sb.from('academic_grades').upsert({
       external_id: itemId,
       document_number: tc?.student_document ?? null,
@@ -58,8 +80,8 @@ export async function reflectItem(itemId: string): Promise<number | null> {
       credits: course?.credits ?? null,
       final_grade: converted,
       passing_score: destPassing,
-      term_year: new Date().getFullYear(),
-      term_block: 'Convalidación',
+      term_year: period.year,
+      term_block: period.block,
       source: 'convalidacion',
       updated_at: new Date().toISOString(),
     }, { onConflict: 'external_id' })
