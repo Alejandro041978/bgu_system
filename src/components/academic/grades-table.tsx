@@ -75,6 +75,7 @@ export function GradesTable({ grades }: { grades: Grade[] }) {
                         <p className="font-medium text-gray-800 flex items-center gap-2">
                           {g.course_name ?? '—'}
                           {g.source === 'convalidacion' && <span className="text-[10px] font-medium bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full">Convalidado</span>}
+                          {g.source === 'validacion' && <span className="text-[10px] font-medium bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded-full">Validado</span>}
                         </p>
                         {g.course_code && <p className="text-xs text-gray-400">{g.course_code}</p>}
                       </td>

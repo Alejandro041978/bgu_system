@@ -40,7 +40,7 @@ export async function reflectItem(itemId: string): Promise<number | null> {
   if (!item) return null
 
   const { data: tc } = await sb.from('transfer_credits')
-    .select('scale_id, dest_program_id, student_id, student_document, student_name')
+    .select('scale_id, dest_program_id, student_id, student_document, student_name, kind')
     .eq('id', item.transfer_credit_id).maybeSingle()
 
   // Escala de origen
@@ -82,7 +82,7 @@ export async function reflectItem(itemId: string): Promise<number | null> {
       passing_score: destPassing,
       term_year: period.year,
       term_block: period.block,
-      source: 'convalidacion',
+      source: tc?.kind === 'validacion' ? 'validacion' : 'convalidacion',
       updated_at: new Date().toISOString(),
     }, { onConflict: 'external_id' })
   } else {

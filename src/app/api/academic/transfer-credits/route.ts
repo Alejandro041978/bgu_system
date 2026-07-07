@@ -11,11 +11,13 @@ async function requireAuth() {
   return user
 }
 
-// GET → lista de convalidaciones (cabeceras)
-export async function GET() {
+// GET ?kind=convalidacion|validacion → lista de cabeceras del tipo indicado
+export async function GET(req: NextRequest) {
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const kind = req.nextUrl.searchParams.get('kind') ?? 'convalidacion'
   const { data } = await db().from('transfer_credits')
     .select('*, items:transfer_credit_items(id)')
+    .eq('kind', kind)
     .order('created_at', { ascending: false })
   return NextResponse.json({ transfers: data ?? [] })
 }
@@ -27,15 +29,16 @@ export async function POST(req: NextRequest) {
   const b = await req.json() as {
     student_id?: string; student_document?: string; student_name?: string
     origin_institution?: string; origin_program?: string
-    dest_program_id?: string; scale_id?: string; notes?: string
+    dest_program_id?: string; scale_id?: string; notes?: string; kind?: string
   }
   if (!b.student_id || !b.origin_institution || !b.dest_program_id || !b.scale_id) {
     return NextResponse.json({ error: 'Faltan campos (estudiante, institución origen, programa destino, escala)' }, { status: 400 })
   }
+  const kind = b.kind === 'validacion' ? 'validacion' : 'convalidacion'
   const { data, error } = await db().from('transfer_credits').insert({
     student_id: b.student_id, student_document: b.student_document ?? null, student_name: b.student_name ?? null,
     origin_institution: b.origin_institution, origin_program: b.origin_program ?? null,
-    dest_program_id: b.dest_program_id, scale_id: b.scale_id, notes: b.notes ?? null, created_by: user.id,
+    dest_program_id: b.dest_program_id, scale_id: b.scale_id, notes: b.notes ?? null, kind, created_by: user.id,
   }).select('id').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)

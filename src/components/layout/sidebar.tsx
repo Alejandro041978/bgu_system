@@ -88,6 +88,7 @@ const navigation: NavGroup[] = [
         children: [
           { name: 'Individual', href: '/academic/transfer-credits', icon: FileCheck, pageKey: 'academic_transfer_credits' },
           { name: 'Esquemas masivos', href: '/academic/transfer-schemes', icon: Layers, pageKey: 'academic_transfer_schemes' },
+          { name: 'Validación de asignaturas', href: '/academic/validations', icon: FileCheck, pageKey: 'academic_validations' },
           { name: 'Escalas de conversión', href: '/academic/grade-scales', icon: Calculator, pageKey: 'academic_grade_scales' },
         ],
       },

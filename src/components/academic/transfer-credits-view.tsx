@@ -16,7 +16,10 @@ interface Transfer {
 }
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 
-export function TransferCreditsView({ programs, scales, categories }: { programs: Program[]; scales: Scale[]; categories: Category[] }) {
+export function TransferCreditsView({ programs, scales, categories, kind = 'convalidacion' }: { programs: Program[]; scales: Scale[]; categories: Category[]; kind?: 'convalidacion' | 'validacion' }) {
+  const isVal = kind === 'validacion'
+  const noun = isVal ? 'validación' : 'convalidación'          // "una validación" / "una convalidación"
+  const annotation = isVal ? 'Validation' : 'Transfer Credit'
   const [transfers, setTransfers] = useState<Transfer[]>([])
   const [selId, setSelId] = useState<string | null>(null)
   const [detail, setDetail] = useState<{ transfer: Transfer; items: TItem[] } | null>(null)
@@ -24,12 +27,12 @@ export function TransferCreditsView({ programs, scales, categories }: { programs
   const [search, setSearch] = useState('')
 
   async function loadList() {
-    const d = await fetch('/api/academic/transfer-credits').then(r => r.json())
+    const d = await fetch(`/api/academic/transfer-credits?kind=${kind}`).then(r => r.json())
     setTransfers(d.transfers ?? [])
   }
   useEffect(() => {
-    fetch('/api/academic/transfer-credits').then(r => r.json()).then(d => setTransfers(d.transfers ?? [])).catch(() => {})
-  }, [])
+    fetch(`/api/academic/transfer-credits?kind=${kind}`).then(r => r.json()).then(d => setTransfers(d.transfers ?? [])).catch(() => {})
+  }, [kind])
 
   async function openTransfer(id: string) {
     setCreating(false); setSelId(id)
@@ -37,7 +40,7 @@ export function TransferCreditsView({ programs, scales, categories }: { programs
     setDetail(d.transfer ? d : null)
   }
   async function delTransfer(id: string) {
-    if (!confirm('¿Eliminar esta convalidación y todas sus asignaturas?')) return
+    if (!confirm(`¿Eliminar esta ${noun} y todas sus asignaturas?`)) return
     await fetch(`/api/academic/transfer-credits/${id}`, { method: 'DELETE' })
     if (selId === id) { setSelId(null); setDetail(null) }
     await loadList()
@@ -54,7 +57,7 @@ export function TransferCreditsView({ programs, scales, categories }: { programs
         <div className="p-3 border-b border-gray-100 space-y-2">
           <button onClick={() => { setCreating(true); setSelId(null); setDetail(null) }}
             className="w-full flex items-center justify-center gap-1.5 text-sm font-medium bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
-            <Plus className="w-4 h-4" /> Nueva convalidación
+            <Plus className="w-4 h-4" /> Nueva {noun}
           </button>
           <div className="flex items-center border border-gray-200 rounded-lg px-2.5">
             <Search className="w-3.5 h-3.5 text-gray-400" />
@@ -69,7 +72,7 @@ export function TransferCreditsView({ programs, scales, categories }: { programs
               ? transfers.filter(t => (t.student_name ?? '').toLowerCase().includes(q) || (t.student_document ?? '').toLowerCase().includes(q))
               : transfers
             return list.length === 0 ? (
-              <p className="py-10 text-center text-xs text-gray-400">{transfers.length === 0 ? 'Sin convalidaciones' : 'Sin resultados'}</p>
+              <p className="py-10 text-center text-xs text-gray-400">{transfers.length === 0 ? `Sin ${noun}es` : 'Sin resultados'}</p>
             ) : list.map(t => (
             <button key={t.id} onClick={() => openTransfer(t.id)}
               className={`w-full text-left px-4 py-3 hover:bg-gray-50 ${selId === t.id ? 'bg-blue-50' : ''}`}>
@@ -85,18 +88,18 @@ export function TransferCreditsView({ programs, scales, categories }: { programs
       {/* Panel derecho */}
       <div className="flex-1 min-w-0">
         {creating ? (
-          <NewTransferForm programs={programs} scales={scales} onCancel={() => setCreating(false)}
+          <NewTransferForm programs={programs} scales={scales} kind={kind} noun={noun} onCancel={() => setCreating(false)}
             onCreated={async (id) => { await loadList(); await openTransfer(id) }} />
         ) : detail ? (
           <TransferDetail
             key={detail.transfer.id}
-            detail={detail} program={program} scale={scale} destPassing={destPassing}
+            detail={detail} program={program} scale={scale} destPassing={destPassing} isVal={isVal} annotation={annotation}
             onReload={() => openTransfer(detail.transfer.id)} onDelete={() => delTransfer(detail.transfer.id)}
           />
         ) : (
           <div className="bg-white rounded-xl border border-dashed border-gray-300 py-20 text-center text-gray-400">
             <FileCheck className="w-10 h-10 mx-auto mb-3" />
-            <p className="text-sm">Selecciona una convalidación o crea una nueva</p>
+            <p className="text-sm">Selecciona una {noun} o crea una nueva</p>
           </div>
         )}
       </div>
@@ -104,9 +107,9 @@ export function TransferCreditsView({ programs, scales, categories }: { programs
   )
 }
 
-// ── Formulario nueva convalidación ──────────────────────────────────────────
-function NewTransferForm({ programs, scales, onCancel, onCreated }: {
-  programs: Program[]; scales: Scale[]; onCancel: () => void; onCreated: (id: string) => void
+// ── Formulario nueva convalidación/validación ───────────────────────────────
+function NewTransferForm({ programs, scales, kind, noun, onCancel, onCreated }: {
+  programs: Program[]; scales: Scale[]; kind: 'convalidacion' | 'validacion'; noun: string; onCancel: () => void; onCreated: (id: string) => void
 }) {
   const [q, setQ] = useState('')
   const [hits, setHits] = useState<StudentHit[]>([])
@@ -145,7 +148,7 @@ function NewTransferForm({ programs, scales, onCancel, onCreated }: {
       body: JSON.stringify({
         student_id: student.id, student_document: student.document_number, student_name: student.name,
         origin_institution: originInst, origin_program: originProg || null,
-        dest_program_id: destProg, scale_id: scaleId,
+        dest_program_id: destProg, scale_id: scaleId, kind,
       }),
     })
     setSaving(false)
@@ -157,7 +160,7 @@ function NewTransferForm({ programs, scales, onCancel, onCreated }: {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-gray-900">Nueva convalidación</h2>
+        <h2 className="text-sm font-semibold text-gray-900">Nueva {noun}</h2>
         <button onClick={onCancel} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
       </div>
 
@@ -228,7 +231,7 @@ function NewTransferForm({ programs, scales, onCancel, onCreated }: {
         <button onClick={onCancel} className="text-sm text-gray-500 px-3 py-2">Cancelar</button>
         <button onClick={create} disabled={saving || !student || !originInst || !destProg || !scaleId}
           className="flex items-center gap-1.5 text-sm font-medium bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
-          {saving && <Loader2 className="w-4 h-4 animate-spin" />} Crear convalidación
+          {saving && <Loader2 className="w-4 h-4 animate-spin" />} Crear {noun}
         </button>
       </div>
     </div>
@@ -236,9 +239,9 @@ function NewTransferForm({ programs, scales, onCancel, onCreated }: {
 }
 
 // ── Detalle: ítems + conversión ─────────────────────────────────────────────
-function TransferDetail({ detail, program, scale, destPassing, onReload, onDelete }: {
+function TransferDetail({ detail, program, scale, destPassing, isVal, annotation, onReload, onDelete }: {
   detail: { transfer: Transfer; items: TItem[] }; program?: Program; scale?: Scale; destPassing: number | null
-  onReload: () => void; onDelete: () => void
+  isVal: boolean; annotation: string; onReload: () => void; onDelete: () => void
 }) {
   const { transfer, items } = detail
   const [pdfDate, setPdfDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -295,12 +298,16 @@ function TransferDetail({ detail, program, scale, destPassing, onReload, onDelet
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <input type="date" value={pdfDate} onChange={e => setPdfDate(e.target.value)} title="Fecha del formato"
-            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-          <a href={`/api/academic/transfer-credits/${transfer.id}/pdf${pdfDate ? `?date=${pdfDate}` : ''}`} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs font-medium border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50">
-            <Download className="w-3.5 h-3.5" /> Descargar PDF
-          </a>
+          {!isVal && (
+            <>
+              <input type="date" value={pdfDate} onChange={e => setPdfDate(e.target.value)} title="Fecha del formato"
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              <a href={`/api/academic/transfer-credits/${transfer.id}/pdf${pdfDate ? `?date=${pdfDate}` : ''}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs font-medium border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50">
+                <Download className="w-3.5 h-3.5" /> Descargar PDF
+              </a>
+            </>
+          )}
           <button onClick={onDelete} className="text-gray-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
@@ -375,7 +382,7 @@ function TransferDetail({ detail, program, scale, destPassing, onReload, onDelet
           </tr>
         </tbody>
       </table>
-      <p className="text-xs text-gray-400 mt-3">La nota es opcional: puedes vincular ahora y completar la calificación después. Al tener nota, la asignatura aparece como <strong>Convalidado</strong> en las notas del estudiante.</p>
+      <p className="text-xs text-gray-400 mt-3">La nota es opcional: puedes vincular ahora y completar la calificación después. Al tener nota, la asignatura aparece como <strong>{annotation}</strong> en las notas del estudiante.</p>
     </div>
   )
 }

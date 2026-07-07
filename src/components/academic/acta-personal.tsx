@@ -6,11 +6,12 @@ import { Search, User, Loader2, FileText } from 'lucide-react'
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 interface Program { id: string; name: string }
 interface Row { code: string | null; name: string; credits: number | null; status: string; grade: number | null }
-interface Summary { transfer: number; aprobado: number; desaprobado: number; en_proceso: number; pendiente: number; total: number }
+interface Summary { transfer: number; validation: number; aprobado: number; desaprobado: number; en_proceso: number; pendiente: number; total: number }
 interface Acta { student: { name: string; document: string | null }; program: { name: string }; courses: Row[]; summary: Summary }
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   transfer:    { label: 'Transfer Credit', cls: 'bg-indigo-50 text-indigo-700' },
+  validation:  { label: 'Validation',      cls: 'bg-purple-50 text-purple-700' },
   aprobado:    { label: 'Aprobado',        cls: 'bg-green-50 text-green-700' },
   desaprobado: { label: 'Desaprobado',     cls: 'bg-red-50 text-red-700' },
   en_proceso:  { label: 'En proceso',      cls: 'bg-amber-50 text-amber-700' },
@@ -54,6 +55,7 @@ export function ActaPersonal() {
 
   const chips: [string, number, string][] = acta ? [
     ['Transfer Credit', acta.summary.transfer, 'bg-indigo-50 text-indigo-700 border-indigo-100'],
+    ['Validation', acta.summary.validation, 'bg-purple-50 text-purple-700 border-purple-100'],
     ['Aprobadas', acta.summary.aprobado, 'bg-green-50 text-green-700 border-green-100'],
     ['Desaprobadas', acta.summary.desaprobado, 'bg-red-50 text-red-700 border-red-100'],
     ['En Proceso', acta.summary.en_proceso, 'bg-amber-50 text-amber-700 border-amber-100'],
@@ -146,7 +148,7 @@ export function ActaPersonal() {
                       <td className="px-3 py-2.5 text-center text-gray-500">{c.credits ?? '—'}</td>
                       <td className="px-3 py-2.5 text-center">
                         {c.grade != null
-                          ? <span className={`font-semibold ${c.status === 'desaprobado' ? 'text-red-600' : c.status === 'transfer' ? 'text-indigo-600' : 'text-gray-800'}`}>{c.grade}</span>
+                          ? <span className={`font-semibold ${c.status === 'desaprobado' ? 'text-red-600' : c.status === 'transfer' ? 'text-indigo-600' : c.status === 'validation' ? 'text-purple-600' : 'text-gray-800'}`}>{c.grade}</span>
                           : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-3 py-2.5">

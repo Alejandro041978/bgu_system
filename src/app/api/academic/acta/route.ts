@@ -35,30 +35,37 @@ export async function GET(req: NextRequest) {
   const { data: courses } = await sb.from('academic_courses')
     .select('id, code, name, credits').eq('program_id', programId).order('code')
 
-  // Notas reales del estudiante (excluye las filas de convalidación)
+  // Notas reales del estudiante (excluye filas de convalidación y validación)
   const { data: grades } = document
-    ? await sb.from('academic_grades').select('course_code, course_name, final_grade, retake_grade, passing_score').eq('document_number', document).neq('source', 'convalidacion')
+    ? await sb.from('academic_grades').select('course_code, course_name, final_grade, retake_grade, passing_score')
+        .eq('document_number', document).neq('source', 'convalidacion').neq('source', 'validacion')
     : { data: [] }
 
-  // Convalidaciones del estudiante para este programa (dest_course_id → nota convertida)
-  const { data: tcs } = await sb.from('transfer_credits').select('id').eq('student_id', studentId).eq('dest_program_id', programId)
+  // Convalidaciones/validaciones del estudiante para este programa (dest_course_id → { nota, tipo })
+  const { data: tcs } = await sb.from('transfer_credits').select('id, kind').eq('student_id', studentId).eq('dest_program_id', programId)
+  const kindByTc = new Map<string, string>()
+  for (const t of tcs ?? []) kindByTc.set(t.id, t.kind === 'validacion' ? 'validacion' : 'convalidacion')
   const tcIds = (tcs ?? []).map((t: { id: string }) => t.id)
   const { data: tItems } = tcIds.length
-    ? await sb.from('transfer_credit_items').select('dest_course_id, converted_grade').in('transfer_credit_id', tcIds)
+    ? await sb.from('transfer_credit_items').select('transfer_credit_id, dest_course_id, converted_grade').in('transfer_credit_id', tcIds)
     : { data: [] }
-  const transferMap = new Map<string, number | null>()
-  for (const it of tItems ?? []) if (it.dest_course_id) transferMap.set(it.dest_course_id, it.converted_grade)
+  const transferMap = new Map<string, { grade: number | null; kind: string }>()
+  for (const it of tItems ?? []) if (it.dest_course_id) {
+    transferMap.set(it.dest_course_id, { grade: it.converted_grade, kind: kindByTc.get(it.transfer_credit_id) ?? 'convalidacion' })
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gradeRows = (grades ?? []) as any[]
-  const summary = { transfer: 0, aprobado: 0, desaprobado: 0, en_proceso: 0, pendiente: 0 }
+  const summary = { transfer: 0, validation: 0, aprobado: 0, desaprobado: 0, en_proceso: 0, pendiente: 0 }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = (courses ?? []).map((c: any) => {
-    // Transfer credit tiene prioridad (con o sin nota)
+    // Transfer credit / Validation tienen prioridad (con o sin nota)
     if (transferMap.has(c.id)) {
+      const tm = transferMap.get(c.id)!
+      if (tm.kind === 'validacion') { summary.validation++; return { code: c.code, name: c.name, credits: c.credits, status: 'validation', grade: tm.grade } }
       summary.transfer++
-      return { code: c.code, name: c.name, credits: c.credits, status: 'transfer', grade: transferMap.get(c.id) ?? null }
+      return { code: c.code, name: c.name, credits: c.credits, status: 'transfer', grade: tm.grade }
     }
     // Empareja notas por código o nombre
     const matches = gradeRows.filter(g =>
