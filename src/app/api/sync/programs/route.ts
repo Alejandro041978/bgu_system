@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
     updated = updates.length
   }
   if (inserts.length) {
-    const { error } = await sb.from('academic_programs').insert(inserts)
+    // upsert por external_id → idempotente y a prueba de llamadas repetidas/concurrentes
+    const { error } = await sb.from('academic_programs').upsert(inserts, { onConflict: 'external_id' })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     inserted = inserts.length
   }
