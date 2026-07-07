@@ -6,7 +6,7 @@ import { Loader2, Plus, Trash2, Search, X, Layers, Users, Check } from 'lucide-r
 interface Course { id: string; name: string; code: string | null }
 interface Program { id: string; name: string; code: string | null; courses: Course[] }
 interface Scale { id: string; name: string }
-interface SchemeItem { id: string; origin_course_name: string; dest_course_id: string | null; dest_course_name: string | null }
+interface SchemeItem { id: string; origin_course_name: string; origin_course_code: string | null; origin_credits: number | null; dest_course_id: string | null; dest_course_name: string | null }
 interface Scheme {
   id: string; name: string; origin_institution: string; dest_program_id: string | null; scale_id: string | null
   items?: { id: string }[]
@@ -156,7 +156,9 @@ function SchemeDetail({ detail, program, scale, onReload, onDelete }: {
 }) {
   const { scheme, items, applied_count } = detail
   const courses = program?.courses ?? []
+  const [originCode, setOriginCode] = useState('')
   const [originName, setOriginName] = useState('')
+  const [originCredits, setOriginCredits] = useState('')
   const [destCourse, setDestCourse] = useState('')
   const [adding, setAdding] = useState(false)
 
@@ -173,9 +175,13 @@ function SchemeDetail({ detail, program, scale, onReload, onDelete }: {
     const c = courses.find(x => x.id === destCourse)
     await fetch(`/api/academic/transfer-schemes/${scheme.id}/items`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ origin_course_name: originName, dest_course_id: destCourse || null, dest_course_name: c?.name ?? null }),
+      body: JSON.stringify({
+        origin_course_name: originName, origin_course_code: originCode || null,
+        origin_credits: originCredits === '' ? null : Number(originCredits),
+        dest_course_id: destCourse || null, dest_course_name: c?.name ?? null,
+      }),
     })
-    setAdding(false); setOriginName(''); setDestCourse('')
+    setAdding(false); setOriginCode(''); setOriginName(''); setOriginCredits(''); setDestCourse('')
     onReload()
   }
   async function delItem(itemId: string) {
@@ -228,19 +234,27 @@ function SchemeDetail({ detail, program, scale, onReload, onDelete }: {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
-              <th className="py-2 pr-3">Asignatura de origen</th><th className="py-2 pr-3">Asignatura de destino</th><th className="w-8"></th>
+              <th className="py-2 pr-2 w-16">N° origen</th>
+              <th className="py-2 pr-3">Asignatura de origen</th>
+              <th className="py-2 pr-2 w-14">Cr.</th>
+              <th className="py-2 pr-3">Asignatura de destino</th>
+              <th className="w-8"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {items.map(it => (
               <tr key={it.id}>
+                <td className="py-2 pr-2 text-gray-500">{it.origin_course_code ?? '—'}</td>
                 <td className="py-2 pr-3 text-gray-800">{it.origin_course_name}</td>
+                <td className="py-2 pr-2 text-gray-500">{it.origin_credits ?? '—'}</td>
                 <td className="py-2 pr-3 text-gray-600">{it.dest_course_name ?? '—'}</td>
                 <td className="py-2 text-right"><button onClick={() => delItem(it.id)} className="text-gray-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button></td>
               </tr>
             ))}
             <tr className="bg-gray-50/50">
+              <td className="py-2 pr-2"><input value={originCode} onChange={e => setOriginCode(e.target.value)} placeholder="101" className="w-14 border border-gray-200 rounded px-2 py-1 text-sm" /></td>
               <td className="py-2 pr-2"><input value={originName} onChange={e => setOriginName(e.target.value)} placeholder="Denominación origen" className="w-full border border-gray-200 rounded px-2 py-1 text-sm" /></td>
+              <td className="py-2 pr-2"><input type="number" value={originCredits} onChange={e => setOriginCredits(e.target.value)} placeholder="03" className="w-12 border border-gray-200 rounded px-2 py-1 text-sm" /></td>
               <td className="py-2 pr-2">
                 <select value={destCourse} onChange={e => setDestCourse(e.target.value)} className="w-full border border-gray-200 rounded px-2 py-1 text-sm bg-white">
                   <option value="">Elegir asignatura…</option>

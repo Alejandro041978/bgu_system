@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, Plus, Trash2, Search, ArrowRight, FileCheck, AlertTriangle, X } from 'lucide-react'
+import { Loader2, Plus, Trash2, Search, ArrowRight, FileCheck, AlertTriangle, X, Download } from 'lucide-react'
 import { convertGrade } from '@/lib/grade-convert'
 
 interface Course { id: string; name: string; code: string | null; credits: number | null }
 interface Program { id: string; name: string; code: string | null; category_id: string | null; courses: Course[] }
 interface Scale { id: string; name: string; origin_min: number; origin_max: number; origin_passing: number }
 interface Category { id: string; name: string; passing_score: number | null }
-interface TItem { id: string; origin_course_name: string; dest_course_id: string | null; dest_course_name: string | null; origin_grade: number | null; converted_grade: number | null }
+interface TItem { id: string; origin_course_name: string; origin_course_code: string | null; origin_credits: number | null; dest_course_id: string | null; dest_course_name: string | null; origin_grade: number | null; converted_grade: number | null }
 interface Transfer {
   id: string; student_id: string; student_name: string | null; student_document: string | null
   origin_institution: string; origin_program: string | null; dest_program_id: string | null; scale_id: string | null
@@ -229,7 +229,9 @@ function TransferDetail({ detail, program, scale, destPassing, onReload, onDelet
   onReload: () => void; onDelete: () => void
 }) {
   const { transfer, items } = detail
+  const [originCode, setOriginCode] = useState('')
   const [originName, setOriginName] = useState('')
+  const [originCredits, setOriginCredits] = useState('')
   const [destCourse, setDestCourse] = useState('')
   const [grade, setGrade] = useState('')
   const [adding, setAdding] = useState(false)
@@ -245,17 +247,18 @@ function TransferDetail({ detail, program, scale, destPassing, onReload, onDelet
     await fetch(`/api/academic/transfer-credits/${transfer.id}/items`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        origin_course_name: originName, dest_course_id: destCourse || null,
-        dest_course_name: c?.name ?? null, origin_grade: grade === '' ? null : Number(grade),
+        origin_course_name: originName, origin_course_code: originCode || null,
+        origin_credits: originCredits === '' ? null : Number(originCredits),
+        dest_course_id: destCourse || null, dest_course_name: c?.name ?? null,
+        origin_grade: grade === '' ? null : Number(grade),
       }),
     })
-    setAdding(false); setOriginName(''); setDestCourse(''); setGrade('')
+    setAdding(false); setOriginCode(''); setOriginName(''); setOriginCredits(''); setDestCourse(''); setGrade('')
     onReload()
   }
-  async function updateGrade(itemId: string, value: string) {
+  async function updateItem(itemId: string, patch: Record<string, string>) {
     await fetch(`/api/academic/transfer-credit-items/${itemId}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ origin_grade: value === '' ? null : Number(value) }),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
     })
     onReload()
   }
@@ -278,7 +281,13 @@ function TransferDetail({ detail, program, scale, destPassing, onReload, onDelet
             <span className="px-2 py-0.5 bg-gray-50 text-gray-500 rounded-full text-xs">Escala: {scale?.name ?? '—'}</span>
           </div>
         </div>
-        <button onClick={onDelete} className="text-gray-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+        <div className="flex items-center gap-2">
+          <a href={`/api/academic/transfer-credits/${transfer.id}/pdf`} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs font-medium border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50">
+            <Download className="w-3.5 h-3.5" /> Descargar PDF
+          </a>
+          <button onClick={onDelete} className="text-gray-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+        </div>
       </div>
 
       {destPassing == null && (
@@ -292,24 +301,36 @@ function TransferDetail({ detail, program, scale, destPassing, onReload, onDelet
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
+            <th className="py-2 pr-2 w-16">N° origen</th>
             <th className="py-2 pr-3">Asignatura de origen</th>
+            <th className="py-2 pr-2 w-14">Cr.</th>
+            <th className="py-2 pr-2 w-16">Nota</th>
             <th className="py-2 pr-3">Asignatura de destino</th>
-            <th className="py-2 pr-3 w-24">Nota origen</th>
-            <th className="py-2 pr-3 w-20">= 0–100</th>
+            <th className="py-2 pr-2 w-16">= 0–100</th>
             <th className="w-8"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
           {items.map(it => (
             <tr key={it.id}>
-              <td className="py-2 pr-3 text-gray-800">{it.origin_course_name}</td>
-              <td className="py-2 pr-3 text-gray-600">{it.dest_course_name ?? '—'}</td>
-              <td className="py-2 pr-3">
-                <input type="number" defaultValue={it.origin_grade ?? ''} placeholder="—"
-                  onBlur={e => { if (String(it.origin_grade ?? '') !== e.target.value) updateGrade(it.id, e.target.value) }}
-                  className="w-20 border border-gray-200 rounded px-2 py-1 text-sm" />
+              <td className="py-2 pr-2">
+                <input defaultValue={it.origin_course_code ?? ''} placeholder="—"
+                  onBlur={e => { if (String(it.origin_course_code ?? '') !== e.target.value) updateItem(it.id, { origin_course_code: e.target.value }) }}
+                  className="w-14 border border-gray-200 rounded px-2 py-1 text-sm" />
               </td>
-              <td className="py-2 pr-3">
+              <td className="py-2 pr-3 text-gray-800">{it.origin_course_name}</td>
+              <td className="py-2 pr-2">
+                <input type="number" defaultValue={it.origin_credits ?? ''} placeholder="—"
+                  onBlur={e => { if (String(it.origin_credits ?? '') !== e.target.value) updateItem(it.id, { origin_credits: e.target.value }) }}
+                  className="w-12 border border-gray-200 rounded px-2 py-1 text-sm" />
+              </td>
+              <td className="py-2 pr-2">
+                <input type="number" defaultValue={it.origin_grade ?? ''} placeholder="—"
+                  onBlur={e => { if (String(it.origin_grade ?? '') !== e.target.value) updateItem(it.id, { origin_grade: e.target.value }) }}
+                  className="w-14 border border-gray-200 rounded px-2 py-1 text-sm" />
+              </td>
+              <td className="py-2 pr-3 text-gray-600">{it.dest_course_name ?? '—'}</td>
+              <td className="py-2 pr-2">
                 <span className={`font-semibold ${it.converted_grade != null ? 'text-blue-700' : 'text-gray-300'}`}>{it.converted_grade ?? '—'}</span>
               </td>
               <td className="py-2 text-right">
@@ -319,20 +340,15 @@ function TransferDetail({ detail, program, scale, destPassing, onReload, onDelet
           ))}
           {/* fila agregar */}
           <tr className="bg-gray-50/50">
+            <td className="py-2 pr-2"><input value={originCode} onChange={e => setOriginCode(e.target.value)} placeholder="101" className="w-14 border border-gray-200 rounded px-2 py-1 text-sm" /></td>
+            <td className="py-2 pr-2"><input value={originName} onChange={e => setOriginName(e.target.value)} placeholder="Denominación origen" className="w-full border border-gray-200 rounded px-2 py-1 text-sm" /></td>
+            <td className="py-2 pr-2"><input type="number" value={originCredits} onChange={e => setOriginCredits(e.target.value)} placeholder="03" className="w-12 border border-gray-200 rounded px-2 py-1 text-sm" /></td>
+            <td className="py-2 pr-2"><input type="number" value={grade} onChange={e => setGrade(e.target.value)} placeholder="opc." className="w-14 border border-gray-200 rounded px-2 py-1 text-sm" /></td>
             <td className="py-2 pr-2">
-              <input value={originName} onChange={e => setOriginName(e.target.value)} placeholder="Denominación origen"
-                className="w-full border border-gray-200 rounded px-2 py-1 text-sm" />
-            </td>
-            <td className="py-2 pr-2">
-              <select value={destCourse} onChange={e => setDestCourse(e.target.value)}
-                className="w-full border border-gray-200 rounded px-2 py-1 text-sm bg-white">
+              <select value={destCourse} onChange={e => setDestCourse(e.target.value)} className="w-full border border-gray-200 rounded px-2 py-1 text-sm bg-white">
                 <option value="">Elegir asignatura…</option>
                 {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-            </td>
-            <td className="py-2 pr-2">
-              <input type="number" value={grade} onChange={e => setGrade(e.target.value)} placeholder="opc."
-                className="w-20 border border-gray-200 rounded px-2 py-1 text-sm" />
             </td>
             <td className="py-2 pr-2"><span className="text-blue-700 font-semibold text-sm">{preview ?? '—'}</span></td>
             <td className="py-2 text-right">

@@ -17,13 +17,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
   const b = await req.json() as {
-    origin_course_name?: string; dest_course_id?: string; dest_course_name?: string; origin_grade?: number | null
+    origin_course_name?: string; origin_course_code?: string; origin_credits?: number | null
+    dest_course_id?: string; dest_course_name?: string; origin_grade?: number | null
   }
   if (!b.origin_course_name) return NextResponse.json({ error: 'Falta la asignatura de origen' }, { status: 400 })
 
   const { data: item, error } = await db().from('transfer_credit_items').insert({
     transfer_credit_id: id,
     origin_course_name: b.origin_course_name,
+    origin_course_code: b.origin_course_code ?? null,
+    origin_credits: b.origin_credits ?? null,
     dest_course_id: b.dest_course_id ?? null,
     dest_course_name: b.dest_course_name ?? null,
     origin_grade: b.origin_grade ?? null,

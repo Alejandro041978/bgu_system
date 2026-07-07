@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ it
   const { itemId } = await params
   const b = await req.json() as Record<string, unknown>
   const patch: Record<string, unknown> = {}
-  for (const k of ['origin_course_name', 'dest_course_id', 'dest_course_name', 'origin_grade']) {
+  for (const k of ['origin_course_name', 'origin_course_code', 'origin_credits', 'dest_course_id', 'dest_course_name', 'origin_grade']) {
     if (k in b) patch[k] = b[k] === '' ? null : b[k]
   }
   const { error } = await db().from('transfer_credit_items').update(patch).eq('id', itemId)

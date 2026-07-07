@@ -48,6 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = schemeItems.map((it: any) => ({
       transfer_credit_id: tc.id, origin_course_name: it.origin_course_name,
+      origin_course_code: it.origin_course_code ?? null, origin_credits: it.origin_credits ?? null,
       dest_course_id: it.dest_course_id, dest_course_name: it.dest_course_name, origin_grade: null,
     }))
     await sb.from('transfer_credit_items').insert(rows)
