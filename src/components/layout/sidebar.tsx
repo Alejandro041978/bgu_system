@@ -82,6 +82,7 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Docentes', href: '/academic/faculty', icon: GraduationCap, pageKey: 'academic_faculty' },
       { name: 'Notas', href: '/academic/grades', icon: Award, pageKey: 'academic_grades' },
+      { name: 'Acta Personal', href: '/academic/acta', icon: FileText, pageKey: 'academic_acta' },
       {
         name: 'Convalidaciones', href: '/academic/transfer-credits', icon: FileCheck, pageKey: 'academic_transfer_credits',
         children: [
