@@ -229,6 +229,7 @@ function TransferDetail({ detail, program, scale, destPassing, onReload, onDelet
   onReload: () => void; onDelete: () => void
 }) {
   const { transfer, items } = detail
+  const [pdfDate, setPdfDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [originCode, setOriginCode] = useState('')
   const [originName, setOriginName] = useState('')
   const [originCredits, setOriginCredits] = useState('')
@@ -282,7 +283,9 @@ function TransferDetail({ detail, program, scale, destPassing, onReload, onDelet
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <a href={`/api/academic/transfer-credits/${transfer.id}/pdf`} target="_blank" rel="noopener noreferrer"
+          <input type="date" value={pdfDate} onChange={e => setPdfDate(e.target.value)} title="Fecha del formato"
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <a href={`/api/academic/transfer-credits/${transfer.id}/pdf${pdfDate ? `?date=${pdfDate}` : ''}`} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-xs font-medium border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50">
             <Download className="w-3.5 h-3.5" /> Descargar PDF
           </a>

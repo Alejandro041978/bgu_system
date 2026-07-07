@@ -6,12 +6,13 @@ import { generateTransferCreditPdf, type TCRow } from '@/lib/generate-transfer-c
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { id } = await params
+  const dateParam = req.nextUrl.searchParams.get('date') // YYYY-MM-DD opcional
   const sb = db()
 
   const { data: tc } = await sb.from('transfer_credits').select('*').eq('id', id).maybeSingle()
@@ -50,8 +51,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     }
   })
 
-  const date = tc.created_at
-    ? new Date(tc.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  // Fecha del formato: la elegida (si viene), si no la de creación. T12:00 evita corrimiento por zona horaria.
+  const dateSource = dateParam ? `${dateParam}T12:00:00` : tc.created_at
+  const date = dateSource
+    ? new Date(dateSource).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : ''
 
   const pdf = await generateTransferCreditPdf({
