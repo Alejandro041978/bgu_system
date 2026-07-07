@@ -13,18 +13,19 @@ const db = () => createClient(
 export default async function MatriculasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; block?: string }>
+  searchParams: Promise<{ year?: string; block?: string; category?: string }>
 }) {
   const params = await searchParams
   const selectedYear = params.year ? parseInt(params.year) : null
   const selectedBlock = params.block ?? null
+  const selectedCategory = params.category ?? null
 
   const supabase = db()
 
-  const { data: programs } = await supabase
-    .from('academic_programs')
-    .select('id, name, code')
-    .order('name')
+  const [{ data: programs }, { data: categories }] = await Promise.all([
+    supabase.from('academic_programs').select('id, name, code, category_id').order('name'),
+    supabase.from('academic_programs_category').select('id, name').order('name'),
+  ])
 
   // Trae TODAS las matrículas paginando: PostgREST corta en 1000 filas por request,
   // así que sin paginar los conteos salían truncados (mostraba 1000 en total).
@@ -63,14 +64,21 @@ export default async function MatriculasPage({
   const rows = (programs ?? []).map(p => ({
     ...p,
     count: countMap[p.id] ?? 0,
-  })).filter(r => r.count > 0).sort((a, b) => b.count - a.count)
+  }))
+    .filter(r => r.count > 0)
+    .filter(r => !selectedCategory || r.category_id === selectedCategory)
+    .sort((a, b) => b.count - a.count)
 
   const total = rows.reduce((sum, r) => sum + r.count, 0)
 
-  const filterLabel = selectedYear || selectedBlock
-    ? [selectedYear ? `Año ${selectedYear}` : null, selectedBlock ? `Semestre ${selectedBlock}` : null]
-        .filter(Boolean).join(' · ')
-    : 'Todos los períodos'
+  const categoryLabel = selectedCategory
+    ? (categories ?? []).find(c => c.id === selectedCategory)?.name ?? ''
+    : null
+  const filterLabel = [
+    categoryLabel,
+    selectedYear ? `Año ${selectedYear}` : null,
+    selectedBlock ? `Semestre ${selectedBlock}` : null,
+  ].filter(Boolean).join(' · ') || 'Todos los períodos'
 
   return (
     <>
@@ -82,8 +90,10 @@ export default async function MatriculasPage({
           <MatriculasFilters
             years={years}
             blocks={blocks}
+            categories={categories ?? []}
             selectedYear={selectedYear}
             selectedBlock={selectedBlock}
+            selectedCategory={selectedCategory}
           />
 
           {/* Resumen */}
