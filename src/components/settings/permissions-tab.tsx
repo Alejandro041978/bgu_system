@@ -17,6 +17,8 @@ const PAGE_GROUPS = [
     label: 'Atención al Cliente',
     pages: [
       { key: 'desk', label: 'Tickets' },
+      { key: 'inbox', label: 'Buzón WhatsApp/Correo' },
+      { key: 'helpdesk_skills', label: 'Helpdesk · Skills' },
       { key: 'desk_metrics', label: 'Métricas de tickets' },
     ],
   },
@@ -32,6 +34,12 @@ const PAGE_GROUPS = [
       { key: 'crm', label: 'Contactos / CRM' },
       { key: 'convenios', label: 'Convenios institucionales' },
       { key: 'admision_matriculas', label: 'Matrículas' },
+    ],
+  },
+  {
+    label: 'Ventas',
+    pages: [
+      { key: 'sales_prospectos', label: 'Prospectos' },
     ],
   },
   {
@@ -56,6 +64,12 @@ const PAGE_GROUPS = [
     label: 'Académico',
     pages: [
       { key: 'academic_faculty', label: 'Docentes' },
+      { key: 'academic_grades', label: 'Notas' },
+      { key: 'academic_acta', label: 'Acta Personal' },
+      { key: 'academic_transfer_credits', label: 'Convalidaciones · Individual' },
+      { key: 'academic_transfer_schemes', label: 'Convalidaciones · Esquemas masivos' },
+      { key: 'academic_validations', label: 'Validación de asignaturas' },
+      { key: 'academic_grade_scales', label: 'Escalas de conversión' },
       { key: 'academic_credentials', label: 'Credencial' },
       { key: 'academic_years', label: 'Años y Semestres' },
       { key: 'academic_programs', label: 'Programas' },
