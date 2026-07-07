@@ -21,6 +21,7 @@ export function TransferCreditsView({ programs, scales, categories }: { programs
   const [selId, setSelId] = useState<string | null>(null)
   const [detail, setDetail] = useState<{ transfer: Transfer; items: TItem[] } | null>(null)
   const [creating, setCreating] = useState(false)
+  const [search, setSearch] = useState('')
 
   async function loadList() {
     const d = await fetch('/api/academic/transfer-credits').then(r => r.json())
@@ -50,23 +51,34 @@ export function TransferCreditsView({ programs, scales, categories }: { programs
     <div className="flex gap-4">
       {/* Lista */}
       <div className="w-72 flex-shrink-0 bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden self-start">
-        <div className="p-3 border-b border-gray-100">
+        <div className="p-3 border-b border-gray-100 space-y-2">
           <button onClick={() => { setCreating(true); setSelId(null); setDetail(null) }}
             className="w-full flex items-center justify-center gap-1.5 text-sm font-medium bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
             <Plus className="w-4 h-4" /> Nueva convalidación
           </button>
+          <div className="flex items-center border border-gray-200 rounded-lg px-2.5">
+            <Search className="w-3.5 h-3.5 text-gray-400" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nombre o documento…"
+              className="flex-1 px-2 py-1.5 text-xs focus:outline-none" />
+          </div>
         </div>
         <div className="max-h-[70vh] overflow-auto divide-y divide-gray-50">
-          {transfers.length === 0 ? (
-            <p className="py-10 text-center text-xs text-gray-400">Sin convalidaciones</p>
-          ) : transfers.map(t => (
+          {(() => {
+            const q = search.trim().toLowerCase()
+            const list = q
+              ? transfers.filter(t => (t.student_name ?? '').toLowerCase().includes(q) || (t.student_document ?? '').toLowerCase().includes(q))
+              : transfers
+            return list.length === 0 ? (
+              <p className="py-10 text-center text-xs text-gray-400">{transfers.length === 0 ? 'Sin convalidaciones' : 'Sin resultados'}</p>
+            ) : list.map(t => (
             <button key={t.id} onClick={() => openTransfer(t.id)}
               className={`w-full text-left px-4 py-3 hover:bg-gray-50 ${selId === t.id ? 'bg-blue-50' : ''}`}>
               <p className="text-sm font-medium text-gray-800 truncate">{t.student_name ?? 'Estudiante'}</p>
               <p className="text-xs text-gray-400 truncate">{t.origin_institution}</p>
               <span className="text-[10px] text-gray-400">{t.items?.length ?? 0} asignatura(s)</span>
             </button>
-          ))}
+            ))
+          })()}
         </div>
       </div>
 
