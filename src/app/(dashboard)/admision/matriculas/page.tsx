@@ -26,18 +26,30 @@ export default async function MatriculasPage({
     .select('id, name, code')
     .order('name')
 
-  // Available years and blocks for filters
-  const { data: allEnrollments } = await supabase
-    .from('academic_student_enrollments')
-    .select('term_year, term_block, program_id')
+  // Trae TODAS las matrículas paginando: PostgREST corta en 1000 filas por request,
+  // así que sin paginar los conteos salían truncados (mostraba 1000 en total).
+  type Enr = { term_year: number | null; term_block: string | null; program_id: string | null }
+  const allEnrollments: Enr[] = []
+  {
+    const pageSize = 1000
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase
+        .from('academic_student_enrollments')
+        .select('term_year, term_block, program_id')
+        .range(from, from + pageSize - 1)
+      if (error || !data || data.length === 0) break
+      allEnrollments.push(...(data as Enr[]))
+      if (data.length < pageSize) break
+    }
+  }
 
-  const years = [...new Set((allEnrollments ?? []).map(e => e.term_year).filter(Boolean))]
-    .sort((a, b) => a - b) as number[]
-  const blocks = [...new Set((allEnrollments ?? []).map(e => e.term_block).filter(Boolean))]
-    .sort() as string[]
+  const years = [...new Set(allEnrollments.map(e => e.term_year).filter((v): v is number => v != null))]
+    .sort((a, b) => a - b)
+  const blocks = [...new Set(allEnrollments.map(e => e.term_block).filter((v): v is string => v != null))]
+    .sort()
 
   // Filter enrollments
-  const filtered = (allEnrollments ?? []).filter(e => {
+  const filtered = allEnrollments.filter(e => {
     if (selectedYear && e.term_year !== selectedYear) return false
     if (selectedBlock && e.term_block !== selectedBlock) return false
     return true
