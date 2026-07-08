@@ -11,7 +11,12 @@ begin;
 -- 0) Soltar vínculos (se re-arman abajo)
 update academic_student_enrollments set convocatoria_id = null;
 update account_charges set convocatoria_id = null;
-update billing_plans set convocatoria_id = null;   -- si tenías planes, reasigna la convocatoria luego
+-- billing_plans puede no existir todavía; solo si existe
+do $$ begin
+  if to_regclass('public.billing_plans') is not null then
+    update billing_plans set convocatoria_id = null;   -- si tenías planes, reasigna la convocatoria luego
+  end if;
+end $$;
 
 -- 1) Esquema nuevo: convocatoria con categoría única
 drop table if exists convocatoria_categories;
@@ -162,9 +167,13 @@ alter table account_charges drop constraint if exists account_charges_convocator
 alter table account_charges
   add constraint account_charges_convocatoria_id_fkey foreign key (convocatoria_id) references convocatorias(id);
 
-alter table billing_plans drop constraint if exists billing_plans_convocatoria_id_fkey;
-alter table billing_plans
-  add constraint billing_plans_convocatoria_id_fkey foreign key (convocatoria_id) references convocatorias(id);
+do $$ begin
+  if to_regclass('public.billing_plans') is not null then
+    alter table billing_plans drop constraint if exists billing_plans_convocatoria_id_fkey;
+    alter table billing_plans
+      add constraint billing_plans_convocatoria_id_fkey foreign key (convocatoria_id) references convocatorias(id);
+  end if;
+end $$;
 
 -- 4) Re-vincular matrículas por (categoría del programa + fecha de admisión más cercana)
 with best as (
