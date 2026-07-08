@@ -11,6 +11,8 @@ export interface ChargeRow {
   balance: number
   due_date: string | null
   charge_type: number | null
+  concept_abbr: string
+  concept_name: string
   convocatoria: string | null
   status: 'pagada' | 'parcial' | 'vencida' | 'pendiente'
 }
@@ -73,6 +75,14 @@ export async function getAccountStatement(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const e of (enrData ?? []) as any[]) programByEnrollment.set(e.id, e.academic_programs?.name ?? 'Programa')
 
+  // Conceptos editables (Installment.Type -> abreviatura + nombre)
+  const { data: conceptData } = await sb.from('account_concepts').select('type_code, abbr, name').eq('kind', 'charge')
+  const conceptByType = new Map<number, { abbr: string | null; name: string | null }>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const c of (conceptData ?? []) as any[]) conceptByType.set(c.type_code, { abbr: c.abbr, name: c.name })
+  const conceptAbbr = (t: number | null) => (t == null ? '—' : conceptByType.get(t)?.abbr || `T${t}`)
+  const conceptName = (t: number | null) => (t == null ? '—' : conceptByType.get(t)?.name || `Tipo ${t}`)
+
   // Cuotas y pagos
   const [{ data: chData }, { data: pyData }] = await Promise.all([
     sb.from('account_charges')
@@ -131,7 +141,9 @@ export async function getAccountStatement(
     const g = ensure(c.enrollment_id ?? null)
     g.charges.push({
       id: c.id, external_id: c.external_id, amount, paid: r2(paid), balance,
-      due_date: c.due_date, charge_type: c.charge_type, convocatoria: c.convocatorias?.name ?? null, status,
+      due_date: c.due_date, charge_type: c.charge_type,
+      concept_abbr: conceptAbbr(c.charge_type), concept_name: conceptName(c.charge_type),
+      convocatoria: c.convocatorias?.name ?? null, status,
     })
     g.totals.charged += amount
     if ((status === 'vencida' || status === 'parcial') && c.due_date && c.due_date <= today) g.totals.overdue += balance

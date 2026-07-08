@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
-import { chargeTypeLabel } from '@/lib/account-types'
 import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap } from 'lucide-react'
 
 const money = (n: number) =>
@@ -119,7 +118,13 @@ function ProgramAccountView({ account }: { account: ProgramAccount }) {
                 <tr key={p ? p.id : c.id + '-' + i} className="border-t border-gray-50 hover:bg-gray-50/50">
                   {/* Columnas de cuota (solo en la primera fila de la cuota) */}
                   <td className="px-3 py-2.5 text-gray-700">{r.first ? fdate(c.due_date) : ''}</td>
-                  <td className="px-3 py-2.5 text-gray-600">{r.first ? chargeTypeLabel(c.charge_type) : ''}</td>
+                  <td className="px-3 py-2.5 text-gray-600">
+                    {r.first && (
+                      <span title={c.concept_name} className="cursor-help border-b border-dotted border-gray-300">
+                        {c.concept_abbr}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-2.5 text-right text-gray-700">{r.first ? money(c.amount) : ''}</td>
                   {/* Columnas de pago */}
                   <td className="px-3 py-2.5 text-gray-700">{p ? fdate(p.paid_date) : '—'}</td>
