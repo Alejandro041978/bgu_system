@@ -11,6 +11,7 @@ export function AccountStatementSearch() {
   const [q, setQ] = useState('')
   const [hits, setHits] = useState<StudentHit[]>([])
   const [statement, setStatement] = useState<Statement | null>(null)
+  const [currentId, setCurrentId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   async function search(value: string) {
@@ -20,10 +21,15 @@ export function AccountStatementSearch() {
     setHits(d.students ?? [])
   }
 
-  async function selectStudent(h: StudentHit) {
-    setHits([]); setQ(h.name); setStatement(null); setLoading(true)
-    const d = await fetch(`/api/account/statement?student_id=${h.id}`).then(r => r.json())
+  async function loadStatement(id: string) {
+    setLoading(true)
+    const d = await fetch(`/api/account/statement?student_id=${id}`).then(r => r.json())
     setStatement(d.error ? null : d); setLoading(false)
+  }
+
+  async function selectStudent(h: StudentHit) {
+    setHits([]); setQ(h.name); setStatement(null); setCurrentId(h.id)
+    await loadStatement(h.id)
   }
 
   return (
@@ -48,12 +54,13 @@ export function AccountStatementSearch() {
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center py-16 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" />
-        </div>
+        <div className="flex items-center justify-center py-16 text-gray-400"><Loader2 className="w-5 h-5 animate-spin" /></div>
       )}
 
-      {!loading && statement && <AccountStatementView statement={statement} showStudent />}
+      {!loading && statement && (
+        <AccountStatementView statement={statement} showStudent canGenerate
+          onChanged={() => { if (currentId) loadStatement(currentId) }} />
+      )}
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
-import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap } from 'lucide-react'
+import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2 } from 'lucide-react'
 
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
@@ -36,7 +36,10 @@ function buildLedger(charges: ChargeRow[], payments: PaymentRow[]): LedgerRow[] 
   return rows
 }
 
-export function AccountStatementView({ statement, showStudent = false }: { statement: Statement; showStudent?: boolean }) {
+export function AccountStatementView(
+  { statement, showStudent = false, canGenerate = false, onChanged }:
+  { statement: Statement; showStudent?: boolean; canGenerate?: boolean; onChanged?: () => void }
+) {
   const { student, programs } = statement
   const [sel, setSel] = useState(0)
 
@@ -75,14 +78,23 @@ export function AccountStatementView({ statement, showStudent = false }: { state
         </p>
       )}
 
-      <ProgramAccountView account={account} />
+      <ProgramAccountView account={account} canGenerate={canGenerate} onChanged={onChanged} />
     </div>
   )
 }
 
-function ProgramAccountView({ account }: { account: ProgramAccount }) {
+function ProgramAccountView({ account, canGenerate, onChanged }: { account: ProgramAccount; canGenerate: boolean; onChanged?: () => void }) {
   const { totals } = account
   const ledger = buildLedger(account.charges, account.payments)
+
+  if (account.charges.length === 0) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl p-8 text-center space-y-3">
+        <p className="text-sm text-gray-500">Este programa aún no tiene cuotas generadas.</p>
+        {canGenerate && account.enrollment_id && <GenerateButton enrollmentId={account.enrollment_id} onChanged={onChanged} />}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-5">
@@ -147,6 +159,30 @@ function ProgramAccountView({ account }: { account: ProgramAccount }) {
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
+
+function GenerateButton({ enrollmentId, onChanged }: { enrollmentId: string; onChanged?: () => void }) {
+  const [loading, setLoading] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  async function gen() {
+    setLoading(true); setErr(null)
+    const d = await fetch('/api/account/generate-charges', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enrollment_id: enrollmentId }),
+    }).then(r => r.json())
+    setLoading(false)
+    if (d.error) setErr(d.error)
+    else onChanged?.()
+  }
+  return (
+    <div className="space-y-2">
+      <button onClick={gen} disabled={loading}
+        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FilePlus className="w-4 h-4" />}
+        Generar cuotas desde plantilla
+      </button>
+      {err && <p className="text-xs text-red-600">{err}</p>}
     </div>
   )
 }

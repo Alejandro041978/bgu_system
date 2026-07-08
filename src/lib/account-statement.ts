@@ -32,6 +32,7 @@ export interface Totals { charged: number; paid: number; balance: number; overdu
 // Una cuenta económica independiente por programa (enrollment) en que participa el estudiante.
 export interface ProgramAccount {
   enrollment_id: string | null
+  convocatoria_id: string | null
   program_name: string
   totals: Totals
   charges: ChargeRow[]
@@ -67,13 +68,10 @@ export async function getAccountStatement(
   if (!stu) return empty
   const student = { id: stu.id, name: fullName(stu), document_number: stu.document_number, email: stu.email }
 
-  // Matrículas del estudiante -> nombre de programa
+  // Matrículas del estudiante (una cuenta por cada una, aunque no tenga cuotas aún)
   const { data: enrData } = await sb.from('academic_student_enrollments')
-    .select('id, academic_programs(name)')
+    .select('id, convocatoria_id, academic_programs(name)')
     .eq('student_id', student.id)
-  const programByEnrollment = new Map<string, string>()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const e of (enrData ?? []) as any[]) programByEnrollment.set(e.id, e.academic_programs?.name ?? 'Programa')
 
   // Conceptos editables (Installment.Type -> abreviatura + nombre)
   const { data: conceptData } = await sb.from('account_concepts').select('type_code, abbr, name').eq('kind', 'charge')
@@ -98,11 +96,9 @@ export async function getAccountStatement(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const paymentsRaw = (pyData ?? []) as any[]
 
-  // external_id de cuota -> enrollment_id (para atribuir cada pago a su programa)
   const enrollmentByCharge = new Map<string, string | null>()
   for (const c of chargesRaw) enrollmentByCharge.set(c.external_id, c.enrollment_id ?? null)
 
-  // Pagado por cuota
   const paidByCharge = new Map<string, number>()
   for (const p of paymentsRaw) {
     if (!p.charge_external_id) continue
@@ -111,23 +107,24 @@ export async function getAccountStatement(
 
   const today = new Date().toISOString().slice(0, 10)
   const groups = new Map<string, ProgramAccount>()
-  const keyOf = (enr: string | null) => enr ?? '∅'
-  const ensure = (enr: string | null): ProgramAccount => {
-    const k = keyOf(enr)
-    let g = groups.get(k)
-    if (!g) {
-      g = {
-        enrollment_id: enr,
-        program_name: enr ? (programByEnrollment.get(enr) ?? 'Programa') : 'Sin programa',
-        totals: { charged: 0, paid: 0, balance: 0, overdue: 0 },
-        charges: [], payments: [],
-      }
-      groups.set(k, g)
-    }
+  const newGroup = (enr: string | null, conv: string | null, name: string): ProgramAccount => ({
+    enrollment_id: enr, convocatoria_id: conv, program_name: name,
+    totals: { charged: 0, paid: 0, balance: 0, overdue: 0 }, charges: [], payments: [],
+  })
+
+  // Un grupo por cada matrícula (aunque no tenga cuotas)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const e of (enrData ?? []) as any[]) {
+    groups.set(e.id, newGroup(e.id, e.convocatoria_id ?? null, e.academic_programs?.name ?? 'Programa'))
+  }
+  const ensureOrphan = () => {
+    let g = groups.get('∅')
+    if (!g) { g = newGroup(null, null, 'Sin programa'); groups.set('∅', g) }
     return g
   }
+  const groupFor = (enr: string | null) => (enr && groups.has(enr) ? groups.get(enr)! : ensureOrphan())
 
-  // Cuotas -> grupo por programa
+  // Cuotas
   for (const c of chargesRaw) {
     const amount = Number(c.amount ?? 0)
     const paid = paidByCharge.get(c.external_id) ?? 0
@@ -138,7 +135,7 @@ export async function getAccountStatement(
     else if (c.due_date && c.due_date <= today) status = 'vencida'
     else status = 'pendiente'
 
-    const g = ensure(c.enrollment_id ?? null)
+    const g = groupFor(c.enrollment_id ?? null)
     g.charges.push({
       id: c.id, external_id: c.external_id, amount, paid: r2(paid), balance,
       due_date: c.due_date, charge_type: c.charge_type,
@@ -149,10 +146,10 @@ export async function getAccountStatement(
     if ((status === 'vencida' || status === 'parcial') && c.due_date && c.due_date <= today) g.totals.overdue += balance
   }
 
-  // Pagos -> grupo por programa (vía su cuota)
+  // Pagos (atribuidos a su programa vía la cuota)
   for (const p of paymentsRaw) {
     const enr = p.charge_external_id ? enrollmentByCharge.get(p.charge_external_id) ?? null : null
-    const g = ensure(enr)
+    const g = groupFor(enr)
     const amount = Number(p.amount ?? 0)
     g.payments.push({
       id: p.id, charge_external_id: p.charge_external_id ?? null, amount, paid_date: p.paid_date,
@@ -160,6 +157,10 @@ export async function getAccountStatement(
     })
     g.totals.paid += amount
   }
+
+  // Descartar el grupo huérfano si quedó vacío
+  const orphan = groups.get('∅')
+  if (orphan && orphan.charges.length === 0 && orphan.payments.length === 0) groups.delete('∅')
 
   const programs = [...groups.values()].map(g => {
     g.charges.sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''))

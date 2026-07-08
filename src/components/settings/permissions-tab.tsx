@@ -68,6 +68,7 @@ const PAGE_GROUPS = [
       { key: 'academic_acta', label: 'Acta Personal' },
       { key: 'academic_account', label: 'Estado de Cuenta' },
       { key: 'academic_concepts', label: 'Conceptos de Cuenta' },
+      { key: 'academic_billing_plans', label: 'Plantillas de Facturación' },
       { key: 'academic_transfer_credits', label: 'Convalidaciones · Individual' },
       { key: 'academic_transfer_schemes', label: 'Convalidaciones · Esquemas masivos' },
       { key: 'academic_validations', label: 'Validación de asignaturas' },
