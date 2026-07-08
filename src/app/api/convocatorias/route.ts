@@ -33,16 +33,13 @@ export async function GET(req: NextRequest) {
     const { data: sems } = await sb.from('academic_semesters')
       .select('id, name, start_date, end_date').eq('academic_year_id', yearId).order('start_date')
     const semIds = (sems ?? []).map((s: { id: string }) => s.id)
-    const { data: links } = await sb.from('convocatoria_categories')
-      .select('convocatoria_id').eq('product_category_id', categoryId)
-    const convIds = (links ?? []).map((l: { convocatoria_id: string }) => l.convocatoria_id)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let convs: any[] = []
-    if (semIds.length && convIds.length) {
+    if (semIds.length) {
       const { data } = await sb.from('convocatorias')
         .select('id, name, academic_semester_id, registration_start_date, deadline_date, first_day, end_date')
-        .in('academic_semester_id', semIds).in('id', convIds).order('first_day')
+        .eq('product_category_id', categoryId).in('academic_semester_id', semIds).order('first_day')
       convs = data ?? []
     }
     const bySem = new Map<string, typeof convs>()
@@ -53,7 +50,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ categories: categories ?? [], years: years ?? [], semesters })
 }
 
-// POST → crear convocatoria (ligada a la categoría seleccionada)
+// POST → crear convocatoria (con su categoría única)
 export async function POST(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
@@ -61,19 +58,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Falta semestre o categoría' }, { status: 400 })
   }
   const sb = db()
-  const { data: conv, error } = await sb.from('convocatorias').insert({
+  const { error } = await sb.from('convocatorias').insert({
     name: b.name || 'Nueva convocatoria',
+    product_category_id: b.category_id,
     academic_semester_id: b.academic_semester_id,
     registration_start_date: b.registration_start_date || null,
     deadline_date: b.deadline_date || null,
     first_day: b.first_day || null,
     end_date: b.end_date || null,
-  }).select('id').single()
+  })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  const { error: jErr } = await sb.from('convocatoria_categories')
-    .insert({ convocatoria_id: conv.id, product_category_id: b.category_id })
-  if (jErr) return NextResponse.json({ error: jErr.message }, { status: 500 })
-  return NextResponse.json({ ok: true, id: conv.id })
+  return NextResponse.json({ ok: true })
 }
 
 // PATCH → editar una convocatoria (nombre + fechas)
@@ -104,7 +99,6 @@ export async function DELETE(req: NextRequest) {
   if ((count ?? 0) > 0) {
     return NextResponse.json({ error: `No se puede eliminar: tiene ${count} matrículas vinculadas` }, { status: 400 })
   }
-  await sb.from('convocatoria_categories').delete().eq('convocatoria_id', id)
   const { error } = await sb.from('convocatorias').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
