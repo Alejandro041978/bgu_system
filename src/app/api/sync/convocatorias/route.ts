@@ -6,7 +6,12 @@ export const maxDuration = 60
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-const ymd = (d: string | null | undefined) => (d ? String(d).slice(0, 10) : null)
+// Devuelve YYYY-MM-DD válido, o null (maneja "-infinity"/"infinity"/basura)
+const ymd = (d: string | null | undefined): string | null => {
+  if (!d) return null
+  const s = String(d).slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null
+}
 
 // POST (CRON_SECRET) — crea/actualiza convocatorias por (categoría, Year, Block).
 // Deriva academic_semester_id por la fecha de inicio (first_day dentro del rango del semestre).
