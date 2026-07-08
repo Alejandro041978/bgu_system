@@ -24,7 +24,7 @@ export default async function StudentHomePage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: enr } = await (supabase as any).from('academic_student_enrollments')
         .select('program_id').eq('student_id', stu.id)
-      programIds = [...new Set((enr ?? []).map((e: { program_id: string }) => e.program_id).filter(Boolean))]
+      programIds = [...new Set(((enr ?? []) as { program_id: string }[]).map(e => e.program_id).filter(Boolean))] as string[]
     }
   }
 
