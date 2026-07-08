@@ -1,6 +1,7 @@
 'use client'
 
 import type { Statement, ChargeRow } from '@/lib/account-statement'
+import { chargeTypeLabel } from '@/lib/account-types'
 import { Wallet, TrendingDown, CheckCircle2, AlertTriangle } from 'lucide-react'
 
 const money = (n: number) =>
@@ -47,6 +48,7 @@ export function AccountStatementView({ statement, showStudent = false }: { state
             <thead>
               <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
                 <th className="text-left px-4 py-2.5">Vencimiento</th>
+                <th className="text-left px-4 py-2.5">Concepto</th>
                 <th className="text-left px-4 py-2.5">Convocatoria</th>
                 <th className="text-right px-4 py-2.5">Monto</th>
                 <th className="text-right px-4 py-2.5">Pagado</th>
@@ -56,13 +58,11 @@ export function AccountStatementView({ statement, showStudent = false }: { state
             </thead>
             <tbody>
               {charges.length === 0 ? (
-                <tr><td colSpan={6} className="text-center text-gray-400 py-6">Sin cuotas registradas</td></tr>
+                <tr><td colSpan={7} className="text-center text-gray-400 py-6">Sin cuotas registradas</td></tr>
               ) : charges.map(c => (
                 <tr key={c.id} className="border-t border-gray-50 hover:bg-gray-50/50">
-                  <td className="px-4 py-2.5 text-gray-700">
-                    {fdate(c.due_date)}
-                    {c.charge_type != null && <span className="ml-2 text-[10px] text-gray-300">tipo {c.charge_type}</span>}
-                  </td>
+                  <td className="px-4 py-2.5 text-gray-700">{fdate(c.due_date)}</td>
+                  <td className="px-4 py-2.5 text-gray-600">{chargeTypeLabel(c.charge_type)}</td>
                   <td className="px-4 py-2.5 text-gray-500 text-xs">{c.convocatoria ?? '—'}</td>
                   <td className="px-4 py-2.5 text-right text-gray-700">{money(c.amount)}</td>
                   <td className="px-4 py-2.5 text-right text-green-600">{c.paid > 0 ? money(c.paid) : '—'}</td>
