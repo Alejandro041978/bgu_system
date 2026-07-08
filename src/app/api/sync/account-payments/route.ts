@@ -24,9 +24,10 @@ const int = (v: unknown): number | null => {
 }
 
 // POST (CRON_SECRET) — carga pagos desde SystemActiva Payments.
-// student_id se resuelve vía enrollment.external_id (= EnrollmentId de la cuota que paga).
-// Body: array [{ external_id, charge_external_id, enrollment_external_id, amount, paid_date,
-//                disbursement_date, receipt_number, series_code, transaction_reference, payment_type }]
+// student_id: 1) por enrollment_external_id (= EnrollmentId) contra academic_student_enrollments.id
+//             2) fallback por document_number → estudiante.
+// Body: array [{ external_id, charge_external_id, enrollment_external_id, document_number, amount,
+//                paid_date, disbursement_date, receipt_number, series_code, transaction_reference, payment_type }]
 export async function POST(req: NextRequest) {
   if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   const sb = db()
 
-  // Mapa enrollment.id -> student_id  (el id ES el Enrollment.Id de SystemActiva)
+  // Matrícula.id -> student_id
   const stuByEnr = new Map<string, string>()
   for (let from = 0; ; from += 1000) {
     const { data, error } = await sb.from('academic_student_enrollments')
@@ -50,12 +51,27 @@ export async function POST(req: NextRequest) {
     if (data.length < 1000) break
   }
 
+  // document_number -> student_id  (fallback)
+  const stuByDoc = new Map<string, string>()
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from('academic_students')
+      .select('id, document_number')
+      .range(from, from + 999)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!data || data.length === 0) break
+    for (const s of data) if (s.document_number) stuByDoc.set(String(s.document_number), s.id)
+    if (data.length < 1000) break
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const toUpsert: any[] = []
   let unmatched = 0
   for (const r of rows) {
-    const student_id = r.enrollment_external_id ? stuByEnr.get(r.enrollment_external_id) ?? null : null
+    let student_id: string | null =
+      (r.enrollment_external_id ? stuByEnr.get(r.enrollment_external_id) : undefined) ?? null
+    if (!student_id && r.document_number) student_id = stuByDoc.get(String(r.document_number)) ?? null
     if (!student_id) unmatched++
+
     toUpsert.push({
       external_id: r.external_id,
       charge_external_id: r.charge_external_id ?? null,
