@@ -111,10 +111,8 @@ export function ConvocatoriasManager() {
                     <thead>
                       <tr className="text-[11px] text-gray-400 uppercase tracking-wide border-b border-gray-50">
                         <th className="text-left px-3 py-2">Nombre</th>
-                        <th className="text-left px-3 py-2">Inicio inscripción</th>
                         <th className="text-left px-3 py-2">Cierre matrícula</th>
                         <th className="text-left px-3 py-2">Primer día</th>
-                        <th className="text-left px-3 py-2">Fin</th>
                         <th className="px-3 py-2"></th>
                       </tr>
                     </thead>
@@ -122,10 +120,8 @@ export function ConvocatoriasManager() {
                       {s.convocatorias.map(c => (
                         <tr key={c.id} className="border-t border-gray-50">
                           <td className="px-3 py-1.5"><input value={c.name ?? ''} onChange={e => editConv(s.id, c.id, 'name', e.target.value)} className={`${inp} min-w-[220px]`} /></td>
-                          <td className="px-3 py-1.5"><input type="date" value={c.registration_start_date ?? ''} onChange={e => editConv(s.id, c.id, 'registration_start_date', e.target.value)} className={inp} /></td>
                           <td className="px-3 py-1.5"><input type="date" value={c.deadline_date ?? ''} onChange={e => editConv(s.id, c.id, 'deadline_date', e.target.value)} className={inp} /></td>
                           <td className="px-3 py-1.5"><input type="date" value={c.first_day ?? ''} onChange={e => editConv(s.id, c.id, 'first_day', e.target.value)} className={inp} /></td>
-                          <td className="px-3 py-1.5"><input type="date" value={c.end_date ?? ''} onChange={e => editConv(s.id, c.id, 'end_date', e.target.value)} className={inp} /></td>
                           <td className="px-3 py-1.5 text-right">
                             <button onClick={() => saveConv(c)} disabled={savingId === c.id} className="text-gray-400 hover:text-blue-600 mr-3" title="Guardar">
                               {savingId === c.id ? <Loader2 className="w-4 h-4 inline animate-spin" /> : <Save className="w-4 h-4 inline" />}
