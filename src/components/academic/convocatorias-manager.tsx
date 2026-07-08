@@ -6,8 +6,7 @@ import { Plus, Trash2, Save, Loader2, CalendarDays } from 'lucide-react'
 interface Ref { id: string; name: string }
 interface Conv {
   id: string; name: string
-  registration_start_date: string | null; deadline_date: string | null
-  first_day: string | null; end_date: string | null
+  deadline_date: string | null; first_day: string | null
 }
 interface Sem { id: string; name: string; start_date: string | null; end_date: string | null; convocatorias: Conv[] }
 

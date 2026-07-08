@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     let convs: any[] = []
     if (semIds.length) {
       const { data } = await sb.from('convocatorias')
-        .select('id, name, academic_semester_id, registration_start_date, deadline_date, first_day, end_date')
+        .select('id, name, academic_semester_id, deadline_date, first_day')
         .eq('product_category_id', categoryId).in('academic_semester_id', semIds).order('first_day')
       convs = data ?? []
     }
@@ -62,10 +62,8 @@ export async function POST(req: NextRequest) {
     name: b.name || 'Nueva convocatoria',
     product_category_id: b.category_id,
     academic_semester_id: b.academic_semester_id,
-    registration_start_date: b.registration_start_date || null,
     deadline_date: b.deadline_date || null,
     first_day: b.first_day || null,
-    end_date: b.end_date || null,
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
@@ -79,10 +77,8 @@ export async function PATCH(req: NextRequest) {
   const sb = db()
   const { error } = await sb.from('convocatorias').update({
     name: b.name,
-    registration_start_date: b.registration_start_date || null,
     deadline_date: b.deadline_date || null,
     first_day: b.first_day || null,
-    end_date: b.end_date || null,
   }).eq('id', b.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
