@@ -1,8 +1,9 @@
 'use client'
 
-import type { Statement, ChargeRow } from '@/lib/account-statement'
+import { useState } from 'react'
+import type { Statement, ProgramAccount, ChargeRow } from '@/lib/account-statement'
 import { chargeTypeLabel } from '@/lib/account-types'
-import { Wallet, TrendingDown, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap } from 'lucide-react'
 
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
@@ -17,21 +18,58 @@ const STATUS: Record<ChargeRow['status'], { label: string; cls: string }> = {
 }
 
 export function AccountStatementView({ statement, showStudent = false }: { statement: Statement; showStudent?: boolean }) {
-  const { student, totals, charges, payments } = statement
+  const { student, programs } = statement
+  const [sel, setSel] = useState(0)
 
   if (!student) {
     return <p className="text-sm text-gray-500 py-10 text-center">Sin estado de cuenta para este estudiante.</p>
   }
+  if (programs.length === 0) {
+    return (
+      <div className="space-y-3">
+        {showStudent && <StudentHeader student={student} />}
+        <p className="text-sm text-gray-500 py-10 text-center">Este estudiante no tiene cuotas ni pagos registrados.</p>
+      </div>
+    )
+  }
+
+  const account = programs[Math.min(sel, programs.length - 1)]
 
   return (
     <div className="space-y-5">
-      {showStudent && (
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">{student.name}</h2>
-          <p className="text-xs text-gray-400">{student.document_number ?? student.email}</p>
+      {showStudent && <StudentHeader student={student} />}
+
+      {/* Selector de programa (cuenta económica independiente por programa) */}
+      {programs.length > 1 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-400 flex items-center gap-1"><GraduationCap className="w-3.5 h-3.5" /> Programa:</span>
+          {programs.map((p, i) => (
+            <button key={p.enrollment_id ?? i} onClick={() => setSel(i)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                i === (sel < programs.length ? sel : 0)
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}>
+              {p.program_name}
+            </button>
+          ))}
         </div>
       )}
+      {programs.length === 1 && (
+        <p className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+          <GraduationCap className="w-4 h-4 text-gray-400" /> {account.program_name}
+        </p>
+      )}
 
+      <ProgramAccountView account={account} />
+    </div>
+  )
+}
+
+function ProgramAccountView({ account }: { account: ProgramAccount }) {
+  const { totals, charges, payments } = account
+  return (
+    <div className="space-y-5">
       {/* Totales */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card icon={<Wallet className="w-4 h-4" />} label="Facturado" value={money(totals.charged)} cls="text-gray-900" />
@@ -107,6 +145,15 @@ export function AccountStatementView({ statement, showStudent = false }: { state
           </table>
         </div>
       </div>
+    </div>
+  )
+}
+
+function StudentHeader({ student }: { student: NonNullable<Statement['student']> }) {
+  return (
+    <div>
+      <h2 className="text-base font-semibold text-gray-900">{student.name}</h2>
+      <p className="text-xs text-gray-400">{student.document_number ?? student.email}</p>
     </div>
   )
 }

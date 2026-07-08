@@ -24,20 +24,31 @@ export interface PaymentRow {
   payment_type: number | null
 }
 
-export interface Statement {
-  student: { id: string; name: string; document_number: string | null; email: string | null } | null
-  totals: { charged: number; paid: number; balance: number; overdue: number }
+export interface Totals { charged: number; paid: number; balance: number; overdue: number }
+
+// Una cuenta económica independiente por programa (enrollment) en que participa el estudiante.
+export interface ProgramAccount {
+  enrollment_id: string | null
+  program_name: string
+  totals: Totals
   charges: ChargeRow[]
   payments: PaymentRow[]
 }
 
-const empty: Statement = { student: null, totals: { charged: 0, paid: 0, balance: 0, overdue: 0 }, charges: [], payments: [] }
+export interface Statement {
+  student: { id: string; name: string; document_number: string | null; email: string | null } | null
+  programs: ProgramAccount[]
+}
+
+const empty: Statement = { student: null, programs: [] }
 
 function fullName(r: { first_name?: string; last_name?: string; second_last_name?: string }): string {
   return [r.first_name, r.last_name, r.second_last_name].filter(Boolean).join(' ')
 }
 
-/** Estado de cuenta de un estudiante (cuotas + pagos + saldo). Resuelve por id, documento o email. */
+const r2 = (n: number) => Math.round(n * 100) / 100
+
+/** Estado de cuenta de un estudiante, agrupado por programa (cuenta económica independiente). */
 export async function getAccountStatement(
   filter: { studentId?: string | null; documentNumber?: string | null; email?: string | null }
 ): Promise<Statement> {
@@ -51,13 +62,20 @@ export async function getAccountStatement(
   else return empty
   const { data: stu } = await sq.maybeSingle()
   if (!stu) return empty
-
   const student = { id: stu.id, name: fullName(stu), document_number: stu.document_number, email: stu.email }
 
-  // Cuotas y pagos del estudiante
+  // Matrículas del estudiante -> nombre de programa
+  const { data: enrData } = await sb.from('academic_student_enrollments')
+    .select('id, academic_programs(name)')
+    .eq('student_id', student.id)
+  const programByEnrollment = new Map<string, string>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const e of (enrData ?? []) as any[]) programByEnrollment.set(e.id, e.academic_programs?.name ?? 'Programa')
+
+  // Cuotas y pagos
   const [{ data: chData }, { data: pyData }] = await Promise.all([
     sb.from('account_charges')
-      .select('id, external_id, amount, due_date, charge_type, convocatorias(name)')
+      .select('id, external_id, enrollment_id, amount, due_date, charge_type, convocatorias(name)')
       .eq('student_id', student.id),
     sb.from('account_payments')
       .select('id, amount, paid_date, receipt_number, transaction_reference, payment_type, charge_external_id')
@@ -65,9 +83,15 @@ export async function getAccountStatement(
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chargesRaw = (chData ?? []) as any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const paymentsRaw = (pyData ?? []) as any[]
 
-  // Pagado por cuota (external_id de la cuota)
+  // external_id de cuota -> enrollment_id (para atribuir cada pago a su programa)
+  const enrollmentByCharge = new Map<string, string | null>()
+  for (const c of chargesRaw) enrollmentByCharge.set(c.external_id, c.enrollment_id ?? null)
+
+  // Pagado por cuota
   const paidByCharge = new Map<string, number>()
   for (const p of paymentsRaw) {
     if (!p.charge_external_id) continue
@@ -75,56 +99,64 @@ export async function getAccountStatement(
   }
 
   const today = new Date().toISOString().slice(0, 10)
+  const groups = new Map<string, ProgramAccount>()
+  const keyOf = (enr: string | null) => enr ?? '∅'
+  const ensure = (enr: string | null): ProgramAccount => {
+    const k = keyOf(enr)
+    let g = groups.get(k)
+    if (!g) {
+      g = {
+        enrollment_id: enr,
+        program_name: enr ? (programByEnrollment.get(enr) ?? 'Programa') : 'Sin programa',
+        totals: { charged: 0, paid: 0, balance: 0, overdue: 0 },
+        charges: [], payments: [],
+      }
+      groups.set(k, g)
+    }
+    return g
+  }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const charges: ChargeRow[] = ((chData ?? []) as any[]).map(c => {
+  // Cuotas -> grupo por programa
+  for (const c of chargesRaw) {
     const amount = Number(c.amount ?? 0)
     const paid = paidByCharge.get(c.external_id) ?? 0
-    const balance = Math.round((amount - paid) * 100) / 100
+    const balance = r2(amount - paid)
     let status: ChargeRow['status']
     if (balance <= 0.005) status = 'pagada'
     else if (paid > 0.005) status = 'parcial'
     else if (c.due_date && c.due_date <= today) status = 'vencida'
     else status = 'pendiente'
-    return {
-      id: c.id,
-      external_id: c.external_id,
-      amount,
-      paid: Math.round(paid * 100) / 100,
-      balance,
-      due_date: c.due_date,
-      charge_type: c.charge_type,
-      convocatoria: c.convocatorias?.name ?? null,
-      status,
-    }
-  }).sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''))
 
-  const payments: PaymentRow[] = paymentsRaw
-    .map(p => ({
-      id: p.id,
-      amount: Number(p.amount ?? 0),
-      paid_date: p.paid_date,
-      receipt_number: p.receipt_number,
-      transaction_reference: p.transaction_reference,
-      payment_type: p.payment_type,
-    }))
-    .sort((a, b) => (b.paid_date ?? '').localeCompare(a.paid_date ?? ''))
-
-  const charged = charges.reduce((s, c) => s + c.amount, 0)
-  const paid = payments.reduce((s, p) => s + p.amount, 0)
-  const balance = Math.round((charged - paid) * 100) / 100
-  const overdue = charges.filter(c => c.status === 'vencida' || c.status === 'parcial')
-    .reduce((s, c) => s + (c.due_date && c.due_date <= today ? c.balance : 0), 0)
-
-  return {
-    student,
-    totals: {
-      charged: Math.round(charged * 100) / 100,
-      paid: Math.round(paid * 100) / 100,
-      balance,
-      overdue: Math.round(overdue * 100) / 100,
-    },
-    charges,
-    payments,
+    const g = ensure(c.enrollment_id ?? null)
+    g.charges.push({
+      id: c.id, external_id: c.external_id, amount, paid: r2(paid), balance,
+      due_date: c.due_date, charge_type: c.charge_type, convocatoria: c.convocatorias?.name ?? null, status,
+    })
+    g.totals.charged += amount
+    if ((status === 'vencida' || status === 'parcial') && c.due_date && c.due_date <= today) g.totals.overdue += balance
   }
+
+  // Pagos -> grupo por programa (vía su cuota)
+  for (const p of paymentsRaw) {
+    const enr = p.charge_external_id ? enrollmentByCharge.get(p.charge_external_id) ?? null : null
+    const g = ensure(enr)
+    const amount = Number(p.amount ?? 0)
+    g.payments.push({
+      id: p.id, amount, paid_date: p.paid_date, receipt_number: p.receipt_number,
+      transaction_reference: p.transaction_reference, payment_type: p.payment_type,
+    })
+    g.totals.paid += amount
+  }
+
+  const programs = [...groups.values()].map(g => {
+    g.charges.sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''))
+    g.payments.sort((a, b) => (b.paid_date ?? '').localeCompare(a.paid_date ?? ''))
+    g.totals = {
+      charged: r2(g.totals.charged), paid: r2(g.totals.paid),
+      balance: r2(g.totals.charged - g.totals.paid), overdue: r2(g.totals.overdue),
+    }
+    return g
+  }).sort((a, b) => a.program_name.localeCompare(b.program_name))
+
+  return { student, programs }
 }
