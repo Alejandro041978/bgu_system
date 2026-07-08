@@ -38,16 +38,15 @@ export async function POST(req: NextRequest) {
 
   const sb = db()
 
-  // Mapa enrollment.external_id -> student_id  (paginado)
+  // Mapa enrollment.id -> student_id  (el id ES el Enrollment.Id de SystemActiva)
   const stuByEnr = new Map<string, string>()
   for (let from = 0; ; from += 1000) {
     const { data, error } = await sb.from('academic_student_enrollments')
-      .select('external_id, student_id')
-      .not('external_id', 'is', null)
+      .select('id, student_id')
       .range(from, from + 999)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     if (!data || data.length === 0) break
-    for (const e of data) if (e.external_id) stuByEnr.set(e.external_id, e.student_id)
+    for (const e of data) stuByEnr.set(e.id, e.student_id)
     if (data.length < 1000) break
   }
 

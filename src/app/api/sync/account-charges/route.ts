@@ -31,16 +31,15 @@ export async function POST(req: NextRequest) {
 
   const sb = db()
 
-  // Mapa enrollment.external_id -> { id, student_id, convocatoria_id }  (paginado, supera el tope de 1000)
+  // Mapa enrollment.id -> { id, student_id, convocatoria_id }  (el id ES el Enrollment.Id de SystemActiva)
   const enrMap = new Map<string, { id: string; student_id: string; convocatoria_id: string | null }>()
   for (let from = 0; ; from += 1000) {
     const { data, error } = await sb.from('academic_student_enrollments')
-      .select('id, external_id, student_id, convocatoria_id')
-      .not('external_id', 'is', null)
+      .select('id, student_id, convocatoria_id')
       .range(from, from + 999)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     if (!data || data.length === 0) break
-    for (const e of data) if (e.external_id) enrMap.set(e.external_id, { id: e.id, student_id: e.student_id, convocatoria_id: e.convocatoria_id })
+    for (const e of data) enrMap.set(e.id, { id: e.id, student_id: e.student_id, convocatoria_id: e.convocatoria_id })
     if (data.length < 1000) break
   }
 
