@@ -86,6 +86,7 @@ const navigation: NavGroup[] = [
       { name: 'Estado de Cuenta', href: '/academic/account', icon: Wallet, pageKey: 'academic_account' },
       { name: 'Conceptos de Cuenta', href: '/academic/concepts', icon: Tag, pageKey: 'academic_concepts' },
       { name: 'Plantillas de Facturación', href: '/academic/billing-plans', icon: Receipt, pageKey: 'academic_billing_plans' },
+      { name: 'Convocatorias', href: '/academic/convocatorias', icon: ClipboardList, pageKey: 'academic_convocatorias' },
       {
         name: 'Convalidaciones', href: '/academic/transfer-credits', icon: FileCheck, pageKey: 'academic_transfer_credits',
         children: [
