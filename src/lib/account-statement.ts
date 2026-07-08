@@ -17,6 +17,7 @@ export interface ChargeRow {
 
 export interface PaymentRow {
   id: string
+  charge_external_id: string | null
   amount: number
   paid_date: string | null
   receipt_number: number | null
@@ -142,8 +143,8 @@ export async function getAccountStatement(
     const g = ensure(enr)
     const amount = Number(p.amount ?? 0)
     g.payments.push({
-      id: p.id, amount, paid_date: p.paid_date, receipt_number: p.receipt_number,
-      transaction_reference: p.transaction_reference, payment_type: p.payment_type,
+      id: p.id, charge_external_id: p.charge_external_id ?? null, amount, paid_date: p.paid_date,
+      receipt_number: p.receipt_number, transaction_reference: p.transaction_reference, payment_type: p.payment_type,
     })
     g.totals.paid += amount
   }
