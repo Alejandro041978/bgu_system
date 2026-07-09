@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from 'react'
 import { GraduationCap, Mail, BookOpen, CheckCircle2, XCircle } from 'lucide-react'
 import Link from 'next/link'
 
@@ -29,6 +32,8 @@ export function FacultyList({
   academicYears: AcademicYear[]
   contractsByFaculty: Record<string, string[]>
 }) {
+  const [selectedYear, setSelectedYear] = useState<string | null>(null)
+
   if (faculty.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-dashed border-gray-300 py-16 text-center">
@@ -39,16 +44,51 @@ export function FacultyList({
     )
   }
 
+  const shown = selectedYear
+    ? faculty.filter(f => (contractsByFaculty[f.id] ?? []).includes(selectedYear))
+    : faculty
+  const selectedYearName = selectedYear ? academicYears.find(y => y.id === selectedYear)?.name?.replace('Academic Year ', '') : null
+
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Docentes (Faculty)</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{faculty.length} docentes activos con sus asignaciones académicas</p>
+        <p className="text-sm text-gray-500 mt-0.5">
+          {selectedYear
+            ? `${shown.length} docentes con contrato en ${selectedYearName}`
+            : `${faculty.length} docentes activos con sus asignaciones académicas`}
+        </p>
       </div>
 
+      {/* Filtro por año académico (contrato en ese año) */}
+      {academicYears.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1 bg-white border border-gray-200 rounded-lg px-1 py-1 w-fit">
+          <button
+            onClick={() => setSelectedYear(null)}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${!selectedYear ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+          >
+            Todos
+          </button>
+          {academicYears.map(y => (
+            <button
+              key={y.id}
+              onClick={() => setSelectedYear(y.id)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${selectedYear === y.id ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+            >
+              {y.name.replace('Academic Year ', '')}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {shown.length === 0 ? (
+        <div className="bg-white rounded-xl border border-dashed border-gray-300 py-12 text-center text-sm text-gray-400">
+          Ningún docente con contrato en {selectedYearName}.
+        </div>
+      ) : (
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="divide-y divide-gray-50">
-          {faculty.map(f => {
+          {shown.map(f => {
             const contractYears = contractsByFaculty[f.id] ?? []
 
             // Group assignments by semester
@@ -139,6 +179,7 @@ export function FacultyList({
           })}
         </div>
       </div>
+      )}
     </div>
   )
 }
