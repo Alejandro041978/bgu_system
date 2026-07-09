@@ -60,9 +60,10 @@ export async function POST(req: NextRequest) {
     const { data: enr } = await sb.from('academic_student_enrollments')
       .select('id, convocatoria_id').eq('student_id', b.student_id).eq('program_id', programId).maybeSingle()
     charge_external_id = crypto.randomUUID()
+    const today = new Date().toISOString().slice(0, 10) // fecha de la solicitud = vencimiento
     const { error: chErr } = await sb.from('account_charges').insert({
       external_id: charge_external_id, student_id: b.student_id, enrollment_id: enr?.id ?? null,
-      convocatoria_id: enr?.convocatoria_id ?? null, amount: Number(type.price), due_date: null,
+      convocatoria_id: enr?.convocatoria_id ?? null, amount: Number(type.price), due_date: today,
       charge_type: type.charge_concept ?? null, source: 'erp',
     })
     if (chErr) return NextResponse.json({ error: 'Error al crear el cargo: ' + chErr.message }, { status: 500 })
@@ -79,4 +80,32 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true, id: reqRow.id, status, checks, blocked })
+}
+
+// DELETE ?id= → borra una solicitud NO pagada (y su cargo asociado)
+export async function DELETE(req: NextRequest) {
+  const auth = await createAuthClient()
+  const { data: { user } } = await auth.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const id = req.nextUrl.searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
+
+  const sb = db()
+  const { data: reqRow } = await sb.from('document_requests')
+    .select('id, paid, charge_external_id').eq('id', id).maybeSingle()
+  if (!reqRow) return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 })
+  if (reqRow.paid) return NextResponse.json({ error: 'No se puede borrar una solicitud pagada' }, { status: 400 })
+
+  // Borra el cargo asociado (solo si no tiene pagos registrados)
+  if (reqRow.charge_external_id) {
+    const { data: pays } = await sb.from('account_payments')
+      .select('id', { count: 'exact', head: false }).eq('charge_external_id', reqRow.charge_external_id).limit(1)
+    if ((pays ?? []).length > 0) return NextResponse.json({ error: 'El cargo ya tiene pagos; no se puede borrar' }, { status: 400 })
+    await sb.from('account_charges').delete().eq('external_id', reqRow.charge_external_id)
+  }
+
+  const { error } = await sb.from('document_requests').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }

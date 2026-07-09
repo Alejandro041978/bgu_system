@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Search, Loader2, X, FileText } from 'lucide-react'
+import { Plus, Search, Loader2, X, FileText, Trash2 } from 'lucide-react'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 interface DocType { id: string; name: string; price: number; currency: string; active: boolean }
@@ -73,6 +73,16 @@ export function RequestsManager() {
     load()
   }
   function resetNew() { setOpen(false); setStudent(null); setQ(''); setTypeId(''); setProgramId(''); setResult(null) }
+
+  const [deleting, setDeleting] = useState<string | null>(null)
+  async function remove(r: Request) {
+    if (!confirm(`¿Borrar la solicitud de "${r.type_name}" de ${r.student_name}? Se eliminará también el cargo pendiente.`)) return
+    setDeleting(r.id)
+    const d = await fetch(`/api/registrar/requests?id=${r.id}`, { method: 'DELETE' }).then(x => x.json())
+    setDeleting(null)
+    if (d.error) { alert(d.error); return }
+    load()
+  }
 
   if (loading) return <p className="text-center text-gray-400 py-10 text-sm">Cargando…</p>
 
@@ -146,6 +156,7 @@ export function RequestsManager() {
                 <th className="text-left px-4 py-2.5">Fecha</th>
                 <th className="text-right px-4 py-2.5">Costo</th>
                 <th className="text-center px-4 py-2.5">Estado</th>
+                <th className="px-4 py-2.5"></th>
               </tr>
             </thead>
             <tbody>
@@ -156,6 +167,13 @@ export function RequestsManager() {
                   <td className="px-4 py-2.5 text-gray-500 text-xs">{fdate(r.requested_at)}</td>
                   <td className="px-4 py-2.5 text-right text-gray-600">{Number(r.price) > 0 ? `${r.currency} ${Number(r.price).toFixed(2)}${r.paid ? ' ✓' : ''}` : '—'}</td>
                   <td className="px-4 py-2.5 text-center"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[r.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>{STATUS[r.status]?.label ?? r.status}</span></td>
+                  <td className="px-4 py-2.5 text-right">
+                    {!r.paid && (
+                      <button onClick={() => remove(r)} disabled={deleting === r.id} title="Borrar solicitud no pagada" className="text-gray-300 hover:text-red-600 disabled:opacity-50">
+                        {deleting === r.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
