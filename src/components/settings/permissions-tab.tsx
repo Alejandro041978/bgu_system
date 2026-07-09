@@ -66,6 +66,7 @@ const PAGE_GROUPS = [
       { key: 'academic_faculty', label: 'Docentes' },
       { key: 'academic_grades', label: 'Notas' },
       { key: 'academic_acta', label: 'Acta Personal' },
+      { key: 'academic_acta_detail', label: 'Acta Detallada' },
       { key: 'academic_account', label: 'Estado de Cuenta' },
       { key: 'academic_concepts', label: 'Conceptos de Cuenta' },
       { key: 'academic_billing_plans', label: 'Plantillas de Facturación' },

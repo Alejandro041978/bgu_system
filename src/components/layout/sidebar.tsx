@@ -86,6 +86,7 @@ const navigation: NavGroup[] = [
         children: [
           { name: 'Notas', href: '/academic/grades', icon: Award, pageKey: 'academic_grades' },
           { name: 'Acta Personal', href: '/academic/acta', icon: FileText, pageKey: 'academic_acta' },
+          { name: 'Acta Detallada', href: '/academic/acta-detalle', icon: FileText, pageKey: 'academic_acta_detail' },
         ],
       },
       { name: 'Estado de Cuenta', href: '/academic/account', icon: Wallet, pageKey: 'academic_account' },
