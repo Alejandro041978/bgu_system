@@ -11,7 +11,7 @@ type Group = { id: string; abbreviation: string | null; name: string | null; pro
 type Semester = { id: string; name: string; status: string; academic_year_id: string; start_date: string | null; end_date: string | null }
 type Category = { id: string; name: string }
 type Year = { id: string; name: string; semesters: Semester[] }
-type ProgramCourse = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { name: string } }
+type ProgramCourse = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { id: string; name: string; category_id: string | null } }
 
 function fmtDate(d: string | null) {
   if (!d) return ''
@@ -76,12 +76,14 @@ export function OfferManager({
   const semMeta: Record<string, { name: string; yearId: string; yearName: string; start_date: string | null; end_date: string | null }> = {}
   for (const y of years) for (const s of y.semesters) semMeta[s.id] = { name: s.name, yearId: y.id, yearName: y.name, start_date: s.start_date, end_date: s.end_date }
 
-  // Opciones de programa (según categoría) presentes en las ofertas
-  const programsInOfferings = Array.from(
-    new Map(offerings.map(o => [o.course.program_id, o.course.program])).entries()
+  // Opciones de programa: programas que tienen MALLA (cursos), por categoría.
+  // (Antes se listaban solo los que ya tenían oferta, lo que ocultaba programas
+  // con asignaturas pero sin oferta aún, como los DCE.)
+  const programsWithCourses = Array.from(
+    new Map(allCourses.map(c => [c.program_id, c.program])).entries()
   ).map(([id, p]) => ({ id, name: p.name, category_id: p.category_id ?? null }))
     .sort((a, b) => a.name.localeCompare(b.name))
-  const programsForFilter = fCategory ? programsInOfferings.filter(p => p.category_id === fCategory) : programsInOfferings
+  const programsForFilter = fCategory ? programsWithCourses.filter(p => p.category_id === fCategory) : programsWithCourses
 
   // Grupos (entidad) — helpers
   const groupLabel = (g: { abbreviation: string | null; name: string | null }) => [g.abbreviation, g.name].filter(Boolean).join(' · ') || '(grupo)'
