@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 
+// La evaluación descarga PDFs + llama a Claude con documentos: puede tardar.
+// Sin esto, Vercel corta la función y el registro queda atascado en "evaluating".
+export const maxDuration = 300
+
 const admin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
