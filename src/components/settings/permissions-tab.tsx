@@ -88,6 +88,7 @@ const PAGE_GROUPS = [
     label: 'Registrar',
     pages: [
       { key: 'registrar_formatos', label: 'Formatos de certificados' },
+      { key: 'registrar_document_types', label: 'Tipos de Documento' },
     ],
   },
   {
