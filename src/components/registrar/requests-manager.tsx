@@ -1,0 +1,169 @@
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
+import { Plus, Search, Loader2, X, FileText } from 'lucide-react'
+
+interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
+interface DocType { id: string; name: string; price: number; currency: string; active: boolean }
+interface Program { id: string; name: string }
+interface ReqCheck { kind: string; ok: boolean | null; note: string }
+interface Request {
+  id: string; status: string; paid: boolean; requested_at: string
+  student_name: string; document_number: string | null; type_name: string
+  price: number; currency: string; stages_count: number; document_url: string | null
+}
+
+const STATUS: Record<string, { label: string; cls: string }> = {
+  pending: { label: 'Pendiente', cls: 'bg-gray-100 text-gray-600' },
+  payment: { label: 'Pendiente de pago', cls: 'bg-amber-50 text-amber-700' },
+  in_progress: { label: 'En proceso', cls: 'bg-blue-50 text-blue-700' },
+  ready: { label: 'Listo para emitir', cls: 'bg-green-50 text-green-700' },
+  delivered: { label: 'Entregado', cls: 'bg-green-100 text-green-800' },
+  rejected: { label: 'Rechazado', cls: 'bg-red-50 text-red-700' },
+}
+const fdate = (d: string) => new Date(d).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
+
+export function RequestsManager() {
+  const [requests, setRequests] = useState<Request[]>([])
+  const [types, setTypes] = useState<DocType[]>([])
+  const [loading, setLoading] = useState(true)
+  const [open, setOpen] = useState(false)
+
+  // Nueva solicitud
+  const [q, setQ] = useState('')
+  const [hits, setHits] = useState<StudentHit[]>([])
+  const [student, setStudent] = useState<StudentHit | null>(null)
+  const [programs, setPrograms] = useState<Program[]>([])
+  const [programId, setProgramId] = useState('')
+  const [typeId, setTypeId] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [result, setResult] = useState<{ status: string; checks: ReqCheck[]; blocked: boolean } | null>(null)
+
+  const load = useCallback(async () => {
+    const [r, t] = await Promise.all([
+      fetch('/api/registrar/requests').then(x => x.json()),
+      fetch('/api/registrar/document-types').then(x => x.json()),
+    ])
+    setRequests(r.requests ?? []); setTypes((t.types ?? []).filter((d: DocType) => d.active)); setLoading(false)
+  }, [])
+  useEffect(() => { load() }, [load])
+
+  async function search(v: string) {
+    setQ(v); setStudent(null); setPrograms([]); setProgramId('')
+    if (v.trim().length < 2) { setHits([]); return }
+    const d = await fetch(`/api/students/search?q=${encodeURIComponent(v.trim())}`).then(r => r.json())
+    setHits(d.students ?? [])
+  }
+  async function pickStudent(h: StudentHit) {
+    setStudent(h); setHits([]); setQ(h.name); setResult(null)
+    const d = await fetch(`/api/students/${h.id}/programs`).then(r => r.json()).catch(() => ({ programs: [] }))
+    setPrograms(d.programs ?? [])
+    if ((d.programs ?? []).length === 1) setProgramId(d.programs[0].id)
+  }
+  async function create() {
+    if (!student || !typeId) return
+    setCreating(true); setResult(null)
+    const d = await fetch('/api/registrar/requests', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: student.id, document_type_id: typeId, program_id: programId || null }),
+    }).then(r => r.json())
+    setCreating(false)
+    if (d.error) { setResult({ status: 'rejected', checks: [], blocked: true }); return }
+    setResult({ status: d.status, checks: d.checks ?? [], blocked: d.blocked })
+    load()
+  }
+  function resetNew() { setOpen(false); setStudent(null); setQ(''); setTypeId(''); setProgramId(''); setResult(null) }
+
+  if (loading) return <p className="text-center text-gray-400 py-10 text-sm">Cargando…</p>
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        {!open && <button onClick={() => setOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white"><Plus className="w-4 h-4" />Nueva solicitud</button>}
+      </div>
+
+      {open && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-800">Nueva solicitud</h3>
+            <button onClick={resetNew} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+          </div>
+
+          <div className="relative">
+            <div className="flex items-center border border-gray-200 rounded-lg px-3">
+              <Search className="w-4 h-4 text-gray-400" />
+              <input value={q} onChange={e => search(e.target.value)} placeholder="Buscar estudiante…" className="flex-1 px-2 py-2 text-sm focus:outline-none" />
+            </div>
+            {hits.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-auto">
+                {hits.map(h => <button key={h.id} onClick={() => pickStudent(h)} className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-50 last:border-0"><p className="text-sm text-gray-800">{h.name}</p><p className="text-xs text-gray-400">{h.document_number ?? h.email}</p></button>)}
+              </div>
+            )}
+          </div>
+
+          {student && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label><span className="block text-xs text-gray-500 mb-1">Programa</span>
+                <select value={programId} onChange={e => setProgramId(e.target.value)} className={inp}>
+                  <option value="">— (sin programa específico) —</option>
+                  {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </label>
+              <label><span className="block text-xs text-gray-500 mb-1">Tipo de documento</span>
+                <select value={typeId} onChange={e => setTypeId(e.target.value)} className={inp}>
+                  <option value="">Seleccionar…</option>
+                  {types.map(t => <option key={t.id} value={t.id}>{t.name}{Number(t.price) > 0 ? ` — ${t.currency} ${Number(t.price).toFixed(2)}` : ' — gratuito'}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
+
+          {result && (
+            <div className={`text-xs rounded-lg px-3 py-2 ${result.blocked ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+              <p className="font-medium">{STATUS[result.status]?.label ?? result.status}</p>
+              {result.checks.map((c, i) => <div key={i}>{c.ok === true ? '✓' : c.ok === false ? '✗' : '○'} {c.note}</div>)}
+            </div>
+          )}
+
+          {student && (
+            <button onClick={create} disabled={!typeId || creating} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}Crear solicitud
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Lista */}
+      {requests.length === 0 ? (
+        <p className="text-sm text-gray-400 py-10 text-center">Sin solicitudes.</p>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
+          <table className="w-full text-sm whitespace-nowrap">
+            <thead>
+              <tr className="border-b border-gray-100 text-[11px] text-gray-400 uppercase tracking-wide">
+                <th className="text-left px-4 py-2.5">Estudiante</th>
+                <th className="text-left px-4 py-2.5">Documento</th>
+                <th className="text-left px-4 py-2.5">Fecha</th>
+                <th className="text-right px-4 py-2.5">Costo</th>
+                <th className="text-center px-4 py-2.5">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map(r => (
+                <tr key={r.id} className="border-t border-gray-50 hover:bg-gray-50/50">
+                  <td className="px-4 py-2.5"><p className="text-gray-800">{r.student_name}</p><p className="text-xs text-gray-400">{r.document_number ?? ''}</p></td>
+                  <td className="px-4 py-2.5 text-gray-700 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5 text-gray-300" />{r.type_name}</td>
+                  <td className="px-4 py-2.5 text-gray-500 text-xs">{fdate(r.requested_at)}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-600">{Number(r.price) > 0 ? `${r.currency} ${Number(r.price).toFixed(2)}${r.paid ? ' ✓' : ''}` : '—'}</td>
+                  <td className="px-4 py-2.5 text-center"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[r.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>{STATUS[r.status]?.label ?? r.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const inp = 'w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'

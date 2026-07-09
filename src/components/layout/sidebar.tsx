@@ -121,6 +121,7 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Formatos', href: '/registrar/formatos', icon: Award, pageKey: 'registrar_formatos' },
       { name: 'Tipos de Documento', href: '/registrar/document-types', icon: FileText, pageKey: 'registrar_document_types' },
+      { name: 'Solicitudes', href: '/registrar/requests', icon: ClipboardList, pageKey: 'registrar_requests' },
     ],
   },
   {

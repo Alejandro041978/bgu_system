@@ -89,6 +89,7 @@ const PAGE_GROUPS = [
     pages: [
       { key: 'registrar_formatos', label: 'Formatos de certificados' },
       { key: 'registrar_document_types', label: 'Tipos de Documento' },
+      { key: 'registrar_requests', label: 'Solicitudes de Documentos' },
     ],
   },
   {
