@@ -46,14 +46,13 @@ export async function POST(req: NextRequest) {
     .eq('employee_id', employeeId)
     .single()
 
-  if (existing) {
-    await db.from('faculty_credentials')
-      .update({ [fieldUrl]: data.publicUrl, [fieldName]: file.name, updated_at: new Date().toISOString() })
-      .eq('employee_id', employeeId)
-  } else {
-    await db.from('faculty_credentials')
-      .insert({ employee_id: employeeId, [fieldUrl]: data.publicUrl, [fieldName]: file.name })
-  }
+  const dbRes = existing
+    ? await db.from('faculty_credentials')
+        .update({ [fieldUrl]: data.publicUrl, [fieldName]: file.name, updated_at: new Date().toISOString() })
+        .eq('employee_id', employeeId)
+    : await db.from('faculty_credentials')
+        .insert({ employee_id: employeeId, [fieldUrl]: data.publicUrl, [fieldName]: file.name })
+  if (dbRes.error) return NextResponse.json({ error: dbRes.error.message }, { status: 500 })
 
   return NextResponse.json({ url: data.publicUrl, name: file.name })
 }
