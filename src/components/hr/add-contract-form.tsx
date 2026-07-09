@@ -56,7 +56,7 @@ export function AddContractForm({ employeeId, isFaculty = false, academicYears =
           employee_id: employeeId,
           ...form,
           salary: form.salary ? parseFloat(form.salary) : undefined,
-          end_date: form.end_date || undefined,
+          end_date: form.end_date,
           academic_year_id: form.academic_year_id || undefined,
           file_url,
           notes: form.notes || undefined,
@@ -146,12 +146,12 @@ export function AddContractForm({ employeeId, isFaculty = false, academicYears =
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Fecha de término <span className="text-gray-400">(vacío = indefinido)</span>
-              </label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Fecha de término *</label>
               <input
+                required
                 type="date"
                 value={form.end_date}
+                min={form.start_date || undefined}
                 onChange={e => set('end_date', e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />

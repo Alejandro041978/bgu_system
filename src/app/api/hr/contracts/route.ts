@@ -26,6 +26,13 @@ export async function POST(req: NextRequest) {
       academic_year_id?: string
     }
 
+    if (!body.start_date || !body.end_date) {
+      return NextResponse.json({ error: 'El contrato requiere fecha de inicio y de término' }, { status: 400 })
+    }
+    if (body.end_date < body.start_date) {
+      return NextResponse.json({ error: 'La fecha de término no puede ser anterior a la de inicio' }, { status: 400 })
+    }
+
     const supabase = supabaseAdmin()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
@@ -35,7 +42,7 @@ export async function POST(req: NextRequest) {
         contract_type: body.contract_type,
         position: body.position,
         start_date: body.start_date,
-        end_date: body.end_date || null,
+        end_date: body.end_date,
         salary: body.salary || null,
         currency: body.currency ?? 'PEN',
         file_url: body.file_url || null,
