@@ -25,7 +25,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const OFF = 'id, start_date, end_date, moodle_course_id, course:academic_courses(id, name, code), assignments:faculty_assignments(employee:hr_employees(full_name))'
   const [{ data: offerings }, { data: members }] = await Promise.all([
-    sb.from('semester_offerings').select(OFF).eq('group_id', id),
+    sb.from('semester_offerings').select(OFF).eq('group_id', id).order('start_date', { nullsFirst: false }),
     sb.from('academic_group_students').select('student_id, academic_students(id, first_name, last_name, second_last_name, document_number)').eq('group_id', id),
   ])
 
