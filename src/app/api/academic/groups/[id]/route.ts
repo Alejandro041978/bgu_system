@@ -7,8 +7,9 @@ export const revalidate = 0
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-// GET → detalle del grupo: asignaturas del grupo, asignaturas disponibles (del mismo programa,
-// sin grupo) y estudiantes asociados.
+// GET → detalle del grupo: asignaturas del grupo (con fechas y aula Moodle) y estudiantes.
+// Las asignaturas se asignan/quitan en Oferta Académica; aquí son de solo lectura
+// (salvo el ID de curso Moodle, que se edita aquí).
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
@@ -22,23 +23,21 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .eq('id', id).maybeSingle()
   if (!group) return NextResponse.json({ error: 'Grupo no encontrado' }, { status: 404 })
 
-  // Cursos del programa (para acotar las asignaturas disponibles)
-  const { data: courses } = await sb.from('academic_courses').select('id').eq('program_id', group.program_id)
-  const courseIds = (courses ?? []).map((c: { id: string }) => c.id)
-
-  const OFF = 'id, group_id, course:academic_courses(id, name, code), assignments:faculty_assignments(employee:hr_employees(full_name))'
-  const [{ data: offerings }, availableRes, { data: members }] = await Promise.all([
+  const OFF = 'id, start_date, end_date, moodle_course_id, course:academic_courses(id, name, code), assignments:faculty_assignments(employee:hr_employees(full_name))'
+  const [{ data: offerings }, { data: members }] = await Promise.all([
     sb.from('semester_offerings').select(OFF).eq('group_id', id),
-    courseIds.length
-      ? sb.from('semester_offerings').select(OFF).is('group_id', null).in('course_id', courseIds)
-      : Promise.resolve({ data: [] }),
     sb.from('academic_group_students').select('student_id, academic_students(id, first_name, last_name, second_last_name, document_number)').eq('group_id', id),
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapOff = (o: any) => ({
-    id: o.id, course_name: o.course?.name ?? '—', course_code: o.course?.code ?? null,
+    id: o.id,
+    course_name: o.course?.name ?? '—',
+    course_code: o.course?.code ?? null,
     teacher: o.assignments?.[0]?.employee?.full_name ?? null,
+    start_date: o.start_date ?? null,
+    end_date: o.end_date ?? null,
+    moodle_course_id: o.moodle_course_id ?? null,
   })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const students = (members ?? []).map((m: any) => {
@@ -52,7 +51,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       program_name: group.academic_programs?.name ?? '',
     },
     offerings: (offerings ?? []).map(mapOff),
-    available: (availableRes.data ?? []).map(mapOff),
     students,
   })
 }

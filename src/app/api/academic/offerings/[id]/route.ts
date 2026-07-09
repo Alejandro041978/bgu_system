@@ -9,18 +9,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json()
   const supabase = db()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: offering } = await (supabase as any)
-    .from('semester_offerings').select('semester_id').eq('id', id).single()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: semester } = await (supabase as any)
-    .from('academic_semesters').select('start_date, end_date').eq('id', offering?.semester_id).single()
-  const err = validateDates(body.start_date, body.end_date, semester?.start_date, semester?.end_date)
-  if (err) return NextResponse.json({ error: err }, { status: 400 })
+  const update: Record<string, unknown> = {}
 
-  const update: Record<string, unknown> = { start_date: body.start_date || null, end_date: body.end_date || null }
+  // Solo validar/actualizar fechas si vienen en el body (así editar solo el aula Moodle no las toca)
+  if ('start_date' in body || 'end_date' in body) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: offering } = await (supabase as any)
+      .from('semester_offerings').select('semester_id').eq('id', id).single()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: semester } = await (supabase as any)
+      .from('academic_semesters').select('start_date, end_date').eq('id', offering?.semester_id).single()
+    const err = validateDates(body.start_date, body.end_date, semester?.start_date, semester?.end_date)
+    if (err) return NextResponse.json({ error: err }, { status: 400 })
+    update.start_date = body.start_date || null
+    update.end_date = body.end_date || null
+  }
   if (body.group_label !== undefined) update.group_label = body.group_label?.trim() || null
   if (body.group_id !== undefined) update.group_id = body.group_id || null
+  if (body.moodle_course_id !== undefined) update.moodle_course_id = body.moodle_course_id?.trim() || null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
