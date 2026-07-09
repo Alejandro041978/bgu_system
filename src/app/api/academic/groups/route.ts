@@ -13,70 +13,59 @@ async function requireUser() {
   return user
 }
 
-// GET → catálogos (categorías, años con semestres, programas) y, con category_id + year_id,
-// los grupos de ese año/categoría con conteo de asignaturas y estudiantes.
+// GET → catálogos (categorías, programas) y, con program_id, los grupos de ese programa.
 export async function GET(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
-  const sp = req.nextUrl.searchParams
-  const categoryId = sp.get('category_id')
-  const yearId = sp.get('year_id')
+  const programId = req.nextUrl.searchParams.get('program_id')
 
-  const [{ data: categories }, { data: years }, { data: programs }] = await Promise.all([
+  const [{ data: categories }, { data: programs }] = await Promise.all([
     sb.from('academic_programs_category').select('id, name').order('name'),
-    sb.from('academic_years').select('id, name, semesters:academic_semesters(id, name)').order('name', { ascending: false }),
     sb.from('academic_programs').select('id, name, category_id').order('name'),
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let groups: any[] = []
-  if (categoryId && yearId) {
-    const { data: sems } = await sb.from('academic_semesters').select('id, name').eq('academic_year_id', yearId)
-    const semIds = (sems ?? []).map((s: { id: string }) => s.id)
-    const semName = new Map<string, string>((sems ?? []).map((s: { id: string; name: string }) => [s.id, s.name]))
-    if (semIds.length) {
-      const { data: gs } = await sb.from('academic_groups')
-        .select('id, name, semester_id, program_id')
-        .eq('category_id', categoryId).in('semester_id', semIds).order('name')
-      const groupIds = (gs ?? []).map((g: { id: string }) => g.id)
-
-      const offCount = new Map<string, number>()
-      const stuCount = new Map<string, number>()
-      if (groupIds.length) {
-        const [{ data: offs }, { data: gss }] = await Promise.all([
-          sb.from('semester_offerings').select('group_id').in('group_id', groupIds),
-          sb.from('academic_group_students').select('group_id').in('group_id', groupIds),
-        ])
-        for (const o of offs ?? []) offCount.set(o.group_id, (offCount.get(o.group_id) ?? 0) + 1)
-        for (const s of gss ?? []) stuCount.set(s.group_id, (stuCount.get(s.group_id) ?? 0) + 1)
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      groups = (gs ?? []).map((g: any) => ({
-        ...g, semester_name: semName.get(g.semester_id) ?? '',
-        offerings_count: offCount.get(g.id) ?? 0, students_count: stuCount.get(g.id) ?? 0,
-      }))
+  if (programId) {
+    const { data: gs } = await sb.from('academic_groups')
+      .select('id, abbreviation, name, detail').eq('program_id', programId).order('name')
+    const groupIds = (gs ?? []).map((g: { id: string }) => g.id)
+    const offCount = new Map<string, number>()
+    const stuCount = new Map<string, number>()
+    if (groupIds.length) {
+      const [{ data: offs }, { data: gss }] = await Promise.all([
+        sb.from('semester_offerings').select('group_id').in('group_id', groupIds),
+        sb.from('academic_group_students').select('group_id').in('group_id', groupIds),
+      ])
+      for (const o of offs ?? []) offCount.set(o.group_id, (offCount.get(o.group_id) ?? 0) + 1)
+      for (const s of gss ?? []) stuCount.set(s.group_id, (stuCount.get(s.group_id) ?? 0) + 1)
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    groups = (gs ?? []).map((g: any) => ({
+      ...g, offerings_count: offCount.get(g.id) ?? 0, students_count: stuCount.get(g.id) ?? 0,
+    }))
   }
 
-  return NextResponse.json({ categories: categories ?? [], years: years ?? [], programs: programs ?? [], groups })
+  return NextResponse.json({ categories: categories ?? [], programs: programs ?? [], groups })
 }
 
-// POST → crear grupo
+// POST → crear grupo (asociado a programa)
 export async function POST(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
-  if (!b?.name?.trim() || !b?.semester_id || !b?.category_id) {
-    return NextResponse.json({ error: 'Falta nombre, semestre o categoría' }, { status: 400 })
+  if (!b?.program_id || !(b?.name?.trim() || b?.abbreviation?.trim())) {
+    return NextResponse.json({ error: 'Falta programa y denominación/abreviatura' }, { status: 400 })
   }
   const sb = db()
   const { data, error } = await sb.from('academic_groups').insert({
-    name: b.name.trim(), semester_id: b.semester_id, category_id: b.category_id, program_id: b.program_id || null,
+    program_id: b.program_id, category_id: b.category_id || null,
+    abbreviation: b.abbreviation?.trim() || null, name: b.name?.trim() || null, detail: b.detail?.trim() || null,
   }).select('id').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true, id: data.id })
 }
 
-// PATCH → renombrar / reasignar programa
+// PATCH → editar campos descriptivos
 export async function PATCH(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
@@ -84,14 +73,13 @@ export async function PATCH(req: NextRequest) {
   const sb = db()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const patch: any = {}
-  if (b.name != null) patch.name = String(b.name).trim()
-  if ('program_id' in b) patch.program_id = b.program_id || null
+  for (const k of ['abbreviation', 'name', 'detail'] as const) if (k in b) patch[k] = b[k]?.trim() || null
   const { error } = await sb.from('academic_groups').update(patch).eq('id', b.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 
-// DELETE ?id= → eliminar grupo (desliga sus asignaturas; borra membresías por cascade)
+// DELETE ?id= → eliminar grupo (desliga sus asignaturas; membresías por cascade)
 export async function DELETE(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const id = req.nextUrl.searchParams.get('id')

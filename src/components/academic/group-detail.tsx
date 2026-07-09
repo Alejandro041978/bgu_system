@@ -8,7 +8,7 @@ interface SyncResult { configured: boolean; students_total: number; with_account
 
 interface Off { id: string; course_name: string; course_code: string | null; teacher: string | null }
 interface Stu { id: string; name: string; document_number: string | null }
-interface Data { group: { id: string; name: string; semester_name: string }; offerings: Off[]; available: Off[]; students: Stu[] }
+interface Data { group: { id: string; abbreviation: string | null; name: string | null; detail: string | null; program_name: string }; offerings: Off[]; available: Off[]; students: Stu[] }
 
 export function GroupDetail({ groupId }: { groupId: string }) {
   const [data, setData] = useState<Data | null>(null)
@@ -68,8 +68,11 @@ export function GroupDetail({ groupId }: { groupId: string }) {
         <Link href="/academic/groups" className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-2">
           <ArrowLeft className="w-3.5 h-3.5" /> Grupos
         </Link>
-        <h2 className="text-lg font-bold text-gray-900">{data.group.name}</h2>
-        <p className="text-sm text-gray-400">{data.group.semester_name}</p>
+        <h2 className="text-lg font-bold text-gray-900">
+          {data.group.abbreviation && <span className="text-blue-600">{data.group.abbreviation}</span>}
+          {data.group.abbreviation && data.group.name ? ' · ' : ''}{data.group.name}
+        </h2>
+        <p className="text-sm text-gray-400">{data.group.program_name}{data.group.detail ? ` · ${data.group.detail}` : ''}</p>
       </div>
 
       {/* Asignaturas */}
