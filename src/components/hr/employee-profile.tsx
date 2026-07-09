@@ -96,7 +96,7 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
 
   async function handleSave() {
     setSaving(true)
-    await fetch(`/api/hr/employees/${e.id}`, {
+    const res = await fetch(`/api/hr/employees/${e.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -116,6 +116,11 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
       }),
     })
     setSaving(false)
+    if (!res.ok) {
+      const d = await res.json().catch(() => null)
+      alert(`No se pudo guardar: ${d?.error ?? 'error desconocido'}`)
+      return
+    }
     setEditing(false)
     router.refresh()
   }
