@@ -16,6 +16,20 @@ interface StudentHit { id: string; name: string; document_number: string | null;
 
 const g = (v: number | null) => (v == null ? '—' : Number(v).toFixed(2))
 
+// Promedio ponderado de un conjunto de notas (Σ val×peso / Σ peso, solo slots con valor)
+function weightedAvg(slots: Slot[] | null): number | null {
+  if (!slots) return null
+  let sumWV = 0, sumW = 0
+  for (const s of slots) {
+    if (s.val != null && s.pct != null) { sumWV += Number(s.val) * Number(s.pct); sumW += Number(s.pct) }
+  }
+  return sumW > 0 ? sumWV / sumW : null
+}
+// Calculado por nosotros: usa las notas principales; si no tienen valor, las de proceso
+function calcAverage(d: Detail): number | null {
+  return weightedAvg(d.grades) ?? weightedAvg(d.process_grades)
+}
+
 function statusOf(d: Detail): { label: string; cls: string } | null {
   const val = d.retake_grade ?? d.final_grade
   if (val == null) return { label: 'En curso', cls: 'bg-gray-100 text-gray-500' }
@@ -156,7 +170,18 @@ function DetailPanel({ d }: { d: Detail }) {
       <SlotTable title="Notas principales" slots={d.grades ?? []} />
       <SlotTable title="Notas de proceso" slots={d.process_grades ?? []} />
       <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600 pt-1">
-        <span>Final: <b>{g(d.final_grade)}</b></span>
+        <span>Final <span className="text-gray-400">(SystemActiva)</span>: <b>{g(d.final_grade)}</b></span>
+        {(() => {
+          const calc = calcAverage(d)
+          if (calc == null) return null
+          const match = d.final_grade != null ? Math.abs(calc - Number(d.final_grade)) < 0.5 : null
+          return (
+            <span>Promedio <span className="text-gray-400">(calculado)</span>: <b>{g(calc)}</b>
+              {match === true && <span className="ml-1 text-green-600">✓ coincide</span>}
+              {match === false && <span className="ml-1 text-amber-600">≠ difiere</span>}
+            </span>
+          )
+        })()}
         {d.retake_grade != null && <span>Recuperación: <b>{g(d.retake_grade)}</b></span>}
         {d.makeup_grade != null && <span>Subsanación: <b>{g(d.makeup_grade)}</b></span>}
         {d.extra_points != null && d.extra_points !== 0 && <span>Puntos extra: <b>{g(d.extra_points)}</b></span>}
