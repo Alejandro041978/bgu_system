@@ -8,7 +8,7 @@ export default async function AcademicOfferPage() {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [yearsRes, facultyRes, contractsRes, categoriesRes, groupsRes] = await Promise.all([
+  const [yearsRes, facultyRes, contractsRes, categoriesRes, groupsRes, credsRes] = await Promise.all([
     (supabase as any)
       .from('academic_years')
       .select('id, name, semesters:academic_semesters(id, name, status, start_date, end_date)')
@@ -30,7 +30,13 @@ export default async function AcademicOfferPage() {
       .from('academic_groups')
       .select('id, abbreviation, name, program_id')
       .order('name'),
+    (supabase as any)
+      .from('faculty_credentials')
+      .select('employee_id')
+      .eq('status', 'approved'),
   ])
+
+  const approvedCredentials: string[] = (credsRes.data ?? []).map((c: { employee_id: string }) => c.employee_id)
 
   // Cursos: paginado para evitar el tope de 1000 filas de PostgREST
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,6 +74,7 @@ export default async function AcademicOfferPage() {
             contractMap={contractMap}
             categories={categoriesRes.data ?? []}
             groups={groupsRes.data ?? []}
+            approvedCredentials={approvedCredentials}
           />
         </div>
       </div>

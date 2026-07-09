@@ -20,7 +20,7 @@ function fmtDate(d: string | null) {
 }
 
 export function OfferManager({
-  years, faculty, allCourses, contractMap = {}, categories = [], groups = [],
+  years, faculty, allCourses, contractMap = {}, categories = [], groups = [], approvedCredentials = [],
 }: {
   years: Year[]
   faculty: Employee[]
@@ -28,7 +28,9 @@ export function OfferManager({
   contractMap?: Record<string, string[]>
   categories?: Category[]
   groups?: Group[]
+  approvedCredentials?: string[]
 }) {
+  const approvedSet = new Set(approvedCredentials)
   const [offerings, setOfferings] = useState<Offering[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -447,11 +449,15 @@ export function OfferManager({
                               {faculty.map(f => {
                                 const alreadyAssigned = offering.assignments.some(a => a.employee.id === f.id)
                                 const hasContract = contractMap[meta?.yearId ?? '']?.includes(f.id) ?? false
-                                const disabled = alreadyAssigned || !hasContract
+                                const hasCredential = approvedSet.has(f.id)
+                                const disabled = alreadyAssigned || !hasContract || !hasCredential
+                                const reason = alreadyAssigned ? ' (ya asignado)'
+                                  : !hasContract ? ' (sin contrato)'
+                                  : !hasCredential ? ' (sin credencial aprobada)'
+                                  : ''
                                 return (
                                   <option key={f.id} value={f.id} disabled={disabled}>
-                                    {f.full_name}{f.position ? ` — ${f.position}` : ''}
-                                    {alreadyAssigned ? ' (ya asignado)' : !hasContract ? ' (sin contrato)' : ''}
+                                    {f.full_name}{f.position ? ` — ${f.position}` : ''}{reason}
                                   </option>
                                 )
                               })}
