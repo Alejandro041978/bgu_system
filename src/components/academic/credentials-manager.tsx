@@ -146,6 +146,7 @@ export function CredentialsManager({ faculty: initialFaculty }: { faculty: Facul
   const [evaluating, setEvaluating] = useState<Record<string, boolean>>({})
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [evalError, setEvalError] = useState<Record<string, string>>({})
+  const [openReport, setOpenReport] = useState<Record<string, boolean>>({})
 
   function updateCredential(employeeId: string, patch: Partial<Credential>) {
     setFaculty(prev => prev.map(f => {
@@ -186,7 +187,7 @@ export function CredentialsManager({ faculty: initialFaculty }: { faculty: Facul
       updateCredential(f.id, { status: 'pending' })
       return
     }
-    updateCredential(f.id, { status: data.status, approved_level: data.approved_level })
+    updateCredential(f.id, { status: data.status, approved_level: data.approved_level, ai_report: data.ai_report ?? null, evaluated_at: data.evaluated_at ?? new Date().toISOString() })
   }
 
   const approved = faculty.filter(f => f.credential?.status === 'approved')
@@ -306,16 +307,28 @@ export function CredentialsManager({ faculty: initialFaculty }: { faculty: Facul
                       </button>
 
                       {cred?.ai_report && cred.id && (
-                        <a
-                          href={`/api/academic/credentials/report/${cred.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <Download className="w-4 h-4" /> Descargar Reporte
-                        </a>
+                        <>
+                          <button
+                            onClick={() => setOpenReport(prev => ({ ...prev, [f.id]: !prev[f.id] }))}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <FileText className="w-4 h-4" /> {openReport[f.id] ? 'Ocultar reporte' : 'Ver reporte'}
+                          </button>
+                          <a
+                            href={`/api/academic/credentials/report/${cred.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <Download className="w-4 h-4" /> Descargar Reporte
+                          </a>
+                        </>
                       )}
                     </div>
+
+                    {openReport[f.id] && cred?.ai_report && (
+                      <pre className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-4 text-xs text-gray-700 whitespace-pre-wrap font-sans overflow-x-auto max-h-[28rem] overflow-y-auto">{cred.ai_report}</pre>
+                    )}
 
                     {cred?.evaluated_at && (
                       <p className="mt-2 text-xs text-gray-400">

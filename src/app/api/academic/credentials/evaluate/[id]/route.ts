@@ -215,5 +215,5 @@ ${RUBRIC}
     updated_at: new Date().toISOString(),
   }).eq('id', id)
 
-  return NextResponse.json({ status: result.status, approved_level: result.approved_level, summary: result.summary })
+  return NextResponse.json({ status: result.status, approved_level: result.approved_level, summary: result.summary, ai_report: report, evaluated_at: new Date().toISOString() })
 }
