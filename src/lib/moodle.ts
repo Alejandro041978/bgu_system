@@ -1,0 +1,67 @@
+// Cliente de Moodle Web Services (REST). Lee credenciales de variables de entorno.
+// NUNCA hardcodear el token: se configura en Vercel (MOODLE_URL, MOODLE_WS_TOKEN).
+
+const BASE = process.env.MOODLE_URL
+const TOKEN = process.env.MOODLE_WS_TOKEN
+export const MOODLE_STUDENT_ROLEID = Number(process.env.MOODLE_STUDENT_ROLEID || '5')
+export const MOODLE_COURSE_MATCH_FIELD = process.env.MOODLE_COURSE_MATCH_FIELD || 'shortname' // 'shortname' | 'idnumber'
+
+export function moodleConfigured(): boolean {
+  return !!BASE && !!TOKEN
+}
+
+// Aplana objetos/arrays al formato que espera Moodle: key[0][field]=value
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function append(body: URLSearchParams, value: any, prefix: string) {
+  if (value === null || value === undefined) return
+  if (Array.isArray(value)) {
+    value.forEach((item, i) => append(body, item, `${prefix}[${i}]`))
+  } else if (typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) append(body, v, `${prefix}[${k}]`)
+  } else {
+    body.append(prefix, String(value))
+  }
+}
+
+/** Llama una función de Moodle WS. Lanza Error si Moodle devuelve una excepción. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function moodleCall(wsfunction: string, params: Record<string, any> = {}): Promise<any> {
+  if (!BASE || !TOKEN) throw new Error('Moodle no configurado (faltan MOODLE_URL / MOODLE_WS_TOKEN)')
+  const body = new URLSearchParams({ wstoken: TOKEN, moodlewsrestformat: 'json', wsfunction })
+  for (const [k, v] of Object.entries(params)) append(body, v, k)
+
+  const res = await fetch(`${BASE}/webservice/rest/server.php`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  })
+  const data = await res.json().catch(() => null)
+  if (data && data.exception) throw new Error(`${data.errorcode}: ${data.message}`)
+  return data
+}
+
+// ---- Helpers de alto nivel ----
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getSiteInfo(): Promise<any> {
+  return moodleCall('core_webservice_get_site_info', {})
+}
+
+export async function getUserByEmail(email: string): Promise<{ id: number } | null> {
+  const users = await moodleCall('core_user_get_users_by_field', { field: 'email', values: [email] })
+  return Array.isArray(users) && users.length ? users[0] : null
+}
+
+export async function getCourseByCode(code: string): Promise<{ id: number } | null> {
+  const res = await moodleCall('core_course_get_courses_by_field', { field: MOODLE_COURSE_MATCH_FIELD, value: code })
+  const courses = res?.courses
+  return Array.isArray(courses) && courses.length ? courses[0] : null
+}
+
+export async function enrolUser(courseid: number, userid: number, roleid = MOODLE_STUDENT_ROLEID): Promise<void> {
+  await moodleCall('enrol_manual_enrol_users', { enrolments: [{ roleid, userid, courseid }] })
+}
+
+export async function unenrolUser(courseid: number, userid: number): Promise<void> {
+  await moodleCall('enrol_manual_unenrol_users', { enrolments: [{ userid, courseid }] })
+}
