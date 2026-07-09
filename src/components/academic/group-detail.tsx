@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Plus, X, Search, Loader2, BookOpen, Users, UserCheck } from 'lucide-react'
+import { ArrowLeft, Plus, X, Search, Loader2, BookOpen, Users, UserCheck, RefreshCw } from 'lucide-react'
+
+interface SyncResult { configured: boolean; students_total: number; with_account: number; no_account: number; enrol_ops: number; courses_unmapped: string[]; errors: string[] }
 
 interface Off { id: string; course_name: string; course_code: string | null; teacher: string | null }
 interface Stu { id: string; name: string; document_number: string | null }
@@ -14,6 +16,14 @@ export function GroupDetail({ groupId }: { groupId: string }) {
   const [addingOff, setAddingOff] = useState('')
   const [q, setQ] = useState('')
   const [hits, setHits] = useState<Stu[]>([])
+  const [syncing, setSyncing] = useState(false)
+  const [sync, setSync] = useState<SyncResult | null>(null)
+
+  async function doSync() {
+    setSyncing(true); setSync(null)
+    const r = await fetch(`/api/academic/groups/${groupId}/moodle-sync`, { method: 'POST' }).then(res => res.json())
+    setSyncing(false); setSync(r); load()
+  }
 
   const load = useCallback(async () => {
     const d = await fetch(`/api/academic/groups/${groupId}`).then(r => r.json())
@@ -92,7 +102,25 @@ export function GroupDetail({ groupId }: { groupId: string }) {
 
       {/* Estudiantes */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5"><Users className="w-4 h-4 text-gray-400" />Estudiantes ({data.students.length})</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5"><Users className="w-4 h-4 text-gray-400" />Estudiantes ({data.students.length})</h3>
+          <button onClick={doSync} disabled={syncing}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+            {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            Sincronizar con Moodle
+          </button>
+        </div>
+        {sync && (
+          <div className={`text-xs rounded-lg px-3 py-2 ${sync.errors?.length || !sync.configured ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-700'}`}>
+            {!sync.configured ? 'Moodle no está configurado (faltan variables en Vercel).' : (
+              <>
+                <b>{sync.enrol_ops}</b> matrículas · <b>{sync.with_account}</b> con cuenta · <b>{sync.no_account}</b> sin cuenta Moodle
+                {sync.courses_unmapped?.length > 0 && <div className="mt-0.5">⚠ Asignaturas sin aula: {sync.courses_unmapped.join(', ')}</div>}
+                {sync.errors?.length > 0 && <div className="mt-0.5">Errores: {sync.errors.slice(0, 3).join(' · ')}</div>}
+              </>
+            )}
+          </div>
+        )}
         <div className="relative">
           <div className="flex items-center border border-gray-200 rounded-lg px-3">
             <Search className="w-4 h-4 text-gray-400" />
