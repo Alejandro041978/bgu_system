@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Upload, FileText, CheckCircle2, XCircle, Clock, Loader2, Download, AlertCircle, GraduationCap, Sparkles } from 'lucide-react'
+import { Upload, FileText, CheckCircle2, XCircle, Clock, Loader2, Download, AlertCircle, GraduationCap, Sparkles, Trash2, X, ClipboardCheck } from 'lucide-react'
 
 type Credential = {
   id: string
@@ -16,6 +16,9 @@ type Credential = {
   approved_level: 'bachelor' | 'master' | 'doctor' | null
   ai_report: string | null
   evaluated_at: string | null
+  source?: 'ai' | 'external' | null
+  external_report_url?: string | null
+  external_report_name?: string | null
 }
 
 type Faculty = {
@@ -147,6 +150,42 @@ export function CredentialsManager({ faculty: initialFaculty }: { faculty: Facul
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [evalError, setEvalError] = useState<Record<string, string>>({})
   const [openReport, setOpenReport] = useState<Record<string, boolean>>({})
+  const [extModal, setExtModal] = useState<string | null>(null)
+  const [extStatus, setExtStatus] = useState<'approved' | 'rejected'>('approved')
+  const [extLevel, setExtLevel] = useState<'bachelor' | 'master' | 'doctor'>('bachelor')
+  const [extFile, setExtFile] = useState<File | null>(null)
+  const [extSaving, setExtSaving] = useState(false)
+
+  async function deleteEvaluation(f: Faculty) {
+    if (!f.credential?.id) return
+    if (!confirm('¿Borrar la evaluación? Se eliminan el reporte, los documentos cargados y el estado. Esta acción no se puede deshacer.')) return
+    const res = await fetch(`/api/academic/credentials/${f.credential.id}`, { method: 'DELETE' })
+    if (res.ok) setFaculty(prev => prev.map(x => x.id === f.id ? { ...x, credential: null } : x))
+    else { const d = await res.json().catch(() => null); alert(`No se pudo borrar: ${d?.error ?? 'error'}`) }
+  }
+
+  function openExternal(fId: string) {
+    setExtModal(fId); setExtStatus('approved'); setExtLevel('bachelor'); setExtFile(null)
+  }
+  async function submitExternal() {
+    if (!extModal) return
+    setExtSaving(true)
+    const fd = new FormData()
+    fd.append('employee_id', extModal)
+    fd.append('status', extStatus)
+    if (extStatus === 'approved') fd.append('approved_level', extLevel)
+    if (extFile) fd.append('file', extFile)
+    const res = await fetch('/api/academic/credentials/external', { method: 'POST', body: fd })
+    const data = await res.json()
+    setExtSaving(false)
+    if (!res.ok) { alert(`No se pudo guardar: ${data?.error ?? 'error'}`); return }
+    updateCredential(extModal, {
+      id: data.id, status: data.status, approved_level: data.approved_level,
+      source: 'external', external_report_url: data.external_report_url, external_report_name: data.external_report_name,
+      ai_report: null, evaluated_at: data.evaluated_at,
+    })
+    setExtModal(null); setExtFile(null)
+  }
 
   function updateCredential(employeeId: string, patch: Partial<Credential>) {
     setFaculty(prev => prev.map(f => {
@@ -158,6 +197,7 @@ export function CredentialsManager({ faculty: initialFaculty }: { faculty: Facul
         second_title_url: null, second_title_name: null,
         status: 'pending' as const,
         approved_level: null, ai_report: null, evaluated_at: null,
+        source: 'ai' as const, external_report_url: null, external_report_name: null,
       }
       return { ...f, credential: { ...cred, ...patch } }
     }))
@@ -228,6 +268,7 @@ export function CredentialsManager({ faculty: initialFaculty }: { faculty: Facul
             const isOpen = expanded[f.id]
             const isEval = evaluating[f.id] || cred?.status === 'evaluating'
             const canEvaluate = !!(cred?.cv_url || cred?.degree_url) && !isEval
+            const evaluated = cred?.status === 'approved' || cred?.status === 'rejected'
 
             return (
               <div key={f.id}>
@@ -295,33 +336,54 @@ export function CredentialsManager({ faculty: initialFaculty }: { faculty: Facul
                     )}
 
                     <div className="mt-4 flex items-center gap-3 flex-wrap">
-                      <button
-                        onClick={() => evaluate(f)}
-                        disabled={!canEvaluate}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {isEval
-                          ? <><Loader2 className="w-4 h-4 animate-spin" /> Evaluando con IA…</>
-                          : <><Sparkles className="w-4 h-4" /> Solicitar Evaluación IA</>
-                        }
-                      </button>
-
-                      {cred?.ai_report && cred.id && (
+                      {!evaluated ? (
                         <>
                           <button
-                            onClick={() => setOpenReport(prev => ({ ...prev, [f.id]: !prev[f.id] }))}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => evaluate(f)}
+                            disabled={!canEvaluate}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                           >
-                            <FileText className="w-4 h-4" /> {openReport[f.id] ? 'Ocultar reporte' : 'Ver reporte'}
+                            {isEval
+                              ? <><Loader2 className="w-4 h-4 animate-spin" /> Evaluando con IA…</>
+                              : <><Sparkles className="w-4 h-4" /> Solicitar Evaluación IA</>
+                            }
                           </button>
-                          <a
-                            href={`/api/academic/credentials/report/${cred.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => openExternal(f.id)}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
                           >
-                            <Download className="w-4 h-4" /> Descargar Reporte
-                          </a>
+                            <ClipboardCheck className="w-4 h-4" /> Subir evaluación externa
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {cred?.source === 'external'
+                            ? (cred?.external_report_url && (
+                                <a href={cred.external_report_url} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                                  <Download className="w-4 h-4" /> Descargar dictamen
+                                </a>
+                              ))
+                            : (cred?.ai_report && cred.id && (
+                                <>
+                                  <button
+                                    onClick={() => setOpenReport(prev => ({ ...prev, [f.id]: !prev[f.id] }))}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                                  >
+                                    <FileText className="w-4 h-4" /> {openReport[f.id] ? 'Ocultar reporte' : 'Ver reporte'}
+                                  </button>
+                                  <a href={`/api/academic/credentials/report/${cred.id}`} target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <Download className="w-4 h-4" /> Descargar Reporte
+                                  </a>
+                                </>
+                              ))}
+                          <button
+                            onClick={() => deleteEvaluation(f)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" /> Borrar evaluación
+                          </button>
                         </>
                       )}
                     </div>
@@ -333,6 +395,7 @@ export function CredentialsManager({ faculty: initialFaculty }: { faculty: Facul
                     {cred?.evaluated_at && (
                       <p className="mt-2 text-xs text-gray-400">
                         Evaluado: {new Date(cred.evaluated_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {' · '}{cred.source === 'external' ? 'Evaluación externa' : 'Evaluación IA'}
                       </p>
                     )}
                   </div>
@@ -349,6 +412,59 @@ export function CredentialsManager({ faculty: initialFaculty }: { faculty: Facul
           )}
         </div>
       </div>
+
+      {/* Modal: evaluación externa */}
+      {extModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setExtModal(null)}>
+          <div className="bg-white rounded-xl border border-gray-200 p-6 w-full max-w-md space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-indigo-600" /> Evaluación externa</h3>
+              <button onClick={() => setExtModal(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+            </div>
+            <p className="text-xs text-gray-500">Registra un dictamen previo sin pasar por la evaluación IA. El docente queda en el estado que elijas.</p>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">Resultado</label>
+              <div className="flex gap-2">
+                <button onClick={() => setExtStatus('approved')}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${extStatus === 'approved' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                  Aprobado
+                </button>
+                <button onClick={() => setExtStatus('rejected')}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${extStatus === 'rejected' ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                  Desaprobado
+                </button>
+              </div>
+            </div>
+
+            {extStatus === 'approved' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Nivel autorizado</label>
+                <select value={extLevel} onChange={e => setExtLevel(e.target.value as 'bachelor' | 'master' | 'doctor')}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="bachelor">Pregrado / Bachelor</option>
+                  <option value="master">Maestría / Master (y pregrado)</option>
+                  <option value="doctor">Doctorado (todos los niveles)</option>
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Dictamen (PDF/Word, opcional)</label>
+              <input type="file" accept=".pdf,.doc,.docx" onChange={e => setExtFile(e.target.files?.[0] ?? null)}
+                className="w-full text-sm text-gray-600 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:text-sm" />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setExtModal(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">Cancelar</button>
+              <button onClick={submitExternal} disabled={extSaving}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white">
+                {extSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />} Guardar evaluación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
