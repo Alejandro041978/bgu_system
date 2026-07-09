@@ -38,24 +38,60 @@ export async function checkRequirements(
     }
   }
 
-  // Egresado: 100% de la malla aprobada
+  // Egresado: 100% de la malla cubierta (nota aprobatoria, convalidación o validación)
   if (kinds.has('graduated')) {
     if (!programId || !stu?.document_number) out.push({ kind: 'graduated', ok: null, note: 'Requiere programa' })
     else {
-      const { data: courses } = await sb.from('academic_courses').select('name').eq('program_id', programId)
-      const malla = new Set<string>((courses ?? []).map((c: { name: string }) => (c.name ?? '').toLowerCase().trim()).filter(Boolean))
+      const norm = (s: string | null) => (s ?? '').toLowerCase().trim().replace(/\s+/g, ' ')
+
+      // Nota aprobatoria de la categoría del programa (fallback)
+      const { data: program } = await sb.from('academic_programs').select('category_id').eq('id', programId).maybeSingle()
+      let categoryPassing: number | null = null
+      if (program?.category_id) {
+        const { data: cat } = await sb.from('academic_programs_category').select('passing_score').eq('id', program.category_id).maybeSingle()
+        categoryPassing = cat?.passing_score ?? null
+      }
+
+      // Malla del programa
+      const { data: courses } = await sb.from('academic_courses').select('id, code, name').eq('program_id', programId)
+
+      // Notas reales (excluye convalidación y validación)
       const { data: grades } = await sb.from('academic_grades')
-        .select('course_name, final_grade, retake_grade, passing_score').eq('document_number', stu.document_number)
-      const approved = new Set<string>()
-      for (const g of grades ?? []) {
-        const val = g.retake_grade ?? g.final_grade
-        if (val != null && g.passing_score != null && Number(val) >= Number(g.passing_score)) {
-          approved.add((g.course_name ?? '').toLowerCase().trim())
+        .select('course_code, course_name, final_grade, retake_grade, passing_score')
+        .eq('document_number', stu.document_number).neq('source', 'convalidacion').neq('source', 'validacion')
+
+      // Convalidaciones/validaciones del estudiante para este programa (dest_course_id)
+      const { data: tcs } = await sb.from('transfer_credits').select('id').eq('student_id', studentId).eq('dest_program_id', programId)
+      const tcIds = (tcs ?? []).map((t: { id: string }) => t.id)
+      const { data: tItems } = tcIds.length
+        ? await sb.from('transfer_credit_items').select('dest_course_id').in('transfer_credit_id', tcIds)
+        : { data: [] }
+      const transferCourseIds = new Set<string>((tItems ?? []).map((it: { dest_course_id: string }) => it.dest_course_id).filter(Boolean))
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const gradeRows = (grades ?? []) as any[]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mallaCourses = (courses ?? []) as any[]
+
+      let cubiertas = 0
+      for (const c of mallaCourses) {
+        // Convalidación / validación cubre la asignatura
+        if (transferCourseIds.has(c.id)) { cubiertas++; continue }
+        // Nota real aprobatoria
+        const matches = gradeRows.filter(g =>
+          (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
+          (norm(g.course_name) === norm(c.name) && norm(c.name) !== '')
+        )
+        const values = matches.map(g => (g.retake_grade ?? g.final_grade) as number | null).filter(v => v != null) as number[]
+        if (values.length) {
+          const best = Math.max(...values)
+          const bestRow = matches.find(g => Number(g.retake_grade ?? g.final_grade) === best)
+          const passing = bestRow?.passing_score ?? categoryPassing
+          if (passing == null || best >= Number(passing)) cubiertas++
         }
       }
-      const cubiertas = [...malla].filter(m => approved.has(m)).length
-      const ok = malla.size > 0 && cubiertas === malla.size
-      out.push({ kind: 'graduated', ok, note: `${cubiertas}/${malla.size} asignaturas aprobadas` })
+      const ok = mallaCourses.length > 0 && cubiertas === mallaCourses.length
+      out.push({ kind: 'graduated', ok, note: `${cubiertas}/${mallaCourses.length} asignaturas aprobadas` })
     }
   }
 
