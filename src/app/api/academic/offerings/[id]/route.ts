@@ -20,6 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const update: Record<string, unknown> = { start_date: body.start_date || null, end_date: body.end_date || null }
   if (body.group_label !== undefined) update.group_label = body.group_label?.trim() || null
+  if (body.group_id !== undefined) update.group_id = body.group_id || null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
@@ -27,9 +28,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .update(update)
     .eq('id', id)
     .select(`
-      id, created_at, start_date, end_date, group_label,
+      id, created_at, start_date, end_date, group_label, group_id, semester_id,
+      group:academic_groups(id, abbreviation, name),
       course:academic_courses(id, name, code, credits, level, program_id,
-        program:academic_programs(id, name, code)),
+        program:academic_programs(id, name, code, category_id)),
       assignments:faculty_assignments(id, hours_per_week, employee:hr_employees(id, full_name, position))
     `)
     .single()

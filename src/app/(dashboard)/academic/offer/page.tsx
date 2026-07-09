@@ -8,7 +8,7 @@ export default async function AcademicOfferPage() {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [yearsRes, facultyRes, coursesRes, contractsRes, categoriesRes] = await Promise.all([
+  const [yearsRes, facultyRes, coursesRes, contractsRes, categoriesRes, groupsRes] = await Promise.all([
     (supabase as any)
       .from('academic_years')
       .select('id, name, semesters:academic_semesters(id, name, status, start_date, end_date)')
@@ -29,6 +29,10 @@ export default async function AcademicOfferPage() {
     (supabase as any)
       .from('academic_programs_category')
       .select('id, name')
+      .order('name'),
+    (supabase as any)
+      .from('academic_groups')
+      .select('id, abbreviation, name, program_id')
       .order('name'),
   ])
 
@@ -52,6 +56,7 @@ export default async function AcademicOfferPage() {
             allCourses={coursesRes.data ?? []}
             contractMap={contractMap}
             categories={categoriesRes.data ?? []}
+            groups={groupsRes.data ?? []}
           />
         </div>
       </div>

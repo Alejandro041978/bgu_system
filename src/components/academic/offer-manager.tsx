@@ -6,7 +6,8 @@ import { ChevronDown, Plus, Trash2, UserCheck, AlertCircle, CheckCircle2, Loader
 type Employee = { id: string; full_name: string; position: string | null }
 type Course = { id: string; name: string; code: string | null; credits: number; level: number | null; program_id: string; program: { id: string; name: string; code: string | null; category_id?: string | null } }
 type Assignment = { id: string; hours_per_week: number | null; employee: Employee }
-type Offering = { id: string; course: Course; assignments: Assignment[]; start_date: string | null; end_date: string | null; group_label: string | null; semester_id: string }
+type Offering = { id: string; course: Course; assignments: Assignment[]; start_date: string | null; end_date: string | null; group_id: string | null; group: { id: string; abbreviation: string | null; name: string | null } | null; semester_id: string }
+type Group = { id: string; abbreviation: string | null; name: string | null; program_id: string }
 type Semester = { id: string; name: string; status: string; academic_year_id: string; start_date: string | null; end_date: string | null }
 type Category = { id: string; name: string }
 type Year = { id: string; name: string; semesters: Semester[] }
@@ -19,13 +20,14 @@ function fmtDate(d: string | null) {
 }
 
 export function OfferManager({
-  years, faculty, allCourses, contractMap = {}, categories = [],
+  years, faculty, allCourses, contractMap = {}, categories = [], groups = [],
 }: {
   years: Year[]
   faculty: Employee[]
   allCourses: ProgramCourse[]
   contractMap?: Record<string, string[]>
   categories?: Category[]
+  groups?: Group[]
 }) {
   const [offerings, setOfferings] = useState<Offering[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +47,7 @@ export function OfferManager({
   const [addingCourseId, setAddingCourseId] = useState('')
   const [addStartDate, setAddStartDate] = useState('')
   const [addEndDate, setAddEndDate] = useState('')
-  const [addGroupLabel, setAddGroupLabel] = useState('')
+  const [addGroupId, setAddGroupId] = useState('')
   const [savingCourse, setSavingCourse] = useState(false)
   const [addCourseError, setAddCourseError] = useState('')
 
@@ -61,7 +63,6 @@ export function OfferManager({
   const [editEndDate, setEditEndDate] = useState('')
   const [editDatesError, setEditDatesError] = useState('')
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
-  const [editGroupLabel, setEditGroupLabel] = useState('')
 
   // Cargar TODAS las ofertas una vez
   useEffect(() => {
@@ -82,8 +83,10 @@ export function OfferManager({
     .sort((a, b) => a.name.localeCompare(b.name))
   const programsForFilter = fCategory ? programsInOfferings.filter(p => p.category_id === fCategory) : programsInOfferings
 
-  // Grupos únicos
-  const groupsInOfferings = Array.from(new Set(offerings.map(o => o.group_label).filter((g): g is string => !!g))).sort()
+  // Grupos (entidad) — helpers
+  const groupLabel = (g: { abbreviation: string | null; name: string | null }) => [g.abbreviation, g.name].filter(Boolean).join(' · ') || '(grupo)'
+  const groupsForProgram = (pid: string | null | undefined) => groups.filter(g => g.program_id === pid)
+  const groupsForFilter = fProgram ? groupsForProgram(fProgram) : groups
 
   // Semestres del año filtrado (o todos)
   const semestersForFilter = fYear ? (years.find(y => y.id === fYear)?.semesters ?? []) : years.flatMap(y => y.semesters)
@@ -92,7 +95,7 @@ export function OfferManager({
   const filteredOfferings = offerings.filter(o => {
     if (fCategory && o.course.program.category_id !== fCategory) return false
     if (fProgram && o.course.program_id !== fProgram) return false
-    if (fGroup && (o.group_label ?? '') !== fGroup) return false
+    if (fGroup && o.group_id !== fGroup) return false
     if (fYear && semMeta[o.semester_id]?.yearId !== fYear) return false
     if (fSemester && o.semester_id !== fSemester) return false
     return true
@@ -120,12 +123,12 @@ export function OfferManager({
     setAddCourseError('')
     const res = await fetch('/api/academic/offerings', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ semester_id: addSemesterId, course_id: addingCourseId, start_date: addStartDate || null, end_date: addEndDate || null, group_label: addGroupLabel || null }),
+      body: JSON.stringify({ semester_id: addSemesterId, course_id: addingCourseId, start_date: addStartDate || null, end_date: addEndDate || null, group_id: addGroupId || null }),
     })
     const data = await res.json()
     if (res.ok) {
       setOfferings(prev => [...prev, data])
-      setAddingCourseId(''); setAddStartDate(''); setAddEndDate(''); setAddGroupLabel(''); setShowAddCourse(false)
+      setAddingCourseId(''); setAddStartDate(''); setAddEndDate(''); setAddGroupId(''); setShowAddCourse(false)
     } else {
       setAddCourseError(data.error ?? 'Error al agregar la asignatura')
     }
@@ -158,13 +161,12 @@ export function OfferManager({
 
   function startEditGroup(offering: Offering) {
     setEditingGroupId(offering.id)
-    setEditGroupLabel(offering.group_label ?? '')
   }
 
-  async function saveOfferingGroup(offering: Offering) {
+  async function saveOfferingGroup(offering: Offering, groupId: string) {
     const res = await fetch(`/api/academic/offerings/${offering.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ start_date: offering.start_date || null, end_date: offering.end_date || null, group_label: editGroupLabel || null }),
+      body: JSON.stringify({ start_date: offering.start_date || null, end_date: offering.end_date || null, group_id: groupId || null }),
     })
     const data = await res.json()
     if (res.ok) { setOfferings(prev => prev.map(o => o.id === offering.id ? data : o)); setEditingGroupId(null) }
@@ -218,7 +220,7 @@ export function OfferManager({
         <div className="relative">
           <select value={fGroup} onChange={e => setFGroup(e.target.value)} className={selCls}>
             <option value="">Todos los grupos</option>
-            {groupsInOfferings.map(g => <option key={g} value={g}>{g}</option>)}
+            {groupsForFilter.map(g => <option key={g.id} value={g.id}>{groupLabel(g)}</option>)}
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
         </div>
@@ -306,10 +308,11 @@ export function OfferManager({
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Grupo <span className="text-gray-400">(opcional)</span></label>
-              <input type="text" value={addGroupLabel} onChange={e => setAddGroupLabel(e.target.value)}
-                placeholder="Ej: Grupo A…" list="offer-group-suggestions"
-                className="w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <datalist id="offer-group-suggestions">{groupsInOfferings.map(g => <option key={g} value={g} />)}</datalist>
+              <select value={addGroupId} onChange={e => setAddGroupId(e.target.value)} disabled={!addProgramId}
+                className="w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+                <option value="">— Sin grupo —</option>
+                {groupsForProgram(addProgramId).map(g => <option key={g.id} value={g.id}>{groupLabel(g)}</option>)}
+              </select>
             </div>
             <button onClick={addCourse} disabled={!addingCourseId || !addSemesterId || savingCourse}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium rounded-lg">
@@ -358,15 +361,15 @@ export function OfferManager({
                         <p className="text-xs text-gray-400">{offering.course.code}{offering.course.program?.name ? ` · ${offering.course.program.name}` : ''}</p>
                         {editingGroupId === offering.id ? (
                           <div className="flex items-center gap-1 mt-1">
-                            <input value={editGroupLabel} onChange={e => setEditGroupLabel(e.target.value)}
-                              autoFocus placeholder="Grupo" list="offer-group-suggestions"
-                              onKeyDown={e => { if (e.key === 'Enter') saveOfferingGroup(offering); if (e.key === 'Escape') setEditingGroupId(null) }}
-                              className="w-28 border border-gray-300 rounded px-2 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                            <button onClick={() => saveOfferingGroup(offering)} className="text-green-600 hover:text-green-700"><Check className="w-3.5 h-3.5" /></button>
+                            <select autoFocus value={offering.group_id ?? ''} onChange={e => saveOfferingGroup(offering, e.target.value)}
+                              className="border border-gray-300 rounded px-2 py-0.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[180px]">
+                              <option value="">— Sin grupo —</option>
+                              {groupsForProgram(offering.course.program_id).map(g => <option key={g.id} value={g.id}>{groupLabel(g)}</option>)}
+                            </select>
                             <button onClick={() => setEditingGroupId(null)} className="text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>
                           </div>
-                        ) : offering.group_label ? (
-                          <button onClick={() => startEditGroup(offering)} className="mt-1 text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full hover:bg-indigo-100">{offering.group_label}</button>
+                        ) : offering.group ? (
+                          <button onClick={() => startEditGroup(offering)} className="mt-1 text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full hover:bg-indigo-100">{groupLabel(offering.group)}</button>
                         ) : (
                           <button onClick={() => startEditGroup(offering)} className="mt-1 flex items-center gap-1 text-xs text-gray-300 hover:text-indigo-600"><Pencil className="w-3 h-3" /> Grupo</button>
                         )}
