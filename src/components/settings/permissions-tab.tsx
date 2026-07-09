@@ -79,6 +79,7 @@ const PAGE_GROUPS = [
       { key: 'academic_years', label: 'Años y Semestres' },
       { key: 'academic_programs', label: 'Programas' },
       { key: 'academic_offer', label: 'Oferta académica' },
+      { key: 'academic_groups', label: 'Grupos' },
       { key: 'academic_schedules', label: 'Cronogramas' },
     ],
   },
