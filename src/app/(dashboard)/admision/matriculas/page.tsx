@@ -13,46 +13,66 @@ const db = () => createClient(
 export default async function MatriculasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; block?: string; category?: string }>
+  searchParams: Promise<{ year?: string; semester?: string; category?: string }>
 }) {
   const params = await searchParams
-  const selectedYear = params.year ? parseInt(params.year) : null
-  const selectedBlock = params.block ?? null
+  const selectedYear = params.year ?? null          // academic_year_id
+  const selectedSemester = params.semester ?? null  // academic_semester_id
   const selectedCategory = params.category ?? null
 
   const supabase = db()
 
-  const [{ data: programs }, { data: categories }] = await Promise.all([
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [{ data: programs }, { data: categories }, { data: convs }, { data: sems }, { data: acadYears }] = await Promise.all([
     supabase.from('academic_programs').select('id, name, code, category_id').order('name'),
     supabase.from('academic_programs_category').select('id, name').order('name'),
+    supabase.from('convocatorias').select('id, academic_semester_id'),
+    supabase.from('academic_semesters').select('id, name, academic_year_id, start_date').order('start_date'),
+    supabase.from('academic_years').select('id, name').order('name'),
   ])
 
-  // Trae TODAS las matrículas paginando: PostgREST corta en 1000 filas por request,
-  // así que sin paginar los conteos salían truncados (mostraba 1000 en total).
-  type Enr = { term_year: number | null; term_block: string | null; program_id: string | null }
-  const allEnrollments: Enr[] = []
+  // Mapas: convocatoria → semestre → año académico (calendario LIMPIO)
+  const convToSem = new Map<string, string | null>()
+  for (const c of convs ?? []) convToSem.set(c.id, c.academic_semester_id ?? null)
+  const semInfo = new Map<string, { name: string; year_id: string | null }>()
+  for (const s of sems ?? []) semInfo.set(s.id, { name: s.name, year_id: s.academic_year_id ?? null })
+  const yearName = new Map<string, string>()
+  for (const y of acadYears ?? []) yearName.set(y.id, y.name)
+
+  // Trae TODAS las matrículas paginando (PostgREST corta en 1000 por request)
+  type RawEnr = { convocatoria_id: string | null; program_id: string | null }
+  const rawEnrollments: RawEnr[] = []
   {
     const pageSize = 1000
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase
         .from('academic_student_enrollments')
-        .select('term_year, term_block, program_id')
+        .select('convocatoria_id, program_id')
         .range(from, from + pageSize - 1)
       if (error || !data || data.length === 0) break
-      allEnrollments.push(...(data as Enr[]))
+      rawEnrollments.push(...(data as RawEnr[]))
       if (data.length < pageSize) break
     }
   }
 
-  const years = [...new Set(allEnrollments.map(e => e.term_year).filter((v): v is number => v != null))]
-    .sort((a, b) => a - b)
-  const blocks = [...new Set(allEnrollments.map(e => e.term_block).filter((v): v is string => v != null))]
-    .sort()
+  // Derivar semestre + año académico de cada matrícula vía la convocatoria
+  const allEnrollments = rawEnrollments.map(e => {
+    const sem_id = e.convocatoria_id ? convToSem.get(e.convocatoria_id) ?? null : null
+    const year_id = sem_id ? semInfo.get(sem_id)?.year_id ?? null : null
+    return { program_id: e.program_id, sem_id, year_id }
+  })
 
-  // Filter enrollments
+  // Opciones de filtro: solo años/semestres presentes en las matrículas
+  const yearsPresent = new Set(allEnrollments.map(e => e.year_id).filter(Boolean))
+  const semsPresent = new Set(allEnrollments.map(e => e.sem_id).filter(Boolean))
+  const years = (acadYears ?? []).filter(y => yearsPresent.has(y.id)).map(y => ({ id: y.id, name: y.name }))
+  const semesters = (sems ?? []).filter(s => semsPresent.has(s.id))
+    .map(s => ({ id: s.id, name: s.name, year_id: s.academic_year_id ?? '' }))
+
+  // Filtrar
   const filtered = allEnrollments.filter(e => {
-    if (selectedYear && e.term_year !== selectedYear) return false
-    if (selectedBlock && e.term_block !== selectedBlock) return false
+    if (selectedYear && e.year_id !== selectedYear) return false
+    if (selectedSemester && e.sem_id !== selectedSemester) return false
     return true
   })
 
@@ -76,8 +96,8 @@ export default async function MatriculasPage({
     : null
   const filterLabel = [
     categoryLabel,
-    selectedYear ? `Año ${selectedYear}` : null,
-    selectedBlock ? `Semestre ${selectedBlock}` : null,
+    selectedYear ? (yearName.get(selectedYear) ?? null) : null,
+    selectedSemester ? (semInfo.get(selectedSemester)?.name ?? null) : null,
   ].filter(Boolean).join(' · ') || 'Todos los períodos'
 
   return (
@@ -89,10 +109,10 @@ export default async function MatriculasPage({
           {/* Filtros */}
           <MatriculasFilters
             years={years}
-            blocks={blocks}
+            semesters={semesters}
             categories={categories ?? []}
             selectedYear={selectedYear}
-            selectedBlock={selectedBlock}
+            selectedSemester={selectedSemester}
             selectedCategory={selectedCategory}
           />
 

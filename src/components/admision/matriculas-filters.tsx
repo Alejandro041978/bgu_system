@@ -3,95 +3,84 @@
 import { useRouter, usePathname } from 'next/navigation'
 
 interface Category { id: string; name: string }
+interface YearOpt { id: string; name: string }
+interface SemOpt { id: string; name: string; year_id: string }
 
 interface Props {
-  years: number[]
-  blocks: string[]
+  years: YearOpt[]
+  semesters: SemOpt[]
   categories: Category[]
-  selectedYear: number | null
-  selectedBlock: string | null
+  selectedYear: string | null
+  selectedSemester: string | null
   selectedCategory: string | null
 }
 
-const BLOCK_LABELS: Record<string, string> = {
-  '1': 'Semestre 1',
-  '2': 'Semestre 2',
-  '3': 'Semestre 3',
-}
-
-export function MatriculasFilters({ years, blocks, categories, selectedYear, selectedBlock, selectedCategory }: Props) {
+export function MatriculasFilters({ years, semesters, categories, selectedYear, selectedSemester, selectedCategory }: Props) {
   const router = useRouter()
   const pathname = usePathname()
 
-  function update(year: number | null, block: string | null, category: string | null) {
+  function update(year: string | null, semester: string | null, category: string | null) {
     const params = new URLSearchParams()
     if (category) params.set('category', category)
-    if (year) params.set('year', String(year))
-    if (block) params.set('block', block)
+    if (year) params.set('year', year)
+    if (semester) params.set('semester', semester)
     const qs = params.toString()
     router.push(qs ? `${pathname}?${qs}` : pathname)
   }
 
+  // Semestres del año seleccionado (o todos)
+  const shownSemesters = selectedYear ? semesters.filter(s => s.year_id === selectedYear) : semesters
+
   return (
     <div className="space-y-2">
-      {/* Categoría (selector superior) */}
+      {/* Categoría */}
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium text-gray-500">Categoría:</span>
         <select
           value={selectedCategory ?? ''}
-          onChange={e => update(selectedYear, selectedBlock, e.target.value || null)}
+          onChange={e => update(selectedYear, selectedSemester, e.target.value || null)}
           className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[240px]"
         >
           <option value="">Todas las categorías</option>
-          {categories.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
+          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        {/* Año */}
-        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-1 py-1">
+        {/* Año académico */}
+        <div className="flex flex-wrap items-center gap-1 bg-white border border-gray-200 rounded-lg px-1 py-1">
           <button
-            onClick={() => update(null, selectedBlock, selectedCategory)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              !selectedYear ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'
-            }`}
+            onClick={() => update(null, null, selectedCategory)}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${!selectedYear ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
           >
             Todos los años
           </button>
           {years.map(y => (
             <button
-              key={y}
-              onClick={() => update(y, selectedBlock, selectedCategory)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                selectedYear === y ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'
-              }`}
+              key={y.id}
+              onClick={() => update(y.id, null, selectedCategory)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${selectedYear === y.id ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
             >
-              {y}
+              {y.name}
             </button>
           ))}
         </div>
 
-        {/* Semestre */}
-        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-1 py-1">
+        {/* Semestre académico */}
+        <div className="flex flex-wrap items-center gap-1 bg-white border border-gray-200 rounded-lg px-1 py-1">
           <button
             onClick={() => update(selectedYear, null, selectedCategory)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              !selectedBlock ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'
-            }`}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${!selectedSemester ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
           >
             Todos los semestres
           </button>
-          {blocks.map(b => (
+          {shownSemesters.map(s => (
             <button
-              key={b}
-              onClick={() => update(selectedYear, b, selectedCategory)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                selectedBlock === b ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'
-              }`}
+              key={s.id}
+              onClick={() => update(s.year_id, s.id, selectedCategory)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${selectedSemester === s.id ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
             >
-              {BLOCK_LABELS[b] ?? `Semestre ${b}`}
+              {s.name}
             </button>
           ))}
         </div>
