@@ -81,8 +81,13 @@ const navigation: NavGroup[] = [
     label: 'Académico',
     items: [
       { name: 'Docentes', href: '/academic/faculty', icon: GraduationCap, pageKey: 'academic_faculty' },
-      { name: 'Notas', href: '/academic/grades', icon: Award, pageKey: 'academic_grades' },
-      { name: 'Acta Personal', href: '/academic/acta', icon: FileText, pageKey: 'academic_acta' },
+      {
+        name: 'Calificaciones', href: '/academic/grades', icon: Award, pageKey: 'academic_grades',
+        children: [
+          { name: 'Notas', href: '/academic/grades', icon: Award, pageKey: 'academic_grades' },
+          { name: 'Acta Personal', href: '/academic/acta', icon: FileText, pageKey: 'academic_acta' },
+        ],
+      },
       { name: 'Estado de Cuenta', href: '/academic/account', icon: Wallet, pageKey: 'academic_account' },
       { name: 'Conceptos de Cuenta', href: '/academic/concepts', icon: Tag, pageKey: 'academic_concepts' },
       { name: 'Plantillas de Facturación', href: '/academic/billing-plans', icon: Receipt, pageKey: 'academic_billing_plans' },
