@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus, Loader2, Users, BookOpen, ChevronRight } from 'lucide-react'
+import { Plus, Loader2, Users, BookOpen, ChevronRight, Pencil, Trash2, Check, X } from 'lucide-react'
 
 interface Ref { id: string; name: string; category_id?: string | null }
 interface Group { id: string; abbreviation: string | null; name: string | null; detail: string | null; offerings_count: number; students_count: number }
@@ -16,6 +16,25 @@ export function GroupsManager() {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ abbreviation: '', name: '', detail: '' })
   const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ abbreviation: '', name: '', detail: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  function startEdit(g: Group) {
+    setEditingId(g.id); setEditForm({ abbreviation: g.abbreviation ?? '', name: g.name ?? '', detail: g.detail ?? '' })
+  }
+  async function saveEdit() {
+    if (!editingId) return
+    setSavingEdit(true)
+    await fetch('/api/academic/groups', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingId, ...editForm }),
+    })
+    setSavingEdit(false); setEditingId(null); load(programId)
+  }
+  async function delGroup(id: string) {
+    if (!confirm('¿Eliminar este grupo? (sus asignaturas se desligan)')) return
+    await fetch(`/api/academic/groups?id=${id}`, { method: 'DELETE' }); load(programId)
+  }
 
   const loadCatalogs = useCallback(async () => {
     const d = await fetch('/api/academic/groups').then(r => r.json())
@@ -98,21 +117,38 @@ export function GroupsManager() {
             <p className="text-sm text-gray-400 py-10 text-center">No hay grupos para este programa.</p>
           ) : (
             <div className="grid gap-3">
-              {groups.map(g => (
-                <Link key={g.id} href={`/academic/groups/${g.id}`}
-                  className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-blue-300 hover:shadow-sm transition-all">
-                  <div>
+              {groups.map(g => editingId === g.id ? (
+                <div key={g.id} className="bg-white border border-blue-200 rounded-xl px-4 py-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input value={editForm.abbreviation} onChange={e => setEditForm(f => ({ ...f, abbreviation: e.target.value }))} className={inp} placeholder="Abreviatura" />
+                    <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className={inp} placeholder="Denominación" />
+                    <input value={editForm.detail} onChange={e => setEditForm(f => ({ ...f, detail: e.target.value }))} className={inp} placeholder="Detalle" />
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={saveEdit} disabled={savingEdit} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+                      {savingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}Guardar
+                    </button>
+                    <button onClick={() => setEditingId(null)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
+                      <X className="w-3.5 h-3.5" />Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div key={g.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-blue-300 hover:shadow-sm transition-all">
+                  <Link href={`/academic/groups/${g.id}`} className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-800">
                       {g.abbreviation && <span className="text-blue-600">{g.abbreviation}</span>}{g.abbreviation && g.name ? ' · ' : ''}{g.name}
                     </p>
                     {g.detail && <p className="text-xs text-gray-400">{g.detail}</p>}
+                  </Link>
+                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <span className="hidden sm:flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" />{g.offerings_count}</span>
+                    <span className="hidden sm:flex items-center gap-1"><Users className="w-3.5 h-3.5" />{g.students_count}</span>
+                    <button onClick={() => startEdit(g)} title="Editar" className="text-gray-300 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => delGroup(g.id)} title="Eliminar" className="text-gray-300 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                    <Link href={`/academic/groups/${g.id}`}><ChevronRight className="w-4 h-4 text-gray-300 hover:text-gray-500" /></Link>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" />{g.offerings_count} asignaturas</span>
-                    <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{g.students_count} estudiantes</span>
-                    <ChevronRight className="w-4 h-4 text-gray-300" />
-                  </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
