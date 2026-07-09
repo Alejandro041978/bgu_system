@@ -20,17 +20,13 @@ function fmtDate(d: string | null) {
 }
 
 export function OfferManager({
-  years, faculty, allCourses, contractMap = {}, categories = [], groups = [], approvedCredentials = [],
+  years, allCourses, categories = [], groups = [],
 }: {
   years: Year[]
-  faculty: Employee[]
   allCourses: ProgramCourse[]
-  contractMap?: Record<string, string[]>
   categories?: Category[]
   groups?: Group[]
-  approvedCredentials?: string[]
 }) {
-  const approvedSet = new Set(approvedCredentials)
   const [offerings, setOfferings] = useState<Offering[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -53,11 +49,6 @@ export function OfferManager({
   const [savingCourse, setSavingCourse] = useState(false)
   const [addCourseError, setAddCourseError] = useState('')
 
-  // Panel asignar docente
-  const [assigningOffering, setAssigningOffering] = useState<string | null>(null)
-  const [assignEmployeeId, setAssignEmployeeId] = useState('')
-  const [assignHours, setAssignHours] = useState('')
-  const [savingAssign, setSavingAssign] = useState(false)
 
   // Edición de fechas / grupo de una oferta ya creada
   const [editingDatesId, setEditingDatesId] = useState<string | null>(null)
@@ -174,26 +165,6 @@ export function OfferManager({
     })
     const data = await res.json()
     if (res.ok) { setOfferings(prev => prev.map(o => o.id === offering.id ? data : o)); setEditingGroupId(null) }
-  }
-
-  async function assignFaculty(offeringId: string) {
-    if (!assignEmployeeId) return
-    setSavingAssign(true)
-    const res = await fetch('/api/academic/assignments', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ offering_id: offeringId, employee_id: assignEmployeeId, hours_per_week: assignHours ? parseInt(assignHours) : null }),
-    })
-    const data = await res.json()
-    if (res.ok) {
-      setOfferings(prev => prev.map(o => o.id === offeringId ? { ...o, assignments: [...o.assignments, data] } : o))
-      setAssigningOffering(null); setAssignEmployeeId(''); setAssignHours('')
-    }
-    setSavingAssign(false)
-  }
-
-  async function removeAssignment(assignmentId: string, offeringId: string) {
-    await fetch(`/api/academic/assignments/${assignmentId}`, { method: 'DELETE' })
-    setOfferings(prev => prev.map(o => o.id === offeringId ? { ...o, assignments: o.assignments.filter(a => a.id !== assignmentId) } : o))
   }
 
   const selCls = 'appearance-none border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700'
@@ -355,7 +326,6 @@ export function OfferManager({
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filteredOfferings.map(offering => {
-                const isAssigning = assigningOffering === offering.id
                 const meta = semMeta[offering.semester_id]
                 return (
                   <>
@@ -403,16 +373,13 @@ export function OfferManager({
                               <span key={a.id} className="flex items-center gap-1.5 text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">
                                 <UserCheck className="w-3 h-3" />{a.employee.full_name}
                                 {a.hours_per_week ? <span className="text-indigo-400">· {a.hours_per_week}h</span> : null}
-                                <button onClick={() => removeAssignment(a.id, offering.id)} className="ml-0.5 hover:text-red-500"><X className="w-3 h-3" /></button>
                               </span>
                             ))}
-                            <button onClick={() => { setAssigningOffering(offering.id); setAssignEmployeeId(''); setAssignHours('') }} className="text-xs text-indigo-400 hover:text-indigo-600 px-1"><Plus className="w-3 h-3" /></button>
                           </div>
                         ) : (
-                          <button onClick={() => { setAssigningOffering(offering.id); setAssignEmployeeId(''); setAssignHours('') }}
-                            className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-full transition-colors">
-                            <AlertCircle className="w-3.5 h-3.5" /> Sin docente — Asignar
-                          </button>
+                          <span className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full w-fit">
+                            <AlertCircle className="w-3.5 h-3.5" /> Sin docente
+                          </span>
                         )}
                       </td>
                       <td className="px-3 py-3">
@@ -435,41 +402,6 @@ export function OfferManager({
                               <Check className="w-3.5 h-3.5" /> Guardar
                             </button>
                             <button onClick={() => setEditingDatesId(null)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg"><X className="w-4 h-4" /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    {isAssigning && (
-                      <tr key={`assign-${offering.id}`} className="bg-indigo-50">
-                        <td colSpan={7} className="px-5 py-3">
-                          <div className="flex items-center gap-3">
-                            <select value={assignEmployeeId} onChange={e => setAssignEmployeeId(e.target.value)}
-                              className="flex-1 border border-indigo-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                              <option value="">— Seleccionar docente —</option>
-                              {faculty.map(f => {
-                                const alreadyAssigned = offering.assignments.some(a => a.employee.id === f.id)
-                                const hasContract = contractMap[meta?.yearId ?? '']?.includes(f.id) ?? false
-                                const hasCredential = approvedSet.has(f.id)
-                                const disabled = alreadyAssigned || !hasContract || !hasCredential
-                                const reason = alreadyAssigned ? ' (ya asignado)'
-                                  : !hasContract ? ' (sin contrato)'
-                                  : !hasCredential ? ' (sin credencial aprobada)'
-                                  : ''
-                                return (
-                                  <option key={f.id} value={f.id} disabled={disabled}>
-                                    {f.full_name}{f.position ? ` — ${f.position}` : ''}{reason}
-                                  </option>
-                                )
-                              })}
-                            </select>
-                            <input type="number" min="1" max="40" value={assignHours} onChange={e => setAssignHours(e.target.value)}
-                              placeholder="Horas/sem" className="w-28 border border-indigo-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                            <button onClick={() => assignFaculty(offering.id)} disabled={!assignEmployeeId || savingAssign}
-                              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-3 py-1.5 text-sm font-medium rounded-lg">
-                              {savingAssign ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
-                              {savingAssign ? 'Asignando...' : 'Confirmar'}
-                            </button>
-                            <button onClick={() => setAssigningOffering(null)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg"><X className="w-4 h-4" /></button>
                           </div>
                         </td>
                       </tr>
