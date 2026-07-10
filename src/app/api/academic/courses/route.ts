@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
       name: body.name,
       code: body.code || null,
       credits: body.credits || 3,
+      hours: body.hours ?? null,
       level: body.level || null,
     })
     .select().single()

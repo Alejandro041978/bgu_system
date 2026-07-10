@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Plus, Trash2, BookOpen, ChevronRight, Pencil, Check, X } from 'lucide-react'
 
-type Course = { id: string; name: string; code: string | null; credits: number; level: number | null }
+type Course = { id: string; name: string; code: string | null; credits: number; hours: number | null; level: number | null }
 type Category = { id: string; name: string }
 type Program = { id: string; name: string; code: string | null; description: string | null; courses: Course[]; category?: Category | null }
 
@@ -25,7 +25,7 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
 
   // Course form
   const [showCourseForm, setShowCourseForm] = useState(false)
-  const [courseForm, setCourseForm] = useState({ name: '', code: '', credits: '3', level: '' })
+  const [courseForm, setCourseForm] = useState({ name: '', code: '', credits: '3', hours: '', level: '' })
   const [savingCourse, setSavingCourse] = useState(false)
 
   // Edit course inline
@@ -93,12 +93,12 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
     setSavingCourse(true)
     const res = await fetch('/api/academic/courses', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...courseForm, program_id: selected, credits: parseInt(courseForm.credits) || 3, level: courseForm.level ? parseInt(courseForm.level) : null }),
+      body: JSON.stringify({ ...courseForm, program_id: selected, credits: parseInt(courseForm.credits) || 3, hours: courseForm.hours ? parseInt(courseForm.hours) : null, level: courseForm.level ? parseInt(courseForm.level) : null }),
     })
     const data = await res.json()
     if (res.ok) {
       setPrograms(prev => prev.map(p => p.id === selected ? { ...p, courses: [...p.courses, data] } : p))
-      setCourseForm({ name: '', code: '', credits: '3', level: '' })
+      setCourseForm({ name: '', code: '', credits: '3', hours: '', level: '' })
       setShowCourseForm(false)
     }
     setSavingCourse(false)
@@ -107,10 +107,10 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
   async function saveCourseEdit(courseId: string) {
     await fetch(`/api/academic/courses/${courseId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...editCourseForm, credits: Number(editCourseForm.credits), level: editCourseForm.level ? Number(editCourseForm.level) : null }),
+      body: JSON.stringify({ ...editCourseForm, credits: Number(editCourseForm.credits), hours: editCourseForm.hours != null && String(editCourseForm.hours) !== '' ? Number(editCourseForm.hours) : null, level: editCourseForm.level ? Number(editCourseForm.level) : null }),
     })
     setPrograms(prev => prev.map(p => p.id === selected
-      ? { ...p, courses: p.courses.map(c => c.id === courseId ? { ...c, ...editCourseForm, credits: Number(editCourseForm.credits), level: editCourseForm.level ? Number(editCourseForm.level) : null } : c) }
+      ? { ...p, courses: p.courses.map(c => c.id === courseId ? { ...c, ...editCourseForm, credits: Number(editCourseForm.credits), hours: editCourseForm.hours != null && String(editCourseForm.hours) !== '' ? Number(editCourseForm.hours) : null, level: editCourseForm.level ? Number(editCourseForm.level) : null } : c) }
       : p
     ))
     setEditingCourse(null)
@@ -266,7 +266,7 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
               {/* Form nueva asignatura */}
               {showCourseForm && (
                 <div className="px-5 py-3 bg-gray-50 border-b border-gray-100">
-                  <div className="grid grid-cols-4 gap-2 mb-2">
+                  <div className="grid grid-cols-6 gap-2 mb-2">
                     <input value={courseForm.name} onChange={e => setCourseForm(p => ({ ...p, name: e.target.value }))}
                       placeholder="Nombre *" className="col-span-2 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     <input value={courseForm.code} onChange={e => setCourseForm(p => ({ ...p, code: e.target.value }))}
@@ -275,6 +275,8 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                       placeholder="Ciclo" className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     <input type="number" min="1" max="10" value={courseForm.credits} onChange={e => setCourseForm(p => ({ ...p, credits: e.target.value }))}
                       placeholder="Créditos" className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="number" min="0" value={courseForm.hours} onChange={e => setCourseForm(p => ({ ...p, hours: e.target.value }))}
+                      placeholder="Horas" className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div className="flex gap-2">
                     <button onClick={createCourse} disabled={!courseForm.name || savingCourse}
@@ -299,6 +301,7 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                         <th className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Asignatura</th>
                         <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Ciclo</th>
                         <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Créditos</th>
+                        <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Horas</th>
                         <th className="w-20"></th>
                       </tr>
                     </thead>
@@ -307,7 +310,7 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                         <>
                           {level > 0 && (
                             <tr key={`h-${level}`}>
-                              <td colSpan={4} className="px-5 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide bg-gray-50/50">
+                              <td colSpan={5} className="px-5 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide bg-gray-50/50">
                                 Ciclo {level}
                               </td>
                             </tr>
@@ -333,6 +336,10 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                                       className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500" />
                                   </td>
                                   <td className="px-3 py-2">
+                                    <input type="number" value={editCourseForm.hours ?? ''} onChange={e => setEditCourseForm(p => ({ ...p, hours: e.target.value ? Number(e.target.value) : null }))}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                  </td>
+                                  <td className="px-3 py-2">
                                     <div className="flex items-center gap-1">
                                       <button onClick={() => saveCourseEdit(course.id)} className="p-1 text-green-600 hover:bg-green-50 rounded"><Check className="w-3.5 h-3.5" /></button>
                                       <button onClick={() => setEditingCourse(null)} className="p-1 text-gray-400 hover:bg-gray-100 rounded"><X className="w-3.5 h-3.5" /></button>
@@ -349,9 +356,10 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                                   <td className="px-3 py-2.5 text-center">
                                     <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">{course.credits} cr</span>
                                   </td>
+                                  <td className="px-3 py-2.5 text-center text-gray-500">{course.hours != null ? `${course.hours} h` : '—'}</td>
                                   <td className="px-3 py-2.5">
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button onClick={() => { setEditingCourse(course.id); setEditCourseForm({ name: course.name, code: course.code, credits: course.credits, level: course.level }) }}
+                                      <button onClick={() => { setEditingCourse(course.id); setEditCourseForm({ name: course.name, code: course.code, credits: course.credits, hours: course.hours, level: course.level }) }}
                                         className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded"><Pencil className="w-3.5 h-3.5" /></button>
                                       <button onClick={() => deleteCourse(course.id)}
                                         className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>

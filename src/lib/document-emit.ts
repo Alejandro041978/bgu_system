@@ -26,6 +26,7 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
   let programName = ''
   let categoryName = ''
   let creditsTotal = ''
+  let hoursTotal = ''
   if (r.program_id) {
     const { data: prog } = await sb.from('academic_programs').select('name, category_id').eq('id', r.program_id).maybeSingle()
     programName = prog?.name ?? ''
@@ -33,9 +34,11 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
       const { data: cat } = await sb.from('academic_programs_category').select('name').eq('id', prog.category_id).maybeSingle()
       categoryName = cat?.name ?? ''
     }
-    const { data: courses } = await sb.from('academic_courses').select('credits').eq('program_id', r.program_id)
+    const { data: courses } = await sb.from('academic_courses').select('credits, hours').eq('program_id', r.program_id)
     const sum = (courses ?? []).reduce((a: number, c: { credits: number | null }) => a + Number(c.credits ?? 0), 0)
     creditsTotal = sum ? String(sum) : ''
+    const sumH = (courses ?? []).reduce((a: number, c: { hours: number | null }) => a + Number(c.hours ?? 0), 0)
+    hoursTotal = sumH ? String(sumH) : ''
   }
 
   const s = r.student ?? {}
@@ -56,6 +59,7 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
     program: programName,
     category: categoryName,
     credits_total: creditsTotal,
+    hours_total: hoursTotal,
     date_short: dateShort,
     date_long: dateLong,
     request_code: requestCode,

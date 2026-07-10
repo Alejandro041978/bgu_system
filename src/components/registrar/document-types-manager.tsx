@@ -29,6 +29,7 @@ const MAP_SOURCES = [
   { value: 'program', label: 'Programa' },
   { value: 'category', label: 'Categoría' },
   { value: 'credits_total', label: 'Total de créditos de la malla' },
+  { value: 'hours_total', label: 'Total de horas de la malla' },
   { value: 'date_short', label: 'Fecha (dd/mm/aaaa)' },
   { value: 'date_long', label: 'Fecha larga (9 de julio de 2026)' },
   { value: 'request_code', label: 'Código de solicitud' },
