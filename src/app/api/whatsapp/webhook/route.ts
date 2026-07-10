@@ -140,6 +140,18 @@ async function saveSession(phone: string, botKey: string, session: Session) {
     updated_at:    new Date().toISOString(),
   })
   if (error) console.error('saveSession error:', error.message)
+
+  // Registra la conversación para el supervisor diario (todos los bots de WhatsApp).
+  const { error: convErr } = await sb.from('sofia_conversations').upsert({
+    session_id:    `wa:${botKey}:${phone}`,
+    messages:      session.messages,
+    message_count: session.messages.length,
+    contact_email: null,
+    source:        'whatsapp',
+    bot_key:       botKey,
+    updated_at:    new Date().toISOString(),
+  }, { onConflict: 'session_id' })
+  if (convErr) console.error('sofia_conversations upsert error:', convErr.message)
 }
 
 // ── Twilio helpers ────────────────────────────────────────────────────────────
@@ -309,17 +321,7 @@ async function runSalesFlow(from: string, body: string, bot: Bot) {
 
     const phone = from.replace('whatsapp:', '')
 
-    // Registrar la conversación para el supervisor diario de ventas
-    await db().from('sofia_conversations').upsert({
-      session_id:    `wa:${bot.key}:${from}`,
-      messages:      session.messages,
-      message_count: session.messages.length,
-      contact_email: null,
-      source:        'whatsapp',
-      bot_key:       bot.key,
-      updated_at:    new Date().toISOString(),
-    }, { onConflict: 'session_id' })
-
+    // La conversación ya quedó registrada en sofia_conversations por saveSession.
     // Registrar/actualizar el prospecto en segundo plano
     extractAndSaveLead(session.messages, bot.key, phone, { phone })
   } catch (err) {
