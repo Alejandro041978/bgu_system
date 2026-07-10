@@ -150,29 +150,36 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 6. DIVERSIDAD GEOGRÁFICA DEL ALUMNADO ────────────────────────────────
-  // Países únicos de estudiantes cuyo enrollment_date cae dentro del periodo
-  const { data: enrollmentsInPeriod } = await sb
-    .from('academic_student_enrollments')
-    .select('student_id')
-    .gte('enrollment_date', start)
-    .lte('enrollment_date', end + 'T23:59:59Z')
-
-  const studentIds = [...new Set(
-    (enrollmentsInPeriod ?? []).map((e: { student_id: string }) => e.student_id)
-  )]
+  // Países únicos de estudiantes cuyo enrollment_date cae dentro del periodo.
+  // Se pagina la lectura (tope 1000 de PostgREST) y se consultan los países en
+  // lotes (un .in() con cientos de UUIDs excede el largo de URL y da 400).
+  const studentIdSet = new Set<string>()
+  for (let from = 0; ; from += 1000) {
+    const { data: page } = await sb
+      .from('academic_student_enrollments')
+      .select('student_id')
+      .gte('enrollment_date', start)
+      .lte('enrollment_date', end + 'T23:59:59Z')
+      .range(from, from + 999)
+    const rows = page ?? []
+    for (const e of rows as { student_id: string }[]) if (e.student_id) studentIdSet.add(e.student_id)
+    if (rows.length < 1000) break
+  }
+  const studentIds = [...studentIdSet]
 
   if (studentIds.length > 0) {
-    const { data: studentCountries } = await sb
-      .from('academic_students')
-      .select('country')
-      .in('id', studentIds)
-      .not('country', 'is', null)
-
-    const uniqueCountries = new Set(
-      (studentCountries ?? [])
-        .map((s: { country: string }) => s.country?.toLowerCase().trim())
-        .filter(Boolean)
-    )
+    const uniqueCountries = new Set<string>()
+    for (let i = 0; i < studentIds.length; i += 200) {
+      const { data: studentCountries } = await sb
+        .from('academic_students')
+        .select('country')
+        .in('id', studentIds.slice(i, i + 200))
+        .not('country', 'is', null)
+      for (const s of (studentCountries ?? []) as { country: string | null }[]) {
+        const c = s.country?.toLowerCase().trim()
+        if (c) uniqueCountries.add(c)
+      }
+    }
     results['student_geographic_diversity'] = uniqueCountries.size
   } else {
     results['student_geographic_diversity'] = 0
