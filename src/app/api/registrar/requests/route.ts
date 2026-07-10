@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRequirements, hasBlockingFailure } from '@/lib/document-requirements'
+import { emitDocument } from '@/lib/document-emit'
 
 export const revalidate = 0
 
@@ -17,18 +18,20 @@ export async function GET(req: NextRequest) {
   const sb = db()
   const status = req.nextUrl.searchParams.get('status')
   let q = sb.from('document_requests')
-    .select('id, status, stage_index, paid, requested_at, requirements_checked, document_url, program_id, student:academic_students(first_name, last_name, second_last_name, document_number), type:document_types(name, price, currency, stages)')
+    .select('id, status, stage_index, paid, requested_at, requirements_checked, document_url, emitted_at, field_values, program_id, student:academic_students(first_name, last_name, second_last_name, document_number), type:document_types(name, price, currency, stages, simplecert_project_id)')
     .order('requested_at', { ascending: false })
   if (status) q = q.eq('status', status)
   const { data } = await q
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = (data ?? []).map((r: any) => ({
-    id: r.id, status: r.status, stage_index: r.stage_index, paid: r.paid, requested_at: r.requested_at,
-    requirements_checked: r.requirements_checked ?? [], document_url: r.document_url,
+    id: r.id, status: r.status, stage_index: r.stage_index ?? 0, paid: r.paid, requested_at: r.requested_at,
+    requirements_checked: r.requirements_checked ?? [], document_url: r.document_url, emitted_at: r.emitted_at,
+    field_values: r.field_values ?? {},
     student_name: [r.student?.first_name, r.student?.last_name, r.student?.second_last_name].filter(Boolean).join(' '),
     document_number: r.student?.document_number ?? null,
     type_name: r.type?.name ?? '—', price: r.type?.price ?? 0, currency: r.type?.currency ?? 'USD',
-    stages_count: (r.type?.stages ?? []).length,
+    stages: r.type?.stages ?? [], stages_count: (r.type?.stages ?? []).length,
+    has_simplecert: !!r.type?.simplecert_project_id,
   }))
   return NextResponse.json({ requests: rows })
 }
@@ -79,7 +82,14 @@ export async function POST(req: NextRequest) {
   }).select('id').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ ok: true, id: reqRow.id, status, checks, blocked })
+  // Auto-emisión: gratuito, sin etapas y con SimpleCert configurado → emite el PDF de inmediato.
+  let document_url: string | null = null
+  if (status === 'ready' && type.simplecert_project_id) {
+    const res = await emitDocument(reqRow.id)
+    if (res.ok) { status = 'delivered'; document_url = res.url ?? null }
+  }
+
+  return NextResponse.json({ ok: true, id: reqRow.id, status, checks, blocked, document_url })
 }
 
 // DELETE ?id= → borra una solicitud NO pagada (y su cargo asociado)

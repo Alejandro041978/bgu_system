@@ -32,6 +32,7 @@ function clean(b: any) {
     currency: b?.currency || 'USD',
     charge_concept: b?.charge_concept != null && b?.charge_concept !== '' ? Number(b.charge_concept) : null,
     template_body: b?.template_body ?? null,
+    simplecert_project_id: b?.simplecert_project_id?.toString().trim() || null,
     requirements: Array.isArray(b?.requirements) ? b.requirements : [],
     stages: Array.isArray(b?.stages) ? b.stages : [],
     active: b?.active !== false,

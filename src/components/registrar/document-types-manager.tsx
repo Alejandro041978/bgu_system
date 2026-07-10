@@ -8,7 +8,7 @@ interface Req { kind: string; description: string }
 interface StageForm { name: string; fieldsText: string }
 interface DocType {
   id: string; name: string; description: string | null; price: number; currency: string
-  charge_concept: number | null; template_body: string | null
+  charge_concept: number | null; template_body: string | null; simplecert_project_id: string | null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requirements: Req[]; stages: any[]; active: boolean
 }
@@ -23,7 +23,7 @@ const reqLabel = (k: string) => REQ_KINDS.find(r => r.value === k)?.label ?? k
 
 const blank = () => ({
   id: '' as string, name: '', description: '', price: '', currency: 'USD', charge_concept: '',
-  template_body: '', requirements: [] as Req[], stages: [] as StageForm[], active: true,
+  template_body: '', simplecert_project_id: '', requirements: [] as Req[], stages: [] as StageForm[], active: true,
 })
 
 export function DocumentTypesManager() {
@@ -45,6 +45,7 @@ export function DocumentTypesManager() {
     setForm({
       id: t.id, name: t.name, description: t.description ?? '', price: String(t.price ?? ''), currency: t.currency,
       charge_concept: t.charge_concept?.toString() ?? '', template_body: t.template_body ?? '',
+      simplecert_project_id: t.simplecert_project_id ?? '',
       requirements: (t.requirements ?? []).map(r => ({ kind: r.kind, description: r.description ?? '' })),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       stages: (t.stages ?? []).map((s: any) => ({ name: s.name ?? '', fieldsText: (s.fields ?? []).map((f: any) => f.label).join(', ') })),
@@ -66,6 +67,7 @@ export function DocumentTypesManager() {
     const body = {
       id: form.id || undefined, name: form.name, description: form.description, price: form.price,
       currency: form.currency, charge_concept: form.charge_concept, template_body: form.template_body,
+      simplecert_project_id: form.simplecert_project_id,
       requirements: form.requirements.filter(r => r.kind), stages, active: form.active,
     }
     await fetch('/api/registrar/document-types', {
@@ -135,11 +137,16 @@ export function DocumentTypesManager() {
           )}
         </div>
 
-        {/* Plantilla */}
+        {/* SimpleCert */}
         <div>
-          <label className="text-xs font-semibold text-gray-600">Plantilla del documento</label>
-          <p className="text-[11px] text-gray-400 mb-1">Usa variables: <code>{'{{student_name}}'}</code>, <code>{'{{document_number}}'}</code>, <code>{'{{program}}'}</code>, <code>{'{{email}}'}</code>, <code>{'{{date}}'}</code> y los campos de etapas.</p>
-          <textarea value={form.template_body} onChange={e => setF('template_body', e.target.value)} rows={6} className={inp} placeholder="Texto del documento con variables…" />
+          <label className="text-xs font-semibold text-gray-600">SimpleCert · Project ID</label>
+          <p className="text-[11px] text-gray-400 mb-1">
+            ID del <strong>Project</strong> (plantilla) en SimpleCert que genera el PDF de este documento. Al emitir se envían los
+            merge tags: <code>FIRST_NAME</code>, <code>LAST_NAME</code>, <code>EMAIL_ADDRESS</code>, <code>DOCUMENT_NUMBER</code>,
+            {' '}<code>PROGRAM</code>, <code>CATEGORY</code>, <code>ISSUE_DATE</code>, <code>ISSUE_DATE_LONG</code>, <code>REQUEST_CODE</code>.
+            Crea esos merge tags con el mismo nombre en tu plantilla de SimpleCert.
+          </p>
+          <input value={form.simplecert_project_id} onChange={e => setF('simplecert_project_id', e.target.value)} className={inp} placeholder="Ej. 123456" />
         </div>
 
         <div className="flex items-center gap-3">
@@ -170,6 +177,7 @@ export function DocumentTypesManager() {
                     <span>{Number(t.price) > 0 ? `${t.currency} ${Number(t.price).toFixed(2)}` : 'Gratuito'}</span>
                     <span>{(t.requirements ?? []).length} requisito(s)</span>
                     <span>{(t.stages ?? []).length} etapa(s)</span>
+                    <span className={t.simplecert_project_id ? 'text-green-600' : 'text-amber-600'}>{t.simplecert_project_id ? 'SimpleCert ✓' : 'Sin SimpleCert'}</span>
                   </div>
                 </div>
               </div>
