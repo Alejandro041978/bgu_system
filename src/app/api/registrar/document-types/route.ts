@@ -33,6 +33,7 @@ function clean(b: any) {
     charge_concept: b?.charge_concept != null && b?.charge_concept !== '' ? Number(b.charge_concept) : null,
     template_body: b?.template_body ?? null,
     simplecert_project_id: b?.simplecert_project_id?.toString().trim() || null,
+    field_map: Array.isArray(b?.field_map) ? b.field_map.filter((m: { tag?: string }) => m?.tag?.toString().trim()) : [],
     requirements: Array.isArray(b?.requirements) ? b.requirements : [],
     stages: Array.isArray(b?.stages) ? b.stages : [],
     active: b?.active !== false,

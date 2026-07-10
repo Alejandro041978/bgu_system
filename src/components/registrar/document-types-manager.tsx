@@ -6,12 +6,30 @@ import { Plus, Trash2, Loader2, Pencil, X, Save, FileText } from 'lucide-react'
 interface Concept { type_code: number; abbr: string | null; name: string | null }
 interface Req { kind: string; description: string }
 interface StageForm { name: string; fieldsText: string }
+interface FieldMap { tag: string; source: string; value: string }
 interface DocType {
   id: string; name: string; description: string | null; price: number; currency: string
   charge_concept: number | null; template_body: string | null; simplecert_project_id: string | null
+  field_map: FieldMap[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requirements: Req[]; stages: any[]; active: boolean
 }
+
+// Fuentes de dato del ERP para llenar cada merge tag de la plantilla SimpleCert.
+const MAP_SOURCES = [
+  { value: 'first_name', label: 'Nombres del estudiante' },
+  { value: 'last_name', label: 'Apellidos del estudiante' },
+  { value: 'full_name', label: 'Nombre completo' },
+  { value: 'email', label: 'Correo' },
+  { value: 'document_number', label: 'Nº de documento' },
+  { value: 'program', label: 'Programa' },
+  { value: 'category', label: 'Categoría' },
+  { value: 'credits_total', label: 'Total de créditos de la malla' },
+  { value: 'date_short', label: 'Fecha (dd/mm/aaaa)' },
+  { value: 'date_long', label: 'Fecha larga (9 de julio de 2026)' },
+  { value: 'request_code', label: 'Código de solicitud' },
+  { value: 'literal', label: 'Texto fijo…' },
+]
 
 const REQ_KINDS = [
   { value: 'graduated', label: 'Egresado (100% aprobado)' },
@@ -23,7 +41,8 @@ const reqLabel = (k: string) => REQ_KINDS.find(r => r.value === k)?.label ?? k
 
 const blank = () => ({
   id: '' as string, name: '', description: '', price: '', currency: 'USD', charge_concept: '',
-  template_body: '', simplecert_project_id: '', requirements: [] as Req[], stages: [] as StageForm[], active: true,
+  template_body: '', simplecert_project_id: '', field_map: [] as FieldMap[],
+  requirements: [] as Req[], stages: [] as StageForm[], active: true,
 })
 
 export function DocumentTypesManager() {
@@ -46,6 +65,7 @@ export function DocumentTypesManager() {
       id: t.id, name: t.name, description: t.description ?? '', price: String(t.price ?? ''), currency: t.currency,
       charge_concept: t.charge_concept?.toString() ?? '', template_body: t.template_body ?? '',
       simplecert_project_id: t.simplecert_project_id ?? '',
+      field_map: (t.field_map ?? []).map(m => ({ tag: m.tag ?? '', source: m.source ?? 'first_name', value: m.value ?? '' })),
       requirements: (t.requirements ?? []).map(r => ({ kind: r.kind, description: r.description ?? '' })),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       stages: (t.stages ?? []).map((s: any) => ({ name: s.name ?? '', fieldsText: (s.fields ?? []).map((f: any) => f.label).join(', ') })),
@@ -68,6 +88,7 @@ export function DocumentTypesManager() {
       id: form.id || undefined, name: form.name, description: form.description, price: form.price,
       currency: form.currency, charge_concept: form.charge_concept, template_body: form.template_body,
       simplecert_project_id: form.simplecert_project_id,
+      field_map: form.field_map.filter(m => m.tag.trim()).map(m => ({ tag: m.tag.trim(), source: m.source, value: m.source === 'literal' ? m.value : undefined })),
       requirements: form.requirements.filter(r => r.kind), stages, active: form.active,
     }
     await fetch('/api/registrar/document-types', {
@@ -140,13 +161,35 @@ export function DocumentTypesManager() {
         {/* SimpleCert */}
         <div>
           <label className="text-xs font-semibold text-gray-600">SimpleCert · Project ID</label>
-          <p className="text-[11px] text-gray-400 mb-1">
-            ID del <strong>Project</strong> (plantilla) en SimpleCert que genera el PDF de este documento. Al emitir se envían los
-            merge tags: <code>FIRST_NAME</code>, <code>LAST_NAME</code>, <code>EMAIL_ADDRESS</code>, <code>DOCUMENT_NUMBER</code>,
-            {' '}<code>PROGRAM</code>, <code>CATEGORY</code>, <code>ISSUE_DATE</code>, <code>ISSUE_DATE_LONG</code>, <code>REQUEST_CODE</code>.
-            Crea esos merge tags con el mismo nombre en tu plantilla de SimpleCert.
-          </p>
+          <p className="text-[11px] text-gray-400 mb-1">ID del <strong>Project</strong> (plantilla) en SimpleCert que genera el PDF de este documento.</p>
           <input value={form.simplecert_project_id} onChange={e => setF('simplecert_project_id', e.target.value)} className={inp} placeholder="Ej. 123456" />
+        </div>
+
+        {/* Mapeo de merge tags */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-semibold text-gray-600">Mapeo de campos (merge tags) <span className="text-gray-400 font-normal">SimpleCert → dato del ERP</span></label>
+            <button onClick={() => setF('field_map', [...form.field_map, { tag: '', source: 'first_name', value: '' }])} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"><Plus className="w-3.5 h-3.5" />Agregar</button>
+          </div>
+          <p className="text-[11px] text-gray-400 mb-1.5">
+            Escribe el nombre del merge tag <strong>tal cual está en tu plantilla</strong> (ej. <code>COD_MAT</code>, <code>HOURS</code>, <code>DATE</code>) y elige con qué dato se llena.
+            <code>FIRST_NAME</code>, <code>LAST_NAME</code> y <code>EMAIL_ADDRESS</code> se envían siempre automáticamente.
+          </p>
+          {form.field_map.length === 0 ? <p className="text-xs text-gray-400">Sin mapeo (solo se envían los campos estándar).</p> : (
+            <div className="space-y-2">
+              {form.field_map.map((m, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <input value={m.tag} onChange={e => { const mm = [...form.field_map]; mm[i] = { ...mm[i], tag: e.target.value }; setF('field_map', mm) }} className={`${inp} w-40 font-mono`} placeholder="MERGE_TAG" />
+                  <span className="text-gray-300">→</span>
+                  <select value={m.source} onChange={e => { const mm = [...form.field_map]; mm[i] = { ...mm[i], source: e.target.value }; setF('field_map', mm) }} className={`${inp} w-60`}>
+                    {MAP_SOURCES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                  {m.source === 'literal' && <input value={m.value} onChange={e => { const mm = [...form.field_map]; mm[i] = { ...mm[i], value: e.target.value }; setF('field_map', mm) }} className={inp} placeholder="Texto fijo" />}
+                  <button onClick={() => setF('field_map', form.field_map.filter((_, j) => j !== i))} className="text-gray-300 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
