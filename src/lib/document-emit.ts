@@ -45,6 +45,7 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
   const now = new Date()
   const dateShort = now.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })
   const dateLong = now.toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })
+  const dateLongEn = now.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
   const requestCode = String(r.id).slice(0, 8).toUpperCase()
 
   // Diccionario de datos disponibles del ERP, por clave de "source".
@@ -62,6 +63,7 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
     hours_total: hoursTotal,
     date_short: dateShort,
     date_long: dateLong,
+    date_long_en: dateLongEn,
     request_code: requestCode,
   }
 
