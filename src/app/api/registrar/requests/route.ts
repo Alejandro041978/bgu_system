@@ -50,6 +50,20 @@ export async function POST(req: NextRequest) {
   if (!type) return NextResponse.json({ error: 'Tipo de documento no encontrado' }, { status: 404 })
 
   const programId = b.program_id || null
+
+  // Valida el alcance del documento (disponibilidad por programa/categoría).
+  const progScope: string[] = Array.isArray(type.scope_program_ids) ? type.scope_program_ids : []
+  if (progScope.length > 0) {
+    if (!programId || !progScope.includes(programId)) return NextResponse.json({ error: 'Este documento no está disponible para el programa seleccionado' }, { status: 400 })
+  } else if (type.scope_category_id) {
+    let catOk = false
+    if (programId) {
+      const { data: prog } = await sb.from('academic_programs').select('category_id').eq('id', programId).maybeSingle()
+      catOk = prog?.category_id === type.scope_category_id
+    }
+    if (!catOk) return NextResponse.json({ error: 'Este documento no está disponible para la categoría del programa seleccionado' }, { status: 400 })
+  }
+
   const checks = await checkRequirements(b.student_id, programId, type.requirements ?? [])
   const blocked = hasBlockingFailure(checks)
 

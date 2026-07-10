@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { Plus, Search, Loader2, X, FileText, Trash2, ChevronDown, ChevronRight, Download, CheckCircle2, Send } from 'lucide-react'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
-interface DocType { id: string; name: string; price: number; currency: string; active: boolean }
-interface Program { id: string; name: string }
+interface DocType { id: string; name: string; price: number; currency: string; active: boolean; scope_category_id: string | null; scope_program_ids: string[] }
+interface Program { id: string; name: string; category_id: string | null }
 interface ReqCheck { kind: string; ok: boolean | null; note: string }
 interface StageField { key: string; label: string }
 interface Stage { name: string; fields?: StageField[] }
@@ -79,6 +79,15 @@ export function RequestsManager() {
   }
   function resetNew() { setOpen(false); setStudent(null); setQ(''); setTypeId(''); setProgramId(''); setResult(null) }
 
+  // Tipos disponibles según el alcance del documento y el programa elegido.
+  const selectedProgram = programs.find(p => p.id === programId)
+  const availableTypes = types.filter(t => {
+    const progScope = t.scope_program_ids ?? []
+    if (progScope.length > 0) return programId ? progScope.includes(programId) : false
+    if (t.scope_category_id) return selectedProgram ? selectedProgram.category_id === t.scope_category_id : false
+    return true
+  })
+
   const [deleting, setDeleting] = useState<string | null>(null)
   async function remove(r: Request) {
     if (!confirm(`¿Borrar la solicitud de "${r.type_name}" de ${r.student_name}? Se eliminará también el cargo pendiente.`)) return
@@ -119,7 +128,7 @@ export function RequestsManager() {
           {student && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label><span className="block text-xs text-gray-500 mb-1">Programa</span>
-                <select value={programId} onChange={e => setProgramId(e.target.value)} className={inp}>
+                <select value={programId} onChange={e => { setProgramId(e.target.value); setTypeId('') }} className={inp}>
                   <option value="">— (sin programa específico) —</option>
                   {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -127,8 +136,9 @@ export function RequestsManager() {
               <label><span className="block text-xs text-gray-500 mb-1">Tipo de documento</span>
                 <select value={typeId} onChange={e => setTypeId(e.target.value)} className={inp}>
                   <option value="">Seleccionar…</option>
-                  {types.map(t => <option key={t.id} value={t.id}>{t.name}{Number(t.price) > 0 ? ` — ${t.currency} ${Number(t.price).toFixed(2)}` : ' — gratuito'}</option>)}
+                  {availableTypes.map(t => <option key={t.id} value={t.id}>{t.name}{Number(t.price) > 0 ? ` — ${t.currency} ${Number(t.price).toFixed(2)}` : ' — gratuito'}</option>)}
                 </select>
+                {availableTypes.length === 0 && <span className="block text-[11px] text-amber-600 mt-1">No hay documentos disponibles para este programa.</span>}
               </label>
             </div>
           )}

@@ -7,10 +7,12 @@ interface Concept { type_code: number; abbr: string | null; name: string | null 
 interface Req { kind: string; description: string }
 interface StageForm { name: string; fieldsText: string }
 interface FieldMap { tag: string; source: string; value: string }
+interface Category { id: string; name: string }
+interface Program { id: string; name: string; category_id: string | null }
 interface DocType {
   id: string; name: string; description: string | null; price: number; currency: string
   charge_concept: number | null; template_body: string | null; simplecert_project_id: string | null
-  field_map: FieldMap[]
+  field_map: FieldMap[]; scope_category_id: string | null; scope_program_ids: string[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requirements: Req[]; stages: any[]; active: boolean
 }
@@ -42,20 +44,25 @@ const reqLabel = (k: string) => REQ_KINDS.find(r => r.value === k)?.label ?? k
 const blank = () => ({
   id: '' as string, name: '', description: '', price: '', currency: 'USD', charge_concept: '',
   template_body: '', simplecert_project_id: '', field_map: [] as FieldMap[],
+  scope_mode: 'all' as 'all' | 'category' | 'programs', scope_category_id: '', scope_program_ids: [] as string[],
   requirements: [] as Req[], stages: [] as StageForm[], active: true,
 })
 
 export function DocumentTypesManager() {
   const [types, setTypes] = useState<DocType[]>([])
   const [concepts, setConcepts] = useState<Concept[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [programs, setPrograms] = useState<Program[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(blank())
+  const [progFilter, setProgFilter] = useState('')
 
   const load = useCallback(async () => {
     const d = await fetch('/api/registrar/document-types').then(r => r.json())
-    setTypes(d.types ?? []); setConcepts(d.concepts ?? []); setLoading(false)
+    setTypes(d.types ?? []); setConcepts(d.concepts ?? [])
+    setCategories(d.categories ?? []); setPrograms(d.programs ?? []); setLoading(false)
   }, [])
   useEffect(() => { load() }, [load])
 
@@ -66,6 +73,8 @@ export function DocumentTypesManager() {
       charge_concept: t.charge_concept?.toString() ?? '', template_body: t.template_body ?? '',
       simplecert_project_id: t.simplecert_project_id ?? '',
       field_map: (t.field_map ?? []).map(m => ({ tag: m.tag ?? '', source: m.source ?? 'first_name', value: m.value ?? '' })),
+      scope_mode: (t.scope_program_ids ?? []).length > 0 ? 'programs' : t.scope_category_id ? 'category' : 'all',
+      scope_category_id: t.scope_category_id ?? '', scope_program_ids: t.scope_program_ids ?? [],
       requirements: (t.requirements ?? []).map(r => ({ kind: r.kind, description: r.description ?? '' })),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       stages: (t.stages ?? []).map((s: any) => ({ name: s.name ?? '', fieldsText: (s.fields ?? []).map((f: any) => f.label).join(', ') })),
@@ -89,6 +98,8 @@ export function DocumentTypesManager() {
       currency: form.currency, charge_concept: form.charge_concept, template_body: form.template_body,
       simplecert_project_id: form.simplecert_project_id,
       field_map: form.field_map.filter(m => m.tag.trim()).map(m => ({ tag: m.tag.trim(), source: m.source, value: m.source === 'literal' ? m.value : undefined })),
+      scope_category_id: form.scope_mode === 'category' ? (form.scope_category_id || null) : null,
+      scope_program_ids: form.scope_mode === 'programs' ? form.scope_program_ids : [],
       requirements: form.requirements.filter(r => r.kind), stages, active: form.active,
     }
     await fetch('/api/registrar/document-types', {
@@ -116,6 +127,43 @@ export function DocumentTypesManager() {
           <Field label="Precio"><div className="flex gap-2"><select value={form.currency} onChange={e => setF('currency', e.target.value)} className={`${inp} w-24`}><option>USD</option><option>PEN</option></select><input type="number" value={form.price} onChange={e => setF('price', e.target.value)} className={inp} placeholder="0.00" /></div></Field>
           <Field label="Descripción"><input value={form.description} onChange={e => setF('description', e.target.value)} className={inp} /></Field>
           <Field label="Concepto del cargo (estado de cuenta)"><select value={form.charge_concept} onChange={e => setF('charge_concept', e.target.value)} className={inp}><option value="">—</option>{concepts.map(c => <option key={c.type_code} value={c.type_code}>{c.abbr ?? 'T' + c.type_code} · {c.name ?? c.type_code}</option>)}</select></Field>
+        </div>
+
+        {/* Disponibilidad / alcance */}
+        <div>
+          <label className="text-xs font-semibold text-gray-600">Disponibilidad</label>
+          <p className="text-[11px] text-gray-400 mb-1.5">Para qué programas se puede solicitar este documento.</p>
+          <select value={form.scope_mode} onChange={e => setF('scope_mode', e.target.value)} className={`${inp} sm:w-72`}>
+            <option value="all">Todos los programas</option>
+            <option value="category">Solo una categoría</option>
+            <option value="programs">Programas específicos</option>
+          </select>
+
+          {form.scope_mode === 'category' && (
+            <select value={form.scope_category_id} onChange={e => setF('scope_category_id', e.target.value)} className={`${inp} sm:w-72 mt-2`}>
+              <option value="">Seleccionar categoría…</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
+
+          {form.scope_mode === 'programs' && (
+            <div className="mt-2 space-y-2">
+              <input value={progFilter} onChange={e => setProgFilter(e.target.value)} className={`${inp} sm:w-72`} placeholder="Filtrar programas…" />
+              <div className="border border-gray-200 rounded-lg max-h-52 overflow-auto divide-y divide-gray-50">
+                {programs.filter(p => p.name.toLowerCase().includes(progFilter.toLowerCase())).map(p => {
+                  const checked = form.scope_program_ids.includes(p.id)
+                  return (
+                    <label key={p.id} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+                      <input type="checkbox" checked={checked} className="accent-blue-600"
+                        onChange={() => setF('scope_program_ids', checked ? form.scope_program_ids.filter(x => x !== p.id) : [...form.scope_program_ids, p.id])} />
+                      {p.name}
+                    </label>
+                  )
+                })}
+              </div>
+              <p className="text-[11px] text-gray-400">{form.scope_program_ids.length} programa(s) seleccionado(s).</p>
+            </div>
+          )}
         </div>
 
         {/* Requisitos */}
@@ -221,6 +269,7 @@ export function DocumentTypesManager() {
                     <span>{(t.requirements ?? []).length} requisito(s)</span>
                     <span>{(t.stages ?? []).length} etapa(s)</span>
                     <span className={t.simplecert_project_id ? 'text-green-600' : 'text-amber-600'}>{t.simplecert_project_id ? 'SimpleCert ✓' : 'Sin SimpleCert'}</span>
+                    <span className="text-gray-500">{(t.scope_program_ids ?? []).length > 0 ? `${t.scope_program_ids.length} programa(s)` : t.scope_category_id ? (categories.find(c => c.id === t.scope_category_id)?.name ?? 'Categoría') : 'Todos los programas'}</span>
                   </div>
                 </div>
               </div>

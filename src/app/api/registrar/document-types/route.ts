@@ -16,11 +16,13 @@ async function requireUser() {
 export async function GET() {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
-  const [{ data: types }, { data: concepts }] = await Promise.all([
+  const [{ data: types }, { data: concepts }, { data: categories }, { data: programs }] = await Promise.all([
     sb.from('document_types').select('*').order('name'),
     sb.from('account_concepts').select('type_code, abbr, name').eq('kind', 'charge').order('type_code'),
+    sb.from('academic_programs_category').select('id, name').order('name'),
+    sb.from('academic_programs').select('id, name, category_id').order('name'),
   ])
-  return NextResponse.json({ types: types ?? [], concepts: concepts ?? [] })
+  return NextResponse.json({ types: types ?? [], concepts: concepts ?? [], categories: categories ?? [], programs: programs ?? [] })
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,6 +36,8 @@ function clean(b: any) {
     template_body: b?.template_body ?? null,
     simplecert_project_id: b?.simplecert_project_id?.toString().trim() || null,
     field_map: Array.isArray(b?.field_map) ? b.field_map.filter((m: { tag?: string }) => m?.tag?.toString().trim()) : [],
+    scope_category_id: b?.scope_category_id || null,
+    scope_program_ids: Array.isArray(b?.scope_program_ids) ? b.scope_program_ids : [],
     requirements: Array.isArray(b?.requirements) ? b.requirements : [],
     stages: Array.isArray(b?.stages) ? b.stages : [],
     active: b?.active !== false,
