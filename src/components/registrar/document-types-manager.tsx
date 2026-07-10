@@ -12,6 +12,7 @@ interface Program { id: string; name: string; category_id: string | null }
 interface DocType {
   id: string; name: string; description: string | null; price: number; currency: string
   charge_concept: number | null; template_body: string | null; simplecert_project_id: string | null
+  sample_image_url: string | null
   field_map: FieldMap[]; scope_category_id: string | null; scope_program_ids: string[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requirements: Req[]; stages: any[]; active: boolean
@@ -47,7 +48,7 @@ const reqLabel = (k: string) => REQ_KINDS.find(r => r.value === k)?.label ?? k
 
 const blank = () => ({
   id: '' as string, name: '', description: '', price: '', currency: 'USD', charge_concept: '',
-  template_body: '', simplecert_project_id: '', field_map: [] as FieldMap[],
+  template_body: '', simplecert_project_id: '', sample_image_url: '', field_map: [] as FieldMap[],
   scope_mode: 'all' as 'all' | 'category' | 'programs', scope_category_id: '', scope_program_ids: [] as string[],
   requirements: [] as Req[], stages: [] as StageForm[], active: true,
 })
@@ -62,6 +63,16 @@ export function DocumentTypesManager() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(blank())
   const [progFilter, setProgFilter] = useState('')
+  const [uploading, setUploading] = useState(false)
+
+  async function uploadSample(file: File) {
+    setUploading(true)
+    const fd = new FormData(); fd.append('file', file)
+    const d = await fetch('/api/registrar/document-types/sample', { method: 'POST', body: fd }).then(r => r.json())
+    setUploading(false)
+    if (d.error) { alert(d.error); return }
+    setForm(f => ({ ...f, sample_image_url: d.url }))
+  }
 
   const load = useCallback(async () => {
     const d = await fetch('/api/registrar/document-types').then(r => r.json())
@@ -75,7 +86,7 @@ export function DocumentTypesManager() {
     setForm({
       id: t.id, name: t.name, description: t.description ?? '', price: String(t.price ?? ''), currency: t.currency,
       charge_concept: t.charge_concept?.toString() ?? '', template_body: t.template_body ?? '',
-      simplecert_project_id: t.simplecert_project_id ?? '',
+      simplecert_project_id: t.simplecert_project_id ?? '', sample_image_url: t.sample_image_url ?? '',
       field_map: (t.field_map ?? []).map(m => ({ tag: m.tag ?? '', source: m.source ?? 'first_name', value: m.value ?? '' })),
       scope_mode: (t.scope_program_ids ?? []).length > 0 ? 'programs' : t.scope_category_id ? 'category' : 'all',
       scope_category_id: t.scope_category_id ?? '', scope_program_ids: t.scope_program_ids ?? [],
@@ -100,7 +111,7 @@ export function DocumentTypesManager() {
     const body = {
       id: form.id || undefined, name: form.name, description: form.description, price: form.price,
       currency: form.currency, charge_concept: form.charge_concept, template_body: form.template_body,
-      simplecert_project_id: form.simplecert_project_id,
+      simplecert_project_id: form.simplecert_project_id, sample_image_url: form.sample_image_url,
       field_map: form.field_map.filter(m => m.tag.trim()).map(m => ({ tag: m.tag.trim(), source: m.source, value: m.source === 'literal' ? m.value : undefined })),
       scope_category_id: form.scope_mode === 'category' ? (form.scope_category_id || null) : null,
       scope_program_ids: form.scope_mode === 'programs' ? form.scope_program_ids : [],
@@ -215,6 +226,28 @@ export function DocumentTypesManager() {
           <label className="text-xs font-semibold text-gray-600">SimpleCert · Project ID</label>
           <p className="text-[11px] text-gray-400 mb-1">ID del <strong>Project</strong> (plantilla) en SimpleCert que genera el PDF de este documento.</p>
           <input value={form.simplecert_project_id} onChange={e => setF('simplecert_project_id', e.target.value)} className={inp} placeholder="Ej. 123456" />
+        </div>
+
+        {/* Imagen de ejemplo (vista previa para el estudiante) */}
+        <div>
+          <label className="text-xs font-semibold text-gray-600">Imagen de ejemplo (JPG/PNG)</label>
+          <p className="text-[11px] text-gray-400 mb-1.5">Vista previa que verá el estudiante en el portal antes de solicitar el documento.</p>
+          {form.sample_image_url ? (
+            <div className="flex items-start gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={form.sample_image_url} alt="Ejemplo" className="w-32 h-auto rounded-lg border border-gray-200" />
+              <div className="flex flex-col gap-1.5">
+                <a href={form.sample_image_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800">Ver en tamaño completo</a>
+                <button onClick={() => setF('sample_image_url', '')} className="text-xs text-red-500 hover:text-red-700 text-left">Quitar imagen</button>
+              </div>
+            </div>
+          ) : (
+            <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer text-gray-600">
+              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              {uploading ? 'Subiendo…' : 'Subir imagen'}
+              <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadSample(f); e.target.value = '' }} />
+            </label>
+          )}
         </div>
 
         {/* Mapeo de merge tags */}

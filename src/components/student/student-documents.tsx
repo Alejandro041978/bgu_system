@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Loader2, X, FileText, Download } from 'lucide-react'
+import { Plus, Loader2, X, FileText, Download, Eye } from 'lucide-react'
 
-interface DocType { id: string; name: string; price: number; currency: string; scope_category_id: string | null; scope_program_ids: string[] }
+interface DocType { id: string; name: string; price: number; currency: string; scope_category_id: string | null; scope_program_ids: string[]; sample_image_url: string | null }
 interface Program { id: string; name: string; category_id: string | null }
 interface ReqCheck { kind: string; ok: boolean | null; note: string }
 interface Request {
@@ -92,6 +92,24 @@ export function StudentDocuments() {
               {programId && availableTypes.length === 0 && <span className="block text-[11px] text-amber-600 mt-1">No hay documentos disponibles para este programa.</span>}
             </label>
           </div>
+
+          {/* Vista previa del documento seleccionado */}
+          {(() => {
+            const t = availableTypes.find(x => x.id === typeId)
+            if (!t?.sample_image_url) return null
+            return (
+              <div className="flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={t.sample_image_url} alt="Ejemplo del documento" className="w-24 h-auto rounded border border-gray-200" />
+                <div className="text-xs text-gray-500">
+                  <p className="font-medium text-gray-700 mb-1">Así se ve este documento</p>
+                  <a href={t.sample_image_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
+                    <Eye className="w-3.5 h-3.5" />Ver ejemplo completo
+                  </a>
+                </div>
+              </div>
+            )
+          })()}
 
           {result && (
             <div className={`text-xs rounded-lg px-3 py-2 ${result.blocked ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
