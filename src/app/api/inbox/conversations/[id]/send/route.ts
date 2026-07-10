@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { getBot } from '@/lib/bots'
 import { sendWhatsAppMessage } from '@/lib/twilio'
+import { recordInboxConversation } from '@/lib/inbox-record'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -74,6 +75,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // Métrica: primera respuesta (desde la llegada del cliente)
   if (!conv.first_response_at) patch.first_response_at = now
   await sb.from('wa_conversations').update(patch).eq('id', id)
+
+  // Registro para el supervisor del equipo humano
+  await recordInboxConversation(id)
 
   return NextResponse.json({ message: msg })
 }

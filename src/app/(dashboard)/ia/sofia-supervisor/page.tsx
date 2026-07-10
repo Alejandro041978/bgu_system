@@ -15,7 +15,7 @@ export default async function SofiaSupervisorPage() {
       .select('*')
       .order('report_date', { ascending: false })
       .limit(60),
-    db.from('bots').select('key, name, role').eq('active', true).neq('role', 'inbox').order('key'),
+    db.from('bots').select('key, name, role').eq('active', true).order('key'),
   ])
 
   return (

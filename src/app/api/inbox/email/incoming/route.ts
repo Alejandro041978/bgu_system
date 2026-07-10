@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { classifyInbound } from '@/lib/inbox-classify'
 import { autoAssign } from '@/lib/inbox-assign'
+import { recordInboxConversation } from '@/lib/inbox-record'
 
 export const maxDuration = 60
 
@@ -123,6 +124,9 @@ export async function POST(req: NextRequest) {
       conversation_id: conversationId, direction: 'in', body: bodyText,
       html: bodyHtml || null, subject, message_id: p.messageId ?? null, from_addr: email,
     })
+
+    // Registro para el supervisor del equipo humano
+    if (conversationId) await recordInboxConversation(conversationId)
 
     return NextResponse.json({ ok: true, conversation_id: conversationId })
   } catch (err) {

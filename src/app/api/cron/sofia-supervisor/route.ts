@@ -95,8 +95,40 @@ export async function POST(req: NextRequest) {
   }
 
   const isSales = botRole === 'ventas'
+  const isInbox = botRole === 'inbox'
 
-  const analysisPrompt = isSales
+  const analysisPrompt = isInbox
+    ? `Eres un supervisor de calidad del equipo HUMANO de Servicio al Estudiante de Blackwell Global University (BGU). Analiza las conversaciones atendidas por AGENTES HUMANOS (canal WhatsApp y correo) del día ${dateStr} y evalúa la calidad de la atención.
+
+En las conversaciones, "Usuario" es el estudiante/cliente y "${botName}" representa las respuestas del AGENTE HUMANO del equipo.
+
+ESTADÍSTICAS DEL DÍA:
+- Total conversaciones atendidas: ${convList.length}
+- Total mensajes: ${totalMessages}
+- Canales: ${Object.entries(sourceMap).map(([s, n]) => `${s}(${n})`).join(', ')}
+- Promedio mensajes/conversación: ${(totalMessages / convList.length).toFixed(1)}
+
+MUESTRA DE CONVERSACIONES (${Math.min(convList.length, 50)} de ${convList.length}):
+${convSamples}
+
+---
+
+Genera un reporte COMPLETO en texto plano (no markdown) con estas secciones:
+
+SECCIÓN 1 - RESUMEN EJECUTIVO (2-3 párrafos): calidad general de la atención del equipo, tiempos y tono, tendencia del día.
+
+SECCIÓN 2 - FORTALEZAS DEL EQUIPO: qué hicieron bien los agentes (claridad, empatía, resolución, seguimiento).
+
+SECCIÓN 3 - DEBILIDADES Y FALLOS: respuestas tardías, incompletas, tono inadecuado, casos sin resolver o sin cierre, información incorrecta.
+
+SECCIÓN 4 - TEMAS FRECUENTES: top 5 motivos de contacto con frecuencia estimada.
+
+SECCIÓN 5 - RECOMENDACIONES PARA EL EQUIPO: acciones concretas para mejorar la atención (protocolos, plantillas de respuesta, escalamientos, capacitación).
+
+SECCIÓN 6 - VACÍOS DE INFORMACIÓN / PROCESOS: casos donde el agente no tuvo la información o el proceso claro para resolver; qué documentar o definir.
+
+SECCIÓN 7 - SCORE DE CALIDAD DE ATENCIÓN (1 al 10) con justificación breve.`
+    : isSales
     ? `Eres un supervisor experto en VENTAS y admisiones universitarias. Analiza las conversaciones del bot de ventas ${botName} de Blackwell Global University (BGU) del día ${dateStr} con prospectos, y genera un reporte estructurado enfocado en efectividad comercial.
 
 PROMPT ACTUAL DE ${botName.toUpperCase()}:

@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/sofia-supervisor?bot=antonella",
       "schedule": "10 5 * * *"
+    },
+    {
+      "path": "/api/cron/sofia-supervisor?bot=servicio",
+      "schedule": "20 5 * * *"
     }
   ]
 }

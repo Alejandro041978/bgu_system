@@ -6,6 +6,7 @@ import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
 import { getBotByTwilioNumber, getBot, type Bot } from '@/lib/bots'
 import { extractAndSaveLead } from '@/lib/sales-leads'
 import { autoAssign } from '@/lib/inbox-assign'
+import { recordInboxConversation } from '@/lib/inbox-record'
 import crypto from 'crypto'
 
 export const maxDuration = 60
@@ -272,6 +273,7 @@ async function receiveInboxMessage(from: string, body: string, inboxKey: string,
       unread_count: (existingConv.unread_count ?? 0) + 1, last_message_at: now, last_message_preview: body.slice(0, 120), updated_at: now,
     }).eq('id', existingConv.id)
     await sb.from('wa_messages').insert({ conversation_id: existingConv.id, direction: 'in', body })
+    await recordInboxConversation(existingConv.id)
     return
   }
 
