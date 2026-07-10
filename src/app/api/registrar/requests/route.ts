@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
-import { checkRequirements, hasBlockingFailure } from '@/lib/document-requirements'
-import { emitDocument } from '@/lib/document-emit'
+import { createDocumentRequest } from '@/lib/document-request'
 
 export const revalidate = 0
 
@@ -45,65 +44,12 @@ export async function POST(req: NextRequest) {
   const b = await req.json().catch(() => null)
   if (!b?.student_id || !b?.document_type_id) return NextResponse.json({ error: 'Falta estudiante o tipo' }, { status: 400 })
 
-  const sb = db()
-  const { data: type } = await sb.from('document_types').select('*').eq('id', b.document_type_id).maybeSingle()
-  if (!type) return NextResponse.json({ error: 'Tipo de documento no encontrado' }, { status: 404 })
-
-  const programId = b.program_id || null
-
-  // Valida el alcance del documento (disponibilidad por programa/categoría).
-  const progScope: string[] = Array.isArray(type.scope_program_ids) ? type.scope_program_ids : []
-  if (progScope.length > 0) {
-    if (!programId || !progScope.includes(programId)) return NextResponse.json({ error: 'Este documento no está disponible para el programa seleccionado' }, { status: 400 })
-  } else if (type.scope_category_id) {
-    let catOk = false
-    if (programId) {
-      const { data: prog } = await sb.from('academic_programs').select('category_id').eq('id', programId).maybeSingle()
-      catOk = prog?.category_id === type.scope_category_id
-    }
-    if (!catOk) return NextResponse.json({ error: 'Este documento no está disponible para la categoría del programa seleccionado' }, { status: 400 })
-  }
-
-  const checks = await checkRequirements(b.student_id, programId, type.requirements ?? [])
-  const blocked = hasBlockingFailure(checks)
-
-  let status: string
-  let charge_external_id: string | null = null
-
-  if (blocked) {
-    status = 'rejected'
-  } else if (Number(type.price) > 0) {
-    // Crear cargo en el estado de cuenta
-    const { data: enr } = await sb.from('academic_student_enrollments')
-      .select('id, convocatoria_id').eq('student_id', b.student_id).eq('program_id', programId).maybeSingle()
-    charge_external_id = crypto.randomUUID()
-    const today = new Date().toISOString().slice(0, 10) // fecha de la solicitud = vencimiento
-    const { error: chErr } = await sb.from('account_charges').insert({
-      external_id: charge_external_id, student_id: b.student_id, enrollment_id: enr?.id ?? null,
-      convocatoria_id: enr?.convocatoria_id ?? null, amount: Number(type.price), due_date: today,
-      charge_type: type.charge_concept ?? null, source: 'erp',
-    })
-    if (chErr) return NextResponse.json({ error: 'Error al crear el cargo: ' + chErr.message }, { status: 500 })
-    status = 'payment'
-  } else {
-    status = (type.stages ?? []).length > 0 ? 'in_progress' : 'ready'
-  }
-
-  const { data: reqRow, error } = await sb.from('document_requests').insert({
-    student_id: b.student_id, document_type_id: b.document_type_id, program_id: programId,
-    status, requested_by: `admin:${user.id}`, charge_external_id,
-    requirements_checked: checks,
-  }).select('id').single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  // Auto-emisión: gratuito, sin etapas y con SimpleCert configurado → emite el PDF de inmediato.
-  let document_url: string | null = null
-  if (status === 'ready' && type.simplecert_project_id) {
-    const res = await emitDocument(reqRow.id)
-    if (res.ok) { status = 'delivered'; document_url = res.url ?? null }
-  }
-
-  return NextResponse.json({ ok: true, id: reqRow.id, status, checks, blocked, document_url })
+  const res = await createDocumentRequest({
+    studentId: b.student_id, documentTypeId: b.document_type_id, programId: b.program_id || null,
+    requestedBy: `admin:${user.id}`,
+  })
+  if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.code ?? 500 })
+  return NextResponse.json({ ok: true, id: res.id, status: res.status, checks: res.checks, blocked: res.blocked, document_url: res.document_url })
 }
 
 // DELETE ?id= → borra una solicitud NO pagada (y su cargo asociado)
