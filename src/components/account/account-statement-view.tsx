@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
 import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2 } from 'lucide-react'
+import { FlywirePayButton } from './flywire-pay-button'
 
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
@@ -78,12 +79,12 @@ export function AccountStatementView(
         </p>
       )}
 
-      <ProgramAccountView account={account} canGenerate={canGenerate} onChanged={onChanged} />
+      <ProgramAccountView account={account} canGenerate={canGenerate} onChanged={onChanged} studentName={student.name} />
     </div>
   )
 }
 
-function ProgramAccountView({ account, canGenerate, onChanged }: { account: ProgramAccount; canGenerate: boolean; onChanged?: () => void }) {
+function ProgramAccountView({ account, canGenerate, onChanged, studentName }: { account: ProgramAccount; canGenerate: boolean; onChanged?: () => void; studentName?: string | null }) {
   const { totals } = account
   const ledger = buildLedger(account.charges, account.payments)
 
@@ -119,11 +120,12 @@ function ProgramAccountView({ account, canGenerate, onChanged }: { account: Prog
               <th className="text-right px-3 py-2.5">Pagado</th>
               <th className="text-right px-3 py-2.5">Saldo</th>
               <th className="text-center px-3 py-2.5">Estado</th>
+              <th className="px-3 py-2.5"></th>
             </tr>
           </thead>
           <tbody>
             {ledger.length === 0 ? (
-              <tr><td colSpan={10} className="text-center text-gray-400 py-6">Sin movimientos</td></tr>
+              <tr><td colSpan={11} className="text-center text-gray-400 py-6">Sin movimientos</td></tr>
             ) : ledger.map((r, i) => {
               const c = r.charge, p = r.payment
               return (
@@ -151,6 +153,11 @@ function ProgramAccountView({ account, canGenerate, onChanged }: { account: Prog
                       <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[c.status].cls}`}>
                         {STATUS[c.status].label}
                       </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    {r.first && c.balance > 0.005 && c.status !== 'pagada' && (
+                      <FlywirePayButton chargeExternalId={c.external_id} amount={c.balance} studentName={studentName} />
                     )}
                   </td>
                 </tr>
