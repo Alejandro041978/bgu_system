@@ -15,9 +15,8 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { usePermissions } from '@/hooks/use-permissions'
 
-type SubItem = { name: string; href: string; icon: React.ElementType; pageKey?: string }
-type NavItem = { name: string; href: string; icon: React.ElementType; pageKey?: string; children?: SubItem[] }
-type NavGroup = { label: string; items: NavItem[] }
+type NavNode = { name: string; href: string; icon: React.ElementType; pageKey?: string; children?: NavNode[] }
+type NavGroup = { label: string; items: NavNode[] }
 
 const navigation: NavGroup[] = [
   {
@@ -25,54 +24,38 @@ const navigation: NavGroup[] = [
     items: [{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, pageKey: 'dashboard' }],
   },
   {
-    label: 'Atención al Cliente',
+    label: 'Comercial',
     items: [
-      { name: 'Tickets', href: '/desk', icon: Headphones, pageKey: 'desk' },
-      { name: 'Buzón WhatsApp', href: '/inbox', icon: MessageSquare, pageKey: 'inbox' },
-      { name: 'Helpdesk · Skills', href: '/helpdesk/skills', icon: UserCog, pageKey: 'helpdesk_skills' },
-      { name: 'Métricas', href: '/desk/metrics', icon: BarChart3, pageKey: 'desk_metrics' },
-    ],
-  },
-  {
-    label: 'Finanzas',
-    items: [{ name: 'Contabilidad', href: '/finance', icon: DollarSign, pageKey: 'finance' }],
-  },
-  {
-    label: 'Admisión',
-    items: [
-      { name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' },
-      { name: 'Convenios', href: '/convenios', icon: Handshake, pageKey: 'convenios' },
-      { name: 'Matrículas', href: '/admision/matriculas', icon: GraduationCap, pageKey: 'admision_matriculas' },
-    ],
-  },
-  {
-    label: 'Ventas',
-    items: [
-      { name: 'Prospectos', href: '/ventas/prospectos', icon: TrendingUp, pageKey: 'sales_prospectos' },
-    ],
-  },
-  {
-    label: 'Redes Sociales',
-    items: [{ name: 'Métricas', href: '/social', icon: Share2, pageKey: 'social' }],
-  },
-  {
-    label: 'Talento Humano',
-    items: [
-      { name: 'Colaboradores', href: '/hr', icon: UserCog, pageKey: 'hr' },
-      { name: 'KPIs & Bonos', href: '/kpis', icon: BarChart3, pageKey: 'kpis' },
       {
-        name: 'Capacitaciones', href: '/hr/capacitaciones', icon: GraduationCap, pageKey: 'hr_capacitaciones',
+        name: 'Admisión', href: '/crm', icon: Users,
         children: [
-          { name: 'Registro', href: '/hr/capacitaciones', icon: ClipboardList, pageKey: 'hr_capacitaciones' },
-          { name: 'Participantes', href: '/hr/capacitaciones/participantes', icon: Users, pageKey: 'hr_capacitacion_participantes' },
+          { name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' },
+          { name: 'Convenios', href: '/convenios', icon: Handshake, pageKey: 'convenios' },
+          { name: 'Matrículas', href: '/admision/matriculas', icon: GraduationCap, pageKey: 'admision_matriculas' },
+        ],
+      },
+      { name: 'Ventas', href: '/ventas/prospectos', icon: TrendingUp, pageKey: 'sales_prospectos' },
+      { name: 'Redes Sociales', href: '/social', icon: Share2, pageKey: 'social' },
+    ],
+  },
+  {
+    label: 'Services',
+    items: [
+      {
+        name: 'Atención al Cliente', href: '/desk', icon: Headphones,
+        children: [
+          { name: 'Tickets', href: '/desk', icon: Headphones, pageKey: 'desk' },
+          { name: 'Buzón WhatsApp', href: '/inbox', icon: MessageSquare, pageKey: 'inbox' },
+          { name: 'Helpdesk · Skills', href: '/helpdesk/skills', icon: UserCog, pageKey: 'helpdesk_skills' },
+          { name: 'Métricas', href: '/desk/metrics', icon: BarChart3, pageKey: 'desk_metrics' },
         ],
       },
       {
-        name: 'Contratos', href: '/contracts', icon: FileSignature, pageKey: 'contracts',
+        name: 'Registrar', href: '/registrar/formatos', icon: FileText,
         children: [
-          { name: 'Lista', href: '/contracts', icon: List, pageKey: 'contracts' },
-          { name: 'Nuevo', href: '/contracts/new', icon: Plus, pageKey: 'contracts_new' },
-          { name: 'Plantillas', href: '/contracts/templates', icon: FileText, pageKey: 'contracts_templates' },
+          { name: 'Formatos', href: '/registrar/formatos', icon: Award, pageKey: 'registrar_formatos' },
+          { name: 'Tipos de Documento', href: '/registrar/document-types', icon: FileText, pageKey: 'registrar_document_types' },
+          { name: 'Solicitudes', href: '/registrar/requests', icon: ClipboardList, pageKey: 'registrar_requests' },
         ],
       },
     ],
@@ -110,18 +93,10 @@ const navigation: NavGroup[] = [
           { name: 'Programas', href: '/academic/programs', icon: BookOpen, pageKey: 'academic_programs' },
           { name: 'Oferta', href: '/academic/offer', icon: ClipboardList, pageKey: 'academic_offer' },
           { name: 'Grupos', href: '/academic/groups', icon: Users, pageKey: 'academic_groups' },
-      { name: 'Asignación Docente', href: '/academic/teaching-assignments', icon: UserCheck, pageKey: 'academic_teaching' },
+          { name: 'Asignación Docente', href: '/academic/teaching-assignments', icon: UserCheck, pageKey: 'academic_teaching' },
           { name: 'Cronogramas', href: '/academic/schedules', icon: CalendarDays, pageKey: 'academic_schedules' },
         ],
       },
-    ],
-  },
-  {
-    label: 'Registrar',
-    items: [
-      { name: 'Formatos', href: '/registrar/formatos', icon: Award, pageKey: 'registrar_formatos' },
-      { name: 'Tipos de Documento', href: '/registrar/document-types', icon: FileText, pageKey: 'registrar_document_types' },
-      { name: 'Solicitudes', href: '/registrar/requests', icon: ClipboardList, pageKey: 'registrar_requests' },
     ],
   },
   {
@@ -154,8 +129,33 @@ const navigation: NavGroup[] = [
     ],
   },
   {
-    label: 'Administración',
-    items: [{ name: 'Usuarios y permisos', href: '/settings/users', icon: Shield, pageKey: 'settings_users' }],
+    label: 'Administration',
+    items: [
+      {
+        name: 'Talento Humano', href: '/hr', icon: UserCog,
+        children: [
+          { name: 'Colaboradores', href: '/hr', icon: UserCog, pageKey: 'hr' },
+          { name: 'KPIs & Bonos', href: '/kpis', icon: BarChart3, pageKey: 'kpis' },
+          {
+            name: 'Capacitaciones', href: '/hr/capacitaciones', icon: GraduationCap,
+            children: [
+              { name: 'Registro', href: '/hr/capacitaciones', icon: ClipboardList, pageKey: 'hr_capacitaciones' },
+              { name: 'Participantes', href: '/hr/capacitaciones/participantes', icon: Users, pageKey: 'hr_capacitacion_participantes' },
+            ],
+          },
+          {
+            name: 'Contratos', href: '/contracts', icon: FileSignature,
+            children: [
+              { name: 'Lista', href: '/contracts', icon: List, pageKey: 'contracts' },
+              { name: 'Nuevo', href: '/contracts/new', icon: Plus, pageKey: 'contracts_new' },
+              { name: 'Plantillas', href: '/contracts/templates', icon: FileText, pageKey: 'contracts_templates' },
+            ],
+          },
+        ],
+      },
+      { name: 'Finanzas', href: '/finance', icon: DollarSign, pageKey: 'finance' },
+      { name: 'Usuarios y permisos', href: '/settings/users', icon: Shield, pageKey: 'settings_users' },
+    ],
   },
 ]
 
@@ -167,8 +167,19 @@ export function Sidebar() {
 
   // One group open at a time (accordion)
   const [openGroup, setOpenGroup] = useState<string | null>(null)
-  // Sub-item expansion within a group
+  // Sub-item expansion within a group (keyed by node href)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+
+  // ¿El nodo (o algún descendiente) es visible según permisos?
+  function hasVisibleLeaf(node: NavNode): boolean {
+    if (node.children?.length) return node.children.some(hasVisibleLeaf)
+    return !node.pageKey || canView(node.pageKey)
+  }
+  // ¿El nodo (o algún descendiente) corresponde a la ruta activa?
+  function nodeActive(node: NavNode): boolean {
+    if (node.children?.length) return node.children.some(nodeActive)
+    return pathname === node.href || pathname.startsWith(node.href + '/')
+  }
 
   useEffect(() => {
     const supabase = createClient()
@@ -178,17 +189,24 @@ export function Sidebar() {
     })
   }, [])
 
-  // Auto-open the group and parent item that matches the current path
+  // Abre el grupo y expande la cadena de ancestros que corresponde a la ruta actual
   useEffect(() => {
-    for (const group of navigation) {
-      for (const item of group.items) {
-        const directMatch = !item.children && (pathname === item.href || pathname.startsWith(item.href + '/'))
-        const childMatch = item.children?.some(c => pathname === c.href || pathname.startsWith(c.href + '/'))
-        if (directMatch || childMatch) {
-          setOpenGroup(group.label)
-          if (childMatch) setExpanded(prev => ({ ...prev, [item.href]: true }))
-          return
+    function findTrail(nodes: NavNode[], trail: string[]): boolean {
+      for (const node of nodes) {
+        if (node.children?.length) {
+          if (findTrail(node.children, trail)) { trail.push(node.href); return true }
+        } else if (pathname === node.href || pathname.startsWith(node.href + '/')) {
+          return true
         }
+      }
+      return false
+    }
+    for (const group of navigation) {
+      const trail: string[] = []
+      if (findTrail(group.items, trail)) {
+        setOpenGroup(group.label)
+        if (trail.length) setExpanded(prev => { const n = { ...prev }; trail.forEach(h => { n[h] = true }); return n })
+        return
       }
     }
   }, [pathname])
@@ -201,6 +219,54 @@ export function Sidebar() {
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  // Render recursivo de un nodo (soporta anidación arbitraria)
+  function renderNode(node: NavNode, depth: number): React.ReactNode {
+    if (!hasVisibleLeaf(node)) return null
+    const Icon = node.icon
+    const iconCls = depth === 0 ? 'w-4 h-4' : 'w-3.5 h-3.5'
+
+    if (!node.children?.length) {
+      const active = pathname === node.href || pathname.startsWith(node.href + '/')
+      return (
+        <li key={`${node.href}:${depth}`}>
+          <Link
+            href={node.href}
+            className={cn(
+              'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
+              active ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            )}
+          >
+            <Icon className={cn('flex-shrink-0', iconCls)} />
+            {node.name}
+          </Link>
+        </li>
+      )
+    }
+
+    const isOpen = expanded[node.href] ?? false
+    const active = nodeActive(node)
+    return (
+      <li key={`${node.href}:${depth}`}>
+        <button
+          onClick={() => setExpanded(prev => ({ ...prev, [node.href]: !isOpen }))}
+          className={cn(
+            'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors',
+            active ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          )}
+        >
+          <Icon className={cn('flex-shrink-0', iconCls)} />
+          <span className="flex-1 text-left">{node.name}</span>
+          {isOpen ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />}
+        </button>
+        {isOpen && (
+          <ul className="mt-0.5 ml-4 pl-3 border-l border-gray-800 space-y-0.5">
+            {node.children.map(child => renderNode(child, depth + 1))}
+          </ul>
+        )}
+      </li>
+    )
   }
 
   return (
@@ -228,21 +294,14 @@ export function Sidebar() {
 
       <nav className="flex-1 px-3 py-2 overflow-y-auto">
         {navigation.map((group) => {
-          const visibleItems = group.items.filter(item => {
-            if (item.children) return item.children.some(c => !c.pageKey || canView(c.pageKey))
-            return !item.pageKey || canView(item.pageKey)
-          })
+          const visibleItems = group.items.filter(hasVisibleLeaf)
           if (visibleItems.length === 0) return null
 
           const isGroupOpen = openGroup === group.label
-          const groupHasActive = visibleItems.some(item => {
-            if (item.children) return item.children.some(c => pathname === c.href || pathname.startsWith(c.href + '/'))
-            return pathname === item.href || pathname.startsWith(item.href + '/')
-          })
+          const groupHasActive = visibleItems.some(nodeActive)
 
           return (
             <div key={group.label} className="border-b border-gray-800/60 last:border-0">
-              {/* Group header — clickable accordion trigger */}
               <button
                 onClick={() => toggleGroup(group.label)}
                 className={cn(
@@ -262,78 +321,9 @@ export function Sidebar() {
                 )} />
               </button>
 
-              {/* Group items — only visible when open */}
               {isGroupOpen && (
                 <ul className="pb-2 space-y-0.5">
-                  {visibleItems.map((item) => {
-                    const hasChildren = !!item.children?.length
-                    const isChildActive = hasChildren && item.children!.some(
-                      c => pathname === c.href || (c.href !== item.href && pathname.startsWith(c.href))
-                    )
-                    const isActive = !hasChildren && (pathname === item.href || pathname.startsWith(item.href + '/'))
-                    const isOpen = expanded[item.href] ?? false
-
-                    return (
-                      <li key={item.href}>
-                        {hasChildren ? (
-                          <>
-                            <button
-                              onClick={() => setExpanded(prev => ({ ...prev, [item.href]: !isOpen }))}
-                              className={cn(
-                                'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors',
-                                isChildActive
-                                  ? 'bg-gray-800 text-white'
-                                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                              )}
-                            >
-                              <item.icon className="w-4 h-4 flex-shrink-0" />
-                              <span className="flex-1 text-left">{item.name}</span>
-                              {isOpen
-                                ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
-                                : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />}
-                            </button>
-                            {isOpen && (
-                              <ul className="mt-0.5 ml-4 pl-3 border-l border-gray-800 space-y-0.5">
-                                {item.children!.filter(c => !c.pageKey || canView(c.pageKey)).map(child => {
-                                  const childActive = pathname === child.href ||
-                                    (child.href !== item.href && pathname.startsWith(child.href + '/'))
-                                  return (
-                                    <li key={child.href}>
-                                      <Link
-                                        href={child.href}
-                                        className={cn(
-                                          'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-colors',
-                                          childActive
-                                            ? 'bg-blue-600 text-white'
-                                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                                        )}
-                                      >
-                                        <child.icon className="w-3.5 h-3.5 flex-shrink-0" />
-                                        {child.name}
-                                      </Link>
-                                    </li>
-                                  )
-                                })}
-                              </ul>
-                            )}
-                          </>
-                        ) : (
-                          <Link
-                            href={item.href}
-                            className={cn(
-                              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                              isActive
-                                ? 'bg-blue-600 text-white'
-                                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                            )}
-                          >
-                            <item.icon className="w-4 h-4 flex-shrink-0" />
-                            {item.name}
-                          </Link>
-                        )}
-                      </li>
-                    )
-                  })}
+                  {visibleItems.map(item => renderNode(item, 0))}
                 </ul>
               )}
             </div>
