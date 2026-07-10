@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Building2, CalendarDays, MessageCircle, LogOut, Award, ArrowLeft, Eye, Wallet, FileText } from 'lucide-react'
+import { Building2, CalendarDays, MessageCircle, LogOut, Award, ArrowLeft, Wallet, FileText } from 'lucide-react'
 import Link from 'next/link'
-import { getEffectiveStudent } from '@/lib/student-identity'
-import { ExitImpersonation } from '@/components/student/exit-impersonation'
+import { getEffectiveStudent, isSuperadmin } from '@/lib/student-identity'
+import { ImpersonateBar } from '@/components/student/impersonate-bar'
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -13,20 +13,12 @@ export default async function StudentLayout({ children }: { children: React.Reac
   const student = await getEffectiveStudent({ id: user.id, email: user.email })
   const isRealStudent = !!student && !student.impersonating
   const impersonating = !!student && student.impersonating
+  const superadmin = await isSuperadmin(user.id)
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Banner de impersonación (superadmin viendo como estudiante) */}
-      {impersonating && (
-        <div className="bg-amber-100 border-b border-amber-200 px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-amber-800">
-            <Eye className="w-3.5 h-3.5" />
-            Estás viendo el portal como <span className="font-semibold">{student!.name}</span>
-            {student!.document_number ? ` (doc. ${student!.document_number})` : ''}
-          </div>
-          <ExitImpersonation />
-        </div>
-      )}
+      {/* Barra "Entrar por" (superadmin busca/cambia el estudiante a visualizar) */}
+      {superadmin && <ImpersonateBar impersonating={impersonating} currentName={student?.name ?? null} />}
 
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
