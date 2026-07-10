@@ -16,13 +16,14 @@ async function requireUser() {
 export async function GET() {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
-  const [{ data: types }, { data: concepts }, { data: categories }, { data: programs }] = await Promise.all([
+  const [{ data: types }, { data: concepts }, { data: categories }, { data: programs }, { data: employees }] = await Promise.all([
     sb.from('document_types').select('*').order('name'),
     sb.from('account_concepts').select('type_code, abbr, name').eq('kind', 'charge').order('type_code'),
     sb.from('academic_programs_category').select('id, name').order('name'),
     sb.from('academic_programs').select('id, name, category_id').order('name'),
+    sb.from('hr_employees').select('id, full_name, position').order('full_name'),
   ])
-  return NextResponse.json({ types: types ?? [], concepts: concepts ?? [], categories: categories ?? [], programs: programs ?? [] })
+  return NextResponse.json({ types: types ?? [], concepts: concepts ?? [], categories: categories ?? [], programs: programs ?? [], employees: employees ?? [] })
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

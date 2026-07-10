@@ -8,7 +8,7 @@ interface DocType { id: string; name: string; price: number; currency: string; a
 interface Program { id: string; name: string; category_id: string | null }
 interface ReqCheck { kind: string; ok: boolean | null; note: string }
 interface StageField { key: string; label: string }
-interface Stage { name: string; fields?: StageField[] }
+interface Stage { name: string; fields?: StageField[]; assignee_name?: string | null; kind?: 'vb' | 'fields' }
 interface Request {
   id: string; status: string; paid: boolean; requested_at: string; stage_index: number
   student_name: string; document_number: string | null; type_name: string
@@ -251,14 +251,23 @@ function RequestRow({ r, expanded, onToggle, onChanged, onRemove, deleting }: {
               {r.status === 'in_progress' && currentStage && (
                 <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
                   <p className="text-xs font-semibold text-gray-700">Etapa actual: {currentStage.name}</p>
-                  {(currentStage.fields ?? []).map(f => (
-                    <label key={f.key} className="block"><span className="block text-[11px] text-gray-500 mb-0.5">{f.label}</span>
-                      <input value={stageVals[f.key] ?? r.field_values[f.key] ?? ''} onChange={e => setStageVals(v => ({ ...v, [f.key]: e.target.value }))} className={inp} />
-                    </label>
-                  ))}
-                  <button onClick={() => act('stage', { field_values: stageVals })} disabled={busy === 'stage'} className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
-                    {busy === 'stage' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}Completar etapa
-                  </button>
+                  {currentStage.assignee_name && <p className="text-[11px] text-gray-500">Responsable: {currentStage.assignee_name}</p>}
+                  {currentStage.kind === 'fields' && (currentStage.fields ?? []).length > 0 ? (
+                    <>
+                      {(currentStage.fields ?? []).map(f => (
+                        <label key={f.key} className="block"><span className="block text-[11px] text-gray-500 mb-0.5 font-mono">{f.label}</span>
+                          <input value={stageVals[f.key] ?? r.field_values[f.key] ?? ''} onChange={e => setStageVals(v => ({ ...v, [f.key]: e.target.value }))} className={inp} />
+                        </label>
+                      ))}
+                      <button onClick={() => act('stage', { field_values: stageVals })} disabled={busy === 'stage'} className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+                        {busy === 'stage' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}Completar etapa
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => act('stage')} disabled={busy === 'stage'} className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+                      {busy === 'stage' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}Dar visto bueno
+                    </button>
+                  )}
                 </div>
               )}
 

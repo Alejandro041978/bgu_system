@@ -4,8 +4,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { Plus, Trash2, Loader2, Pencil, X, Save, FileText } from 'lucide-react'
 
 interface Concept { type_code: number; abbr: string | null; name: string | null }
+interface Employee { id: string; full_name: string; position: string | null }
 interface Req { kind: string; description: string }
-interface StageForm { name: string; fieldsText: string }
+interface StageForm { name: string; assigneeId: string; kind: 'vb' | 'fields'; tagsText: string }
 interface FieldMap { tag: string; source: string; value: string }
 interface Category { id: string; name: string }
 interface Program { id: string; name: string; category_id: string | null }
@@ -58,6 +59,7 @@ export function DocumentTypesManager() {
   const [concepts, setConcepts] = useState<Concept[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [programs, setPrograms] = useState<Program[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -77,7 +79,7 @@ export function DocumentTypesManager() {
   const load = useCallback(async () => {
     const d = await fetch('/api/registrar/document-types').then(r => r.json())
     setTypes(d.types ?? []); setConcepts(d.concepts ?? [])
-    setCategories(d.categories ?? []); setPrograms(d.programs ?? []); setLoading(false)
+    setCategories(d.categories ?? []); setPrograms(d.programs ?? []); setEmployees(d.employees ?? []); setLoading(false)
   }, [])
   useEffect(() => { load() }, [load])
 
@@ -92,7 +94,11 @@ export function DocumentTypesManager() {
       scope_category_id: t.scope_category_id ?? '', scope_program_ids: t.scope_program_ids ?? [],
       requirements: (t.requirements ?? []).map(r => ({ kind: r.kind, description: r.description ?? '' })),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      stages: (t.stages ?? []).map((s: any) => ({ name: s.name ?? '', fieldsText: (s.fields ?? []).map((f: any) => f.label).join(', ') })),
+      stages: (t.stages ?? []).map((s: any) => ({
+        name: s.name ?? '', assigneeId: s.assignee_id ?? '',
+        kind: (s.kind ?? ((s.fields ?? []).length ? 'fields' : 'vb')) as 'vb' | 'fields',
+        tagsText: (s.fields ?? []).map((f: any) => f.label ?? f.key).join(', '),
+      })),
       active: t.active,
     })
     setEditing(true)
@@ -104,10 +110,19 @@ export function DocumentTypesManager() {
   async function save() {
     if (!form.name.trim()) return
     setSaving(true)
-    const stages = form.stages.filter(s => s.name.trim()).map(s => ({
-      name: s.name.trim(),
-      fields: s.fieldsText.split(',').map(x => x.trim()).filter(Boolean).map(label => ({ key: label.toLowerCase().replace(/\s+/g, '_'), label })),
-    }))
+    const stages = form.stages.filter(s => s.name.trim()).map(s => {
+      const emp = employees.find(e => e.id === s.assigneeId)
+      return {
+        name: s.name.trim(),
+        assignee_id: s.assigneeId || null,
+        assignee_name: emp?.full_name ?? null,
+        kind: s.kind,
+        // Para 'fields' el merge tag se guarda tal cual (key = label = tag, sensible a mayúsculas).
+        fields: s.kind === 'fields'
+          ? s.tagsText.split(',').map(x => x.trim()).filter(Boolean).map(tag => ({ key: tag, label: tag }))
+          : [],
+      }
+    })
     const body = {
       id: form.id || undefined, name: form.name, description: form.description, price: form.price,
       currency: form.currency, charge_concept: form.charge_concept, template_body: form.template_body,
@@ -205,18 +220,41 @@ export function DocumentTypesManager() {
         {/* Etapas humanas */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs font-semibold text-gray-600">Etapas humanas <span className="text-gray-400 font-normal">(visto bueno / campos a completar)</span></label>
-            <button onClick={() => setF('stages', [...form.stages, { name: '', fieldsText: '' }])} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"><Plus className="w-3.5 h-3.5" />Agregar</button>
+            <label className="text-xs font-semibold text-gray-600">Etapas humanas <span className="text-gray-400 font-normal">(responsable · visto bueno o campos)</span></label>
+            <button onClick={() => setF('stages', [...form.stages, { name: '', assigneeId: '', kind: 'vb', tagsText: '' }])} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"><Plus className="w-3.5 h-3.5" />Agregar</button>
           </div>
           {form.stages.length === 0 ? <p className="text-xs text-gray-400">Sin etapas (se emite automáticamente al cumplir requisitos y pago).</p> : (
             <div className="space-y-2">
-              {form.stages.map((s, i) => (
-                <div key={i} className="flex gap-2 items-center">
-                  <input value={s.name} onChange={e => { const ss = [...form.stages]; ss[i] = { ...ss[i], name: e.target.value }; setF('stages', ss) }} className={`${inp} w-56`} placeholder={`Etapa ${i + 1} (ej. VoBo Decano)`} />
-                  <input value={s.fieldsText} onChange={e => { const ss = [...form.stages]; ss[i] = { ...ss[i], fieldsText: e.target.value }; setF('stages', ss) }} className={inp} placeholder="Campos a completar, separados por coma (opcional)" />
-                  <button onClick={() => setF('stages', form.stages.filter((_, j) => j !== i))} className="text-gray-300 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                </div>
-              ))}
+              {form.stages.map((s, i) => {
+                const upd = (patch: Partial<StageForm>) => { const ss = [...form.stages]; ss[i] = { ...ss[i], ...patch }; setF('stages', ss) }
+                return (
+                  <div key={i} className="border border-gray-200 rounded-lg p-2.5 space-y-2 bg-gray-50/50">
+                    <div className="flex gap-2 items-center">
+                      <input value={s.name} onChange={e => upd({ name: e.target.value })} className={`${inp} flex-1`} placeholder={`Etapa ${i + 1} (ej. VoBo Decano)`} />
+                      <button onClick={() => setF('stages', form.stages.filter((_, j) => j !== i))} className="text-gray-300 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label><span className="block text-[11px] text-gray-500 mb-0.5">Responsable</span>
+                        <select value={s.assigneeId} onChange={e => upd({ assigneeId: e.target.value })} className={inp}>
+                          <option value="">— Sin asignar —</option>
+                          {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.full_name}{emp.position ? ` · ${emp.position}` : ''}</option>)}
+                        </select>
+                      </label>
+                      <label><span className="block text-[11px] text-gray-500 mb-0.5">Acción</span>
+                        <select value={s.kind} onChange={e => upd({ kind: e.target.value as 'vb' | 'fields' })} className={inp}>
+                          <option value="vb">Visto bueno (aprobar)</option>
+                          <option value="fields">Ingresar campos</option>
+                        </select>
+                      </label>
+                    </div>
+                    {s.kind === 'fields' && (
+                      <label className="block"><span className="block text-[11px] text-gray-500 mb-0.5">Merge tags a completar (separados por coma, tal cual en la plantilla)</span>
+                        <input value={s.tagsText} onChange={e => upd({ tagsText: e.target.value })} className={`${inp} font-mono`} placeholder="Ej. GPA, Grade 1, Course name 1" />
+                      </label>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
