@@ -106,21 +106,23 @@ export function InboxMetrics() {
               <thead>
                 <tr className="border-b border-gray-100 text-[11px] text-gray-400 uppercase tracking-wide">
                   <th className="text-left px-4 py-2.5">{granularity === 'week' ? 'Semana' : 'Día'}</th>
-                  <th className="text-right px-4 py-2.5">Correos</th>
+                  <th className="text-right px-4 py-2.5">Correos <span className="normal-case text-gray-300">(mensajes)</span></th>
                   <th className="text-right px-4 py-2.5">Conversaciones</th>
                   <th className="text-right px-4 py-2.5">· WhatsApp</th>
+                  <th className="text-right px-4 py-2.5">· Correo</th>
                   <th className="text-right px-4 py-2.5">Sofía</th>
                 </tr>
               </thead>
               <tbody>
                 {series.length === 0 ? (
-                  <tr><td colSpan={5} className="text-center text-gray-400 py-6">Sin datos</td></tr>
+                  <tr><td colSpan={6} className="text-center text-gray-400 py-6">Sin datos</td></tr>
                 ) : series.map(s => (
                   <tr key={s.bucket} className="border-t border-gray-50 hover:bg-gray-50/50">
                     <td className="px-4 py-2 text-gray-700">{s.bucket}</td>
                     <td className="px-4 py-2 text-right text-indigo-600">{s.emails}</td>
                     <td className="px-4 py-2 text-right text-blue-600 font-medium">{s.conversations}</td>
                     <td className="px-4 py-2 text-right text-gray-500">{s.wa_conversations}</td>
+                    <td className="px-4 py-2 text-right text-gray-500">{s.conversations - s.wa_conversations}</td>
                     <td className="px-4 py-2 text-right text-violet-600">{s.sofia}</td>
                   </tr>
                 ))}
@@ -132,6 +134,7 @@ export function InboxMetrics() {
                     <td className="px-4 py-2.5 text-right">{data.totals.emails}</td>
                     <td className="px-4 py-2.5 text-right">{data.totals.conversations}</td>
                     <td className="px-4 py-2.5 text-right">{data.totals.whatsapp_conversations}</td>
+                    <td className="px-4 py-2.5 text-right">{data.totals.email_conversations}</td>
                     <td className="px-4 py-2.5 text-right">{data.totals.sofia}</td>
                   </tr>
                 </tfoot>
