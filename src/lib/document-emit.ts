@@ -47,6 +47,8 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
   // Diccionario de datos disponibles del ERP, por clave de "source".
   const sources: Record<string, string> = {
     first_name: s.first_name ?? '',
+    last_name_p: s.last_name ?? '',
+    last_name_m: s.second_last_name ?? '',
     last_name: [s.last_name, s.second_last_name].filter(Boolean).join(' '),
     full_name: [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' '),
     email: s.email ?? '',

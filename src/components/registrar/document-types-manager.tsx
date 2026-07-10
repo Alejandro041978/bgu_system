@@ -20,7 +20,9 @@ interface DocType {
 // Fuentes de dato del ERP para llenar cada merge tag de la plantilla SimpleCert.
 const MAP_SOURCES = [
   { value: 'first_name', label: 'Nombres del estudiante' },
-  { value: 'last_name', label: 'Apellidos del estudiante' },
+  { value: 'last_name_p', label: 'Apellido paterno' },
+  { value: 'last_name_m', label: 'Apellido materno' },
+  { value: 'last_name', label: 'Apellidos (paterno + materno)' },
   { value: 'full_name', label: 'Nombre completo' },
   { value: 'email', label: 'Correo' },
   { value: 'document_number', label: 'Nº de documento' },
