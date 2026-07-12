@@ -241,11 +241,13 @@ Responde SOLO con un JSON válido con esta estructura exacta:
   }
 
   try {
-    const message = await client.messages.create({
+    // Streaming: evita que la conexión se corte por timeout en respuestas largas.
+    const stream = client.messages.stream({
       model: 'claude-opus-4-8',
       max_tokens: 4096,
       messages: [{ role: 'user', content: analysisPrompt + jsonInstruction }],
     })
+    const message = await stream.finalMessage()
     const text = message.content.filter(b => b.type === 'text').map(b => (b as any).text).join('')
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('No JSON in response')
