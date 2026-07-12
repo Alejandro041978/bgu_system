@@ -70,23 +70,33 @@ export function SupervisorView({ reports: initialReports, bots }: { reports: Rep
   const [botKey, setBotKey] = useState(bots[0]?.key ?? 'sofia')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
+  const [runningDate, setRunningDate] = useState<string | null>(null)
   const [runError, setRunError] = useState<string | null>(null)
 
   const reports = initialReports.filter(r => r.bot_key === botKey)
   const botName = bots.find(b => b.key === botKey)?.name ?? 'Bot'
 
-  async function runToday() {
-    setRunning(true)
+  async function runFor(date: string) {
     setRunError(null)
-    const today = new Date().toISOString().slice(0, 10)
-    const res = await fetch(`/api/sofia/run-supervisor?date=${today}&bot=${botKey}`, { method: 'POST' })
+    const res = await fetch(`/api/sofia/run-supervisor?date=${date}&bot=${botKey}`, { method: 'POST' })
     if (!res.ok) {
       const d = await res.json().catch(() => ({})) as { error?: string }
       setRunError(d.error ?? 'Error al ejecutar análisis')
-      setRunning(false)
-      return
+      return false
     }
-    window.location.reload()
+    return true
+  }
+
+  async function runToday() {
+    setRunning(true)
+    const ok = await runFor(new Date().toISOString().slice(0, 10))
+    if (ok) window.location.reload(); else setRunning(false)
+  }
+
+  async function runReport(date: string) {
+    setRunningDate(date)
+    const ok = await runFor(date)
+    if (ok) window.location.reload(); else setRunningDate(null)
   }
 
   return (
@@ -165,6 +175,15 @@ export function SupervisorView({ reports: initialReports, bots }: { reports: Rep
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  {r.status !== 'completed' && (
+                    <span
+                      role="button" tabIndex={0}
+                      onClick={e => { e.stopPropagation(); if (!runningDate) runReport(r.report_date) }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer"
+                    >
+                      {runningDate === r.report_date ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />} Analizar
+                    </span>
+                  )}
                   {r.full_report && (
                     <a
                       href={`/api/sofia/supervisor/report/${r.id}`}
@@ -193,7 +212,22 @@ export function SupervisorView({ reports: initialReports, bots }: { reports: Rep
               )}
               {expanded === r.id && r.status === 'failed' && (
                 <div className="px-6 pb-6 border-t border-gray-100 pt-4">
-                  <p className="text-sm text-red-600">El análisis falló. Intenta ejecutarlo nuevamente.</p>
+                  <p className="text-sm text-red-600">El análisis falló. Pulsa «Analizar» para intentarlo de nuevo.</p>
+                </div>
+              )}
+              {expanded === r.id && r.status === 'pending' && (
+                <div className="px-6 pb-6 border-t border-gray-100 pt-4 space-y-3">
+                  <p className="text-sm text-gray-600">
+                    Este día tiene {r.conversations_analyzed} conversación(es) registrada(s) pero el análisis de IA aún no se ha ejecutado.
+                    Pulsa «Analizar» para generar el reporte.
+                  </p>
+                  <button
+                    onClick={() => runReport(r.report_date)} disabled={!!runningDate}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {runningDate === r.report_date ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                    {runningDate === r.report_date ? 'Analizando…' : 'Analizar este día'}
+                  </button>
                 </div>
               )}
             </div>
