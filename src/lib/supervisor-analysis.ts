@@ -223,36 +223,45 @@ Responde SOLO con un JSON válido con esta estructura exacta:
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-  let result: {
-    executive_summary: string
-    strengths: string
-    weaknesses: string
-    frequent_topics: string
-    recommendations: string
-    knowledge_gaps: string
-    quality_score: number
-    quality_justification: string
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let result: any = null
+  let rawText = ''
 
   try {
     // Streaming: evita que la conexión se corte por timeout en respuestas largas.
     const stream = client.messages.stream({
       model: 'claude-opus-4-8',
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [{ role: 'user', content: analysisPrompt + jsonInstruction }],
     })
     const message = await stream.finalMessage()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const text = message.content.filter(b => b.type === 'text').map(b => (b as any).text).join('')
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('No JSON in response')
-    result = JSON.parse(jsonMatch[0])
-  } catch (err) {
+    rawText = message.content.filter(b => b.type === 'text').map(b => (b as any).text).join('')
+    let jsonStr = rawText.trim()
+    const fence = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/i) // quita cercos ```json ... ```
+    if (fence) jsonStr = fence[1]
+    const m = jsonStr.match(/\{[\s\S]*\}/)
+    if (m) result = JSON.parse(m[0])
+  } catch {
+    result = null
+  }
+
+  // Fallback: si no se pudo estructurar el JSON pero hay texto, lo guardamos igual
+  // (el usuario ve el análisis) en vez de dejar el reporte fallido/pendiente.
+  if (!result) {
+    if (!rawText.trim()) {
+      await db.from('sofia_supervisor_reports').update({ status: 'failed', generated_at: new Date().toISOString() })
+        .eq('report_date', dateStr).eq('bot_key', botKey)
+      return { status: 500, body: { error: 'La IA no devolvió contenido.' } }
+    }
     await db.from('sofia_supervisor_reports').update({
-      status: 'failed',
+      status: 'completed',
+      executive_summary: rawText.slice(0, 3000),
+      full_report: rawText,
+      quality_score: null,
       generated_at: new Date().toISOString(),
     }).eq('report_date', dateStr).eq('bot_key', botKey)
-    return { status: 500, body: { error: String(err) } }
+    return { status: 200, body: { ok: true, conversations: convList.length, fallback: true } }
   }
 
   // La IA a veces devuelve arreglos/objetos donde esperamos texto; forzamos a
