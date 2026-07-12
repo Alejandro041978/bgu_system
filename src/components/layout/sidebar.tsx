@@ -44,6 +44,7 @@ const navigation: NavGroup[] = [
       {
         name: 'Atención al Cliente', href: '/desk', icon: Headphones,
         children: [
+          { name: 'Sofia · Chat', href: '/chat', icon: Bot, pageKey: 'chat' },
           { name: 'Tickets', href: '/desk', icon: Headphones, pageKey: 'desk' },
           { name: 'Buzón WhatsApp', href: '/inbox', icon: MessageSquare, pageKey: 'inbox' },
           { name: 'Buzón · Métricas', href: '/inbox/metrics', icon: BarChart3, pageKey: 'inbox_metrics' },
@@ -121,7 +122,6 @@ const navigation: NavGroup[] = [
   {
     label: 'IA',
     items: [
-      { name: 'Sofia · Chat', href: '/chat', icon: Bot, pageKey: 'chat' },
       { name: 'Bots · Configuración', href: '/settings/sofia', icon: Bot, pageKey: 'settings_sofia' },
       { name: 'Bots · Supervisor', href: '/ia/sofia-supervisor', icon: Shield, pageKey: 'sofia_supervisor' },
     ],
