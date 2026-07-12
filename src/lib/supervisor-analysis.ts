@@ -313,7 +313,7 @@ ${result.quality_justification}
 Generado: ${new Date().toLocaleString('es-PE')}
 `
 
-  const { error: updErr } = await db.from('sofia_supervisor_reports').update({
+  const payload: Record<string, unknown> = {
     status: 'completed',
     executive_summary: result.executive_summary,
     strengths: result.strengths,
@@ -324,7 +324,17 @@ Generado: ${new Date().toLocaleString('es-PE')}
     full_report: fullReport,
     quality_score: result.quality_score,
     generated_at: new Date().toISOString(),
-  }).eq('report_date', dateStr).eq('bot_key', botKey)
+  }
+  let { error: updErr } = await db.from('sofia_supervisor_reports').update(payload)
+    .eq('report_date', dateStr).eq('bot_key', botKey)
+
+  // Resiliencia: si la columna knowledge_gaps aún no existe, guarda sin ella
+  // (el contenido igual queda dentro de full_report).
+  if (updErr && /knowledge_gaps/i.test(updErr.message)) {
+    delete payload.knowledge_gaps
+    ;({ error: updErr } = await db.from('sofia_supervisor_reports').update(payload)
+      .eq('report_date', dateStr).eq('bot_key', botKey))
+  }
 
   if (updErr) {
     await db.from('sofia_supervisor_reports').update({ status: 'failed', generated_at: new Date().toISOString() })
