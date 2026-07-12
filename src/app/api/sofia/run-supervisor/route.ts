@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { analyzeSupervisor } from '@/app/api/cron/sofia-supervisor/route'
+import { analyzeSupervisor } from '@/lib/supervisor-analysis'
 
 // El análisis de IA tarda ~1 min; sin esto la función se corta antes de terminar.
 export const maxDuration = 300
