@@ -255,6 +255,19 @@ Responde SOLO con un JSON válido con esta estructura exacta:
     return { status: 500, body: { error: String(err) } }
   }
 
+  // La IA a veces devuelve arreglos/objetos donde esperamos texto; forzamos a
+  // string para no romper el UPDATE contra columnas text (fallaba en silencio).
+  const asText = (v: unknown): string => (v == null ? '' : typeof v === 'string' ? v : JSON.stringify(v, null, 2))
+  result.executive_summary = asText(result.executive_summary)
+  result.strengths = asText(result.strengths)
+  result.weaknesses = asText(result.weaknesses)
+  result.frequent_topics = asText(result.frequent_topics)
+  result.recommendations = asText(result.recommendations)
+  result.knowledge_gaps = asText(result.knowledge_gaps)
+  result.quality_justification = asText(result.quality_justification)
+  const qScore = Number(result.quality_score)
+  result.quality_score = Number.isFinite(qScore) ? qScore : 0
+
   const fullReport = `REPORTE SUPERVISOR ${botName.toUpperCase()} - ${dateStr}
 ${'='.repeat(50)}
 Conversaciones analizadas: ${convList.length} | Mensajes totales: ${totalMessages}
@@ -291,18 +304,24 @@ ${result.quality_justification}
 Generado: ${new Date().toLocaleString('es-PE')}
 `
 
-  await db.from('sofia_supervisor_reports').update({
+  const { error: updErr } = await db.from('sofia_supervisor_reports').update({
     status: 'completed',
     executive_summary: result.executive_summary,
     strengths: result.strengths,
     weaknesses: result.weaknesses,
     recommendations: result.recommendations,
-    knowledge_gaps: result.knowledge_gaps ?? null,
+    knowledge_gaps: result.knowledge_gaps || null,
     prompt_suggestions: result.frequent_topics,
     full_report: fullReport,
     quality_score: result.quality_score,
     generated_at: new Date().toISOString(),
   }).eq('report_date', dateStr).eq('bot_key', botKey)
+
+  if (updErr) {
+    await db.from('sofia_supervisor_reports').update({ status: 'failed', generated_at: new Date().toISOString() })
+      .eq('report_date', dateStr).eq('bot_key', botKey)
+    return { status: 500, body: { error: 'Error al guardar el reporte: ' + updErr.message } }
+  }
 
   return { status: 200, body: { ok: true, conversations: convList.length, score: result.quality_score } }
 }
