@@ -132,7 +132,7 @@ export function SupervisorView({ reports: initialReports, bots }: { reports: Rep
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
           >
             {running ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            {running ? 'Analizando…' : 'Analizar ahora'}
+            {running ? 'Analizando… (~1 min)' : 'Analizar ahora'}
           </button>
         </div>
       </div>

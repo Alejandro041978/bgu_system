@@ -14,13 +14,17 @@ export async function POST(req: NextRequest) {
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const url = new URL(req.url)
+  const r = await analyzeSupervisor(url.searchParams.get('bot') ?? 'sofia', url.searchParams.get('date'))
+  return NextResponse.json(r.body, { status: r.status })
+}
 
+// Ejecuta el análisis del supervisor para un bot y fecha. Reutilizable en proceso
+// (sin salto HTTP) desde run-supervisor, evitando apilar dos timeouts de función.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function analyzeSupervisor(botKey: string, dateParam?: string | null): Promise<{ status: number; body: any }> {
   const db = supabase as any
 
-  // Date range: yesterday (or override with query param). Bot: sofia por defecto.
-  const url = new URL(req.url)
-  const dateParam = url.searchParams.get('date')
-  const botKey = url.searchParams.get('bot') ?? 'sofia'
   const targetDate = dateParam ? new Date(dateParam) : new Date(Date.now() - 86_400_000)
   const dateStr = targetDate.toISOString().slice(0, 10)
   const startOfDay = `${dateStr}T00:00:00.000Z`
@@ -42,7 +46,7 @@ export async function POST(req: NextRequest) {
     .order('created_at', { ascending: true })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return { status: 500, body: { error: error.message } }
   }
 
   const convList = conversations ?? []
@@ -64,7 +68,7 @@ export async function POST(req: NextRequest) {
       full_report: `REPORTE SUPERVISOR ${botName.toUpperCase()} - ${dateStr}\n\nNo se registraron conversaciones.`,
       generated_at: new Date().toISOString(),
     }).eq('report_date', dateStr).eq('bot_key', botKey)
-    return NextResponse.json({ ok: true, conversations: 0 })
+    return { status: 200, body: { ok: true, conversations: 0 } }
   }
 
   // Get current knowledge base inventory (titles only) to detect gaps
@@ -257,7 +261,7 @@ Responde SOLO con un JSON válido con esta estructura exacta:
       status: 'failed',
       generated_at: new Date().toISOString(),
     }).eq('report_date', dateStr).eq('bot_key', botKey)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return { status: 500, body: { error: String(err) } }
   }
 
   const fullReport = `REPORTE SUPERVISOR ${botName.toUpperCase()} - ${dateStr}
@@ -309,7 +313,7 @@ Generado: ${new Date().toLocaleString('es-PE')}
     generated_at: new Date().toISOString(),
   }).eq('report_date', dateStr).eq('bot_key', botKey)
 
-  return NextResponse.json({ ok: true, conversations: convList.length, score: result.quality_score })
+  return { status: 200, body: { ok: true, conversations: convList.length, score: result.quality_score } }
 }
 
 export async function GET(req: NextRequest) {

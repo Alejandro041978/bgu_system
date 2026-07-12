@@ -1,41 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { analyzeSupervisor } from '@/app/api/cron/sofia-supervisor/route'
 
-// Debe esperar a que el análisis de IA (cron) termine; sin esto el proxy se
-// corta al límite por defecto y el análisis queda "colgado" en el cliente.
+// El análisis de IA tarda ~1 min; sin esto la función se corta antes de terminar.
 export const maxDuration = 300
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-// Client-callable endpoint that triggers the supervisor cron internally
+// Endpoint para disparar el análisis del supervisor desde el panel (usuario
+// autenticado). Ejecuta el análisis EN PROCESO (sin salto HTTP al cron), para
+// no apilar dos timeouts de función.
 export async function POST(req: NextRequest) {
-  // Verify user is authenticated via Supabase session cookie
-  const authHeader = req.headers.get('x-supabase-auth') ?? ''
-  if (!authHeader) {
-    // Allow if called from server context (no auth header check needed for internal calls)
-    // Just verify service role key is available as a sanity check
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json({ error: 'Not configured' }, { status: 500 })
-    }
-  }
+  const auth = await createAuthClient()
+  const { data: { user } } = await auth.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const date = req.nextUrl.searchParams.get('date') ?? new Date().toISOString().slice(0, 10)
   const bot = req.nextUrl.searchParams.get('bot') ?? 'sofia'
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bgu-system.vercel.app'
-  const cronUrl = new URL('/api/cron/sofia-supervisor', baseUrl)
-  if (date) cronUrl.searchParams.set('date', date)
-  cronUrl.searchParams.set('bot', bot)
 
-  const res = await fetch(cronUrl.toString(), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.CRON_SECRET ?? ''}`,
-    },
-  })
-
-  const data = await res.json()
-  return NextResponse.json(data, { status: res.status })
+  const r = await analyzeSupervisor(bot, date)
+  return NextResponse.json(r.body, { status: r.status })
 }
