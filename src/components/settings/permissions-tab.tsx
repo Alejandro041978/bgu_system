@@ -6,6 +6,7 @@ import { Save } from 'lucide-react'
 type Role = { id: string; name: string; label: string }
 type PermMap = Record<string, { can_view: boolean; can_edit: boolean }>
 
+// El orden y la agrupación reflejan el sidebar (Comercial, Services, Administration…).
 const PAGE_GROUPS = [
   {
     label: 'General',
@@ -14,51 +15,32 @@ const PAGE_GROUPS = [
     ],
   },
   {
-    label: 'Atención al Cliente',
+    label: 'Comercial',
     pages: [
+      // Admisión
+      { key: 'crm', label: 'Contactos / CRM' },
+      { key: 'convenios', label: 'Convenios institucionales' },
+      { key: 'admision_matriculas', label: 'Matrículas' },
+      // Ventas
+      { key: 'sales_prospectos', label: 'Prospectos' },
+      // Redes Sociales
+      { key: 'social', label: 'Métricas sociales' },
+    ],
+  },
+  {
+    label: 'Services',
+    pages: [
+      // Atención al Cliente
+      { key: 'chat', label: 'Sofia · Chat' },
       { key: 'desk', label: 'Tickets' },
       { key: 'inbox', label: 'Buzón WhatsApp/Correo' },
       { key: 'inbox_metrics', label: 'Buzón · Métricas' },
       { key: 'helpdesk_skills', label: 'Helpdesk · Skills' },
       { key: 'desk_metrics', label: 'Métricas de tickets' },
-    ],
-  },
-  {
-    label: 'Finanzas',
-    pages: [
-      { key: 'finance', label: 'Contabilidad' },
-    ],
-  },
-  {
-    label: 'Admisión',
-    pages: [
-      { key: 'crm', label: 'Contactos / CRM' },
-      { key: 'convenios', label: 'Convenios institucionales' },
-      { key: 'admision_matriculas', label: 'Matrículas' },
-    ],
-  },
-  {
-    label: 'Ventas',
-    pages: [
-      { key: 'sales_prospectos', label: 'Prospectos' },
-    ],
-  },
-  {
-    label: 'Redes Sociales',
-    pages: [
-      { key: 'social', label: 'Métricas sociales' },
-    ],
-  },
-  {
-    label: 'Talento Humano',
-    pages: [
-      { key: 'hr', label: 'Colaboradores' },
-      { key: 'kpis', label: 'KPIs & Bonos' },
-      { key: 'hr_capacitaciones', label: 'Capacitaciones · Registro' },
-      { key: 'hr_capacitacion_participantes', label: 'Capacitaciones · Participantes' },
-      { key: 'contracts', label: 'Contratos · Lista' },
-      { key: 'contracts_new', label: 'Contratos · Nuevo' },
-      { key: 'contracts_templates', label: 'Contratos · Plantillas' },
+      // Registrar
+      { key: 'registrar_formatos', label: 'Formatos de certificados' },
+      { key: 'registrar_document_types', label: 'Tipos de Documento' },
+      { key: 'registrar_requests', label: 'Solicitudes de Documentos' },
     ],
   },
   {
@@ -68,9 +50,6 @@ const PAGE_GROUPS = [
       { key: 'academic_grades', label: 'Notas' },
       { key: 'academic_acta', label: 'Acta Personal' },
       { key: 'academic_acta_detail', label: 'Acta Detallada' },
-      { key: 'academic_account', label: 'Estado de Cuenta' },
-      { key: 'academic_concepts', label: 'Conceptos de Cuenta' },
-      { key: 'academic_billing_plans', label: 'Plantillas de Facturación' },
       { key: 'academic_convocatorias', label: 'Convocatorias' },
       { key: 'academic_transfer_credits', label: 'Convalidaciones · Individual' },
       { key: 'academic_transfer_schemes', label: 'Convalidaciones · Esquemas masivos' },
@@ -86,14 +65,6 @@ const PAGE_GROUPS = [
     ],
   },
   {
-    label: 'Registrar',
-    pages: [
-      { key: 'registrar_formatos', label: 'Formatos de certificados' },
-      { key: 'registrar_document_types', label: 'Tipos de Documento' },
-      { key: 'registrar_requests', label: 'Solicitudes de Documentos' },
-    ],
-  },
-  {
     label: 'Planeamiento',
     pages: [
       { key: 'planning_plan', label: 'Plan Estratégico · Cargar Plan' },
@@ -105,16 +76,30 @@ const PAGE_GROUPS = [
     ],
   },
   {
-    label: 'Sofia IA',
+    label: 'IA',
     pages: [
-      { key: 'chat', label: 'Sofia · Chat' },
-      { key: 'settings_sofia', label: 'Sofia · Configuración' },
-      { key: 'sofia_supervisor', label: 'Sofia · Supervisor' },
+      { key: 'settings_sofia', label: 'Bots · Configuración' },
+      { key: 'sofia_supervisor', label: 'Bots · Supervisor' },
     ],
   },
   {
-    label: 'Administración',
+    label: 'Administration',
     pages: [
+      // Talento Humano
+      { key: 'hr', label: 'Colaboradores' },
+      { key: 'kpis', label: 'KPIs & Bonos' },
+      { key: 'hr_capacitaciones', label: 'Capacitaciones · Registro' },
+      { key: 'hr_capacitacion_participantes', label: 'Capacitaciones · Participantes' },
+      { key: 'contracts', label: 'Contratos · Lista' },
+      { key: 'contracts_new', label: 'Contratos · Nuevo' },
+      { key: 'contracts_templates', label: 'Contratos · Plantillas' },
+      // Finanzas
+      { key: 'finance', label: 'Contabilidad' },
+      // Cuentas (movidas de Académico)
+      { key: 'academic_account', label: 'Estado de Cuenta' },
+      { key: 'academic_concepts', label: 'Conceptos de Cuenta' },
+      { key: 'academic_billing_plans', label: 'Plantillas de Facturación' },
+      // Administración del sistema
       { key: 'settings_users', label: 'Usuarios y permisos' },
     ],
   },
