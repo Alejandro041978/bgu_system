@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { Topbar } from '@/components/layout/topbar'
 import { GraduationCap, Users } from 'lucide-react'
@@ -26,14 +27,15 @@ export default async function MatriculasPage({
   const [{ data: programs }, { data: categories }, { data: convs }, { data: sems }, { data: acadYears }] = await Promise.all([
     supabase.from('academic_programs').select('id, name, code, category_id').order('name'),
     supabase.from('academic_programs_category').select('id, name').order('name'),
-    supabase.from('convocatorias').select('id, academic_semester_id'),
+    supabase.from('convocatorias').select('id, name, academic_semester_id'),
     supabase.from('academic_semesters').select('id, name, academic_year_id, start_date').order('start_date'),
     supabase.from('academic_years').select('id, name').order('name'),
   ])
 
   // Mapas: convocatoria → semestre → año académico (calendario LIMPIO)
   const convToSem = new Map<string, string | null>()
-  for (const c of convs ?? []) convToSem.set(c.id, c.academic_semester_id ?? null)
+  const convName = new Map<string, string>()
+  for (const c of convs ?? []) { convToSem.set(c.id, c.academic_semester_id ?? null); convName.set(c.id, c.name) }
   const semInfo = new Map<string, { name: string; year_id: string | null }>()
   for (const s of sems ?? []) semInfo.set(s.id, { name: s.name, year_id: s.academic_year_id ?? null })
   const yearName = new Map<string, string>()
@@ -59,7 +61,7 @@ export default async function MatriculasPage({
   const allEnrollments = rawEnrollments.map(e => {
     const sem_id = e.convocatoria_id ? convToSem.get(e.convocatoria_id) ?? null : null
     const year_id = sem_id ? semInfo.get(sem_id)?.year_id ?? null : null
-    return { program_id: e.program_id, sem_id, year_id }
+    return { program_id: e.program_id, conv_id: e.convocatoria_id ?? null, sem_id, year_id }
   })
 
   // Opciones de filtro: solo años/semestres presentes en las matrículas
@@ -76,15 +78,26 @@ export default async function MatriculasPage({
     return true
   })
 
-  const countMap: Record<string, number> = {}
+  // Agregar por programa y, dentro, por convocatoria
+  const progAgg = new Map<string, { count: number; convs: Map<string, number> }>()
   for (const e of filtered) {
-    if (e.program_id) countMap[e.program_id] = (countMap[e.program_id] ?? 0) + 1
+    if (!e.program_id) continue
+    let p = progAgg.get(e.program_id)
+    if (!p) { p = { count: 0, convs: new Map() }; progAgg.set(e.program_id, p) }
+    p.count++
+    const cid = e.conv_id ?? '∅'
+    p.convs.set(cid, (p.convs.get(cid) ?? 0) + 1)
   }
 
-  const rows = (programs ?? []).map(p => ({
-    ...p,
-    count: countMap[p.id] ?? 0,
-  }))
+  const rows = (programs ?? []).map(p => {
+    const agg = progAgg.get(p.id)
+    const convs = agg
+      ? [...agg.convs.entries()]
+          .map(([cid, n]) => ({ name: cid === '∅' ? 'Sin convocatoria' : (convName.get(cid) ?? '—'), count: n }))
+          .sort((a, b) => b.count - a.count)
+      : []
+    return { ...p, count: agg?.count ?? 0, convs }
+  })
     .filter(r => r.count > 0)
     .filter(r => !selectedCategory || r.category_id === selectedCategory)
     .sort((a, b) => b.count - a.count)
@@ -102,7 +115,7 @@ export default async function MatriculasPage({
 
   return (
     <>
-      <Topbar title="Matrículas" subtitle="Estudiantes matriculados por programa" />
+      <Topbar title="Matrículas" subtitle="Estudiantes matriculados por programa y convocatoria" />
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-4xl mx-auto space-y-6">
 
@@ -143,26 +156,45 @@ export default async function MatriculasPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Programa</th>
+                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Programa / Convocatoria</th>
                   <th className="text-left px-5 py-3 font-semibold text-gray-600">Código</th>
                   <th className="text-right px-5 py-3 font-semibold text-gray-600">Matriculados</th>
                   <th className="text-right px-5 py-3 font-semibold text-gray-600">% del total</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((program, i) => {
+                {rows.map((program) => {
                   const pct = total > 0 ? ((program.count / total) * 100).toFixed(1) : '0.0'
                   return (
-                    <tr key={program.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                      <td className="px-5 py-3 font-medium text-gray-800">{program.name}</td>
-                      <td className="px-5 py-3 text-gray-500 font-mono text-xs">{program.code ?? '—'}</td>
-                      <td className="px-5 py-3 text-right">
-                        <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold text-xs">
-                          {program.count}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-right text-gray-500">{pct}%</td>
-                    </tr>
+                    <Fragment key={program.id}>
+                      {/* Fila del programa */}
+                      <tr className="border-t border-gray-100 bg-gray-50/60">
+                        <td className="px-5 py-3 font-semibold text-gray-800">{program.name}</td>
+                        <td className="px-5 py-3 text-gray-500 font-mono text-xs">{program.code ?? '—'}</td>
+                        <td className="px-5 py-3 text-right">
+                          <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold text-xs">
+                            {program.count}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-right font-medium text-gray-600">{pct}%</td>
+                      </tr>
+                      {/* Sub-filas por convocatoria */}
+                      {program.convs.map((cv, j) => {
+                        const cpct = total > 0 ? ((cv.count / total) * 100).toFixed(1) : '0.0'
+                        return (
+                          <tr key={program.id + '-' + j} className="border-t border-gray-50">
+                            <td className="pl-10 pr-5 py-2 text-gray-600 text-[13px]">↳ {cv.name}</td>
+                            <td className="px-5 py-2"></td>
+                            <td className="px-5 py-2 text-right">
+                              <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium text-xs">
+                                {cv.count}
+                              </span>
+                            </td>
+                            <td className="px-5 py-2 text-right text-gray-400 text-xs">{cpct}%</td>
+                          </tr>
+                        )
+                      })}
+                    </Fragment>
                   )
                 })}
               </tbody>
