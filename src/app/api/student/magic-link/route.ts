@@ -29,10 +29,14 @@ export async function POST(req: NextRequest) {
     email: mail,
     options: { redirectTo: `${appUrl}/auth/callback?next=/student` },
   })
-  const actionLink = link?.properties?.action_link
-  if (linkErr || !actionLink) {
+  const props = link?.properties
+  if (linkErr || !props?.hashed_token) {
     return NextResponse.json({ error: 'link_failed' }, { status: 500 })
   }
+  // Apunta a NUESTRO callback (verifyOtp por token_hash), no al verify de Supabase
+  // (cuyo token viaja en el hash y el servidor no puede leer → volvía al login).
+  const verType = props.verification_type ?? 'magiclink'
+  const actionLink = `${appUrl}/auth/callback?token_hash=${encodeURIComponent(props.hashed_token)}&type=${verType}&next=${encodeURIComponent('/student')}`
 
   // Envía el enlace por Resend
   const firstName = (stu.first_name ?? '').split(' ')[0] || 'Estudiante'
