@@ -63,25 +63,16 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
 
-    // Verify email exists in academic_students first
-    const check = await fetch(`/api/students/check-email?email=${encodeURIComponent(email)}`)
-    const { exists } = await check.json() as { exists: boolean }
-    if (!exists) {
-      setError('Este correo no está registrado como estudiante. Verifica tu email.')
-      setLoading(false)
-      return
-    }
-
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/student`,
-      },
+    // Genera y envía el enlace por Resend desde el servidor (no por Supabase).
+    const res = await fetch('/api/student/magic-link', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
     })
     setLoading(false)
-    if (error) {
-      setError('No pudimos enviar el enlace. Verifica tu email e intenta de nuevo.')
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({})) as { error?: string }
+      if (d.error === 'not_student') setError('Este correo no está registrado como estudiante. Verifica tu email.')
+      else setError('No pudimos enviar el enlace. Intenta de nuevo en unos minutos.')
       return
     }
     setMagicSent(true)
