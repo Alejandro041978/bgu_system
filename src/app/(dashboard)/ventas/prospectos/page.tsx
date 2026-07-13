@@ -6,7 +6,7 @@ export const revalidate = 0
 export default function ProspectosPage() {
   return (
     <>
-      <Topbar title="Prospectos" subtitle="Embudo de ventas de Antonella" />
+      <Topbar title="Prospectos" subtitle="Embudos de venta por bot (Antonella / Macarena)" />
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-6xl mx-auto">
           <SalesLeadsView />
