@@ -23,6 +23,7 @@ const PAGE_GROUPS = [
       { key: 'admision_matriculas', label: 'Matrículas' },
       // Ventas
       { key: 'sales_prospectos', label: 'Prospectos' },
+      { key: 'sales_funnels', label: 'Configuración de embudos' },
       // Redes Sociales
       { key: 'social', label: 'Métricas sociales' },
     ],

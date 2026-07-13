@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -35,7 +35,13 @@ const navigation: NavGroup[] = [
           { name: 'Matrículas', href: '/admision/matriculas', icon: GraduationCap, pageKey: 'admision_matriculas' },
         ],
       },
-      { name: 'Ventas', href: '/ventas/prospectos', icon: TrendingUp, pageKey: 'sales_prospectos' },
+      {
+        name: 'Ventas', href: '/ventas/prospectos', icon: TrendingUp,
+        children: [
+          { name: 'Prospectos', href: '/ventas/prospectos', icon: TrendingUp, pageKey: 'sales_prospectos' },
+          { name: 'Configuración de embudos', href: '/ventas/embudos', icon: Filter, pageKey: 'sales_funnels' },
+        ],
+      },
       { name: 'Redes Sociales', href: '/social', icon: Share2, pageKey: 'social' },
     ],
   },
