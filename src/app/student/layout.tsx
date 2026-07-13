@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Building2, CalendarDays, MessageCircle, LogOut, Award, ArrowLeft, Wallet, FileText } from 'lucide-react'
+import { CalendarDays, MessageCircle, LogOut, Award, ArrowLeft, Wallet, FileText } from 'lucide-react'
+import { BrandLogo } from '@/components/brand-logo'
 import Link from 'next/link'
 import { getEffectiveStudent, isSuperadmin } from '@/lib/student-identity'
 import { ImpersonateBar } from '@/components/student/impersonate-bar'
@@ -23,9 +24,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-            <Building2 className="w-4 h-4 text-white" />
-          </div>
+          <BrandLogo className="w-8 h-8" />
           <div>
             <p className="text-sm font-bold text-gray-900">BGU ERP</p>
             <p className="text-xs text-gray-500">Portal Estudiantil</p>

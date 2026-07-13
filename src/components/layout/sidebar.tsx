@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Headphones, DollarSign, Users, BarChart3,
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
-  Building2, Bot, Shield, FileSignature, List, Plus, FileText,
+  Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
   TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck,
 } from 'lucide-react'
@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { usePermissions } from '@/hooks/use-permissions'
+import { BrandLogo } from '@/components/brand-logo'
 
 type NavNode = { name: string; href: string; icon: React.ElementType; pageKey?: string; children?: NavNode[] }
 type NavGroup = { label: string; items: NavNode[] }
@@ -273,9 +274,7 @@ export function Sidebar() {
   return (
     <aside className="flex flex-col w-64 min-h-screen bg-gray-950 text-gray-100 border-r border-gray-800">
       <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-800">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600">
-          <Building2 className="w-5 h-5 text-white" />
-        </div>
+        <BrandLogo className="w-8 h-8" />
         <div>
           <p className="text-sm font-semibold text-white">BGU ERP</p>
           <p className="text-xs text-gray-400">Sistema Empresarial</p>

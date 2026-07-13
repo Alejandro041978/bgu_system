@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, Loader2, KeyRound, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { Loader2, KeyRound, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { BrandLogo } from '@/components/brand-logo'
 
 export default function UpdatePasswordPage() {
   const [checking, setChecking] = useState(true)
@@ -51,9 +52,7 @@ export default function UpdatePasswordPage() {
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-600">
-            <Building2 className="w-6 h-6 text-white" />
-          </div>
+          <BrandLogo className="w-10 h-10" />
           <div>
             <p className="text-lg font-bold text-white">BGU ERP</p>
             <p className="text-xs text-gray-400">Sistema Empresarial</p>
