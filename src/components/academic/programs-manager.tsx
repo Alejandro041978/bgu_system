@@ -5,7 +5,7 @@ import { Plus, Trash2, BookOpen, ChevronRight, Pencil, Check, X } from 'lucide-r
 
 type Course = { id: string; name: string; code: string | null; credits: number; hours: number | null; level: number | null }
 type Category = { id: string; name: string }
-type Program = { id: string; name: string; code: string | null; description: string | null; courses: Course[]; category?: Category | null }
+type Program = { id: string; name: string; code: string | null; description: string | null; courses: Course[]; category?: Category | null; partner_campus?: boolean }
 
 export function ProgramsManager({ initial, categories = [] }: { initial: Program[]; categories?: Category[] }) {
   const [programs, setPrograms] = useState(initial)
@@ -86,6 +86,20 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
     })
     setPrograms(prev => prev.map(p => p.id === id ? { ...p, name: editProgramForm.name, code: editProgramForm.code || null } : p))
     setEditingProgram(null)
+  }
+
+  const [applyingPartner, setApplyingPartner] = useState(false)
+  async function togglePartner(p: Program) {
+    const next = !p.partner_campus
+    setPrograms(prev => prev.map(x => x.id === p.id ? { ...x, partner_campus: next } : x))
+    setApplyingPartner(true)
+    await fetch(`/api/academic/programs/${p.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ partner_campus: next }),
+    })
+    // Recalcular las situaciones de los estudiantes de programas socio
+    const r = await fetch('/api/academic/programs/apply-partner', { method: 'POST' }).then(res => res.json())
+    setApplyingPartner(false)
+    alert(`Programa ${next ? 'marcado' : 'desmarcado'} como campus socio.\n\nEstudiantes en campus socio: ${r.eligible_students ?? 0}\nMarcados ahora: ${r.marked ?? 0}  ·  Revertidos a activo: ${r.reverted ?? 0}`)
   }
 
   async function createCourse() {
@@ -252,15 +266,25 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
             </div>
           ) : (
             <>
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="font-semibold text-gray-900">{selectedProgram.name}</h2>
                   {selectedProgram.code && <p className="text-xs text-gray-400">{selectedProgram.code}</p>}
                 </div>
-                <button onClick={() => setShowCourseForm(true)}
-                  className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
-                  <Plus className="w-3.5 h-3.5" /> Agregar asignatura
-                </button>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer select-none" title="Los estudiantes de este programa acceden al Moodle de un socio académico, no al nuestro. Se excluyen de la campaña de retención.">
+                    <input type="checkbox" checked={!!selectedProgram.partner_campus} disabled={applyingPartner}
+                      onChange={() => togglePartner(selectedProgram)}
+                      className="w-4 h-4 rounded accent-violet-600 cursor-pointer" />
+                    <span className={`text-xs font-medium ${selectedProgram.partner_campus ? 'text-violet-700' : 'text-gray-500'}`}>
+                      {applyingPartner ? 'Aplicando…' : 'Campus socio'}
+                    </span>
+                  </label>
+                  <button onClick={() => setShowCourseForm(true)}
+                    className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                    <Plus className="w-3.5 h-3.5" /> Agregar asignatura
+                  </button>
+                </div>
               </div>
 
               {/* Form nueva asignatura */}
