@@ -36,10 +36,13 @@ export async function runStudentTracking(): Promise<{ ok: boolean; processed: nu
   const enr = await readAll((f, t) => sb.from('academic_student_enrollments').select('student_id').range(f, t))
   const enrolled = new Set<string>((enr as { student_id: string }[]).map(e => e.student_id).filter(Boolean))
 
+  // select('*') para tolerar que email_alt exista o no todavía
   const allStudents = await readAll((f, t) => sb.from('academic_students')
-    .select('id, email, phone_number, moodle_user_id').eq('disabled', false).range(f, t))
-  const students = (allStudents as { id: string; email: string | null; phone_number: string | null; moodle_user_id: number | null }[])
+    .select('*').eq('disabled', false).range(f, t))
+  const students = (allStudents as { id: string; email: string | null; email_alt?: string | null; phone_number: string | null }[])
     .filter(s => enrolled.has(s.id))
+  const emailsOf = (s: { email: string | null; email_alt?: string | null }) =>
+    [s.email, s.email_alt].map(e => e?.toLowerCase().trim()).filter((x): x is string => !!x)
 
   // 2) Deuda: Σ cargos − Σ pagos por estudiante
   const charges = await readAll((f, t) => sb.from('account_charges').select('student_id, amount').range(f, t))
@@ -63,7 +66,7 @@ export async function runStudentTracking(): Promise<{ ok: boolean; processed: nu
   const moodleAccess = new Map<string, Date>() // email (lower) → fecha
   let moodleStatus = 'no configurado'
   if (moodleConfigured()) {
-    const emails = [...new Set(students.map(s => s.email?.toLowerCase()).filter((x): x is string => !!x))]
+    const emails = [...new Set(students.flatMap(emailsOf))]
     try {
       let matched = 0
       for (let i = 0; i < emails.length; i += 40) {
@@ -88,7 +91,9 @@ export async function runStudentTracking(): Promise<{ ok: boolean; processed: nu
   const rows: any[] = students.map(s => {
     const balance = Math.round(((charged.get(s.id) ?? 0) - (paid.get(s.id) ?? 0)) * 100) / 100
     const last_erp_login = s.email ? erpLogin.get(s.email.toLowerCase()) ?? null : null
-    const lastMoodle = s.email ? moodleAccess.get(s.email.toLowerCase()) ?? null : null
+    // Última conexión a Moodle: la más reciente entre ambos correos
+    const accesses = emailsOf(s).map(e => moodleAccess.get(e)).filter((d): d is Date => !!d)
+    const lastMoodle = accesses.length ? new Date(Math.max(...accesses.map(d => d.getTime()))) : null
     const { level, days } = riskOf(lastMoodle)
     by_risk[level] = (by_risk[level] ?? 0) + 1
     return {
