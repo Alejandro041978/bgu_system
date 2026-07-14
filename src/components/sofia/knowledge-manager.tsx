@@ -249,7 +249,12 @@ export function KnowledgeManager({ botKey = 'sofia' }: { botKey?: string }) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-600">
-            Artículos que Sofia consulta para responder. El prompt define <em>cómo</em> se comporta; esto define <em>qué</em> sabe.
+            Artículos que el bot consulta para responder. El prompt define <em>cómo</em> se comporta; esto define <em>qué</em> sabe.
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            <span className="font-semibold text-gray-600">{articles.length}</span> pregunta(s)/respuesta(s)
+            <span className="mx-1">·</span>{articles.filter(a => a.enabled).length} activa(s)
+            <span className="mx-1">·</span>{articles.reduce((s, a) => s + (a.chunk_count ?? 0), 0)} fragmento(s)
           </p>
         </div>
         <div className="flex gap-2">
