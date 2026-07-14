@@ -77,21 +77,28 @@ export async function POST(req: NextRequest) {
     const sb = db()
 
     // ── Threading ────────────────────────────────────────────────────────────
+    // El REMITENTE es el límite del caso: nunca fusionamos correos de personas
+    // distintas, aunque compartan hilo/asunto (evita que respuestas a un correo
+    // masivo de la oficina caigan en un mismo caso).
     let conversationId: string | null = null
 
-    // 1) Por el threadId de Gmail (agrupación nativa, la más confiable)
+    // 1) Mismo hilo de Gmail Y mismo remitente
     if (p.threadId) {
       const { data: t } = await sb.from('wa_conversations')
-        .select('id').eq('inbox_key', INBOX_KEY).eq('channel', 'email').eq('thread_ref', p.threadId).maybeSingle()
+        .select('id').eq('inbox_key', INBOX_KEY).eq('channel', 'email').eq('thread_ref', p.threadId)
+        .ilike('customer_email', email).maybeSingle()
       if (t) conversationId = t.id
     }
-    // 2) Por referencias del correo (In-Reply-To / References → Message-ID previo)
+    // 2) Por referencias, pero solo si la conversación referida es del mismo remitente
     const refIds = `${p.references ?? ''} ${p.inReplyTo ?? ''}`.match(/<[^>]+>/g) ?? []
     if (!conversationId && refIds.length) {
       const { data: prev } = await sb.from('wa_messages').select('conversation_id').in('message_id', refIds).limit(1)
-      if (prev?.[0]) conversationId = prev[0].conversation_id
+      if (prev?.[0]) {
+        const { data: c } = await sb.from('wa_conversations').select('id, customer_email').eq('id', prev[0].conversation_id).maybeSingle()
+        if (c && (c.customer_email ?? '').toLowerCase() === email) conversationId = c.id
+      }
     }
-    // 3) Por conversación de correo abierta del mismo remitente
+    // 3) Conversación de correo abierta del mismo remitente
     if (!conversationId) {
       const { data: openConv } = await sb.from('wa_conversations')
         .select('id').eq('inbox_key', INBOX_KEY).eq('channel', 'email').ilike('customer_email', email).eq('status', 'open').maybeSingle()
