@@ -21,7 +21,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     (supabase as any).from('hr_employees_with_status').select('*').eq('id', id).single(),
     (supabase as any).from('hr_contracts').select('*').eq('employee_id', id).order('start_date', { ascending: false }),
     (supabase as any).from('contract_instances').select('*, template:contract_templates(name)').eq('signer_ref_id', id).order('created_at', { ascending: false }),
-    (supabase as any).from('hr_employees').select('is_faculty, is_helpdesk, nacionalidad').eq('id', id).single(),
+    (supabase as any).from('hr_employees').select('is_faculty, is_helpdesk, nacionalidad, first_names, last_names').eq('id', id).single(),
     (supabase as any).from('academic_years').select('id, name').order('start_date', { ascending: true }),
     (supabase as any).from('faculty_credentials')
       .select('cv_url, cv_name, degree_url, degree_name, second_title_url, second_title_name, external_report_url, external_report_name, additional_documents')
@@ -30,7 +30,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
   if (empRes.error || !empRes.data) notFound()
   const isFaculty = facultyRes.data?.is_faculty ?? false
-  const employee = { ...empRes.data, is_faculty: isFaculty, is_helpdesk: facultyRes.data?.is_helpdesk ?? false, nacionalidad: facultyRes.data?.nacionalidad ?? null }
+  const employee = { ...empRes.data, is_faculty: isFaculty, is_helpdesk: facultyRes.data?.is_helpdesk ?? false, nacionalidad: facultyRes.data?.nacionalidad ?? null, first_names: facultyRes.data?.first_names ?? null, last_names: facultyRes.data?.last_names ?? null }
 
   return (
     <>

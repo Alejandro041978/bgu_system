@@ -35,7 +35,8 @@ export function NewEmployeeForm() {
   const [error, setError] = useState<string | null>(null)
 
   const [form, setForm] = useState({
-    full_name: '',
+    first_names: '',
+    last_names: '',
     email: '',
     phone: '',
     position: '',
@@ -69,6 +70,7 @@ export function NewEmployeeForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
         ...form,
+        full_name: `${form.first_names} ${form.last_names}`.replace(/\s+/g, ' ').trim(),
         phone: form.phone_number ? `${form.phone_prefix} ${form.phone_number}` : '',
       }),
       })
@@ -93,15 +95,27 @@ export function NewEmployeeForm() {
         <h2 className="text-sm font-semibold text-gray-900">Datos personales</h2>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Nombre completo *</label>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Nombres *</label>
             <input
               required
               type="text"
-              value={form.full_name}
-              onChange={e => set('full_name', e.target.value)}
+              value={form.first_names}
+              onChange={e => set('first_names', e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Ej. María García López"
+              placeholder="Ej. María"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Apellidos *</label>
+            <input
+              required
+              type="text"
+              value={form.last_names}
+              onChange={e => set('last_names', e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ej. García López"
             />
           </div>
 

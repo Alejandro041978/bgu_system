@@ -8,6 +8,8 @@ import Link from 'next/link'
 type Employee = {
   id: string
   full_name: string
+  first_names: string | null
+  last_names: string | null
   email: string
   phone: string | null
   position: string | null
@@ -73,8 +75,14 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
   }
 
   const phoneSplit = splitPhone(e.phone)
+  // Si aún no están separados, derivamos del nombre completo (últimas 2 palabras = apellidos)
+  const nameGuess = (() => {
+    const t = (e.full_name ?? '').trim().split(/\s+/)
+    return { first: t.length >= 3 ? t.slice(0, -2).join(' ') : (t[0] ?? ''), last: t.length >= 2 ? t.slice(-2).join(' ') : '' }
+  })()
   const [form, setForm] = useState({
-    full_name: e.full_name,
+    first_names: e.first_names ?? nameGuess.first,
+    last_names: e.last_names ?? nameGuess.last,
     email: e.email,
     phone_prefix: phoneSplit.prefix,
     phone_number: phoneSplit.number,
@@ -100,7 +108,9 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        full_name: form.full_name,
+        first_names: form.first_names,
+        last_names: form.last_names,
+        full_name: `${form.first_names} ${form.last_names}`.replace(/\s+/g, ' ').trim(),
         email: form.email,
         phone: form.phone_number ? `${form.phone_prefix} ${form.phone_number}` : null,
         position: form.position || null,
@@ -139,10 +149,15 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Nombre completo *</label>
-            <input required value={form.full_name} onChange={e => set('full_name', e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Nombres *</label>
+            <input required value={form.first_names} onChange={e => set('first_names', e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej. María" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Apellidos *</label>
+            <input required value={form.last_names} onChange={e => set('last_names', e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej. García López" />
           </div>
 
           <div>

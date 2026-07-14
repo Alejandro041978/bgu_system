@@ -10,7 +10,7 @@ export default async function AcademicFacultyPage() {
   const db = supabase as any
 
   const [employeesRes, yearsRes] = await Promise.all([
-    db.from('hr_employees').select('id, full_name, email, position').eq('is_faculty', true).order('full_name'),
+    db.from('hr_employees').select('id, full_name, first_names, last_names, email, position').eq('is_faculty', true).order('full_name'),
     db.from('academic_years').select('id, name, start_date, end_date').order('start_date', { ascending: true }),
   ])
 
@@ -71,10 +71,12 @@ export default async function AcademicFacultyPage() {
     })
   }
 
-  // Ordenar por apellido: como el nombre es un solo campo, tomamos los dos
-  // últimos tokens (apellido paterno + materno) como clave de orden.
-  const apellidoKey = (full: string) => {
-    const t = (full ?? '').trim().split(/\s+/)
+  // Ordenar por apellido: usa last_names si existe; si no, deriva del nombre
+  // completo (últimas 2 palabras = apellidos).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const apellidoKey = (e: any) => {
+    if (e.last_names?.trim()) return e.last_names.trim()
+    const t = (e.full_name ?? '').trim().split(/\s+/)
     return t.length >= 2 ? t.slice(-2).join(' ') : (t[0] ?? '')
   }
 
@@ -84,7 +86,7 @@ export default async function AcademicFacultyPage() {
     assignments: assignmentsByEmployee[e.id] ?? [],
   }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .sort((a: any, b: any) => apellidoKey(a.full_name).localeCompare(apellidoKey(b.full_name), 'es', { sensitivity: 'base' }))
+    .sort((a: any, b: any) => apellidoKey(a).localeCompare(apellidoKey(b), 'es', { sensitivity: 'base' }))
 
   return (
     <>

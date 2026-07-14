@@ -67,6 +67,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json() as {
       full_name: string
+      first_names?: string
+      last_names?: string
       email: string
       phone?: string
       position?: string
@@ -124,6 +126,8 @@ export async function POST(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const insertData: Record<string, any> = {
       full_name: body.full_name,
+      first_names: body.first_names ?? null,
+      last_names: body.last_names ?? null,
       email: body.email,
       employee_type: body.employee_type,
     }
