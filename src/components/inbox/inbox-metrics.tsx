@@ -70,9 +70,15 @@ export function InboxMetrics() {
           </div>
         </div>
         <div className="flex gap-1 ml-auto">
-          <button onClick={() => preset(7)} className="px-3 py-1.5 rounded-lg text-xs border border-gray-200 hover:bg-gray-50">7 días</button>
-          <button onClick={() => preset(30)} className="px-3 py-1.5 rounded-lg text-xs border border-gray-200 hover:bg-gray-50">30 días</button>
-          <button onClick={() => preset(90)} className="px-3 py-1.5 rounded-lg text-xs border border-gray-200 hover:bg-gray-50">90 días</button>
+          {[7, 30, 90].map(d => {
+            const active = end === iso(new Date()) && start === iso(new Date(Date.now() - (d - 1) * 86_400_000))
+            return (
+              <button key={d} onClick={() => preset(d)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                {d} días
+              </button>
+            )
+          })}
         </div>
       </div>
 
