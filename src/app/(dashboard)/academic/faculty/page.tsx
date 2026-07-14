@@ -71,11 +71,20 @@ export default async function AcademicFacultyPage() {
     })
   }
 
+  // Ordenar por apellido: como el nombre es un solo campo, tomamos los dos
+  // últimos tokens (apellido paterno + materno) como clave de orden.
+  const apellidoKey = (full: string) => {
+    const t = (full ?? '').trim().split(/\s+/)
+    return t.length >= 2 ? t.slice(-2).join(' ') : (t[0] ?? '')
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const faculty = employees.map((e: any) => ({
     ...e,
     assignments: assignmentsByEmployee[e.id] ?? [],
   }))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .sort((a: any, b: any) => apellidoKey(a.full_name).localeCompare(apellidoKey(b.full_name), 'es', { sensitivity: 'base' }))
 
   return (
     <>
