@@ -44,9 +44,14 @@ export async function GET(req: NextRequest) {
 
   const sb = db()
 
-  // Conversaciones del buzón (canal + tiempos)
+  // Conversaciones del buzón (canal + tiempos). Solo columnas garantizadas.
   const convs = await readAll((f, t) => sb.from('wa_conversations')
-    .select('id, channel, first_customer_at, created_at, first_response_at, closed_at').range(f, t))
+    .select('id, channel, first_customer_at, created_at, first_response_at').range(f, t))
+
+  // Cierres (columna closed_at; si aún no existe el migration, la consulta
+  // falla y readAll devuelve [] sin romper el resto de la página).
+  const closedRows = await readAll((f, t) => sb.from('wa_conversations')
+    .select('closed_at, first_customer_at, created_at').not('closed_at', 'is', null).range(f, t))
   const channelById = new Map<string, string>()
   for (const c of convs) channelById.set(c.id, c.channel ?? 'whatsapp')
 
@@ -108,24 +113,25 @@ export async function GET(req: NextRequest) {
   const respMs: number[] = []
   const resMs: number[] = []
   const dist = { lt1h: 0, lt4h: 0, lt24h: 0, gte24h: 0 }
+  // 1ª respuesta: casos llegados en el rango que ya recibieron respuesta
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const c of convs as any[]) {
-    // 1ª respuesta: casos llegados en el rango que ya recibieron respuesta
     if (inR(c.first_customer_at) && c.first_response_at) {
       const ms = new Date(c.first_response_at).getTime() - new Date(c.first_customer_at).getTime()
       if (ms >= 0) respMs.push(ms)
     }
-    // Resolución: casos CERRADOS dentro del rango
-    if (inR(c.closed_at)) {
-      const start0 = c.first_customer_at ?? c.created_at
-      if (start0) {
-        const ms = new Date(c.closed_at).getTime() - new Date(start0).getTime()
-        if (ms >= 0) {
-          resMs.push(ms)
-          const h = ms / 3_600_000
-          if (h < 1) dist.lt1h++; else if (h < 4) dist.lt4h++; else if (h < 24) dist.lt24h++; else dist.gte24h++
-        }
-      }
+  }
+  // Resolución: casos CERRADOS dentro del rango
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const c of closedRows as any[]) {
+    if (!inR(c.closed_at)) continue
+    const start0 = c.first_customer_at ?? c.created_at
+    if (!start0) continue
+    const ms = new Date(c.closed_at).getTime() - new Date(start0).getTime()
+    if (ms >= 0) {
+      resMs.push(ms)
+      const h = ms / 3_600_000
+      if (h < 1) dist.lt1h++; else if (h < 4) dist.lt4h++; else if (h < 24) dist.lt24h++; else dist.gte24h++
     }
   }
   const median = (a: number[]): number | null => {
