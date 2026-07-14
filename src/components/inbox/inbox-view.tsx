@@ -5,6 +5,7 @@ import { Send, Loader2, User, Hand, CheckCircle2, RotateCcw, MessageSquare, Inbo
 
 interface Conversation {
   id: string
+  case_number?: number | null
   channel?: string
   customer_phone: string | null
   customer_email?: string | null
@@ -187,6 +188,7 @@ export function InboxView() {
               </div>
               <p className="text-xs text-gray-400 truncate mt-0.5">{c.channel === 'email' && c.subject ? c.subject : (c.last_message_preview ?? '')}</p>
               <div className="flex items-center gap-1.5 mt-1">
+                {c.case_number != null && <span className="text-[10px] font-mono font-medium text-gray-500">#{c.case_number}</span>}
                 {c.topic && TOPICS[c.topic] && <span className={`text-[9px] font-medium px-1.5 rounded-full ${TOPICS[c.topic].color}`}>{TOPICS[c.topic].label}</span>}
                 <span className="text-[10px] text-gray-400">{timeLabel(c.last_message_at)}</span>
                 {c.assigned_name && <span className="text-[10px] text-indigo-500 truncate ml-auto">· {c.assigned_name}</span>}
@@ -211,6 +213,7 @@ export function InboxView() {
                   {selected.channel === 'email'
                     ? <Mail className="w-4 h-4 text-purple-500 flex-shrink-0" />
                     : <Phone className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                  {selected.case_number != null && <span className="text-[11px] font-mono font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Caso #{selected.case_number}</span>}
                   {convName(selected)}
                   {selected.language && <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">{LANGS[selected.language] ?? selected.language}</span>}
                   {selected.topic && TOPICS[selected.topic] && <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${TOPICS[selected.topic].color}`}>{TOPICS[selected.topic].label}</span>}

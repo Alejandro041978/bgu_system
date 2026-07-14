@@ -5,7 +5,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-const COLS = 'id, channel, customer_phone, customer_email, customer_name, subject, status, assigned_to, assigned_name, unread_count, last_message_at, last_message_preview, language, topic'
+const COLS = 'id, case_number, channel, customer_phone, customer_email, customer_name, subject, status, assigned_to, assigned_name, unread_count, last_message_at, last_message_preview, language, topic'
 
 // GET ?filter=queue|mine|closed&lang=es&topic=pagos → lista de conversaciones + conteos
 export async function GET(req: NextRequest) {
