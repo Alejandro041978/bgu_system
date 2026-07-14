@@ -40,7 +40,40 @@ function extractBody(payload: any): { text: string; html: string } {
 }
 
 function htmlToText(html: string): string {
-  return html.replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<blockquote[\s\S]*?<\/blockquote>/gi, '\n')     // cita de Gmail/clientes
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|tr|li|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+// Quita el historial citado (respuestas anteriores), encabezados de cita y firma,
+// dejando solo el mensaje real que escribió la persona.
+function stripQuoted(text: string): string {
+  if (!text) return text
+  const lines = text.split(/\r?\n/)
+  const boundary = [
+    /^\s*El\s.+escrib[ií][oó]:\s*$/i,                                     // Gmail ES: "El ... escribió:"
+    /^\s*On\s.+wrote:\s*$/i,                                              // Gmail EN: "On ... wrote:"
+    /^\s*-{2,}\s*(Original Message|Mensaje original|Forwarded message|Mensaje reenviado)\b/i,
+    /^_{10,}\s*$/,                                                        // separador de Outlook
+    /^\s*(De|From)\s*:\s.*@.*$/i,                                         // encabezado citado con correo
+  ]
+  let cut = lines.length
+  for (let i = 0; i < lines.length; i++) {
+    if (boundary.some(re => re.test(lines[i]))) { cut = i; break }
+  }
+  let kept = lines.slice(0, cut)
+  const sig = kept.findIndex(l => /^--\s*$/.test(l))                      // firma estándar
+  if (sig > 0) kept = kept.slice(0, sig)
+  kept = kept.filter(l => !/^\s*>/.test(l))                              // líneas citadas sueltas
+  return kept.join('\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
 // POST desde N8N (IMAP trigger). Protegido con CRON_SECRET.
@@ -72,6 +105,9 @@ export async function POST(req: NextRequest) {
       bodyHtml = ex.html
     }
     if (!bodyText) bodyText = bodyHtml ? htmlToText(bodyHtml) : (p.snippet ?? '')
+    // Deja solo el mensaje real (sin el historial citado); si quedara vacío, conserva el original
+    const cleaned = stripQuoted(bodyText)
+    if (cleaned) bodyText = cleaned
     bodyText = bodyText || '(sin contenido)'
     const now = new Date().toISOString()
     const sb = db()
