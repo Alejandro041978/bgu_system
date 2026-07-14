@@ -43,6 +43,7 @@ const navigation: NavGroup[] = [
         ],
       },
       { name: 'Redes Sociales', href: '/social', icon: Share2, pageKey: 'social' },
+      { name: 'Convocatorias', href: '/academic/convocatorias', icon: ClipboardList, pageKey: 'academic_convocatorias' },
     ],
   },
   {
@@ -72,7 +73,14 @@ const navigation: NavGroup[] = [
   {
     label: 'Académico',
     items: [
-      { name: 'Docentes', href: '/academic/faculty', icon: GraduationCap, pageKey: 'academic_faculty' },
+      {
+        name: 'Docentes', href: '/academic/faculty', icon: GraduationCap,
+        children: [
+          { name: 'Nómina', href: '/academic/faculty', icon: GraduationCap, pageKey: 'academic_faculty' },
+          { name: 'Credencial', href: '/academic/credentials', icon: Shield, pageKey: 'academic_credentials' },
+          { name: 'Asignación Docente', href: '/academic/teaching-assignments', icon: UserCheck, pageKey: 'academic_teaching' },
+        ],
+      },
       {
         name: 'Calificaciones', href: '/academic/grades', icon: Award, pageKey: 'academic_grades',
         children: [
@@ -81,7 +89,6 @@ const navigation: NavGroup[] = [
           { name: 'Acta Detallada', href: '/academic/acta-detalle', icon: FileText, pageKey: 'academic_acta_detail' },
         ],
       },
-      { name: 'Convocatorias', href: '/academic/convocatorias', icon: ClipboardList, pageKey: 'academic_convocatorias' },
       {
         name: 'Convalidaciones', href: '/academic/transfer-credits', icon: FileCheck, pageKey: 'academic_transfer_credits',
         children: [
@@ -91,7 +98,6 @@ const navigation: NavGroup[] = [
           { name: 'Escalas de conversión', href: '/academic/grade-scales', icon: Calculator, pageKey: 'academic_grade_scales' },
         ],
       },
-      { name: 'Credencial', href: '/academic/credentials', icon: Shield, pageKey: 'academic_credentials' },
       {
         name: 'Gestión académica', href: '/academic/years', icon: CalendarDays, pageKey: 'academic_years',
         children: [
@@ -99,7 +105,6 @@ const navigation: NavGroup[] = [
           { name: 'Programas', href: '/academic/programs', icon: BookOpen, pageKey: 'academic_programs' },
           { name: 'Oferta', href: '/academic/offer', icon: ClipboardList, pageKey: 'academic_offer' },
           { name: 'Grupos', href: '/academic/groups', icon: Users, pageKey: 'academic_groups' },
-          { name: 'Asignación Docente', href: '/academic/teaching-assignments', icon: UserCheck, pageKey: 'academic_teaching' },
           { name: 'Cronogramas', href: '/academic/schedules', icon: CalendarDays, pageKey: 'academic_schedules' },
         ],
       },

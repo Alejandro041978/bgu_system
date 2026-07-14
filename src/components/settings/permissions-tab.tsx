@@ -26,6 +26,7 @@ const PAGE_GROUPS = [
       { key: 'sales_funnels', label: 'Configuración de embudos' },
       // Redes Sociales
       { key: 'social', label: 'Métricas sociales' },
+      { key: 'academic_convocatorias', label: 'Convocatorias' },
     ],
   },
   {
@@ -47,21 +48,24 @@ const PAGE_GROUPS = [
   {
     label: 'Académico',
     pages: [
-      { key: 'academic_faculty', label: 'Docentes' },
+      // Docentes
+      { key: 'academic_faculty', label: 'Docentes · Nómina' },
+      { key: 'academic_credentials', label: 'Docentes · Credencial' },
+      { key: 'academic_teaching', label: 'Docentes · Asignación Docente' },
+      // Calificaciones
       { key: 'academic_grades', label: 'Notas' },
       { key: 'academic_acta', label: 'Acta Personal' },
       { key: 'academic_acta_detail', label: 'Acta Detallada' },
-      { key: 'academic_convocatorias', label: 'Convocatorias' },
+      // Convalidaciones
       { key: 'academic_transfer_credits', label: 'Convalidaciones · Individual' },
       { key: 'academic_transfer_schemes', label: 'Convalidaciones · Esquemas masivos' },
       { key: 'academic_validations', label: 'Validación de asignaturas' },
       { key: 'academic_grade_scales', label: 'Escalas de conversión' },
-      { key: 'academic_credentials', label: 'Credencial' },
+      // Gestión académica
       { key: 'academic_years', label: 'Años y Semestres' },
       { key: 'academic_programs', label: 'Programas' },
       { key: 'academic_offer', label: 'Oferta académica' },
       { key: 'academic_groups', label: 'Grupos' },
-      { key: 'academic_teaching', label: 'Asignación Docente' },
       { key: 'academic_schedules', label: 'Cronogramas' },
     ],
   },
