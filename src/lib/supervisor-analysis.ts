@@ -28,7 +28,7 @@ export async function analyzeSupervisor(botKey: string, dateParam?: string | nul
   // Fetch conversations from target date (de este bot)
   const { data: conversations, error } = await db
     .from('sofia_conversations')
-    .select('session_id, messages, message_count, source, contact_email, created_at')
+    .select('session_id, messages, message_count, source, contact_email, created_at, ref_label')
     .eq('bot_key', botKey)
     .gte('created_at', startOfDay)
     .lte('created_at', endOfDay)
@@ -72,13 +72,14 @@ export async function analyzeSupervisor(botKey: string, dateParam?: string | nul
     : '(La base de conocimientos está vacía)'
 
   // Formato de conversaciones para el análisis
-  const convSamples = convList.slice(0, 50).map((c: { messages?: { role: string; content: string }[]; source?: string; created_at: string }, i: number) => {
+  const convSamples = convList.slice(0, 50).map((c: { messages?: { role: string; content: string }[]; source?: string; created_at: string; ref_label?: string | null }, i: number) => {
     const msgs = c.messages ?? []
     const preview = msgs
       .filter(m => m.content)
       .map(m => `  [${m.role === 'user' ? 'Usuario' : botName}]: ${m.content.slice(0, 400)}`)
       .join('\n')
-    return `--- Conversación ${i + 1} (${c.source ?? 'web'}, ${new Date(c.created_at).toLocaleTimeString('es-PE')}) ---\n${preview}`
+    const label = c.ref_label ?? `Conversación ${i + 1}`
+    return `--- ${label} (${c.source ?? 'web'}, ${new Date(c.created_at).toLocaleTimeString('es-PE')}) ---\n${preview}`
   }).join('\n\n')
 
   // Desglose por canal
@@ -95,6 +96,7 @@ export async function analyzeSupervisor(botKey: string, dateParam?: string | nul
     ? `Eres un supervisor de calidad del equipo HUMANO de Servicio al Estudiante de Blackwell Global University (BGU). Analiza las conversaciones atendidas por AGENTES HUMANOS (canal WhatsApp y correo) del día ${dateStr} y evalúa la calidad de la atención.
 
 En las conversaciones, "Usuario" es el estudiante/cliente y "${botName}" representa las respuestas del AGENTE HUMANO del equipo.
+Cada conversación tiene un número de caso (ej. "Caso #123"); CÍTALO cuando menciones un caso específico en fortalezas, fallos o recomendaciones.
 
 ESTADÍSTICAS DEL DÍA:
 - Total conversaciones atendidas: ${convList.length}

@@ -10,7 +10,7 @@ const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 export async function recordInboxConversation(conversationId: string) {
   const sb = db()
   const { data: conv } = await sb.from('wa_conversations')
-    .select('id, inbox_key, channel, customer_email').eq('id', conversationId).maybeSingle()
+    .select('id, inbox_key, channel, customer_email, case_number').eq('id', conversationId).maybeSingle()
   if (!conv) return
 
   const { data: msgs } = await sb.from('wa_messages')
@@ -29,6 +29,7 @@ export async function recordInboxConversation(conversationId: string) {
     contact_email: conv.customer_email ?? null,
     source:        conv.channel === 'email' ? 'email' : 'whatsapp',
     bot_key:       conv.inbox_key,
+    ref_label:     conv.case_number != null ? `Caso #${conv.case_number}` : null,
     updated_at:    new Date().toISOString(),
   }, { onConflict: 'session_id' })
   if (error) console.error('recordInboxConversation error:', error.message)

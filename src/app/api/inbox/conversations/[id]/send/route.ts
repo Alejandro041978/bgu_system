@@ -22,6 +22,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!conv) return NextResponse.json({ error: 'Conversación no encontrada' }, { status: 404 })
 
   let outSubject: string | null = null
+  let storedBody = body
+  const caseTag = conv.case_number != null ? ` [Caso #${conv.case_number}]` : ''
 
   if (conv.channel === 'email') {
     // ── Envío por CORREO vía N8N (Gmail, hilo nativo) ────────────────────────
@@ -33,9 +35,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .select('message_id').eq('conversation_id', id).eq('direction', 'in').not('message_id', 'is', null)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
-    outSubject = conv.subject
+    const base = conv.subject
       ? (/^re:/i.test(conv.subject) ? conv.subject : `Re: ${conv.subject}`)
       : 'Re:'
+    // Número de caso en el asunto (para que el cliente pueda referirse a él)
+    outSubject = base.replace(/\s*\[Caso #\d+\]/gi, '').trim() + caseTag
 
     const resp = await fetch(webhookUrl, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -55,7 +59,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!inbox?.twilio_number || !inbox?.twilio_account_sid || !inbox?.twilio_auth_token) {
       return NextResponse.json({ error: 'El número del equipo no tiene credenciales de Twilio configuradas' }, { status: 400 })
     }
-    const sent = await sendWhatsAppMessage(conv.customer_phone, body, {
+    // En la PRIMERA respuesta del agente, adjunta el número de caso al mensaje
+    const { count: outCount } = await sb.from('wa_messages')
+      .select('id', { count: 'exact', head: true }).eq('conversation_id', id).eq('direction', 'out')
+    if ((outCount ?? 0) === 0 && conv.case_number != null) storedBody = `${body}\n\nCaso #${conv.case_number}`
+
+    const sent = await sendWhatsAppMessage(conv.customer_phone, storedBody, {
       from: inbox.twilio_number, sid: inbox.twilio_account_sid, token: inbox.twilio_auth_token,
     })
     if (!sent.ok) return NextResponse.json({ error: sent.error }, { status: 500 })
@@ -65,12 +74,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const agentNm = emp?.full_name ?? user.email ?? 'Agente'
 
   const { data: msg } = await sb.from('wa_messages').insert({
-    conversation_id: id, direction: 'out', body, subject: outSubject, agent_id: user.id, agent_name: agentNm,
+    conversation_id: id, direction: 'out', body: storedBody, subject: outSubject, agent_id: user.id, agent_name: agentNm,
   }).select('*').single()
 
   const now = new Date().toISOString()
   // Si nadie la tenía asignada, al responder queda asignada al que responde
-  const patch: Record<string, unknown> = { last_message_at: now, last_message_preview: body.slice(0, 120), updated_at: now, status: 'open' }
+  const patch: Record<string, unknown> = { last_message_at: now, last_message_preview: storedBody.slice(0, 120), updated_at: now, status: 'open' }
   if (!conv.assigned_to) { patch.assigned_to = user.id; patch.assigned_name = agentNm }
   // Métrica: primera respuesta (desde la llegada del cliente)
   if (!conv.first_response_at) patch.first_response_at = now
