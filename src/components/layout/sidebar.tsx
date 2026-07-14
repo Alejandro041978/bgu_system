@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -73,6 +73,7 @@ const navigation: NavGroup[] = [
   {
     label: 'Académico',
     items: [
+      { name: 'Seguimiento estudiantil', href: '/academic/seguimiento', icon: Activity, pageKey: 'academic_tracking' },
       {
         name: 'Docentes', href: '/academic/faculty', icon: GraduationCap,
         children: [

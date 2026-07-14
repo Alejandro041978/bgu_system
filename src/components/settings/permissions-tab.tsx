@@ -48,6 +48,7 @@ const PAGE_GROUPS = [
   {
     label: 'Académico',
     pages: [
+      { key: 'academic_tracking', label: 'Seguimiento estudiantil' },
       // Docentes
       { key: 'academic_faculty', label: 'Docentes · Nómina' },
       { key: 'academic_credentials', label: 'Docentes · Credencial' },
