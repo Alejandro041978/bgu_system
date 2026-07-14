@@ -44,9 +44,9 @@ export async function GET(req: NextRequest) {
 
   const sb = db()
 
-  // Conversaciones del buzón (canal + fecha de llegada)
+  // Conversaciones del buzón (canal + tiempos)
   const convs = await readAll((f, t) => sb.from('wa_conversations')
-    .select('id, channel, first_customer_at, created_at').range(f, t))
+    .select('id, channel, first_customer_at, created_at, first_response_at, closed_at').range(f, t))
   const channelById = new Map<string, string>()
   for (const c of convs) channelById.set(c.id, c.channel ?? 'whatsapp')
 
@@ -101,5 +101,43 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([bucket, v]) => ({ bucket, ...v }))
 
-  return NextResponse.json({ start, end, granularity, totals, series })
+  // ── SLA: tiempo de 1ª respuesta y de resolución (dentro del rango) ──────────
+  const startMs = new Date(startTs).getTime()
+  const endMs = new Date(endTs).getTime()
+  const inR = (ts: string | null) => { if (!ts) return false; const m = new Date(ts).getTime(); return m >= startMs && m <= endMs }
+  const respMs: number[] = []
+  const resMs: number[] = []
+  const dist = { lt1h: 0, lt4h: 0, lt24h: 0, gte24h: 0 }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const c of convs as any[]) {
+    // 1ª respuesta: casos llegados en el rango que ya recibieron respuesta
+    if (inR(c.first_customer_at) && c.first_response_at) {
+      const ms = new Date(c.first_response_at).getTime() - new Date(c.first_customer_at).getTime()
+      if (ms >= 0) respMs.push(ms)
+    }
+    // Resolución: casos CERRADOS dentro del rango
+    if (inR(c.closed_at)) {
+      const start0 = c.first_customer_at ?? c.created_at
+      if (start0) {
+        const ms = new Date(c.closed_at).getTime() - new Date(start0).getTime()
+        if (ms >= 0) {
+          resMs.push(ms)
+          const h = ms / 3_600_000
+          if (h < 1) dist.lt1h++; else if (h < 4) dist.lt4h++; else if (h < 24) dist.lt24h++; else dist.gte24h++
+        }
+      }
+    }
+  }
+  const median = (a: number[]): number | null => {
+    if (!a.length) return null
+    const s = [...a].sort((x, y) => x - y); const m = Math.floor(s.length / 2)
+    return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2)
+  }
+  const avg = (a: number[]): number | null => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null
+  const sla = {
+    first_response: { count: respMs.length, median_ms: median(respMs), avg_ms: avg(respMs) },
+    resolution: { count: resMs.length, median_ms: median(resMs), avg_ms: avg(resMs), dist },
+  }
+
+  return NextResponse.json({ start, end, granularity, totals, series, sla })
 }

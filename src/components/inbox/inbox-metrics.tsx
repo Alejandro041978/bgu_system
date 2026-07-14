@@ -1,11 +1,25 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Mail, MessagesSquare, Bot, Loader2 } from 'lucide-react'
+import { Mail, MessagesSquare, Bot, Loader2, Timer, CheckCircle2 } from 'lucide-react'
 
 interface Bucket { bucket: string; emails: number; conversations: number; wa_conversations: number; sofia: number }
 interface Totals { emails: number; conversations: number; email_conversations: number; whatsapp_conversations: number; sofia: number }
-interface Data { start: string; end: string; granularity: string; totals: Totals; series: Bucket[] }
+interface Sla {
+  first_response: { count: number; median_ms: number | null; avg_ms: number | null }
+  resolution: { count: number; median_ms: number | null; avg_ms: number | null; dist: { lt1h: number; lt4h: number; lt24h: number; gte24h: number } }
+}
+interface Data { start: string; end: string; granularity: string; totals: Totals; series: Bucket[]; sla?: Sla }
+
+function fmtDur(ms: number | null): string {
+  if (ms == null) return '—'
+  const min = Math.round(ms / 60000)
+  if (min < 60) return `${min} min`
+  const h = Math.floor(min / 60), m = min % 60
+  if (h < 24) return m ? `${h}h ${m}m` : `${h}h`
+  const d = Math.floor(h / 24), hh = h % 24
+  return hh ? `${d}d ${hh}h` : `${d}d`
+}
 
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 const fmtBucket = (b: string, g: string) => {
@@ -72,6 +86,30 @@ export function InboxMetrics() {
             <Card icon={<MessagesSquare className="w-4 h-4" />} label="Conversaciones (buzón)" value={data.totals.conversations} sub={`${data.totals.whatsapp_conversations} WhatsApp · ${data.totals.email_conversations} correo`} cls="text-blue-600" />
             <Card icon={<Bot className="w-4 h-4" />} label="Conversaciones a Sofía" value={data.totals.sofia} sub="Soporte por WhatsApp" cls="text-violet-600" />
           </div>
+
+          {/* SLA: tiempos de atención */}
+          {data.sla && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Timer className="w-4 h-4" />Tiempo de 1ª respuesta (mediana)</div>
+                <p className="text-2xl font-bold text-sky-600">{fmtDur(data.sla.first_response.median_ms)}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">{data.sla.first_response.count} caso(s) · prom. {fmtDur(data.sla.first_response.avg_ms)}</p>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1"><CheckCircle2 className="w-4 h-4" />Tiempo de resolución (mediana)</div>
+                <p className="text-2xl font-bold text-green-600">{fmtDur(data.sla.resolution.median_ms)}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">{data.sla.resolution.count} cerrado(s) · prom. {fmtDur(data.sla.resolution.avg_ms)}</p>
+                {data.sla.resolution.count > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2 text-[11px]">
+                    <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700">&lt;1h: {data.sla.resolution.dist.lt1h}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-lime-50 text-lime-700">1–4h: {data.sla.resolution.dist.lt4h}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">4–24h: {data.sla.resolution.dist.lt24h}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700">&gt;24h: {data.sla.resolution.dist.gte24h}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Gráfico de barras */}
           <div className="bg-white border border-gray-200 rounded-xl p-4">

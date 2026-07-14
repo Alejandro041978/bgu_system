@@ -45,8 +45,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!to_user_id) return NextResponse.json({ error: 'Falta to_user_id' }, { status: 400 })
     update.assigned_to = to_user_id; update.assigned_name = await agentName(to_user_id, undefined)
   }
-  else if (action === 'close') { update.status = 'closed' }
-  else if (action === 'reopen') { update.status = 'open' }
+  else if (action === 'close') { update.status = 'closed'; update.closed_at = new Date().toISOString() }
+  else if (action === 'reopen') { update.status = 'open'; update.closed_at = null }
   else return NextResponse.json({ error: 'Acción inválida' }, { status: 400 })
 
   const { data, error } = await sb.from('wa_conversations').update(update).eq('id', id).select('*').single()
