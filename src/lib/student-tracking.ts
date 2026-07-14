@@ -58,20 +58,24 @@ export async function runStudentTracking(): Promise<{ ok: boolean; processed: nu
     if (users.length < 1000) break
   }
 
-  // 4) Última conexión a Moodle (aula): lastaccess por id de Moodle (en lotes)
-  const moodleAccess = new Map<number, Date>()
+  // 4) Última conexión a Moodle (aula): lastaccess por CORREO (los estudiantes
+  //    no tienen moodle_user_id guardado, pero sí correo). En lotes.
+  const moodleAccess = new Map<string, Date>() // email (lower) → fecha
   let moodleStatus = 'no configurado'
   if (moodleConfigured()) {
-    const ids = students.map(s => s.moodle_user_id).filter((x): x is number => !!x)
+    const emails = [...new Set(students.map(s => s.email?.toLowerCase()).filter((x): x is string => !!x))]
     try {
-      for (let i = 0; i < ids.length; i += 40) {
-        const chunk = ids.slice(i, i + 40)
-        const res = await moodleCall('core_user_get_users_by_field', { field: 'id', values: chunk })
-        for (const u of (res ?? []) as { id: number; lastaccess?: number }[]) {
-          if (u.lastaccess && u.lastaccess > 0) moodleAccess.set(u.id, new Date(u.lastaccess * 1000))
+      let matched = 0
+      for (let i = 0; i < emails.length; i += 40) {
+        const chunk = emails.slice(i, i + 40)
+        const res = await moodleCall('core_user_get_users_by_field', { field: 'email', values: chunk })
+        for (const u of (res ?? []) as { email?: string; lastaccess?: number }[]) {
+          if (!u.email) continue
+          matched++
+          if (u.lastaccess && u.lastaccess > 0) moodleAccess.set(u.email.toLowerCase(), new Date(u.lastaccess * 1000))
         }
       }
-      moodleStatus = `ok (${moodleAccess.size} con acceso)`
+      moodleStatus = `ok (${matched} en Moodle, ${moodleAccess.size} con acceso registrado)`
     } catch (e) {
       moodleStatus = 'error: ' + (e as Error).message
     }
@@ -84,7 +88,7 @@ export async function runStudentTracking(): Promise<{ ok: boolean; processed: nu
   const rows: any[] = students.map(s => {
     const balance = Math.round(((charged.get(s.id) ?? 0) - (paid.get(s.id) ?? 0)) * 100) / 100
     const last_erp_login = s.email ? erpLogin.get(s.email.toLowerCase()) ?? null : null
-    const lastMoodle = s.moodle_user_id ? moodleAccess.get(s.moodle_user_id) ?? null : null
+    const lastMoodle = s.email ? moodleAccess.get(s.email.toLowerCase()) ?? null : null
     const { level, days } = riskOf(lastMoodle)
     by_risk[level] = (by_risk[level] ?? 0) + 1
     return {
