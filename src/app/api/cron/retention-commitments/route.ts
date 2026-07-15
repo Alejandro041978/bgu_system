@@ -28,7 +28,7 @@ async function run() {
     const desde = r.commitment_at ? new Date(r.commitment_at) : new Date(r.commitment_date + 'T00:00:00Z')
     const volvio = !!r.last_moodle_access && new Date(r.last_moodle_access) >= desde
     await sb.from('student_tracking').update({ commitment_kept: volvio }).eq('student_id', r.student_id)
-    volvio ? kept++ : broken++
+    if (volvio) kept++; else broken++
   }
 
   return { ok: true, revisados: (pend ?? []).length, cumplieron: kept, incumplieron: broken }
