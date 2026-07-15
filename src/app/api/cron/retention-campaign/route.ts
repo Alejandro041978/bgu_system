@@ -117,8 +117,10 @@ async function run(dryRun: boolean) {
     const key = TEMPLATES[c.attempt]
     const sid = sidOf.get(`${key}|${c.lang}`)
     if (!sid) { sinPlantilla.push(`${key}|${c.lang}`); continue }
-    const vars: Record<string, string> = { '1': c.name }
-    if (key === 'camila_recordatorio_dia7') vars['2'] = String(c.days)   // esa plantilla lleva los días
+    // Variables con nombre: las plantillas de Meta usan {{name}} y {{days}}, no
+    // {{1}}/{{2}}. Las claves de ContentVariables deben calzar con esos nombres.
+    const vars: Record<string, string> = { name: c.name }
+    if (key === 'camila_recordatorio_dia7') vars.days = String(c.days)   // la única que lleva los días
 
     if (dryRun) { enviados.push(`${c.name} · ${key} · ${c.lang} · ${c.days}d`); continue }
     try {

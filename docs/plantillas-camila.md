@@ -13,23 +13,25 @@ Es defendible: son estudiantes **matriculados** (relación de servicio vigente) 
 
 **Regla de Meta:** no pueden empezar ni terminar con variable. Todas cumplen.
 
+**Variables con nombre, no numeradas.** Meta ya no acepta `{{1}}` / `{{2}}` en plantillas de texto: hay que usar `{{name}}` y `{{days}}`. Mejor así — con variables numeradas basta invertir el orden una vez para mandar "Hola 21, llevas Ana días". Al enviar por Twilio, las claves de `ContentVariables` deben calzar exactamente con esos nombres: `{"name":"Ana","days":"21"}`.
+
 ---
 
 ## 1. `camila_saludo_dia1` · UTILITY
 
 **Cuerpo:**
 ```
-Hola {{1}}, soy Camila, del equipo de Acompañamiento Académico de Blackwell Global University.
+Hola {{name}}, soy Camila, del equipo de Acompañamiento Académico de Blackwell Global University.
 
 Vi que no has entrado al aula virtual esta semana y quería saber si va todo bien.
 
 ¿Me cuentas qué pasó?
 ```
-- `{{1}}` = nombre · ejemplo: `Ana`
+- `{{name}}` = nombre del estudiante · ejemplo: `Ana`
 
 **Inglés:**
 ```
-Hi {{1}}, I'm Camila, from the Academic Support team at Blackwell Global University.
+Hi {{name}}, I'm Camila, from the Academic Support team at Blackwell Global University.
 
 I noticed you haven't logged into the virtual classroom this week and wanted to check that everything is okay.
 
@@ -44,17 +46,17 @@ Could you tell me what happened?
 
 **Cuerpo:**
 ```
-Hola {{1}}, te escribí hace unos días y no he sabido de ti.
+Hola {{name}}, te escribí hace unos días y no he sabido de ti.
 
 A veces lo que frena es algo puntual: no poder entrar al aula, una duda con el pago, o simplemente el tiempo.
 
 Sea lo que sea, lo podemos resolver. ¿Cuál es tu caso?
 ```
-- `{{1}}` = nombre · ejemplo: `Ana`
+- `{{name}}` = nombre del estudiante · ejemplo: `Ana`
 
 **Inglés:**
 ```
-Hi {{1}}, I wrote to you a few days ago and haven't heard back.
+Hi {{name}}, I wrote to you a few days ago and haven't heard back.
 
 Sometimes what holds you back is something specific: trouble logging in, a question about payment, or simply time.
 
@@ -69,18 +71,18 @@ Whatever it is, we can sort it out. What's your situation?
 
 **Cuerpo:**
 ```
-Hola {{1}}, ya son {{2}} días sin que entres al aula y me preocupa.
+Hola {{name}}, ya son {{days}} días sin que entres al aula y me preocupa.
 
 Todavía estás a tiempo de retomar sin perder lo que ya avanzaste, y me gustaría ayudarte a organizarlo.
 
 ¿Qué día podrías entrar?
 ```
-- `{{1}}` = nombre · ejemplo: `Ana`
-- `{{2}}` = días sin entrar · ejemplo: `21`
+- `{{name}}` = nombre del estudiante · ejemplo: `Ana`
+- `{{days}}` = días sin entrar al aula · ejemplo: `21`
 
 **Inglés:**
 ```
-Hi {{1}}, it's been {{2}} days since you last entered the classroom and I'm concerned.
+Hi {{name}}, it's been {{days}} days since you last entered the classroom and I'm concerned.
 
 There's still time to pick up where you left off without losing your progress, and I'd like to help you plan it.
 
@@ -95,17 +97,17 @@ What day could you log in?
 
 **Cuerpo:**
 ```
-Hola {{1}}, este es mi último mensaje y no quiero dejarlo así.
+Hola {{name}}, este es mi último mensaje y no quiero dejarlo así.
 
 Si estás pasando por algo que ahora te impide estudiar, existe el retiro temporal: pausas tus estudios y conservas tu lugar para volver cuando puedas.
 
 ¿Prefieres que te ayude a retomar, o a solicitar la pausa?
 ```
-- `{{1}}` = nombre · ejemplo: `Ana`
+- `{{name}}` = nombre del estudiante · ejemplo: `Ana`
 
 **Inglés:**
 ```
-Hi {{1}}, this is my last message and I don't want to leave things like this.
+Hi {{name}}, this is my last message and I don't want to leave things like this.
 
 If you're going through something that keeps you from studying right now, there's a temporary leave option: you pause your studies and keep your place to return when you can.
 
