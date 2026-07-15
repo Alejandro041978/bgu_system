@@ -42,7 +42,15 @@ async function run() {
   }
 
   const contents = await fetchAllContent(sid, token)
+
+  // readAll devuelve [] si la tabla no existe, así que hay que distinguir
+  // "no hay nada que sincronizar" de "la migración no se corrió": si no,
+  // el endpoint responde "todo en orden" sobre una tabla inexistente.
+  const { error: tblErr } = await sb.from('whatsapp_templates').select('key').limit(1)
+  if (tblErr) return { ok: false, error: 'Falta correr supabase/whatsapp_templates.sql: ' + tblErr.message }
+
   const rows = await readAll(sb, 'whatsapp_templates', 'key, language, content_sid')
+  if (!rows.length) return { ok: false, error: 'whatsapp_templates está vacía: falta la semilla de whatsapp_templates.sql.' }
 
   const actualizados: string[] = []
   const noEncontrados: string[] = []
@@ -58,14 +66,17 @@ async function run() {
     actualizados.push(`${r.key} (${r.language}) -> ${hit.sid}`)
   }
 
+  const conSid = (rows as { content_sid: string | null }[]).filter(r => r.content_sid).length + actualizados.length
   return {
-    ok: true,
+    ok: contents.length > 0 && noEncontrados.length === 0,
     en_twilio: contents.length,
     actualizados,
     no_encontrados: noEncontrados,
-    nota: noEncontrados.length
-      ? 'Las no encontradas aún no se han sincronizado desde Meta a Twilio, o su friendly_name no calza con el key.'
-      : 'Todas las plantillas tienen su ContentSid.',
+    nota: contents.length === 0
+      ? 'Twilio no ve NINGUNA plantilla. Hay que sincronizarlas desde la WABA en Twilio Console → Content Template Builder; aprobarlas en Meta no basta.'
+      : noEncontrados.length
+        ? 'Las no encontradas no están sincronizadas en Twilio, o su friendly_name no calza con el key.'
+        : `Listo: ${conSid} de ${rows.length} plantillas con ContentSid.`,
   }
 }
 
