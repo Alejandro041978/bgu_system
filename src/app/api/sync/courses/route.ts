@@ -7,7 +7,10 @@ export const maxDuration = 60
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 // POST (CRON_SECRET) — recibe Courses de SystemActiva y upsert en academic_courses.
-// Body: array [{ external_id, product_external_id, code, name, credits, level }] (o { rows: [...] })
+// Body: array [{ external_id, product_external_id, code, name, credits, level, graduation_requirement }]
+//       (o { rows: [...] })
+// graduation_requirement (= Courses.GraduationRequirement) marca si la asignatura
+// es obligatoria para egresar. Si no viene, se asume obligatoria.
 export async function POST(req: NextRequest) {
   if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -37,6 +40,7 @@ export async function POST(req: NextRequest) {
       name: r.name ?? null,
       credits: r.credits ?? null,
       level: r.level ?? null,
+      graduation_requirement: r.graduation_requirement ?? null,
     })
   }
 

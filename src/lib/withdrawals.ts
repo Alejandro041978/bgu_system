@@ -90,11 +90,13 @@ export async function nextResolutionNumber(sb: any, studentId: string, type: 'IW
 
 // ---------------------------------------------------------------------------
 // Situación derivada. Prioridad:
-//   etiqueta manual > IW vigente > LOA vigente > campus socio > activo
+//   etiqueta manual > IW vigente > LOA vigente > egresado > campus socio > activo
+// Egresado va por encima de campus socio porque es más informativo: quien
+// terminó su malla entra al embudo de titulación, no al de retención.
 // Nunca pisa situation_source='manual'.
 // ---------------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function recomputeSituations(sb: any): Promise<{ activo: number; retiro_permanente: number; retiro_temporal: number; campus_socio: number; updated: number }> {
+export async function recomputeSituations(sb: any): Promise<{ activo: number; retiro_permanente: number; retiro_temporal: number; egresado: number; campus_socio: number; updated: number }> {
   // Retiros vigentes
   const wds = await readAll(sb, 'student_withdrawals', 'student_id, type, status')
   const hasIW = new Set<string>(), hasLOA = new Set<string>()
@@ -103,6 +105,10 @@ export async function recomputeSituations(sb: any): Promise<{ activo: number; re
     if (w.type === 'IW') hasIW.add(w.student_id)
     else if (w.type === 'LOA') hasLOA.add(w.student_id)
   }
+
+  // Egresados detectados (tolerante a que la tabla no exista todavía)
+  const grads = await readAll(sb, 'student_graduations', 'student_id').catch(() => [])
+  const isGraduate = new Set<string>((grads as { student_id: string }[]).map(g => g.student_id))
 
   // Campus socio: todas las matrículas en programas de socio
   const partner = await readAll(sb, 'academic_programs', 'id, partner_campus')
@@ -116,12 +122,13 @@ export async function recomputeSituations(sb: any): Promise<{ activo: number; re
   }
 
   const studs = await readAll(sb, 'academic_students', 'id, situation, situation_source')
-  const counts = { activo: 0, retiro_permanente: 0, retiro_temporal: 0, campus_socio: 0, updated: 0 }
+  const counts = { activo: 0, retiro_permanente: 0, retiro_temporal: 0, egresado: 0, campus_socio: 0, updated: 0 }
   const changes: { id: string; situation: string }[] = []
   for (const s of studs as { id: string; situation: string; situation_source: string }[]) {
     let want: string
     if (hasIW.has(s.id)) want = 'retiro_permanente'
     else if (hasLOA.has(s.id)) want = 'retiro_temporal'
+    else if (isGraduate.has(s.id)) want = 'egresado'
     else if ((total.get(s.id) ?? 0) > 0 && (inPartner.get(s.id) ?? 0) >= (total.get(s.id) ?? 0)) want = 'campus_socio'
     else want = 'activo'
     counts[want as keyof typeof counts]++

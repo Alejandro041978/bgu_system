@@ -27,6 +27,10 @@
     {
       "path": "/api/cron/loa-expiry",
       "schedule": "45 4 * * *"
+    },
+    {
+      "path": "/api/cron/graduates",
+      "schedule": "50 4 * * *"
     }
   ]
 }
