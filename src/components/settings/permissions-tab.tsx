@@ -49,6 +49,7 @@ const PAGE_GROUPS = [
     label: 'Académico',
     pages: [
       { key: 'academic_tracking', label: 'Seguimiento estudiantil' },
+      { key: 'academic_retention', label: 'Retención (solicitudes de retiro)' },
       { key: 'academic_withdrawals', label: 'Retiros (IW / LOA)' },
       // Docentes
       { key: 'academic_faculty', label: 'Docentes · Nómina' },

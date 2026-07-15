@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -74,6 +74,7 @@ const navigation: NavGroup[] = [
     label: 'Académico',
     items: [
       { name: 'Seguimiento estudiantil', href: '/academic/seguimiento', icon: Activity, pageKey: 'academic_tracking' },
+      { name: 'Retención', href: '/academic/retencion', icon: HeartHandshake, pageKey: 'academic_retention' },
       { name: 'Retiros', href: '/academic/retiros', icon: UserMinus, pageKey: 'academic_withdrawals' },
       {
         name: 'Docentes', href: '/academic/faculty', icon: GraduationCap,
