@@ -14,7 +14,7 @@ export const maxDuration = 120
 // Las credenciales salen del bot 'retencion' en la base; nunca del chat.
 // ---------------------------------------------------------------------------
 
-type Content = { sid: string; friendly_name: string; language: string }
+type Content = { sid: string; friendly_name: string; language: string; variables?: Record<string, string> }
 
 async function fetchAllContent(sid: string, token: string): Promise<Content[]> {
   const auth = `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`
@@ -59,11 +59,12 @@ async function run() {
     const hit = contents.find(c =>
       c.friendly_name === r.key && (c.language ?? '').toLowerCase().startsWith(r.language.toLowerCase()))
     if (!hit) { noEncontrados.push(`${r.key} (${r.language})`); continue }
-    if (hit.sid === r.content_sid) continue
+    // Se guardan también las variables que Twilio dice esperar: el motor arma
+    // ContentVariables con esto, no con lo que creemos haber escrito.
     await sb.from('whatsapp_templates')
-      .update({ content_sid: hit.sid, updated_at: new Date().toISOString() })
+      .update({ content_sid: hit.sid, variables: hit.variables ?? null, updated_at: new Date().toISOString() })
       .eq('key', r.key).eq('language', r.language)
-    actualizados.push(`${r.key} (${r.language}) -> ${hit.sid}`)
+    if (hit.sid !== r.content_sid) actualizados.push(`${r.key} (${r.language}) -> ${hit.sid}  vars: ${JSON.stringify(hit.variables ?? {})}`)
   }
 
   const conSid = (rows as { content_sid: string | null }[]).filter(r => r.content_sid).length + actualizados.length

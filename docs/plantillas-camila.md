@@ -15,7 +15,7 @@ Es defendible: son estudiantes **matriculados** (relación de servicio vigente) 
 
 **Regla de Meta:** no pueden empezar ni terminar con variable. Todas cumplen.
 
-**Variables con nombre, no numeradas.** Meta ya no acepta `{{1}}` / `{{2}}` en plantillas de texto: hay que usar `{{name}}` y `{{days}}`. Mejor así — con variables numeradas basta invertir el orden una vez para mandar "Hola 21, llevas Ana días". Al enviar por Twilio, las claves de `ContentVariables` deben calzar exactamente con esos nombres: `{"name":"Ana","days":"21"}`.
+**Variables: escribe `{{name}}` y `{{days}}`, pero no te fíes.** Meta no acepta variables numeradas al crear a mano, pero **Twilio las convierte a `{{1}}` y `{{2}}`** al enviarlas a aprobación: el nombre es sólo una etiqueta de su UI. Por eso el motor NO asume ninguna de las dos formas — lee de la API de Twilio qué espera cada plantilla (`whatsapp_templates.variables`) y arma el `ContentVariables` según eso. Si no calza, Twilio rechaza el envío y no sale ningún mensaje.
 
 ---
 

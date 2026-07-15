@@ -11,14 +11,20 @@
 -- Ejecutar en Supabase.
 -- ============================================================================
 create table if not exists whatsapp_templates (
-  key         text not null,               -- camila_saludo_dia1, ...
+  key         text not null,               -- camila_retencion_dia1, ...
   language    text not null default 'es',  -- es | en
   content_sid text,                        -- HX... (de Twilio Content Template Builder)
+  variables   jsonb,                       -- las que Twilio dice que espera
   bot_key     text,                        -- retencion
   active      boolean not null default true,
   updated_at  timestamptz not null default now(),
   primary key (key, language)
 );
+-- variables: se guarda lo que reporta la API de Twilio, no lo que creemos haber
+-- escrito. Al crear las plantillas pusimos {{name}} y {{days}}, pero Twilio las
+-- convirtió a {{1}} y {{2}} antes de enviarlas a Meta: el nombre era sólo una
+-- etiqueta de su UI. Si ContentVariables no calza con lo que la plantilla espera,
+-- Twilio rechaza el envío. Por eso el motor arma las variables leyendo esto.
 
 -- Semilla. El key debe calzar EXACTO con el friendly_name en Twilio: así las
 -- casa /api/cron/sync-templates para traer el ContentSid.

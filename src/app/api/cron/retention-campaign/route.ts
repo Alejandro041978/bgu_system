@@ -48,10 +48,23 @@ async function run(dryRun: boolean) {
   const { data: bot } = await sb.from('bots').select('twilio_number, twilio_account_sid, twilio_auth_token, active').eq('key', 'retencion').maybeSingle()
   if (!bot?.active) return { ok: true, skipped: 'bot retencion inactivo' }
 
-  const tpls = await readAll(sb, 'whatsapp_templates', 'key, language, content_sid, active')
-  const sidOf = new Map<string, string>()
-  for (const t of tpls as { key: string; language: string; content_sid: string | null; active: boolean }[]) {
-    if (t.active && t.content_sid) sidOf.set(`${t.key}|${t.language}`, t.content_sid)
+  const tpls = await readAll(sb, 'whatsapp_templates', 'key, language, content_sid, variables, active')
+  const tplOf = new Map<string, { sid: string; vars: Record<string, string> | null }>()
+  for (const t of tpls as { key: string; language: string; content_sid: string | null; variables: Record<string, string> | null; active: boolean }[]) {
+    if (t.active && t.content_sid) tplOf.set(`${t.key}|${t.language}`, { sid: t.content_sid, vars: t.variables })
+  }
+
+  // Twilio convirtió los {{name}}/{{days}} que escribimos a {{1}}/{{2}} al mandarlas
+  // a Meta: el nombre era sólo una etiqueta de su UI. Y si ContentVariables no calza
+  // con lo que la plantilla espera, el envío se rechaza. Así que se arma según lo
+  // que Twilio reporta, no según lo que creemos: si sus claves son numéricas va
+  // posicional (1=nombre, 2=días); si son nombres, va con nombres.
+  const buildVars = (declared: Record<string, string> | null, name: string, days: string, usaDias: boolean): Record<string, string> => {
+    const keys = Object.keys(declared ?? {})
+    const posicional = keys.length === 0 || keys.every(k => /^\d+$/.test(k))
+    const out: Record<string, string> = posicional ? { '1': name } : { name }
+    if (usaDias) out[posicional ? '2' : 'days'] = days
+    return out
   }
 
   // --- universo ---
@@ -115,16 +128,14 @@ async function run(dryRun: boolean) {
 
   for (const c of hoy) {
     const key = TEMPLATES[c.attempt]
-    const sid = sidOf.get(`${key}|${c.lang}`)
-    if (!sid) { sinPlantilla.push(`${key}|${c.lang}`); continue }
-    // Variables con nombre: las plantillas de Meta usan {{name}} y {{days}}, no
-    // {{1}}/{{2}}. Las claves de ContentVariables deben calzar con esos nombres.
-    const vars: Record<string, string> = { name: c.name }
-    if (key === 'camila_retencion_dia7') vars.days = String(c.days)   // la única que lleva los días
+    const tpl = tplOf.get(`${key}|${c.lang}`)
+    if (!tpl) { sinPlantilla.push(`${key}|${c.lang}`); continue }
+    const usaDias = key === 'camila_retencion_dia7'   // la única que lleva los días
+    const vars = buildVars(tpl.vars, c.name, String(c.days), usaDias)
 
-    if (dryRun) { enviados.push(`${c.name} · ${key} · ${c.lang} · ${c.days}d`); continue }
+    if (dryRun) { enviados.push(`${c.name} · ${key} · ${c.lang} · ${c.days}d · vars=${JSON.stringify(vars)}`); continue }
     try {
-      await sendTemplate(`whatsapp:${c.phone.replace(/\s/g, '')}`, sid, vars, creds)
+      await sendTemplate(`whatsapp:${c.phone.replace(/\s/g, '')}`, tpl.sid, vars, creds)
       await sb.from('student_tracking').update({
         contact_attempts: c.attempt + 1,
         last_contact_at: new Date().toISOString(),
