@@ -1,0 +1,48 @@
+-- ============================================================================
+-- Plantillas HSM de WhatsApp (Twilio Content SID).
+--
+--   Las plantillas se crean y aprueban en Meta, pero para ENVIARLAS por Twilio
+--   no sirve el nombre: hace falta el ContentSid (HX...) que Twilio asigna al
+--   sincronizar la plantilla aprobada desde la WABA. Fuera de la ventana de 24h
+--   un mensaje de texto libre no se entrega; hay que mandar ContentSid +
+--   ContentVariables.
+--
+--   Una fila por plantilla e idioma (mismo key, distinto language).
+-- Ejecutar en Supabase.
+-- ============================================================================
+create table if not exists whatsapp_templates (
+  key         text not null,               -- camila_saludo_dia1, ...
+  language    text not null default 'es',  -- es | en
+  content_sid text,                        -- HX... (de Twilio Content Template Builder)
+  bot_key     text,                        -- retencion
+  active      boolean not null default true,
+  updated_at  timestamptz not null default now(),
+  primary key (key, language)
+);
+
+-- Semilla: los ContentSid se cargan cuando Twilio sincronice las aprobadas.
+insert into whatsapp_templates (key, language, bot_key) values
+  ('camila_saludo_dia1',       'es', 'retencion'),
+  ('camila_saludo_dia1',       'en', 'retencion'),
+  ('camila_seguimiento_dia3',  'es', 'retencion'),
+  ('camila_seguimiento_dia3',  'en', 'retencion'),
+  ('camila_recordatorio_dia7', 'es', 'retencion'),
+  ('camila_recordatorio_dia7', 'en', 'retencion'),
+  ('camila_ultimo_dia14',      'es', 'retencion'),
+  ('camila_ultimo_dia14',      'en', 'retencion')
+on conflict (key, language) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Tope diario de la campaña. Existe porque el número es nuevo: Meta lo arranca
+-- con ~250 destinatarios únicos por 24h y sin reputación, y hoy hay 683
+-- estudiantes elegibles acumulados. Soltarlos todos de golpe quema la línea.
+-- Se sube a medida que el quality rating aguante.
+-- ---------------------------------------------------------------------------
+create table if not exists retention_settings (
+  id             int primary key default 1,
+  daily_cap      integer not null default 50,
+  enabled        boolean not null default false,  -- se enciende a mano
+  updated_at     timestamptz not null default now(),
+  check (id = 1)
+);
+insert into retention_settings (id) values (1) on conflict (id) do nothing;
