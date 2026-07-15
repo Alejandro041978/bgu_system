@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
+import { parseOutcome, stripOutcome, recordOutcome } from '@/lib/retention-outcome'
 import { getBot } from '@/lib/bots'
 import { extractAndSaveLead } from '@/lib/sales-leads'
 
@@ -146,13 +147,14 @@ export async function POST(req: NextRequest) {
       messages: { role: 'user' | 'assistant'; content: string }[]
       contactEmail?: string
       studentContext?: string
+      studentId?: string        // requerido por Camila para registrar el resultado
       sessionId?: string
       source?: string
       bot?: string
       confirmTicket?: { subject: string; description: string; contactName?: string }
     }
 
-    const { messages, contactEmail, studentContext, sessionId, source, confirmTicket } = body
+    const { messages, contactEmail, studentContext, studentId, sessionId, source, confirmTicket } = body
     const botKey = body.bot ?? 'sofia'
 
     // Si el usuario confirmó la creación del ticket, crearlo directamente
@@ -175,6 +177,10 @@ export async function POST(req: NextRequest) {
     const bot = await getBot(botKey)
     const masterPrompt = bot?.prompt?.trim() ? bot.prompt : 'Eres un asistente virtual de Blackwell Global University (BGU). Responde en el idioma del usuario y sé honesto: si no sabes un dato, dilo.'
     const isSales = bot?.role === 'ventas'
+    // Camila (retención) cierra cada respuesta con un código [[R: ...]] que el
+    // estudiante NO debe ver, y no propone tickets: cuando alguien anuncia su
+    // retiro, abre un expediente para la llamada humana.
+    const isRetention = bot?.role === 'retencion'
 
     // Recuperar conocimiento relevante a la última pregunta del usuario (RAG)
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
@@ -194,13 +200,31 @@ export async function POST(req: NextRequest) {
             model: 'claude-opus-4-8',
             max_tokens: 1024,
             system: systemPrompt,
-            // Sofia (soporte) puede proponer tickets; los bots de ventas no.
-            ...(isSales ? {} : { tools: [TICKET_TOOL], tool_choice: { type: 'auto' as const } }),
+            // Sofia (soporte) puede proponer tickets; ventas y retención no.
+            ...(isSales || isRetention ? {} : { tools: [TICKET_TOOL], tool_choice: { type: 'auto' as const } }),
             messages: messages.map(m => ({ role: m.role, content: m.content })),
           })
 
           let toolUseBlock: { id: string; name: string; input: Record<string, unknown> } | null = null
           let assistantText = ''
+
+          // El streaming emite token a token, así que el código [[R: ...]] de
+          // Camila se le mostraría al estudiante antes de poder quitarlo. Para
+          // ella retenemos todo lo que pueda ser el inicio de un marcador y sólo
+          // soltamos lo que ya es seguro enviar.
+          let held = ''
+          const send = (text: string) => controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
+          const emit = (text: string) => {
+            if (!isRetention) { send(text); return }
+            held += text
+            const i = held.indexOf('[[')
+            if (i !== -1) { if (i > 0) send(held.slice(0, i)); held = held.slice(i); return }
+            // un "[" final podría ser el arranque de "[[": se retiene
+            const tail = held.endsWith('[') ? 1 : 0
+            const safe = held.slice(0, held.length - tail)
+            if (safe) send(safe)
+            held = held.slice(held.length - tail)
+          }
 
           for await (const event of anthropicStream) {
             if (event.type === 'content_block_start' && event.content_block.type === 'tool_use') {
@@ -212,7 +236,7 @@ export async function POST(req: NextRequest) {
             } else if (event.type === 'content_block_delta') {
               if (event.delta.type === 'text_delta') {
                 assistantText += event.delta.text
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`))
+                emit(event.delta.text)
               } else if (event.delta.type === 'input_json_delta' && toolUseBlock) {
                 // Acumulamos el JSON del tool input (llega en chunks)
                 try {
@@ -240,13 +264,31 @@ export async function POST(req: NextRequest) {
             }
           }
 
+          // Soltar lo retenido, ya sin el código de clasificación.
+          if (isRetention && held) {
+            const resto = stripOutcome(held)
+            if (resto) send(resto)
+            held = ''
+          }
+
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+
+          // Camila: registrar la clasificación del diálogo. Si anunció retiro,
+          // recordOutcome abre el expediente para la llamada humana.
+          if (isRetention && studentId) {
+            const outcome = parseOutcome(assistantText)
+            if (outcome) {
+              recordOutcome(supabaseAdmin, studentId, outcome)
+                .catch(e => console.error('recordOutcome', e))
+            }
+          }
 
           // Persist conversation for daily supervisor analysis
           if (sessionId && messages.length > 0) {
             const allMessages = [
               ...messages,
-              { role: 'assistant' as const, content: assistantText },
+              // se guarda sin el código: no es parte de la conversación
+              { role: 'assistant' as const, content: isRetention ? stripOutcome(assistantText) : assistantText },
             ].filter(m => m.content)
             supabaseAdmin.from('sofia_conversations').upsert({
               session_id: sessionId,

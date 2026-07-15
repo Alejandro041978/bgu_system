@@ -31,6 +31,10 @@
     {
       "path": "/api/cron/graduates",
       "schedule": "50 4 * * *"
+    },
+    {
+      "path": "/api/cron/retention-commitments",
+      "schedule": "55 4 * * *"
     }
   ]
 }
