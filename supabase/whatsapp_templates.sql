@@ -20,16 +20,23 @@ create table if not exists whatsapp_templates (
   primary key (key, language)
 );
 
--- Semilla: los ContentSid se cargan cuando Twilio sincronice las aprobadas.
+-- Semilla. El key debe calzar EXACTO con el friendly_name en Twilio: así las
+-- casa /api/cron/sync-templates para traer el ContentSid.
+--
+-- Se crean desde Twilio (no desde Meta): Twilio no importa de forma fiable las
+-- plantillas creadas en Meta Business Manager, y sin ContentSid no se pueden
+-- enviar. Twilio las manda a aprobar a Meta y les asigna el SID en el acto.
+-- Nombres nuevos a propósito: ya existen unas en Meta con los nombres viejos, y
+-- Meta rechaza duplicados (borrarlas primero arriesga el bloqueo del nombre).
 insert into whatsapp_templates (key, language, bot_key) values
-  ('camila_saludo_dia1',       'es', 'retencion'),
-  ('camila_saludo_dia1',       'en', 'retencion'),
-  ('camila_seguimiento_dia3',  'es', 'retencion'),
-  ('camila_seguimiento_dia3',  'en', 'retencion'),
-  ('camila_recordatorio_dia7', 'es', 'retencion'),
-  ('camila_recordatorio_dia7', 'en', 'retencion'),
-  ('camila_ultimo_dia14',      'es', 'retencion'),
-  ('camila_ultimo_dia14',      'en', 'retencion')
+  ('camila_retencion_dia1',  'es', 'retencion'),
+  ('camila_retencion_dia1',  'en', 'retencion'),
+  ('camila_retencion_dia3',  'es', 'retencion'),
+  ('camila_retencion_dia3',  'en', 'retencion'),
+  ('camila_retencion_dia7',  'es', 'retencion'),
+  ('camila_retencion_dia7',  'en', 'retencion'),
+  ('camila_retencion_dia14', 'es', 'retencion'),
+  ('camila_retencion_dia14', 'en', 'retencion')
 on conflict (key, language) do nothing;
 
 -- ---------------------------------------------------------------------------

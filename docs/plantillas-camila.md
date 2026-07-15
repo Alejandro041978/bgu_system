@@ -1,6 +1,8 @@
 # Plantillas de WhatsApp para Camila (retención)
 
-Para crear en **Meta Business Manager → WhatsApp Manager → Plantillas de mensaje**.
+Para crear en **Twilio Console → Messaging → Content Template Builder**, que las envía a Meta para aprobación y les asigna el `ContentSid`.
+
+> **Se crean desde Twilio, no desde Meta.** Twilio no importa de forma fiable las plantillas creadas en Meta Business Manager: quedan aprobadas pero sin `ContentSid`, y sin él no se pueden enviar. Ya nos pasó — hubo que rehacerlas con nombres nuevos (Meta rechaza duplicados y borrar arriesga bloquear el nombre por semanas).
 
 ## Antes de crearlas
 
@@ -17,7 +19,7 @@ Es defendible: son estudiantes **matriculados** (relación de servicio vigente) 
 
 ---
 
-## 1. `camila_saludo_dia1` · UTILITY
+## 1. `camila_retencion_dia1` · UTILITY
 
 **Cuerpo:**
 ```
@@ -42,7 +44,7 @@ Could you tell me what happened?
 
 ---
 
-## 2. `camila_seguimiento_dia3` · UTILITY
+## 2. `camila_retencion_dia3` · UTILITY
 
 **Cuerpo:**
 ```
@@ -67,7 +69,7 @@ Whatever it is, we can sort it out. What's your situation?
 
 ---
 
-## 3. `camila_recordatorio_dia7` · UTILITY
+## 3. `camila_retencion_dia7` · UTILITY
 
 **Cuerpo:**
 ```
@@ -93,7 +95,7 @@ What day could you log in?
 
 ---
 
-## 4. `camila_ultimo_dia14` · UTILITY
+## 4. `camila_retencion_dia14` · UTILITY
 
 **Cuerpo:**
 ```

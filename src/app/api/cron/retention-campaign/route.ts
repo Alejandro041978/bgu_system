@@ -14,7 +14,7 @@ export const maxDuration = 300
 // Días que deben pasar desde el último toque para mandar el siguiente.
 // intentos 0 -> ahora (día 1) · 1 -> +2 (día 3) · 2 -> +4 (día 7) · 3 -> +7 (día 14)
 const GAP_DAYS = [0, 2, 4, 7]
-const TEMPLATES = ['camila_saludo_dia1', 'camila_seguimiento_dia3', 'camila_recordatorio_dia7', 'camila_ultimo_dia14']
+const TEMPLATES = ['camila_retencion_dia1', 'camila_retencion_dia3', 'camila_retencion_dia7', 'camila_retencion_dia14']
 const MAX_ATTEMPTS = 4
 
 // No hay columna de idioma; se deduce del país. Ante la duda, español.
@@ -120,7 +120,7 @@ async function run(dryRun: boolean) {
     // Variables con nombre: las plantillas de Meta usan {{name}} y {{days}}, no
     // {{1}}/{{2}}. Las claves de ContentVariables deben calzar con esos nombres.
     const vars: Record<string, string> = { name: c.name }
-    if (key === 'camila_recordatorio_dia7') vars.days = String(c.days)   // la única que lleva los días
+    if (key === 'camila_retencion_dia7') vars.days = String(c.days)   // la única que lleva los días
 
     if (dryRun) { enviados.push(`${c.name} · ${key} · ${c.lang} · ${c.days}d`); continue }
     try {
