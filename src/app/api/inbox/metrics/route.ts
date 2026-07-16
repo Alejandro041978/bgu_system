@@ -44,9 +44,9 @@ export async function GET(req: NextRequest) {
 
   const sb = db()
 
-  // Conversaciones del buzón (canal + tiempos). Solo columnas garantizadas.
+  // Conversaciones del buzón (canal + responsable + tiempos). Solo columnas garantizadas.
   const convs = await readAll((f, t) => sb.from('wa_conversations')
-    .select('id, channel, first_customer_at, created_at, first_response_at').range(f, t))
+    .select('id, channel, assigned_name, first_customer_at, created_at, first_response_at').range(f, t))
 
   // Cierres (columna closed_at; si aún no existe el migration, la consulta
   // falla y readAll devuelve [] sin romper el resto de la página).
@@ -78,6 +78,19 @@ export async function GET(req: NextRequest) {
 
   const totals = { emails: 0, conversations: 0, email_conversations: 0, whatsapp_conversations: 0, sofia: 0 }
 
+  // Reparto por responsable (quién atiende qué, por canal): responde
+  // directamente "a quiénes se va distribuyendo".
+  const agents = new Map<string, { name: string; email: number; whatsapp: number; ticket: number; total: number }>()
+  const bumpAgent = (name: string, channel: string) => {
+    const key = name || '(sin asignar)'
+    let a = agents.get(key)
+    if (!a) { a = { name: key, email: 0, whatsapp: 0, ticket: 0, total: 0 }; agents.set(key, a) }
+    if (channel === 'email') a.email++
+    else if (channel === 'ticket') a.ticket++
+    else a.whatsapp++
+    a.total++
+  }
+
   // Conversaciones llegadas (por first_customer_at, fallback created_at)
   for (const c of convs) {
     const arrived = c.first_customer_at ?? c.created_at
@@ -85,9 +98,13 @@ export async function GET(req: NextRequest) {
     const b = ensure(bucketOf(arrived))
     b.conversations++
     totals.conversations++
-    if ((c.channel ?? 'whatsapp') === 'email') totals.email_conversations++
+    const ch = c.channel ?? 'whatsapp'
+    if (ch === 'email') totals.email_conversations++
     else { b.wa_conversations++; totals.whatsapp_conversations++ }
+    bumpAgent(c.assigned_name ?? '', ch)
   }
+
+  const by_agent = [...agents.values()].sort((a, b) => b.total - a.total)
 
   // Correos recibidos = mensajes entrantes de conversaciones de canal email
   for (const m of inMsgs) {
@@ -145,5 +162,5 @@ export async function GET(req: NextRequest) {
     resolution: { count: resMs.length, median_ms: median(resMs), avg_ms: avg(resMs), dist },
   }
 
-  return NextResponse.json({ start, end, granularity, totals, series, sla })
+  return NextResponse.json({ start, end, granularity, totals, series, sla, by_agent })
 }

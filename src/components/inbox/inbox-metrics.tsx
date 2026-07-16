@@ -9,7 +9,8 @@ interface Sla {
   first_response: { count: number; median_ms: number | null; avg_ms: number | null }
   resolution: { count: number; median_ms: number | null; avg_ms: number | null; dist: { lt1h: number; lt4h: number; lt24h: number; gte24h: number } }
 }
-interface Data { start: string; end: string; granularity: string; totals: Totals; series: Bucket[]; sla?: Sla }
+interface Agent { name: string; email: number; whatsapp: number; ticket: number; total: number }
+interface Data { start: string; end: string; granularity: string; totals: Totals; series: Bucket[]; sla?: Sla; by_agent?: Agent[] }
 
 function fmtDur(ms: number | null): string {
   if (ms == null) return '—'
@@ -116,6 +117,47 @@ export function InboxMetrics() {
               </div>
             </div>
           )}
+
+          {/* Reparto por responsable — a quién se le distribuye cada cosa */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-gray-800 mb-1">Reparto por responsable</h3>
+            <p className="text-[11px] text-gray-400 mb-3">Conversaciones asignadas a cada persona en el rango, por canal.</p>
+            {!data.by_agent || data.by_agent.length === 0 ? (
+              <p className="text-sm text-gray-400 py-6 text-center">Sin asignaciones en el rango.</p>
+            ) : (() => {
+              const maxA = Math.max(1, ...data.by_agent.map(a => a.total))
+              return (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-[10px] text-gray-400 uppercase border-b border-gray-100">
+                      <th className="text-left py-2">Responsable</th>
+                      <th className="text-right w-16">Correo</th>
+                      <th className="text-right w-16">WhatsApp</th>
+                      <th className="text-right w-16">Ticket</th>
+                      <th className="text-right w-16">Total</th>
+                      <th className="w-40"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {data.by_agent.map(a => (
+                      <tr key={a.name} className={a.name === '(sin asignar)' ? 'text-amber-700' : ''}>
+                        <td className="py-2 text-gray-700">{a.name}</td>
+                        <td className="text-right text-gray-500">{a.email || '—'}</td>
+                        <td className="text-right text-gray-500">{a.whatsapp || '—'}</td>
+                        <td className="text-right text-gray-500">{a.ticket || '—'}</td>
+                        <td className="text-right font-semibold text-gray-800">{a.total}</td>
+                        <td className="pl-3">
+                          <div className="bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                            <div className={`h-full ${a.name === '(sin asignar)' ? 'bg-amber-400' : 'bg-blue-500'}`} style={{ width: `${(a.total / maxA) * 100}%` }} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
+            })()}
+          </div>
 
           {/* Gráfico de barras */}
           <div className="bg-white border border-gray-200 rounded-xl p-4">
