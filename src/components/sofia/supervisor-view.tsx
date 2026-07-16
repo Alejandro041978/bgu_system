@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, RefreshCw, CheckCircle2, XCircle, Clock, AlertCircle, MessageSquare, Star, ChevronDown, ChevronRight, Play } from 'lucide-react'
+import Link from 'next/link'
+import { Download, RefreshCw, CheckCircle2, XCircle, Clock, AlertCircle, MessageSquare, Star, ChevronDown, ChevronRight, Play, ArrowRight } from 'lucide-react'
 
 type Report = {
   id: string
@@ -202,12 +203,19 @@ export function SupervisorView({ reports: initialReports, bots }: { reports: Rep
               {/* Expanded detail */}
               {expanded === r.id && r.status === 'completed' && (
                 <div className="px-6 pb-6 border-t border-gray-100 space-y-4 pt-4">
+                  {/* El reporte es el DIAGNÓSTICO: qué pasó, qué tan bien, por qué.
+                      Las recomendaciones y vacíos accionables ya no van aquí como
+                      prosa: son la cola de mejoras (Bots · Mejora continua), donde
+                      se aprueban y se aplican de un clic. */}
                   <Section title="Resumen Ejecutivo" content={r.executive_summary} />
                   <Section title="Fortalezas" content={r.strengths} />
                   <Section title="Debilidades y Fallos" content={r.weaknesses} />
                   <Section title="Temas Frecuentes" content={r.prompt_suggestions} />
-                  <Section title="Recomendaciones para el Prompt" content={r.recommendations} />
-                  <Section title="Vacíos de Conocimiento (agregar a la base de conocimientos)" content={r.knowledge_gaps} />
+                  <Link href="/ia/sofia-mejoras"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700 hover:bg-indigo-100 transition-colors">
+                    <span>Las mejoras accionables de este análisis (ajustes de prompt y datos que faltan) están en <b>Bots · Mejora continua</b>, listas para aprobar y aplicar.</span>
+                    <ArrowRight className="w-4 h-4 shrink-0" />
+                  </Link>
                 </div>
               )}
               {expanded === r.id && r.status === 'failed' && (
