@@ -21,6 +21,18 @@ const MAX_ATTEMPTS = 4
 const EN_COUNTRIES = /^(united states|usa|canada|united kingdom|uk|ireland|australia|new zealand|jamaica|trinidad|guyana|belize|philippines|india|nigeria|ghana|kenya|south africa)$/i
 const langOf = (country: string | null) => EN_COUNTRIES.test((country ?? '').trim()) ? 'en' : 'es'
 
+// El nombre va crudo en la base ("wilinton  marco antonio"). Este es el primer
+// mensaje de un número desconocido: un "Hola wilinton  marco antonio" se lee
+// como mailing automático, y eso hunde la respuesta y provoca reportes de spam.
+// Se usa sólo el primer nombre, capitalizado. Devuelve null si no hay nombre:
+// la plantilla ya dice "Hola {{name}}", así que un relleno daría "Hola Hola".
+// Sin nombre, mejor no escribir.
+function saludo(raw: string | null): string | null {
+  const first = (raw ?? '').trim().split(/\s+/)[0] ?? ''
+  if (!first) return null
+  return first.charAt(0).toLocaleUpperCase('es') + first.slice(1).toLocaleLowerCase('es')
+}
+
 async function sendTemplate(to: string, contentSid: string, vars: Record<string, string>, creds: { sid: string; token: string; from: string }) {
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${creds.sid}/Messages.json`, {
     method: 'POST',
@@ -81,7 +93,7 @@ async function run(dryRun: boolean) {
 
   type Cand = { id: string; name: string; phone: string; lang: string; attempt: number; days: number }
   const cands: Cand[] = []
-  const skip = { no_activo: 0, sin_telefono: 0, do_not_contact: 0, con_expediente: 0, agotados: 0, aun_no_toca: 0, conversando: 0, con_compromiso: 0 }
+  const skip = { no_activo: 0, sin_telefono: 0, sin_nombre: 0, do_not_contact: 0, con_expediente: 0, agotados: 0, aun_no_toca: 0, conversando: 0, con_compromiso: 0 }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const t of tracking as any[]) {
@@ -102,8 +114,11 @@ async function run(dryRun: boolean) {
     if (attempt >= MAX_ATTEMPTS) { skip.agotados++; continue }
     if (attempt > 0 && t.last_contact_at && now - new Date(t.last_contact_at).getTime() < GAP_DAYS[attempt] * DAY) { skip.aun_no_toca++; continue }
 
+    const nombre = saludo(s.first_name)
+    if (!nombre) { skip.sin_nombre++; continue }
+
     cands.push({
-      id: t.student_id, name: s.first_name ?? 'estudiante', phone: s.phone_number,
+      id: t.student_id, name: nombre, phone: s.phone_number,
       lang: langOf(s.country), attempt, days: t.inactivity_days ?? 999,
     })
   }
