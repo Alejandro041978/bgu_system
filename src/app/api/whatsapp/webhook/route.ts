@@ -82,6 +82,28 @@ const REQUEST_HUMAN_TOOL: Anthropic.Tool = {
 
 const HANDOFF_INSTRUCTION = `\n\nDERIVACIÓN A UN ASESOR HUMANO: Si el usuario pide hablar con una persona/asesor, NO lo derives de inmediato. Primero pregúntale de forma amable cuál es su tema o consulta (si aún no lo ha explicado). Solo cuando tengas claro el motivo real, usa la herramienta request_human con un resumen útil para el asesor. Nunca derives sin haber entendido qué necesita.`
 
+// Camila necesita su propia versión del handoff. La de Sofía dice literalmente
+// "NO la uses si simplemente no puedes resolver algo — para eso propón un
+// ticket": una regla razonable para soporte (el usuario vino a preguntar y
+// volverá a insistir) y desastrosa para retención.
+//
+// El interlocutor de Camila ESTABA POR IRSE. Un "no lo sé" sin salida es la
+// excusa perfecta para no volver: la conversación muere y el estudiante también.
+// Por eso ella escala justo en el caso que Sofía tiene prohibido.
+const RETENTION_HUMAN_TOOL: Anthropic.Tool = {
+  name: 'request_human',
+  description: 'Pasa la conversación a un asesor humano del equipo de Servicio al Estudiante. Úsala en DOS casos: (1) el estudiante pide hablar con una persona; (2) NO PUEDES RESOLVER algo que lo está frenando — no tienes el dato, es un caso particular, o necesita una gestión que tú no haces (liberar un acceso, acordar un plan de pago concreto, revisar su situación). ESTO ES CLAVE: estás hablando con alguien que está a punto de abandonar sus estudios. Dejarlo con un "no lo sé" es perderlo. Antes de llamarla, asegúrate de entender QUÉ necesita para poder resumirlo bien. Nunca la uses si el estudiante ya anunció que se retira: en ese caso no derives, dile que un asesor lo llamará.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      summary:  { type: 'string', description: 'Resumen (2-3 frases) para el asesor: quién es, por qué dejó de entrar al aula, qué necesita concretamente y qué ya intentaste. Específico y accionable.' },
+      language: { type: 'string', enum: ['es', 'en', 'pt', 'other'], description: 'Idioma en que conversa el estudiante.' },
+      topic:    { type: 'string', enum: ['pagos', 'notas', 'admision', 'asistencia', 'tramites', 'tecnico', 'otro'], description: 'pagos=deuda/plan de pago/liberar acceso por saldo; notas=calificaciones/evaluaciones; asistencia=acompañamiento general; tramites=documentos/LOA; tecnico=no puede entrar al aula; otro=si no encaja.' },
+    },
+    required: ['summary', 'language', 'topic'],
+  },
+}
+
 const TICKET_TOOL: Anthropic.Tool = {
   name: 'propose_ticket',
   description: 'Úsala SOLO cuando el usuario haya dado su acuerdo explícito para crear un ticket de soporte.',
@@ -367,7 +389,7 @@ async function runRetentionFlow(from: string, body: string, bot: Bot) {
       model:       'claude-opus-4-8',
       max_tokens:  1024,
       system:      systemPrompt,
-      tools:       [REQUEST_HUMAN_TOOL],
+      tools:       [RETENTION_HUMAN_TOOL],
       tool_choice: { type: 'auto' },
       messages:    session.messages.slice(-MAX_HISTORY),
     })
