@@ -26,6 +26,15 @@ create table if not exists whatsapp_templates (
 -- etiqueta de su UI. Si ContentVariables no calza con lo que la plantilla espera,
 -- Twilio rechaza el envío. Por eso el motor arma las variables leyendo esto.
 
+-- Este archivo es re-ejecutable: la primera versión se corrió con los nombres
+-- viejos y sin esta columna, así que volver a correrlo deja todo al día.
+alter table whatsapp_templates add column if not exists variables jsonb;
+
+-- Los nombres viejos (creados a mano en Meta) ya no existen en Twilio: Twilio
+-- no los importó y hubo que rehacer las plantillas desde su lado.
+delete from whatsapp_templates
+where key in ('camila_saludo_dia1', 'camila_seguimiento_dia3', 'camila_recordatorio_dia7', 'camila_ultimo_dia14');
+
 -- Semilla. El key debe calzar EXACTO con el friendly_name en Twilio: así las
 -- casa /api/cron/sync-templates para traer el ContentSid.
 --
