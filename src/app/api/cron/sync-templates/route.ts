@@ -42,12 +42,14 @@ async function run() {
   }
 
   const contents = await fetchAllContent(sid, token)
+  // Se listan siempre: si algo no casa, esto es lo que permite ver por qué.
+  const en_twilio_nombres = contents.map(c => `${c.friendly_name} | ${c.language} | ${JSON.stringify(c.variables ?? {})}`)
 
   // readAll devuelve [] si la tabla no existe, así que hay que distinguir
   // "no hay nada que sincronizar" de "la migración no se corrió": si no,
   // el endpoint responde "todo en orden" sobre una tabla inexistente.
   const { error: tblErr } = await sb.from('whatsapp_templates').select('key').limit(1)
-  if (tblErr) return { ok: false, error: 'Falta correr supabase/whatsapp_templates.sql: ' + tblErr.message }
+  if (tblErr) return { ok: false, error: 'Falta correr supabase/whatsapp_templates.sql: ' + tblErr.message, en_twilio: contents.length, en_twilio_nombres }
 
   const rows = await readAll(sb, 'whatsapp_templates', 'key, language, content_sid')
   if (!rows.length) return { ok: false, error: 'whatsapp_templates está vacía: falta la semilla de whatsapp_templates.sql.' }
@@ -56,8 +58,13 @@ async function run() {
   const noEncontrados: string[] = []
   for (const r of rows as { key: string; language: string; content_sid: string | null }[]) {
     // Twilio guarda el idioma como 'es'/'en' o 'es_ES'/'en_US' según cómo se sincronice.
-    const hit = contents.find(c =>
-      c.friendly_name === r.key && (c.language ?? '').toLowerCase().startsWith(r.language.toLowerCase()))
+    const mismoIdioma = (c: Content) => (c.language ?? '').toLowerCase().startsWith(r.language.toLowerCase())
+    // Twilio le agrega un sufijo al nombre (camila_retencion_dia1 -> camila_retencion_dia1_hxa...).
+    // El sufijo se acepta SOLO precedido de "_": sin eso, "camila_retencion_dia1"
+    // casaría con "camila_retencion_dia14_hx..." y mandaríamos el mensaje de
+    // despedida como primer contacto.
+    const hit = contents.find(c => c.friendly_name === r.key && mismoIdioma(c))
+      ?? contents.find(c => c.friendly_name.startsWith(r.key + '_') && mismoIdioma(c))
     if (!hit) { noEncontrados.push(`${r.key} (${r.language})`); continue }
     // Se guardan también las variables que Twilio dice esperar: el motor arma
     // ContentVariables con esto, no con lo que creemos haber escrito.
@@ -71,6 +78,7 @@ async function run() {
   return {
     ok: contents.length > 0 && noEncontrados.length === 0,
     en_twilio: contents.length,
+    en_twilio_nombres,
     actualizados,
     no_encontrados: noEncontrados,
     nota: contents.length === 0
