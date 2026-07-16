@@ -292,6 +292,14 @@ Puntuación del 1 al 10 con justificación breve.`
 
   const jsonInstruction = `
 
+Además de las secciones en prosa, entrega una lista de MEJORAS CONCRETAS Y APLICABLES en el campo "suggestions". Cada una es un cambio atómico que un humano aprueba y se aplica solo. Reglas:
+- Máximo 4 mejoras por día, las de mayor impacto. Prefiere pocas y buenas: no inundes.
+- Cada mejora es autosuficiente y lista para incorporarse tal cual, sin editar.
+- type "prompt": un ajuste de COMPORTAMIENTO. "content" es el texto EXACTO que se agregará al prompt de ${botName}, redactado como instrucción directa al bot (ej: "Cuando el estudiante pida X, haz Y").
+- type "knowledge": un dato que le FALTÓ. "content" es la respuesta correcta; "kb_question" la pregunta que responde; "kb_topic" una categoría corta; "kb_tags" palabras clave separadas por coma.
+- "title" es el problema detectado en una frase; "recommendation" es qué hace la mejora, en una línea.
+- Sólo propón una mejora si de verdad se justifica con lo que viste hoy. Si el bot anduvo bien, devuelve "suggestions": [].
+
 Responde SOLO con un JSON válido con esta estructura exacta:
 {
   "executive_summary": "texto",
@@ -301,7 +309,11 @@ Responde SOLO con un JSON válido con esta estructura exacta:
   "recommendations": "texto",
   "knowledge_gaps": "texto",
   "quality_score": 8,
-  "quality_justification": "texto"
+  "quality_justification": "texto",
+  "suggestions": [
+    { "type": "prompt", "title": "...", "recommendation": "...", "content": "..." },
+    { "type": "knowledge", "title": "...", "recommendation": "...", "content": "...", "kb_question": "...", "kb_topic": "...", "kb_tags": "..." }
+  ]
 }`
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -425,5 +437,31 @@ Generado: ${new Date().toLocaleString('es-PE')}
     return { status: 500, body: { error: 'Error al guardar el reporte: ' + updErr.message } }
   }
 
-  return { status: 200, body: { ok: true, conversations: convList.length, score: result.quality_score } }
+  // Guardar las mejoras atómicas como sugerencias pendientes de revisión. El
+  // upsert por (bot_key, type, title) evita que la misma mejora se repita día
+  // tras día. Tolerante a que la tabla no exista todavía.
+  let suggestionsSaved = 0
+  const suggestions = Array.isArray(result.suggestions) ? result.suggestions : []
+  if (suggestions.length) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = suggestions.filter((x: any) => x && (x.type === 'prompt' || x.type === 'knowledge') && x.title && x.content)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .slice(0, 4).map((x: any) => ({
+        bot_key: botKey, report_date: dateStr, type: x.type,
+        title: asText(x.title).slice(0, 300), recommendation: asText(x.recommendation).slice(0, 500),
+        content: asText(x.content),
+        kb_topic: x.kb_topic ? asText(x.kb_topic).slice(0, 120) : null,
+        kb_question: x.kb_question ? asText(x.kb_question).slice(0, 300) : null,
+        kb_tags: x.kb_tags ? asText(x.kb_tags).slice(0, 300) : null,
+      }))
+    if (rows.length) {
+      // ignoreDuplicates: si ya se propuso esa mejora (mismo title) y sigue
+      // pendiente o fue resuelta, no la volvemos a crear.
+      const { error: sErr } = await db.from('supervisor_suggestions')
+        .upsert(rows, { onConflict: 'bot_key,type,title', ignoreDuplicates: true })
+      if (!sErr) suggestionsSaved = rows.length
+    }
+  }
+
+  return { status: 200, body: { ok: true, conversations: convList.length, score: result.quality_score, suggestions: suggestionsSaved } }
 }

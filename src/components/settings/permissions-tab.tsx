@@ -89,6 +89,7 @@ const PAGE_GROUPS = [
     pages: [
       { key: 'settings_sofia', label: 'Bots · Configuración' },
       { key: 'sofia_supervisor', label: 'Bots · Supervisor' },
+      { key: 'sofia_mejoras', label: 'Bots · Mejora continua' },
     ],
   },
   {

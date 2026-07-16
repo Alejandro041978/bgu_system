@@ -140,6 +140,7 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Bots · Configuración', href: '/settings/sofia', icon: Bot, pageKey: 'settings_sofia' },
       { name: 'Bots · Supervisor', href: '/ia/sofia-supervisor', icon: Shield, pageKey: 'sofia_supervisor' },
+      { name: 'Bots · Mejora continua', href: '/ia/sofia-mejoras', icon: TrendingUp, pageKey: 'sofia_mejoras' },
     ],
   },
   {
