@@ -96,6 +96,16 @@ export async function POST(req: NextRequest) {
     const { email, name } = parseEmail(fromRaw)
     const subject = p.subject ?? '(sin asunto)'
 
+    // Idempotencia: si ya tenemos este Message-Id, no lo volvemos a insertar.
+    // Es lo que permite que la reconciliación reenvíe faltantes y que los
+    // reintentos de N8N no dupliquen. (Requiere que Gmail mande messageId.)
+    const sb0 = db()
+    if (p.messageId) {
+      const { data: dup } = await sb0.from('wa_messages')
+        .select('id').eq('message_id', p.messageId).limit(1).maybeSingle()
+      if (dup) return NextResponse.json({ ok: true, duplicate: true, message: 'Ya estaba en el buzón' })
+    }
+
     // Cuerpo: usa text/html explícitos; si no, decodifica el payload de Gmail; si no, el snippet
     let bodyText = (p.text ?? '').trim()
     let bodyHtml = p.html ?? ''
