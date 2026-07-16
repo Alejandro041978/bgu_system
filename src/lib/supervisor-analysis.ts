@@ -25,10 +25,14 @@ export async function analyzeSupervisor(botKey: string, dateParam?: string | nul
   const botRole = botRow?.role ?? 'soporte'
   const currentPrompt = botRow?.prompt ?? ''
 
-  // Fetch conversations from target date (de este bot)
+  // Fetch conversations from target date (de este bot).
+  // select('*') a propósito: ref_label sólo existe para las conversaciones del
+  // buzón (inbox), no para las de los bots. Pedirla explícita hacía fallar toda
+  // la consulta ("column ... does not exist"); con '*' se tolera su ausencia y
+  // el acceso posterior ya usa `c.ref_label ?? fallback`.
   const { data: conversations, error } = await db
     .from('sofia_conversations')
-    .select('session_id, messages, message_count, source, contact_email, created_at, ref_label')
+    .select('*')
     .eq('bot_key', botKey)
     .gte('created_at', startOfDay)
     .lte('created_at', endOfDay)
