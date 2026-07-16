@@ -440,9 +440,12 @@ Generado: ${new Date().toLocaleString('es-PE')}
   // Guardar las mejoras atómicas como sugerencias pendientes de revisión. El
   // upsert por (bot_key, type, title) evita que la misma mejora se repita día
   // tras día. Tolerante a que la tabla no exista todavía.
+  //
+  // Sólo para BOTS: el buzón humano (isInbox) no tiene prompt ni base que
+  // mejorar, así que sus sugerencias no aplican.
   let suggestionsSaved = 0
   const suggestions = Array.isArray(result.suggestions) ? result.suggestions : []
-  if (suggestions.length) {
+  if (!isInbox && suggestions.length) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = suggestions.filter((x: any) => x && (x.type === 'prompt' || x.type === 'knowledge') && x.title && x.content)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
