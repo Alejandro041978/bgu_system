@@ -33,7 +33,9 @@ function saludo(raw: string | null): string | null {
   return first.charAt(0).toLocaleUpperCase('es') + first.slice(1).toLocaleLowerCase('es')
 }
 
-async function sendTemplate(to: string, contentSid: string, vars: Record<string, string>, creds: { sid: string; token: string; from: string }) {
+// Devuelve el SID del mensaje: es lo que permite auditar después si Twilio lo
+// entregó de verdad o se quedó en el camino.
+async function sendTemplate(to: string, contentSid: string, vars: Record<string, string>, creds: { sid: string; token: string; from: string }): Promise<string | null> {
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${creds.sid}/Messages.json`, {
     method: 'POST',
     headers: {
@@ -48,6 +50,8 @@ async function sendTemplate(to: string, contentSid: string, vars: Record<string,
     }).toString(),
   })
   if (!res.ok) throw new Error(`Twilio ${res.status}: ${(await res.text()).slice(0, 200)}`)
+  const j = await res.json().catch(() => null) as { sid?: string } | null
+  return j?.sid ?? null
 }
 
 async function run(dryRun: boolean) {
@@ -91,8 +95,11 @@ async function run(dryRun: boolean) {
   const now = Date.now()
   const DAY = 86_400_000
 
-  type Cand = { id: string; name: string; phone: string; lang: string; attempt: number; days: number }
+  type Cand = { id: string; name: string; phone: string; lang: string; attempt: number; days: number; balance: number | null }
   const cands: Cand[] = []
+  const marcados = new Set<string>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (tracking as any[]).filter(t => t.campaign_entered_at).map(t => t.student_id))
   const skip = { no_activo: 0, sin_telefono: 0, sin_nombre: 0, deudor: 0, do_not_contact: 0, con_expediente: 0, agotados: 0, aun_no_toca: 0, conversando: 0, con_compromiso: 0 }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,6 +133,7 @@ async function run(dryRun: boolean) {
     cands.push({
       id: t.student_id, name: nombre, phone: s.phone_number,
       lang: langOf(s.country), attempt, days: t.inactivity_days ?? 999,
+      balance: t.balance ?? null,
     })
   }
 
@@ -135,6 +143,16 @@ async function run(dryRun: boolean) {
   // ya está en la cadencia va antes que uno nuevo, para no dejar conversaciones
   // a medias.
   cands.sort((a, b) => (b.attempt > 0 ? 1 : 0) - (a.attempt > 0 ? 1 : 0) || a.days - b.days)
+
+  // Marca de cohorte para TODOS los elegibles, no sólo los del tope: los que
+  // quedan en cola son el grupo de control. Se estampa una sola vez.
+  const ahora = new Date().toISOString()
+  const sinMarca = cands.filter(c => !marcados.has(c.id)).map(c => c.id)
+  for (let i = 0; i < sinMarca.length; i += 100) {
+    const chunk = sinMarca.slice(i, i + 100)
+    await Promise.all(chunk.map(id => sb.from('student_tracking')
+      .update({ campaign_entered_at: ahora }).eq('student_id', id).is('campaign_entered_at', null)))
+  }
 
   const hoy = cands.slice(0, cap)
   const creds = {
@@ -155,17 +173,32 @@ async function run(dryRun: boolean) {
     const vars = buildVars(tpl.vars, c.name, String(c.days), usaDias)
 
     if (dryRun) { enviados.push(`${c.name} · ${key} · ${c.lang} · ${c.days}d · vars=${JSON.stringify(vars)}`); continue }
+
+    // La foto (días de ausencia, saldo) se guarda con el envío: student_tracking
+    // se sobrescribe a diario, así que después sería imposible saber en qué
+    // estado estaba el estudiante cuando se le escribió.
+    const bitacora = {
+      student_id: c.id, template_key: key, language: c.lang, attempt: c.attempt + 1,
+      inactivity_days: c.days, balance: c.balance,
+    }
+
     try {
-      await sendTemplate(`whatsapp:${c.phone.replace(/\s/g, '')}`, tpl.sid, vars, creds)
+      const sid = await sendTemplate(`whatsapp:${c.phone.replace(/\s/g, '')}`, tpl.sid, vars, creds)
+      const now = new Date().toISOString()
       await sb.from('student_tracking').update({
         contact_attempts: c.attempt + 1,
-        last_contact_at: new Date().toISOString(),
+        last_contact_at: now,
         last_message_level: key,
-        last_message_at: new Date().toISOString(),
+        last_message_at: now,
       }).eq('student_id', c.id)
+      await sb.from('retention_contacts').insert({ ...bitacora, twilio_sid: sid, status: 'sent', sent_at: now })
       enviados.push(`${c.name} · ${key}`)
     } catch (e) {
-      errores.push(`${c.name}: ${(e as Error).message}`)
+      const msg = (e as Error).message
+      // Los fallos también se registran: si no, un envío que nunca sale es
+      // indistinguible de uno que salió y nadie contestó.
+      await sb.from('retention_contacts').insert({ ...bitacora, status: 'failed', error: msg.slice(0, 300) })
+      errores.push(`${c.name}: ${msg}`)
     }
   }
 

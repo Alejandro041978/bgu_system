@@ -87,6 +87,18 @@ export async function recordOutcome(sb: any, studentId: string, outcome: Outcome
 
   await sb.from('student_tracking').update(patch).eq('student_id', studentId)
 
+  // Cerrar el círculo en la bitácora: marcar qué envío provocó esta respuesta.
+  // Es lo que permite medir la tasa de respuesta POR PLANTILLA y saber si el
+  // mensaje del día 3 funciona mejor que el del día 7.
+  const { data: ultimo } = await sb.from('retention_contacts')
+    .select('id').eq('student_id', studentId).eq('status', 'sent')
+    .order('sent_at', { ascending: false }).limit(1).maybeSingle()
+  if (ultimo) {
+    await sb.from('retention_contacts')
+      .update({ replied_at: new Date().toISOString(), outcome: outcome.code })
+      .eq('id', ultimo.id).is('replied_at', null)   // la primera respuesta es la que cuenta
+  }
+
   // Anuncia retiro -> expediente para la llamada humana. Camila no gestiona retiros.
   if (outcome.code === 'anuncia_retiro') {
     const { data: abierta } = await sb.from('withdrawal_requests')
