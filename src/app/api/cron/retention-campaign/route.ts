@@ -17,6 +17,17 @@ const GAP_DAYS = [0, 2, 4, 7]
 const TEMPLATES = ['camila_retencion_dia1', 'camila_retencion_dia3', 'camila_retencion_dia7', 'camila_retencion_dia14']
 const MAX_ATTEMPTS = 4
 
+// Vía aparte para deudores. Con saldo pendiente se les restringe el aula: no
+// entran porque no pueden. Su mensaje nombra la causa y ofrece la salida (un
+// compromiso de pago libera el acceso), así que la cadencia genérica no aplica.
+//
+// UN SOLO TOQUE, a propósito: su situación es estática — siguen bloqueados hasta
+// que acuerden un pago. Si no responden a "te libero el acceso", insistir con
+// "¿por qué no has entrado?" es absurdo, y repetir la misma plantilla cuatro
+// veces es spam. Si no contesta, el caso es de Finanzas, no de un bot.
+const TEMPLATE_DEUDA = 'camila_retencion_deuda'
+const MAX_ATTEMPTS_DEUDA = 1
+
 // No hay columna de idioma; se deduce del país. Ante la duda, español.
 const EN_COUNTRIES = /^(united states|usa|canada|united kingdom|uk|ireland|australia|new zealand|jamaica|trinidad|guyana|belize|philippines|india|nigeria|ghana|kenya|south africa)$/i
 const langOf = (country: string | null) => EN_COUNTRIES.test((country ?? '').trim()) ? 'en' : 'es'
@@ -95,7 +106,7 @@ async function run(dryRun: boolean) {
   const now = Date.now()
   const DAY = 86_400_000
 
-  type Cand = { id: string; name: string; phone: string; lang: string; attempt: number; days: number; balance: number | null }
+  type Cand = { id: string; name: string; phone: string; lang: string; attempt: number; days: number; balance: number | null; deudor: boolean }
   const cands: Cand[] = []
   const marcados = new Set<string>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -113,10 +124,9 @@ async function run(dryRun: boolean) {
     if (conExpediente.has(t.student_id)) { skip.con_expediente++; continue } // lo gestiona un humano
 
     // Con saldo pendiente se les restringe el acceso al aula: no entran porque
-    // los bloqueamos nosotros. Preguntarles "¿por qué no has entrado?" con la
-    // plantilla genérica es ofensivo e inútil. Necesitan otra conversación
-    // ("con un compromiso de pago te libero el acceso") y su propia plantilla.
-    if (!cfg?.contact_debtors && (t.balance ?? 0) > 0.005) { skip.deudor++; continue }
+    // los bloqueamos nosotros. Van por su propia vía, nunca por la genérica.
+    const esDeudor = (t.balance ?? 0) > 0.005
+    if (!cfg?.contact_debtors && esDeudor) { skip.deudor++; continue }
 
     // Ya está conversando: la ventana de 24h se maneja libre, sin plantillas.
     if (t.last_outcome_at && now - new Date(t.last_outcome_at).getTime() < 7 * DAY) { skip.conversando++; continue }
@@ -124,7 +134,7 @@ async function run(dryRun: boolean) {
     if (t.commitment_date && t.commitment_kept === null && new Date(t.commitment_date).getTime() >= now) { skip.con_compromiso++; continue }
 
     const attempt = t.contact_attempts ?? 0
-    if (attempt >= MAX_ATTEMPTS) { skip.agotados++; continue }
+    if (attempt >= (esDeudor ? MAX_ATTEMPTS_DEUDA : MAX_ATTEMPTS)) { skip.agotados++; continue }
     if (attempt > 0 && t.last_contact_at && now - new Date(t.last_contact_at).getTime() < GAP_DAYS[attempt] * DAY) { skip.aun_no_toca++; continue }
 
     const nombre = saludo(s.first_name)
@@ -133,7 +143,7 @@ async function run(dryRun: boolean) {
     cands.push({
       id: t.student_id, name: nombre, phone: s.phone_number,
       lang: langOf(s.country), attempt, days: t.inactivity_days ?? 999,
-      balance: t.balance ?? null,
+      balance: t.balance ?? null, deudor: esDeudor,
     })
   }
 
@@ -166,7 +176,7 @@ async function run(dryRun: boolean) {
   const sinPlantilla: string[] = []
 
   for (const c of hoy) {
-    const key = TEMPLATES[c.attempt]
+    const key = c.deudor ? TEMPLATE_DEUDA : TEMPLATES[c.attempt]
     const tpl = tplOf.get(`${key}|${c.lang}`)
     if (!tpl) { sinPlantilla.push(`${key}|${c.lang}`); continue }
     const usaDias = key === 'camila_retencion_dia7'   // la única que lleva los días

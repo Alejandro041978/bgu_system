@@ -51,7 +51,11 @@ insert into whatsapp_templates (key, language, bot_key) values
   ('camila_retencion_dia7',  'es', 'retencion'),
   ('camila_retencion_dia7',  'en', 'retencion'),
   ('camila_retencion_dia14', 'es', 'retencion'),
-  ('camila_retencion_dia14', 'en', 'retencion')
+  ('camila_retencion_dia14', 'en', 'retencion'),
+  -- Vía aparte para deudores: no entran porque les bloqueamos el aula, así que
+  -- la cadencia genérica ("¿por qué no has entrado?") no aplica.
+  ('camila_retencion_deuda', 'es', 'retencion'),
+  ('camila_retencion_deuda', 'en', 'retencion')
 on conflict (key, language) do nothing;
 
 -- ---------------------------------------------------------------------------
