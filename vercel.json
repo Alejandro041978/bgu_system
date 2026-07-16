@@ -21,6 +21,10 @@
       "schedule": "20 5 * * *"
     },
     {
+      "path": "/api/cron/sofia-supervisor?bot=retencion",
+      "schedule": "30 5 * * *"
+    },
+    {
       "path": "/api/cron/student-tracking",
       "schedule": "30 4 * * *"
     },

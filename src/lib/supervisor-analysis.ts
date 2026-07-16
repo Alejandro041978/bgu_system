@@ -91,8 +91,89 @@ export async function analyzeSupervisor(botKey: string, dateParam?: string | nul
 
   const isSales = botRole === 'ventas'
   const isInbox = botRole === 'inbox'
+  const isRetention = botRole === 'retencion'
 
-  const analysisPrompt = isInbox
+  // Camila es el único bot cuyo trabajo se puede contrastar con la realidad:
+  // prometió que volvería el día X, y el aula dice si volvió. Sin esto, el
+  // supervisor sólo opinaría sobre si suena simpática.
+  let retentionStats = ''
+  if (isRetention) {
+    const { data: tr } = await db.from('student_tracking')
+      .select('last_outcome, last_outcome_at, commitment_date, commitment_kept, do_not_contact, contact_attempts')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = (tr ?? []) as any[]
+    const hoy = rows.filter(r => r.last_outcome_at && String(r.last_outcome_at).slice(0, 10) === dateStr)
+    const cuenta = (arr: typeof rows) => arr.reduce((a: Record<string, number>, r) => {
+      const k = r.last_outcome ?? '(sin clasificar)'; a[k] = (a[k] ?? 0) + 1; return a
+    }, {})
+    const verificados = rows.filter(r => r.commitment_kept !== null)
+    const cumplidos = verificados.filter(r => r.commitment_kept === true).length
+    const objeciones = cuenta(rows.filter(r => String(r.last_outcome ?? '').startsWith('objecion_')))
+
+    retentionStats = `
+RESULTADOS DE HOY (${dateStr}) — clasificación que la propia ${botName} asignó:
+${Object.entries(cuenta(hoy)).map(([k, v]) => `- ${k}: ${v}`).join('\n') || '- (sin diálogos clasificados hoy)'}
+
+PROMESAS CONTRA REALIDAD (acumulado, verificado contra la última conexión al aula):
+- Compromisos ya vencidos y verificados: ${verificados.length}
+- Cumplieron (volvieron al aula): ${cumplidos}
+- Incumplieron: ${verificados.length - cumplidos}
+${verificados.length ? `- Tasa real de cumplimiento: ${Math.round(cumplidos / verificados.length * 100)}%` : ''}
+
+TRABAS DETECTADAS (acumulado):
+${Object.entries(objeciones).map(([k, v]) => `- ${k}: ${v}`).join('\n') || '- (ninguna todavía)'}
+
+Estudiantes que pidieron no ser contactados: ${rows.filter(r => r.do_not_contact).length}
+`
+  }
+
+  const analysisPrompt = isRetention
+    ? `Eres el supervisor de ${botName}, el bot de RETENCIÓN de Blackwell Global University (BGU). Analiza sus conversaciones del ${dateStr}.
+
+${botName} no atiende consultas: busca a estudiantes que dejaron de entrar al aula y trabaja para que retomen. En las conversaciones "Usuario" es el estudiante y "${botName}" es el bot.
+
+SU ÉXITO NO ES QUE LE DIGAN QUE SÍ. Es que el estudiante VUELVA AL AULA. Un "sí, ya voy a entrar" dicho para que deje de escribir no vale nada. Evalúala contra eso, no contra si sonó amable.
+
+ESTADÍSTICAS DEL DÍA:
+- Conversaciones: ${convList.length}
+- Mensajes: ${totalMessages}
+- Canales: ${Object.entries(sourceMap).map(([s, n]) => `${s}(${n})`).join(', ')}
+${retentionStats}
+SU BASE DE CONOCIMIENTOS ACTUAL:
+${kbInventory}
+
+MUESTRA DE CONVERSACIONES (${Math.min(convList.length, 50)} de ${convList.length}):
+${convSamples}
+
+Entrega el análisis en estas secciones:
+
+SECCIÓN 1 - RESUMEN EJECUTIVO:
+Qué pasó hoy y, sobre todo, si está reteniendo de verdad. Contrasta los compromisos que consiguió con los que se cumplieron. Si la tasa real de cumplimiento es baja, dilo sin rodeos: significa que está consiguiendo promesas de cortesía, no retención.
+
+SECCIÓN 2 - FORTALEZAS:
+Qué hizo bien. Prioriza los casos donde encontró la traba real y la desarmó, no donde fue simpática.
+
+SECCIÓN 3 - DEBILIDADES Y FALLOS:
+Errores concretos. Revisa especialmente estos guardarraíles, que son los que más daño hacen si falla:
+a) ¿ADVIRTIÓ ANTES DE PREGUNTAR? Nunca debe asumir el motivo de la ausencia; su primer mensaje abre preguntando.
+b) ¿INSISTIÓ EN UN CASO DE SALUD, DUELO O PROBLEMA GRAVE? Ahí debe detenerse, no presionar.
+c) ¿SIGUIÓ ESCRIBIENDO DESPUÉS DE UN "NO" o de que anunciaran su retiro? Debe soltar y pasarlo a la llamada humana.
+d) ¿USÓ LA DEUDA COMO AMENAZA? Puede hablar de dinero, pero como obstáculo a quitar, nunca como presión.
+e) ¿PROMETIÓ ALGO QUE NO ESTÁ EN SU BASE? (condonaciones, becas, plazos). Especial atención al LOA: debe decir SIEMPRE que obliga a volver al inicio del próximo semestre y que si no vuelve pierde su beca. Presentarlo como una pausa sin costo es un daño real al estudiante.
+f) ¿SE CONFORMÓ CON UNA INTENCIÓN SIN FECHA? Todo compromiso va con fecha concreta.
+
+SECCIÓN 4 - TEMAS FRECUENTES:
+Las trabas que aparecieron y con qué frecuencia. Esto es la CAUSA DE DESERCIÓN: es el dato más valioso que produce ${botName}. Di qué está empujando a la gente a irse.
+
+SECCIÓN 5 - RECOMENDACIONES PARA EL PROMPT (fallos de COMPORTAMIENTO):
+Cambios al prompt para que retenga mejor: cómo abrir, cómo insistir sin quemar, cómo pedir la fecha, cuándo soltar. Texto exacto sugerido. NO incluyas aquí datos que le falten — eso va en la sección 6.
+
+SECCIÓN 6 - VACÍOS DE CONOCIMIENTO (fallos por FALTA DE INFORMACIÓN):
+Casos donde falló porque NO TENÍA el dato. Compara lo que preguntaron contra su BASE actual. Para cada vacío sugiere título del artículo y qué debe contener.
+
+SECCIÓN 7 - SCORE DE CALIDAD:
+Del 1 al 10. Pondera la RECONEXIÓN REAL por encima de todo; después el respeto a los guardarraíles; y sólo al final el tono. Un bot encantador que no logra que nadie vuelva no aprueba.`
+    : isInbox
     ? `Eres un supervisor de calidad del equipo HUMANO de Servicio al Estudiante de Blackwell Global University (BGU). Analiza las conversaciones atendidas por AGENTES HUMANOS (canal WhatsApp y correo) del día ${dateStr} y evalúa la calidad de la atención.
 
 En las conversaciones, "Usuario" es el estudiante/cliente y "${botName}" representa las respuestas del AGENTE HUMANO del equipo.
