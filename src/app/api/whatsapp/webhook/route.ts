@@ -3,6 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { createZohoTicket } from '@/app/api/chat/route'
 import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
+import { buildRetentionContext } from '@/lib/retention-context'
+import { splitReply, recordOutcome } from '@/lib/retention-outcome'
 import { getBotByTwilioNumber, getBot, type Bot } from '@/lib/bots'
 import { extractAndSaveLead } from '@/lib/sales-leads'
 import { autoAssign } from '@/lib/inbox-assign'
@@ -290,6 +292,126 @@ async function receiveInboxMessage(from: string, body: string, inboxKey: string,
   await sendWhatsApp(from, gate, creds)
 }
 
+// ── Flujo de retención (Camila) ────────────────────────────────────────────────
+// Tiene su propio camino porque el de Sofía haría todo mal con ella: la mandaría
+// a "identifícate, soy Sofia" (a alguien a quien NOSOTROS le escribimos primero,
+// por su nombre), buscaría en la base de Sofía en vez de la suya, le mostraría el
+// código [[R: ...]] al estudiante y no clasificaría nada.
+//
+// Camila SÍ puede derivar a un humano (request_human): si no sabe algo, el
+// estudiante no puede quedar en el aire justo cuando estaba por irse.
+// No propone tickets de Zoho: eso es trabajo de Sofía.
+
+// Nos escriben desde el teléfono al que les escribimos: la identificación es el
+// número, no un interrogatorio.
+//
+// El formato guardado varía muchísimo (con/sin código de país, 8 a 13 dígitos),
+// así que hay que comparar por la cola. PERO hay estudiantes distintos que
+// comparten los últimos 8 dígitos: devolver "el primero que aparezca" haría que
+// Camila le hablara a Karen con la deuda de Diego. Eso es una fuga de datos
+// personales, no una imprecisión.
+//
+// Por eso: sólo se identifica cuando la coincidencia es ÚNICA. Ante cualquier
+// duda se devuelve null y Camila responde sin contexto — degradada, pero sin
+// mostrarle a nadie los datos de otro.
+async function findStudentByPhone(phone: string): Promise<{ id: string; first_name: string | null } | null> {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length < 8) return null
+  const sb = db()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let all: any[] = []
+  for (let f = 0; ; f += 1000) {
+    const { data } = await sb.from('academic_students')
+      .select('id, first_name, phone_number').not('phone_number', 'is', null).range(f, f + 999)
+    const r = data ?? []
+    all = all.concat(r)
+    if (r.length < 1000) break
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const norm = (s: any) => String(s.phone_number).replace(/\D/g, '')
+
+  // 1) Coincidencia exacta de todos los dígitos: la más confiable.
+  const exactos = all.filter(s => norm(s) === digits)
+  if (exactos.length === 1) return exactos[0]
+  if (exactos.length > 1) return null   // duplicado real: no adivinar
+
+  // 2) Por los últimos 8 dígitos, sólo si es inequívoca.
+  const tail = digits.slice(-8)
+  const cola = all.filter(s => norm(s).length >= 8 && norm(s).endsWith(tail))
+  return cola.length === 1 ? cola[0] : null
+}
+
+async function runRetentionFlow(from: string, body: string, bot: Bot) {
+  const creds: TwilioCreds = {
+    from:  bot.twilio_number ?? undefined,
+    sid:   bot.twilio_account_sid ?? undefined,
+    token: bot.twilio_auth_token ?? undefined,
+  }
+  const sb = db()
+  try {
+    const session = await getSession(from, bot.key)
+    session.messages.push({ role: 'user', content: body })
+
+    const phone = from.replace('whatsapp:', '')
+    const student = await findStudentByPhone(phone)
+
+    // Contexto real: días de ausencia, saldo, evaluaciones pendientes, nivel.
+    // Sin esto Camila habla al vacío y no puede desarmar ninguna traba.
+    const ctx = student ? await buildRetentionContext(sb, student.id) : null
+
+    const knowledgeContext = await buildKnowledgeContext(body, bot.key)
+    const systemPrompt = [bot.prompt, ctx?.text, knowledgeContext].filter(Boolean).join('\n\n')
+
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+    const aiResponse = await client.messages.create({
+      model:       'claude-opus-4-8',
+      max_tokens:  1024,
+      system:      systemPrompt,
+      tools:       [REQUEST_HUMAN_TOOL],
+      tool_choice: { type: 'auto' },
+      messages:    session.messages.slice(-MAX_HISTORY),
+    })
+
+    let rawText = ''
+    let humanRequest: { summary: string; language: string; topic: string } | null = null
+    for (const block of aiResponse.content) {
+      if (block.type === 'text') rawText += block.text
+      else if (block.type === 'tool_use' && block.name === 'request_human') {
+        humanRequest = block.input as { summary: string; language: string; topic: string }
+      }
+    }
+
+    // El código de clasificación JAMÁS puede llegarle al estudiante.
+    const { reply: cleanReply, outcome } = splitReply(rawText)
+
+    if (humanRequest) {
+      const { link } = await createHandoff(from, bot.key, humanRequest.summary, humanRequest.language, humanRequest.topic ?? 'otro',
+        student ? { name: student.first_name ?? 'Estudiante', role: 'estudiante' } : undefined)
+      const msg = link
+        ? `${cleanReply ? cleanReply + '\n\n' : ''}Te conecto con un asesor 👤\n\nToca aquí para continuar:\n${link}`
+        : (cleanReply || 'Déjame consultarlo con un asesor y te escribo.')
+      session.messages.push({ role: 'assistant', content: msg })
+      await saveSession(from, bot.key, session)
+      for (const chunk of splitMessage(msg)) await sendWhatsApp(from, chunk, creds)
+    } else {
+      const reply = cleanReply || 'Disculpa, ¿me repites eso?'
+      session.messages.push({ role: 'assistant', content: reply })
+      await saveSession(from, bot.key, session)
+      for (const chunk of splitMessage(reply)) await sendWhatsApp(from, chunk, creds)
+    }
+
+    // Clasificar: es el verdadero producto de Camila. Guarda el compromiso con
+    // su fecha, la traba detectada, y si anuncia retiro abre el expediente para
+    // la llamada humana.
+    if (student && outcome) {
+      await recordOutcome(sb, student.id, outcome).catch(e => console.error('recordOutcome', e))
+    }
+  } catch (err) {
+    console.error('runRetentionFlow error:', err)
+    await sendWhatsApp(from, 'Disculpa, tuve un inconveniente. ¿Puedes escribirme de nuevo?', creds)
+  }
+}
+
 // ── Flujo de ventas (Antonella) ────────────────────────────────────────────────
 // Sin identificación de estudiante: conversa, vende y registra el prospecto en
 // sales_leads en segundo plano (el embudo lo maneja el extractor de leads).
@@ -375,6 +497,14 @@ export async function POST(req: NextRequest) {
   // ── Bots de ventas (Antonella): flujo comercial con embudo ─────────────────
   if (routedBot && routedBot.role === 'ventas') {
     await runSalesFlow(from, body, routedBot)
+    return twimlOk()
+  }
+
+  // ── Retención (Camila): flujo propio ───────────────────────────────────────
+  // Sin esto caía en el de Sofía, que le pediría identificarse a alguien a quien
+  // nosotros le escribimos primero por su nombre.
+  if (routedBot && routedBot.role === 'retencion') {
+    await runRetentionFlow(from, body, routedBot)
     return twimlOk()
   }
 
