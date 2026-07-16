@@ -68,3 +68,15 @@ create table if not exists retention_settings (
   check (id = 1)
 );
 insert into retention_settings (id) values (1) on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Deudores: fuera de la campaña por ahora.
+--   Con saldo pendiente se les RESTRINGE el acceso al aula. O sea que no entran
+--   porque los bloqueamos nosotros: preguntarles "¿por qué no has entrado?" con
+--   la plantilla genérica es ofensivo y no lleva a nada.
+--   Son el 74% del grupo de 7-13 días — justo al que la campaña prioriza.
+--   Necesitan otra conversación: "tu acceso está restringido por el saldo, y con
+--   un compromiso de pago te lo liberamos". Eso requiere su propia plantilla.
+--   Se enciende cuando esa plantilla esté aprobada.
+-- ---------------------------------------------------------------------------
+alter table retention_settings add column if not exists contact_debtors boolean not null default false;

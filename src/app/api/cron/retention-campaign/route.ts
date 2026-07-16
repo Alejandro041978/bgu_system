@@ -93,7 +93,7 @@ async function run(dryRun: boolean) {
 
   type Cand = { id: string; name: string; phone: string; lang: string; attempt: number; days: number }
   const cands: Cand[] = []
-  const skip = { no_activo: 0, sin_telefono: 0, sin_nombre: 0, do_not_contact: 0, con_expediente: 0, agotados: 0, aun_no_toca: 0, conversando: 0, con_compromiso: 0 }
+  const skip = { no_activo: 0, sin_telefono: 0, sin_nombre: 0, deudor: 0, do_not_contact: 0, con_expediente: 0, agotados: 0, aun_no_toca: 0, conversando: 0, con_compromiso: 0 }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const t of tracking as any[]) {
@@ -104,6 +104,12 @@ async function run(dryRun: boolean) {
     if (!s.phone_number) { skip.sin_telefono++; continue }
     if (t.do_not_contact) { skip.do_not_contact++; continue }
     if (conExpediente.has(t.student_id)) { skip.con_expediente++; continue } // lo gestiona un humano
+
+    // Con saldo pendiente se les restringe el acceso al aula: no entran porque
+    // los bloqueamos nosotros. Preguntarles "¿por qué no has entrado?" con la
+    // plantilla genérica es ofensivo e inútil. Necesitan otra conversación
+    // ("con un compromiso de pago te libero el acceso") y su propia plantilla.
+    if (!cfg?.contact_debtors && (t.balance ?? 0) > 0.005) { skip.deudor++; continue }
 
     // Ya está conversando: la ventana de 24h se maneja libre, sin plantillas.
     if (t.last_outcome_at && now - new Date(t.last_outcome_at).getTime() < 7 * DAY) { skip.conversando++; continue }
