@@ -82,17 +82,16 @@ const REQUEST_HUMAN_TOOL: Anthropic.Tool = {
 
 const HANDOFF_INSTRUCTION = `\n\nDERIVACIÓN A UN ASESOR HUMANO: Si el usuario pide hablar con una persona/asesor, NO lo derives de inmediato. Primero pregúntale de forma amable cuál es su tema o consulta (si aún no lo ha explicado). Solo cuando tengas claro el motivo real, usa la herramienta request_human con un resumen útil para el asesor. Nunca derives sin haber entendido qué necesita.`
 
-// Camila necesita su propia versión del handoff. La de Sofía dice literalmente
-// "NO la uses si simplemente no puedes resolver algo — para eso propón un
-// ticket": una regla razonable para soporte (el usuario vino a preguntar y
-// volverá a insistir) y desastrosa para retención.
+// Camila sigue el mismo modelo que Sofía —pide un humano: escalar; no puedo
+// responder: ticket— con UNA excepción: cuando lo que traba al estudiante es la
+// deuda y el aula bloqueada. Ahí un ticket lo deja esperando afuera, mientras
+// que la gestión es inmediata (un compromiso de pago libera el acceso).
 //
-// El interlocutor de Camila ESTABA POR IRSE. Un "no lo sé" sin salida es la
-// excusa perfecta para no volver: la conversación muere y el estudiante también.
-// Por eso ella escala justo en el caso que Sofía tiene prohibido.
+// TEMPORAL: esa excepción desaparece cuando exista el formulario que libera el
+// acceso automáticamente. Ese día, Camila manda el enlace y no escala a nadie.
 const RETENTION_HUMAN_TOOL: Anthropic.Tool = {
   name: 'request_human',
-  description: 'Pasa la conversación a un asesor humano del equipo de Servicio al Estudiante. Úsala en DOS casos: (1) el estudiante pide hablar con una persona; (2) NO PUEDES RESOLVER algo que lo está frenando — no tienes el dato, es un caso particular, o necesita una gestión que tú no haces (liberar un acceso, acordar un plan de pago concreto, revisar su situación). ESTO ES CLAVE: estás hablando con alguien que está a punto de abandonar sus estudios. Dejarlo con un "no lo sé" es perderlo. Antes de llamarla, asegúrate de entender QUÉ necesita para poder resumirlo bien. Nunca la uses si el estudiante ya anunció que se retira: en ese caso no derives, dile que un asesor lo llamará.',
+  description: 'Pasa la conversación EN VIVO a un asesor humano. Úsala SÓLO en dos casos: (1) el estudiante pide explícitamente hablar con una persona; (2) su acceso al aula está bloqueado por deuda y necesita que se lo liberen ahora — eso se gestiona al momento con un compromiso de pago, y un ticket lo dejaría esperando afuera del aula. Para CUALQUIER OTRA cosa que no puedas responder, NO uses esta herramienta: usa propose_ticket. Nunca la uses si el estudiante ya anunció que se retira: en ese caso no derives, dile que un asesor lo llamará.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -372,6 +371,31 @@ async function runRetentionFlow(from: string, body: string, bot: Bot) {
   const sb = db()
   try {
     const session = await getSession(from, bot.key)
+
+    // ¿Estaba esperando que confirmara un ticket? Mismo patrón que Sofía: nunca
+    // se crea sin un sí explícito.
+    if (session.pendingTicket) {
+      const lower = body.toLowerCase().trim()
+      if (['sí', 'si', 'yes', 'confirmo', 'confirmar', 'ok', 'dale', '👍'].includes(lower)) {
+        const t = await createInboxTicket({ ...session.pendingTicket, phone: from, botKey: bot.key })
+        const reply = `Listo, registré tu caso 📋 *Caso #${t.caseNumber ?? 'S/N'}*\n\nUn asesor te va a contactar. Mientras tanto, cuenta conmigo para lo que necesites.`
+        session.pendingTicket = undefined
+        session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: reply })
+        await saveSession(from, bot.key, session)
+        await sendWhatsApp(from, reply, creds)
+        return
+      }
+      if (['no', 'cancelar', 'cancel', 'nope', '👎'].includes(lower)) {
+        const reply = 'Entendido, no lo registro. ¿Hay algo más en lo que te pueda ayudar?'
+        session.pendingTicket = undefined
+        session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: reply })
+        await saveSession(from, bot.key, session)
+        await sendWhatsApp(from, reply, creds)
+        return
+      }
+      // Si no fue un sí/no claro, sigue la conversación normal.
+    }
+
     session.messages.push({ role: 'user', content: body })
 
     const phone = from.replace('whatsapp:', '')
@@ -389,17 +413,20 @@ async function runRetentionFlow(from: string, body: string, bot: Bot) {
       model:       'claude-opus-4-8',
       max_tokens:  1024,
       system:      systemPrompt,
-      tools:       [RETENTION_HUMAN_TOOL],
+      tools:       [RETENTION_HUMAN_TOOL, TICKET_TOOL],
       tool_choice: { type: 'auto' },
       messages:    session.messages.slice(-MAX_HISTORY),
     })
 
     let rawText = ''
     let humanRequest: { summary: string; language: string; topic: string } | null = null
+    let proposedTicket: PendingTicket | null = null
     for (const block of aiResponse.content) {
       if (block.type === 'text') rawText += block.text
       else if (block.type === 'tool_use' && block.name === 'request_human') {
         humanRequest = block.input as { summary: string; language: string; topic: string }
+      } else if (block.type === 'tool_use' && block.name === 'propose_ticket') {
+        proposedTicket = block.input as PendingTicket
       }
     }
 
@@ -412,6 +439,13 @@ async function runRetentionFlow(from: string, body: string, bot: Bot) {
       const msg = link
         ? `${cleanReply ? cleanReply + '\n\n' : ''}Te conecto con un asesor 👤\n\nToca aquí para continuar:\n${link}`
         : (cleanReply || 'Déjame consultarlo con un asesor y te escribo.')
+      session.messages.push({ role: 'assistant', content: msg })
+      await saveSession(from, bot.key, session)
+      for (const chunk of splitMessage(msg)) await sendWhatsApp(from, chunk, creds)
+    } else if (proposedTicket) {
+      // No sabe responder: se registra el caso en el buzón, previa confirmación.
+      session.pendingTicket = proposedTicket
+      const msg = `${cleanReply ? cleanReply + '\n\n' : ''}¿Quieres que registre tu caso para que un asesor lo revise y te contacte? (responde *sí* o *no*)`
       session.messages.push({ role: 'assistant', content: msg })
       await saveSession(from, bot.key, session)
       for (const chunk of splitMessage(msg)) await sendWhatsApp(from, chunk, creds)
