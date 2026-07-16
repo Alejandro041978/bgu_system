@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Loader2, Plus } from 'lucide-react'
 
 interface Concept { kind: string; type_code: number; n: number; abbr: string | null; name: string | null }
 
@@ -36,6 +36,22 @@ export function AccountConceptsManager() {
     setTimeout(() => setSavedKey(k => (k === key ? null : k)), 1500)
   }
 
+  // Alta de un concepto nuevo (código propio asignado por el servidor)
+  const [newAbbr, setNewAbbr] = useState('')
+  const [newName, setNewName] = useState('')
+  const [creating, setCreating] = useState(false)
+  async function create() {
+    if (!newName.trim() && !newAbbr.trim()) return
+    setCreating(true)
+    const res = await fetch('/api/account/concepts', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ create: true, kind: 'charge', abbr: newAbbr, name: newName }),
+    })
+    setCreating(false)
+    if (!res.ok) { const d = await res.json(); alert(d.error ?? 'No se pudo crear'); return }
+    setNewAbbr(''); setNewName(''); load()
+  }
+
   if (loading) return <p className="text-center text-gray-400 py-10 text-sm">Cargando…</p>
 
   const groups: { kind: string; label: string }[] = [
@@ -49,6 +65,28 @@ export function AccountConceptsManager() {
         Define la <b>abreviatura</b> (columna Concepto) y el <b>nombre completo</b> (tooltip) de cada tipo.
         La columna <b>#</b> indica cuántos registros usan ese tipo.
       </p>
+
+      {/* Alta de concepto nuevo (para cargos que genera el ERP, ej. documentos) */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <p className="text-sm font-semibold text-blue-800 mb-2">Nuevo concepto de cargo</p>
+        <div className="flex flex-wrap items-end gap-2">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Abreviatura</label>
+            <input value={newAbbr} onChange={e => setNewAbbr(e.target.value)} maxLength={8} placeholder="Ej. StudCard"
+              className="w-32 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div className="flex-1 min-w-[220px]">
+            <label className="block text-xs text-gray-600 mb-1">Nombre completo</label>
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej. International Student Card"
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <button onClick={create} disabled={creating || (!newName.trim() && !newAbbr.trim())}
+            className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Crear
+          </button>
+        </div>
+        <p className="text-[11px] text-gray-400 mt-2">Se le asigna un código propio (≥1000) y queda disponible de inmediato en el desplegable de tipos de documento.</p>
+      </div>
       {groups.map(g => {
         const list = rows.filter(r => r.kind === g.kind)
         if (list.length === 0) return null
