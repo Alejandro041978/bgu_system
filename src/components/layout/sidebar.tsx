@@ -74,6 +74,7 @@ const navigation: NavGroup[] = [
     label: 'Académico',
     items: [
       { name: 'Seguimiento estudiantil', href: '/academic/seguimiento', icon: Activity, pageKey: 'academic_tracking' },
+      { name: 'Camila · Tablero', href: '/academic/camila', icon: Gauge, pageKey: 'academic_camila' },
       { name: 'Retención', href: '/academic/retencion', icon: HeartHandshake, pageKey: 'academic_retention' },
       { name: 'Retiros', href: '/academic/retiros', icon: UserMinus, pageKey: 'academic_withdrawals' },
       {
