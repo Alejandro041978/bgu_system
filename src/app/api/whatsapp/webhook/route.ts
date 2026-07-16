@@ -5,6 +5,7 @@ import { createInboxTicket } from '@/lib/inbox-ticket'
 import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
 import { buildRetentionContext } from '@/lib/retention-context'
 import { splitReply, recordOutcome } from '@/lib/retention-outcome'
+import { extractMedia, fetchMediaBlocks, messagesWithMedia, type MediaResult } from '@/lib/twilio-media'
 import { getBotByTwilioNumber, getBot, type Bot } from '@/lib/bots'
 import { extractAndSaveLead } from '@/lib/sales-leads'
 import { autoAssign } from '@/lib/inbox-assign'
@@ -362,7 +363,7 @@ async function findStudentByPhone(phone: string): Promise<{ id: string; first_na
   return cola.length === 1 ? cola[0] : null
 }
 
-async function runRetentionFlow(from: string, body: string, bot: Bot) {
+async function runRetentionFlow(from: string, body: string, bot: Bot, media: MediaResult | null = null) {
   const creds: TwilioCreds = {
     from:  bot.twilio_number ?? undefined,
     sid:   bot.twilio_account_sid ?? undefined,
@@ -415,7 +416,7 @@ async function runRetentionFlow(from: string, body: string, bot: Bot) {
       system:      systemPrompt,
       tools:       [RETENTION_HUMAN_TOOL, TICKET_TOOL],
       tool_choice: { type: 'auto' },
-      messages:    session.messages.slice(-MAX_HISTORY),
+      messages:    messagesWithMedia(session.messages.slice(-MAX_HISTORY), media),
     })
 
     let rawText = ''
@@ -471,7 +472,7 @@ async function runRetentionFlow(from: string, body: string, bot: Bot) {
 // ── Flujo de ventas (Antonella) ────────────────────────────────────────────────
 // Sin identificación de estudiante: conversa, vende y registra el prospecto en
 // sales_leads en segundo plano (el embudo lo maneja el extractor de leads).
-async function runSalesFlow(from: string, body: string, bot: Bot) {
+async function runSalesFlow(from: string, body: string, bot: Bot, media: MediaResult | null = null) {
   const creds: TwilioCreds = {
     from:  bot.twilio_number ?? undefined,
     sid:   bot.twilio_account_sid ?? undefined,
@@ -489,7 +490,7 @@ async function runSalesFlow(from: string, body: string, bot: Bot) {
       model:      'claude-opus-4-8',
       max_tokens: 1024,
       system:     systemPrompt,
-      messages:   session.messages.slice(-MAX_HISTORY),
+      messages:   messagesWithMedia(session.messages.slice(-MAX_HISTORY), media),
     })
 
     const reply = aiResponse.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('').trim()
@@ -521,7 +522,12 @@ export async function POST(req: NextRequest) {
   const body       = params['Body']?.trim()
   const accountSid = params['AccountSid']
 
-  if (!from || !body) return twimlOk()
+  // Media adjunta (imágenes / PDF). Antes se ignoraba: un mensaje con SOLO una
+  // foto (comprobante, error del aula) caía en el corte de abajo y no recibía
+  // respuesta. Ahora se procesa aunque no traiga texto.
+  const media = extractMedia(params)
+
+  if (!from || (!body && media.length === 0)) return twimlOk()
 
   // ── Enrutamiento por número de destino: ¿qué bot recibió el mensaje? ────────
   const routedBot = await getBotByTwilioNumber(to)
@@ -542,6 +548,12 @@ export async function POST(req: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
+  // Descargar la media (ya validada la firma). El texto efectivo es el body o,
+  // si vino sólo un archivo, una nota de qué se adjuntó — así el historial nunca
+  // queda vacío.
+  const mediaResult = media.length ? await fetchMediaBlocks(media, botCreds) : null
+  const effectiveBody = (body && body.length) ? body : (mediaResult?.note || '')
+
   // ── Comando de reinicio (solo pruebas) ─────────────────────────────────────
   const RESET_KEY = '#reiniciar-sofia-bgu-4917'
   if (body === RESET_KEY) {
@@ -552,7 +564,7 @@ export async function POST(req: NextRequest) {
 
   // ── Bots de ventas (Antonella): flujo comercial con embudo ─────────────────
   if (routedBot && routedBot.role === 'ventas') {
-    await runSalesFlow(from, body, routedBot)
+    await runSalesFlow(from, effectiveBody, routedBot, mediaResult)
     return twimlOk()
   }
 
@@ -560,19 +572,22 @@ export async function POST(req: NextRequest) {
   // Sin esto caía en el de Sofía, que le pediría identificarse a alguien a quien
   // nosotros le escribimos primero por su nombre.
   if (routedBot && routedBot.role === 'retencion') {
-    await runRetentionFlow(from, body, routedBot)
+    await runRetentionFlow(from, effectiveBody, routedBot, mediaResult)
     return twimlOk()
   }
 
   // ── Buzón compartido (equipo humano): puerta dura + código de enlace ─────────
   if (routedBot && routedBot.role === 'inbox') {
-    await receiveInboxMessage(from, body, routedBot.key, botCreds)
+    await receiveInboxMessage(from, effectiveBody, routedBot.key, botCreds)
     return twimlOk()
   }
 
   try {
     const session = await getSession(from, botKey)
-    const lower   = body.toLowerCase().trim()
+    // Dentro del flujo de Sofía, 'body' es el texto efectivo (o la nota de la
+    // media, si vino sólo un archivo). Sombrea al externo, que puede ser vacío.
+    const body    = effectiveBody
+    const lower   = effectiveBody.toLowerCase().trim()
 
     // ── 0. Auto-identify by phone / email / código en academic_students ───────
     if (!session.identified) {
@@ -653,7 +668,7 @@ export async function POST(req: NextRequest) {
         system:       ONBOARDING_PROMPT,
         tools:        [IDENTIFY_TOOL],
         tool_choice:  { type: 'auto' },
-        messages:     session.messages.slice(-10),
+        messages:     messagesWithMedia(session.messages.slice(-10), mediaResult),
       })
 
       let replyText    = ''
@@ -706,7 +721,7 @@ export async function POST(req: NextRequest) {
       system:      [masterPrompt + userContext + HANDOFF_INSTRUCTION, knowledgeContext].filter(Boolean).join('\n\n'),
       tools:       [TICKET_TOOL, REQUEST_HUMAN_TOOL],
       tool_choice: { type: 'auto' },
-      messages:    session.messages.slice(-MAX_HISTORY),
+      messages:    messagesWithMedia(session.messages.slice(-MAX_HISTORY), mediaResult),
     })
 
     let replyText    = ''
