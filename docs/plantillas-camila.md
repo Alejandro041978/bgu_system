@@ -120,6 +120,45 @@ Would you rather I help you get back on track, or request the pause?
 
 ---
 
+## 5. `camila_retencion_deuda` · UTILITY — pendiente de crear
+
+Los deudores necesitan otra conversación y por eso están fuera de la campaña
+(`retention_settings.contact_debtors = false`) hasta que esta plantilla exista.
+
+**Por qué:** con saldo pendiente se les **restringe el acceso al aula**. No es que no
+entren: es que **no pueden**, porque los bloqueamos nosotros. Son el 74% del grupo de
+7-13 días — justo al que la campaña prioriza. Mandarles el `dia1` genérico
+("¿por qué no has entrado?") es preguntarle a alguien por qué no entra a un sitio
+del que lo sacamos.
+
+**Cuerpo:**
+```
+Hola {{name}}, soy Camila, del equipo de Acompañamiento Académico de Blackwell Global University.
+
+Vi que tu acceso al aula está restringido por un saldo pendiente. No necesitas pagarlo todo para volver a entrar: con un compromiso de pago que puedas cumplir, te libero el acceso.
+
+¿Lo vemos juntos?
+```
+- `{{name}}` = nombre del estudiante · ejemplo: `Ana`
+
+**Inglés:**
+```
+Hi {{name}}, I'm Camila, from the Academic Support team at Blackwell Global University.
+
+I saw that your classroom access is restricted because of an outstanding balance. You don't need to pay it all to get back in: with a payment arrangement you can actually keep, I can restore your access.
+
+Shall we sort it out together?
+```
+
+> No pregunta nada: le dice al estudiante exactamente qué le pasa y le ofrece la
+> salida en tres líneas. Debería tener mejor respuesta que las otras cuatro, porque
+> es la única que llega con la solución en la mano en vez de con una pregunta.
+> Y no menciona el monto a propósito: el saldo se conversa, no se echa en cara.
+
+Cuando esté aprobada: sincronizar y encender `contact_debtors`.
+
+---
+
 ## Recomendación: pie de baja
 
 Considera añadir en las plantillas 2, 3 y 4:
