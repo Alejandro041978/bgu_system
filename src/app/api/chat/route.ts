@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
+import { createInboxTicket } from '@/lib/inbox-ticket'
 import { parseOutcome, stripOutcome, recordOutcome } from '@/lib/retention-outcome'
 import { getBot } from '@/lib/bots'
 import { extractAndSaveLead } from '@/lib/sales-leads'
@@ -19,106 +20,10 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-async function getZohoToken(): Promise<string> {
-  const body = new URLSearchParams({
-    refresh_token: process.env.ZOHO_REFRESH_TOKEN!,
-    client_id: process.env.ZOHO_CLIENT_ID!,
-    client_secret: process.env.ZOHO_CLIENT_SECRET!,
-    grant_type: 'refresh_token',
-  })
-  const resp = await fetch('https://accounts.zoho.com/oauth/v2/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  })
-  const json = await resp.json() as { access_token?: string }
-  return json.access_token ?? ''
-}
-
-async function findOrCreateContact(token: string, params: {
-  email?: string
-  phone?: string
-  firstName?: string
-  lastName?: string
-}): Promise<string> {
-  const orgId = process.env.ZOHO_ORGANIZATION_ID!
-  const headers = {
-    'Authorization': `Zoho-oauthtoken ${token}`,
-    'orgId': orgId,
-    'Content-Type': 'application/json',
-  }
-
-  // Intentar buscar por email primero
-  if (params.email) {
-    try {
-      const searchResp = await fetch(
-        `https://desk.zoho.com/api/v1/contacts/search?email=${encodeURIComponent(params.email)}`,
-        { headers }
-      )
-      if (searchResp.ok) {
-        const searchData = await searchResp.json() as { count: number; data: { id: string }[] }
-        if (searchData.count > 0) return searchData.data[0].id
-      }
-    } catch { /* si falla la búsqueda, continuar a crear */ }
-  }
-
-  // Crear nuevo contacto
-  const contactBody: Record<string, string> = {
-    lastName: params.lastName ?? params.firstName ?? 'Estudiante BGU',
-  }
-  if (params.firstName) contactBody.firstName = params.firstName
-  if (params.email) contactBody.email = params.email
-  if (params.phone) contactBody.phone = params.phone
-
-  const createResp = await fetch('https://desk.zoho.com/api/v1/contacts', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(contactBody),
-  })
-  const contact = await createResp.json() as { id: string }
-  return contact.id
-}
-
-export async function createZohoTicket(params: {
-  subject: string
-  description: string
-  contactName?: string
-  contactEmail?: string
-  phone?: string
-}) {
-  const token = await getZohoToken()
-  const orgId = process.env.ZOHO_ORGANIZATION_ID!
-
-  // Separar nombre en firstName / lastName
-  const nameParts = (params.contactName ?? '').trim().split(' ')
-  const firstName = nameParts.slice(0, -1).join(' ') || undefined
-  const lastName = nameParts[nameParts.length - 1] || 'Estudiante'
-
-  const contactId = await findOrCreateContact(token, {
-    email: params.contactEmail,
-    phone: params.phone,
-    firstName,
-    lastName,
-  })
-
-  const resp = await fetch('https://desk.zoho.com/api/v1/tickets', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Zoho-oauthtoken ${token}`,
-      'orgId': orgId,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      subject: params.subject,
-      description: params.description,
-      departmentId: '1095985000000006907',
-      channel: 'Chat',
-      contactId,
-    }),
-  })
-  const result = await resp.json() as { id?: string; ticketNumber?: string }
-  return result
-}
+// Los tickets se crean en el buzón del ERP (src/lib/inbox-ticket.ts), no en
+// Zoho Desk: Zoho ya no está en uso, y un ticket allá era invisible para el
+// número de caso, el SLA, la auto-asignación y el supervisor diario del buzón.
+// Se elimina aquí el cliente de Zoho (token, contactos, creación de tickets).
 
 // Herramienta que Claude usa para PROPONER un ticket (no crearlo — la confirmación la da el usuario en el frontend)
 const TICKET_TOOL: Anthropic.Tool = {
@@ -157,14 +62,16 @@ export async function POST(req: NextRequest) {
     const { messages, contactEmail, studentContext, studentId, sessionId, source, confirmTicket } = body
     const botKey = body.bot ?? 'sofia'
 
-    // Si el usuario confirmó la creación del ticket, crearlo directamente
+    // Si el usuario confirmó la creación del ticket, crearlo directamente.
+    // Va al buzón del ERP, no a Zoho Desk (que ya no está en uso).
     if (confirmTicket) {
       try {
-        const ticket = await createZohoTicket({
+        const ticket = await createInboxTicket({
           ...confirmTicket,
           contactEmail,
+          botKey,
         })
-        return NextResponse.json({ ticketCreated: true, ticketNumber: ticket.ticketNumber }, { headers: CORS_HEADERS })
+        return NextResponse.json({ ticketCreated: true, ticketNumber: ticket.caseNumber ? `Caso #${ticket.caseNumber}` : null }, { headers: CORS_HEADERS })
       } catch (err) {
         return NextResponse.json({ error: String(err) }, { status: 500, headers: CORS_HEADERS })
       }

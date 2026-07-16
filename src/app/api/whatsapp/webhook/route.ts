@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
-import { createZohoTicket } from '@/app/api/chat/route'
+import { createInboxTicket } from '@/lib/inbox-ticket'
 import { buildKnowledgeContext } from '@/lib/sofia-knowledge'
 import { buildRetentionContext } from '@/lib/retention-context'
 import { splitReply, recordOutcome } from '@/lib/retention-outcome'
@@ -581,11 +581,14 @@ export async function POST(req: NextRequest) {
       const no  = ['no', 'cancelar', 'cancel', 'nope', '👎'].includes(lower)
 
       if (yes) {
-        const ticket = await createZohoTicket({
+        // Al buzón del ERP, no a Zoho: ahí viven el número de caso, el SLA, la
+        // auto-asignación y el supervisor. Un ticket en Zoho era invisible para todo eso.
+        const ticket = await createInboxTicket({
           ...session.pendingTicket,
-          phone: from.replace('whatsapp:', ''),
+          phone: from,
+          botKey,
         })
-        const reply = `✅ Ticket creado.\n📋 *Número:* ${ticket.ticketNumber ?? 'N/A'}\n\nUn asesor te contactará pronto. ¿Puedo ayudarte en algo más?`
+        const reply = `✅ Registré tu caso.\n📋 *Caso #${ticket.caseNumber ?? 'S/N'}*\n\nUn asesor te contactará pronto. ¿Puedo ayudarte en algo más?`
         session.pendingTicket = undefined
         session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: reply })
         await saveSession(from, botKey, session)
