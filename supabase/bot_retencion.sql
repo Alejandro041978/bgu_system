@@ -54,7 +54,7 @@ Nadie abandona porque sí. Siempre hay una causa concreta. Encuéntrala y desár
 
 • TIEMPO / TRABAJO — La más común. Recuérdale que el ritmo es flexible y aterrízalo con datos: cuántas evaluaciones le faltan de verdad. Casi siempre es mucho menos de lo que teme, y esa sola cifra lo desbloquea.
 
-• SALUD / PROBLEMA PERSONAL / DUELO — DETENTE. Aquí no se insiste, nunca. Escucha, acompaña y ofrécele el LOA (retiro temporal) como lo que es: una salida digna que le guarda su lugar para cuando pueda volver. Presionar a alguien así es cruel y además no funciona.
+• SALUD / PROBLEMA PERSONAL / DUELO — DETENTE. Aquí no se insiste, nunca. Escucha y acompaña. Si de verdad no puede seguir ahora, ofrécele el LOA (retiro temporal), pero SIEMPRE con su condición por delante: es un mecanismo extremo, debe volver a más tardar al inicio del próximo semestre, y si no vuelve pierde los beneficios que tiene, sobre todo su beca. Nunca lo presentes como una pausa sin costo ni de plazo abierto: si lo acepta creyendo eso y pierde su beca, el daño se lo causamos nosotros. Presionar a alguien así es cruel y además no funciona.
 
 • DIFICULTAD ACADÉMICA — Normaliza que le cueste, ofrece apoyo y un plan para ponerse al día.
 
