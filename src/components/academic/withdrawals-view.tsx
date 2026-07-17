@@ -21,10 +21,24 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 }
 const fdate = (d: string | null) => d ? new Date(d + 'T00:00:00').toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
+// El nivel/categoría va codificado en el número de resolución
+// (…-IW-BACHELOR, …-IW-DCE). Se lee de ahí para filtrar sin tocar la API.
+const LEVELS: { key: string; label: string; token: string }[] = [
+  { key: 'BACHELOR',  label: 'Bachelor',  token: 'BACHELOR' },
+  { key: 'MASTER',    label: 'Master',    token: 'MASTER' },
+  { key: 'DOCTORATE', label: 'Doctorado', token: 'DOCTORATE' },
+  { key: 'DCE',       label: 'DCE',       token: 'DCE' },
+]
+function levelOf(resolution: string | null): string | null {
+  const m = (resolution ?? '').toUpperCase().match(/-(?:IW|LOA)-([A-Z]+)/)
+  return m ? m[1] : null
+}
+
 export function WithdrawalsView() {
   const [rows, setRows] = useState<Row[]>([])
   const [type, setType] = useState('')
   const [status, setStatus] = useState('')
+  const [level, setLevel] = useState('')
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
 
@@ -110,6 +124,12 @@ export function WithdrawalsView() {
     load()
   }
 
+  // El filtro de nivel se aplica en cliente sobre lo que ya trajo la API
+  // (filtrado por tipo/estado). Los conteos por nivel salen de ese mismo conjunto.
+  const levelCounts: Record<string, number> = {}
+  for (const r of rows) { const l = levelOf(r.resolution_number); if (l) levelCounts[l] = (levelCounts[l] ?? 0) + 1 }
+  const visible = level ? rows.filter(r => levelOf(r.resolution_number) === level) : rows
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -125,6 +145,22 @@ export function WithdrawalsView() {
         <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
           <Plus className="w-4 h-4" /> Registrar retiro
         </button>
+      </div>
+
+      {/* Filtro por nivel/categoría + total */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] text-gray-400 uppercase tracking-wide mr-1">Nivel:</span>
+          <button onClick={() => setLevel('')} className={`px-3 py-1 rounded-lg text-xs font-medium border ${level === '' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Todos</button>
+          {LEVELS.map(lv => (
+            <button key={lv.key} onClick={() => setLevel(lv.key)} className={`px-3 py-1 rounded-lg text-xs font-medium border ${level === lv.key ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+              {lv.label} <span className="opacity-70">({levelCounts[lv.token] ?? 0})</span>
+            </button>
+          ))}
+        </div>
+        <span className="text-sm text-gray-500">
+          {level ? <><b className="text-gray-800">{visible.length}</b> de {rows.length}</> : <><b className="text-gray-800">{rows.length}</b> retiros</>}
+        </span>
       </div>
 
       {showForm && (
@@ -213,7 +249,7 @@ export function WithdrawalsView() {
 
       {loading ? (
         <div className="py-16 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>
-      ) : rows.length === 0 ? (
+      ) : visible.length === 0 ? (
         <p className="text-sm text-gray-400 py-10 text-center">Sin retiros registrados con este filtro.</p>
       ) : (
         <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
@@ -230,7 +266,7 @@ export function WithdrawalsView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {rows.map(r => (
+              {visible.map(r => (
                 <tr key={r.id} className="group hover:bg-gray-50/50">
                   <td className="px-4 py-2.5">
                     <p className="text-gray-800">{r.student_name || 'Estudiante'}</p>
