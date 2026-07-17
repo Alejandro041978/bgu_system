@@ -68,15 +68,20 @@ const navigation: NavGroup[] = [
           { name: 'Solicitudes', href: '/registrar/requests', icon: ClipboardList, pageKey: 'registrar_requests' },
         ],
       },
+      {
+        name: 'Seguimiento estudiantil', href: '/academic/seguimiento', icon: Activity,
+        children: [
+          { name: 'Base de Seguimiento', href: '/academic/seguimiento', icon: Activity, pageKey: 'academic_tracking' },
+          { name: 'Camila · Tablero', href: '/academic/camila', icon: Gauge, pageKey: 'academic_camila' },
+          { name: 'Retención', href: '/academic/retencion', icon: HeartHandshake, pageKey: 'academic_retention' },
+          { name: 'Retiros', href: '/academic/retiros', icon: UserMinus, pageKey: 'academic_withdrawals' },
+        ],
+      },
     ],
   },
   {
     label: 'Académico',
     items: [
-      { name: 'Seguimiento estudiantil', href: '/academic/seguimiento', icon: Activity, pageKey: 'academic_tracking' },
-      { name: 'Camila · Tablero', href: '/academic/camila', icon: Gauge, pageKey: 'academic_camila' },
-      { name: 'Retención', href: '/academic/retencion', icon: HeartHandshake, pageKey: 'academic_retention' },
-      { name: 'Retiros', href: '/academic/retiros', icon: UserMinus, pageKey: 'academic_withdrawals' },
       {
         name: 'Docentes', href: '/academic/faculty', icon: GraduationCap,
         children: [
