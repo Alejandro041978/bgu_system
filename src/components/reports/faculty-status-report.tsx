@@ -104,8 +104,8 @@ export function FacultyStatusReport() {
       )}
 
       <div className="text-[11px] text-gray-400 space-y-1">
-        <p><b>Con contrato</b> = docentes con un contrato <b>firmado</b> cuya vigencia se cruza con el año académico. <b>En firma</b> = contrato enviado y aún sin firmar.</p>
-        <p>Solo se cuentan contratos de docentes (personal con perfil académico); los del resto del personal no figuran aquí.</p>
+        <p><b>Con contrato</b> combina los contratos firmados con PDF de evidencia (métodos anteriores; si al cargarlos se les asignó un año académico, ese manda) y los firmados electrónicamente en el ERP. <b>En firma</b> = enviado por el ERP y aún sin firmar.</p>
+        <p>Un contrato sin fecha fin cuenta como vigencia abierta desde su inicio. Solo se cuentan contratos de docentes; los del resto del personal no figuran aquí.</p>
       </div>
     </div>
   )
