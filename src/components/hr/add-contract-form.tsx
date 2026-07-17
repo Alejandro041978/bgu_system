@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Upload, ChevronDown, ChevronUp, FileText, X } from 'lucide-react'
 
-type AcademicYear = { id: string; name: string }
+type AcademicYear = { id: string; name: string; start_date?: string | null; end_date?: string | null }
 
 export function AddContractForm({ employeeId, isFaculty = false, academicYears = [] }: {
   employeeId: string
@@ -33,11 +33,22 @@ export function AddContractForm({ employeeId, isFaculty = false, academicYears =
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
+  const selectedYear = academicYears.find(y => y.id === form.academic_year_id) ?? null
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
     setError(null)
     try {
+      // Compuertas (la API las vuelve a validar):
+      if (isFaculty && !form.academic_year_id) {
+        throw new Error('Este colaborador es docente: su contrato debe asignarse a un año académico.')
+      }
+      if (selectedYear?.start_date && selectedYear?.end_date &&
+        (form.start_date < selectedYear.start_date || form.end_date > selectedYear.end_date)) {
+        throw new Error(`Las fechas deben caer dentro de ${selectedYear.name} (${selectedYear.start_date} → ${selectedYear.end_date}).`)
+      }
+
       let file_url: string | undefined
       if (file) {
         const fd = new FormData()
@@ -120,17 +131,19 @@ export function AddContractForm({ employeeId, isFaculty = false, academicYears =
 
             {isFaculty && academicYears.length > 0 && (
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Año académico que cubre este contrato</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Año académico que cubre este contrato *</label>
                 <select
+                  required
                   value={form.academic_year_id}
                   onChange={e => set('academic_year_id', e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
-                  <option value="">— Sin año académico específico —</option>
+                  <option value="">Seleccionar año académico…</option>
                   {academicYears.map(y => (
-                    <option key={y.id} value={y.id}>{y.name}</option>
+                    <option key={y.id} value={y.id}>{y.name}{y.start_date ? ` (${y.start_date} → ${y.end_date})` : ''}</option>
                   ))}
                 </select>
+                <p className="text-[11px] text-gray-400 mt-1">Contrato de docente: el año es obligatorio y las fechas deben caer dentro de su período.</p>
               </div>
             )}
 
@@ -139,6 +152,8 @@ export function AddContractForm({ employeeId, isFaculty = false, academicYears =
               <input
                 required
                 type="date"
+                min={selectedYear?.start_date ?? undefined}
+                max={selectedYear?.end_date ?? undefined}
                 value={form.start_date}
                 onChange={e => set('start_date', e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -151,7 +166,8 @@ export function AddContractForm({ employeeId, isFaculty = false, academicYears =
                 required
                 type="date"
                 value={form.end_date}
-                min={form.start_date || undefined}
+                min={form.start_date || selectedYear?.start_date || undefined}
+                max={selectedYear?.end_date ?? undefined}
                 onChange={e => set('end_date', e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />

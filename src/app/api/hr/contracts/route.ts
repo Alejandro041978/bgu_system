@@ -34,6 +34,29 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = supabaseAdmin()
+
+    // Compuertas (regla institucional, 2026-07):
+    //  1. Contrato de un docente → obligatorio asignarlo a un año académico.
+    //  2. Con año asignado → la vigencia completa debe caer DENTRO del año.
+    // Van aquí y no solo en el formulario: la API es la única puerta real.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: emp } = await (supabase as any).from('hr_employees')
+      .select('is_faculty').eq('id', body.employee_id).maybeSingle()
+    if (!emp) return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 })
+    if (emp.is_faculty && !body.academic_year_id) {
+      return NextResponse.json({ error: 'Este colaborador es docente: su contrato debe asignarse a un año académico' }, { status: 400 })
+    }
+    if (body.academic_year_id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: year } = await (supabase as any).from('academic_years')
+        .select('name, start_date, end_date').eq('id', body.academic_year_id).maybeSingle()
+      if (!year) return NextResponse.json({ error: 'Año académico no encontrado' }, { status: 404 })
+      if (year.start_date && year.end_date && (body.start_date < year.start_date || body.end_date > year.end_date)) {
+        return NextResponse.json({
+          error: `Las fechas del contrato deben caer dentro de ${year.name} (${year.start_date} → ${year.end_date})`,
+        }, { status: 400 })
+      }
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
       .from('hr_contracts')
