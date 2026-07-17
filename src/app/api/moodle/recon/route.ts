@@ -58,12 +58,20 @@ export async function GET(req: NextRequest) {
 
   let usuarios = 0, conEmail = 0, conIdnumber = 0, emailCruza = 0, idnumberCruza = 0
   const dominios = new Map<string, number>()
-  const aulas: { courseid: number; matriculados: number }[] = []
+  const idnFormas = { uuid: 0, solo_digitos: 0, otro: 0 }
+  const idnMuestra = new Set<string>()
+  let localpartNombreApellido = 0
+  const aulas: { courseid: number; nombre?: string; matriculados: number }[] = []
   for (const cid of courseIds.slice(0, 5)) {
     try {
       const enrolled = await moodleCall('core_enrol_get_enrolled_users', { courseid: cid })
       const users = (Array.isArray(enrolled) ? enrolled : []) as { email?: string; idnumber?: string }[]
-      aulas.push({ courseid: cid, matriculados: users.length })
+      let nombre: string | undefined
+      try {
+        const cf = await moodleCall('core_course_get_courses_by_field', { field: 'id', value: String(cid) })
+        nombre = cf?.courses?.[0] ? `${cf.courses[0].shortname} · ${cf.courses[0].fullname}` : undefined
+      } catch { /* sin permiso, no importa */ }
+      aulas.push({ courseid: cid, nombre, matriculados: users.length })
       for (const u of users) {
         usuarios++
         const em = (u.email ?? '').toLowerCase().trim()
@@ -73,8 +81,17 @@ export async function GET(req: NextRequest) {
           const dom = em.split('@')[1] ?? '?'
           dominios.set(dom, (dominios.get(dom) ?? 0) + 1)
           if (ourEmails.has(em)) emailCruza++
+          if (/^[a-z]+\.[a-z]+@/.test(em)) localpartNombreApellido++
         }
-        if (idn) { conIdnumber++; if (ourDocs.has(idn)) idnumberCruza++ }
+        if (idn) {
+          conIdnumber++
+          if (ourDocs.has(idn)) idnumberCruza++
+          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idn)) idnFormas.uuid++
+          else if (/^\d+$/.test(idn)) idnFormas.solo_digitos++
+          else idnFormas.otro++
+          // Muestra enmascarada: forma sin identidad (3 chars + largo)
+          if (idnMuestra.size < 5) idnMuestra.add(idn.slice(0, 3) + '…(' + idn.length + ' chars)')
+        }
       }
     } catch (e) {
       aulas.push({ courseid: cid, matriculados: -1 })
@@ -89,6 +106,9 @@ export async function GET(req: NextRequest) {
     cruzan_por_email_con_academic_students: emailCruza,
     cruzan_por_idnumber_con_documento: idnumberCruza,
     dominios_de_correo: Object.fromEntries([...dominios.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)),
+    idnumber_formas: idnFormas,
+    idnumber_muestra_enmascarada: [...idnMuestra],
+    correos_con_forma_nombre_punto_apellido: localpartNombreApellido,
   }
 
   // Notas: probar el reporte de calificaciones en la primera aula con alumnos
