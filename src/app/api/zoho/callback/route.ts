@@ -6,7 +6,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const REDIRECT_URI = process.env.ZOHO_REDIRECT_URI ?? 'https://bgu-system.vercel.app/api/zoho/callback'
+const REDIRECT_URI = process.env.ZOHO_REDIRECT_URI ?? 'https://system.blackwell.university/api/zoho/callback'
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code')

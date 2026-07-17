@@ -23,7 +23,7 @@ interface Props {
 
 const BASE_URL = typeof window !== 'undefined'
   ? window.location.origin
-  : (process.env.NEXT_PUBLIC_APP_URL ?? 'https://bgu-system.vercel.app')
+  : (process.env.NEXT_PUBLIC_APP_URL ?? 'https://system.blackwell.university')
 
 export function ChatUI({
   initialMessage = 'Hola, soy Sofia, asistente virtual de BGU. ¿En qué puedo ayudarte hoy?',

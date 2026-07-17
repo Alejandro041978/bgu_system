@@ -28,7 +28,7 @@ type Step = 'language' | 'identify' | 'chat'
 
 const BASE_URL = typeof window !== 'undefined'
   ? window.location.origin
-  : (process.env.NEXT_PUBLIC_APP_URL ?? 'https://bgu-system.vercel.app')
+  : (process.env.NEXT_PUBLIC_APP_URL ?? 'https://system.blackwell.university')
 
 export default function ChatWidgetPage() {
   const [step, setStep] = useState<Step>('language')
