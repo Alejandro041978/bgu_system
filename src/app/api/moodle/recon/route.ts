@@ -111,6 +111,23 @@ export async function GET(req: NextRequest) {
     correos_con_forma_nombre_punto_apellido: localpartNombreApellido,
   }
 
+  // ?idnumbers=a,b,c → ¿existen usuarios de Moodle con esos idnumber?
+  // Sirve para confirmar que idnumber = Users.Id de SystemActiva: se pasan
+  // UUIDs conocidos y se cuenta cuántos devuelve Moodle. Sin datos personales.
+  const idnParam = req.nextUrl.searchParams.get('idnumbers')
+  if (idnParam) {
+    await probe('sonda_idnumber', async () => {
+      const values = idnParam.split(',').map(s => s.trim()).filter(Boolean).slice(0, 20)
+      const users = await moodleCall('core_user_get_users_by_field', { field: 'idnumber', values })
+      const found = (Array.isArray(users) ? users : []) as { idnumber?: string; email?: string }[]
+      return {
+        consultados: values.length,
+        encontrados: found.length,
+        dominios: found.map(u => (u.email ?? '').split('@')[1] ?? '?'),
+      }
+    })
+  }
+
   // Notas: probar el reporte de calificaciones en la primera aula con alumnos
   const target = aulas.find(a => a.matriculados > 0)
   if (target) {
