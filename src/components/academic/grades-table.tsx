@@ -14,6 +14,7 @@ export interface Grade {
   passing_score: number | null
   group_number: number | null
   source?: string | null
+  program_ids?: string[]
 }
 
 function gradeInfo(g: Grade): { value: number | null; passed: boolean | null; label: string } {

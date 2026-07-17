@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { sameCourse } from '@/lib/course-match'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(
@@ -18,9 +19,13 @@ export async function GET(req: NextRequest) {
   const document = req.nextUrl.searchParams.get('document')
   const q = req.nextUrl.searchParams.get('q')?.trim()
 
-  // Notas de un estudiante
+  // Notas de un estudiante, con sus programas y cada nota etiquetada con el
+  // programa al que pertenece. Las notas no traen programa: se resuelve
+  // emparejando el nombre contra la malla (course-match), igual que egresados,
+  // acta y retención. Quien cursa dos programas ve así sus notas separadas.
   if (document) {
-    const { data, error } = await db()
+    const sb = db()
+    const { data, error } = await sb
       .from('academic_grades')
       .select('*')
       .eq('document_number', document)
@@ -28,7 +33,29 @@ export async function GET(req: NextRequest) {
       .order('term_block', { ascending: false })
       .order('course_code')
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ grades: data ?? [] })
+    const grades = data ?? []
+
+    let programs: { id: string; name: string }[] = []
+    const { data: studs } = await sb.from('academic_students').select('id').eq('document_number', document)
+    const studentIds = (studs ?? []).map((s: { id: string }) => s.id)
+    if (studentIds.length) {
+      const { data: enr } = await sb.from('academic_student_enrollments').select('student_id, program_id').in('student_id', studentIds)
+      const programIds = [...new Set((enr ?? []).map((e: { program_id: string | null }) => e.program_id).filter(Boolean))] as string[]
+      if (programIds.length) {
+        const { data: progs } = await sb.from('academic_programs').select('id, name').in('id', programIds)
+        programs = ((progs ?? []) as { id: string; name: string }[]).sort((a, b) => a.name.localeCompare(b.name))
+        const { data: courses } = await sb.from('academic_courses').select('*').in('program_id', programIds)
+        for (const g of grades as { course_code: string | null; course_name: string | null; program_ids?: string[] }[]) {
+          g.program_ids = [...new Set(((courses ?? []) as { program_id: string; code: string | null; name: string | null }[])
+            .filter(c =>
+              (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
+              sameCourse(g.course_name, c.name))
+            .map(c => c.program_id))]
+        }
+      }
+    }
+
+    return NextResponse.json({ grades, programs })
   }
 
   // Búsqueda de estudiantes

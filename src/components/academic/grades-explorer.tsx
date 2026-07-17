@@ -5,6 +5,7 @@ import { Search, Loader2, User } from 'lucide-react'
 import { GradesTable, type Grade } from './grades-table'
 
 interface Student { document_number: string; student_name: string }
+interface Program { id: string; name: string }
 
 export function GradesExplorer() {
   const [query, setQuery] = useState('')
@@ -12,6 +13,8 @@ export function GradesExplorer() {
   const [searching, setSearching] = useState(false)
   const [selected, setSelected] = useState<Student | null>(null)
   const [grades, setGrades] = useState<Grade[]>([])
+  const [programs, setPrograms] = useState<Program[]>([])
+  const [programFilter, setProgramFilter] = useState<string>('all')
   const [loadingGrades, setLoadingGrades] = useState(false)
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -34,11 +37,18 @@ export function GradesExplorer() {
     setStudents([])
     setQuery(s.student_name)
     setLoadingGrades(true)
+    setProgramFilter('all')
     const res = await fetch(`/api/academic/grades?document=${encodeURIComponent(s.document_number)}`)
     const data = await res.json()
     setGrades(data.grades ?? [])
+    setPrograms(data.programs ?? [])
     setLoadingGrades(false)
   }
+
+  const visibleGrades = programFilter === 'all'
+    ? grades
+    : grades.filter(g => (g.program_ids ?? []).includes(programFilter))
+  const sinPrograma = grades.filter(g => (g.program_ids ?? []).length === 0).length
 
   return (
     <div className="space-y-4">
@@ -80,9 +90,40 @@ export function GradesExplorer() {
               <p className="text-xs text-gray-400">Documento: {selected.document_number}</p>
             </div>
           </div>
+          {!loadingGrades && programs.length > 1 && (
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <button
+                onClick={() => setProgramFilter('all')}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${programFilter === 'all'
+                  ? 'bg-blue-600 border-blue-600 text-white'
+                  : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+              >
+                Todos ({grades.length})
+              </button>
+              {programs.map(p => {
+                const n = grades.filter(g => (g.program_ids ?? []).includes(p.id)).length
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setProgramFilter(p.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${programFilter === p.id
+                      ? 'bg-blue-600 border-blue-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    {p.name} ({n})
+                  </button>
+                )
+              })}
+              {programFilter !== 'all' && sinPrograma > 0 && (
+                <span className="text-[11px] text-gray-400">
+                  {sinPrograma} nota{sinPrograma > 1 ? 's' : ''} sin asignatura en la malla — visible{sinPrograma > 1 ? 's' : ''} en “Todos”
+                </span>
+              )}
+            </div>
+          )}
           {loadingGrades
             ? <div className="bg-white rounded-xl border border-gray-200 py-16 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>
-            : <GradesTable grades={grades} />}
+            : <GradesTable grades={visibleGrades} />}
         </div>
       )}
     </div>
