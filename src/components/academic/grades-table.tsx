@@ -1,6 +1,6 @@
 'use client'
 
-import { GraduationCap, Award } from 'lucide-react'
+import { GraduationCap, Award, Pencil } from 'lucide-react'
 
 export interface Grade {
   external_id: string
@@ -15,6 +15,7 @@ export interface Grade {
   group_number: number | null
   source?: string | null
   program_ids?: string[]
+  edited_at?: string | null
 }
 
 function gradeInfo(g: Grade): { value: number | null; passed: boolean | null; label: string } {
@@ -25,7 +26,7 @@ function gradeInfo(g: Grade): { value: number | null; passed: boolean | null; la
   return { value, passed, label: passed === null ? '' : passed ? 'Aprobado' : 'Desaprobado' }
 }
 
-export function GradesTable({ grades }: { grades: Grade[] }) {
+export function GradesTable({ grades, onEdit }: { grades: Grade[]; onEdit?: (g: Grade) => void }) {
   if (grades.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-dashed border-gray-300 py-16 text-center">
@@ -65,6 +66,7 @@ export function GradesTable({ grades }: { grades: Grade[] }) {
                   <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Cr.</th>
                   <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">Nota</th>
                   <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">Estado</th>
+                  {onEdit && <th className="w-12" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -77,6 +79,7 @@ export function GradesTable({ grades }: { grades: Grade[] }) {
                           {g.course_name ?? '—'}
                           {g.source === 'convalidacion' && <span className="text-[10px] font-medium bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full">Convalidado</span>}
                           {g.source === 'validacion' && <span className="text-[10px] font-medium bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded-full">Validado</span>}
+                          {g.edited_at && <span className="text-[10px] font-medium bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full">Editada</span>}
                         </p>
                         {g.course_code && <p className="text-xs text-gray-400">{g.course_code}</p>}
                       </td>
@@ -99,6 +102,17 @@ export function GradesTable({ grades }: { grades: Grade[] }) {
                         )}
                         {info.value === null && <span className="text-xs text-gray-400">En curso</span>}
                       </td>
+                      {onEdit && (
+                        <td className="px-3 py-2.5 text-right">
+                          <button
+                            onClick={() => onEdit(g)}
+                            title="Editar nota"
+                            className="p-1.5 rounded-md text-gray-300 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}

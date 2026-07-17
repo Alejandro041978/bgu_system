@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { sameCourse } from '@/lib/course-match'
+import { applyGradeEdit, type GradeChanges } from '@/lib/grades-write'
+
+export const maxDuration = 60
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(
@@ -79,4 +82,34 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ students: [] })
+}
+
+// PATCH { external_id, changes: { final_grade?, retake_grade?, course_name? }, reason }
+// Edita una nota. Pasa por grades-write: auditoría + marca de edición (que la
+// protege del sync) + recálculo inmediato del estudiante.
+export async function PATCH(req: NextRequest) {
+  const authClient = await createAuthClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const body = await req.json().catch(() => null) as
+    { external_id?: string; changes?: GradeChanges; reason?: string } | null
+  if (!body?.external_id || !body.changes) {
+    return NextResponse.json({ error: 'Falta external_id o changes' }, { status: 400 })
+  }
+  const reason = (body.reason ?? '').trim()
+  if (!reason) return NextResponse.json({ error: 'El motivo es obligatorio' }, { status: 400 })
+
+  for (const k of ['final_grade', 'retake_grade'] as const) {
+    const v = body.changes[k]
+    if (v != null && (typeof v !== 'number' || !isFinite(v) || v < 0 || v > 100)) {
+      return NextResponse.json({ error: `${k} debe ser un número entre 0 y 100` }, { status: 400 })
+    }
+  }
+
+  const result = await applyGradeEdit(db(), {
+    externalId: body.external_id, changes: body.changes, reason, userId: user.id,
+  })
+  if (!result.ok) return NextResponse.json({ error: result.note ?? 'Error' }, { status: 500 })
+  return NextResponse.json(result)
 }

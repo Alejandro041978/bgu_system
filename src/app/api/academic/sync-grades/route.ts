@@ -25,10 +25,28 @@ export async function POST(req: NextRequest) {
     await client.end()
 
     const sb = db()
+
+    // Filas editadas a mano en el ERP: el sync no las toca. Una corrección de
+    // Registros pesa más que lo que diga SystemActiva.
+    const edited = new Set<string>()
+    for (let from = 0; ; from += 1000) {
+      const { data } = await sb.from('academic_grades')
+        .select('external_id').not('edited_at', 'is', null).range(from, from + 999)
+      const chunk = data ?? []
+      for (const r of chunk as { external_id: string }[]) edited.add(r.external_id)
+      if (chunk.length < 1000) break
+    }
+
     let upserted = 0
+    let skippedEdited = 0
     // Upsert en lotes de 500
     for (let i = 0; i < rows.length; i += 500) {
-      const batch = rows.slice(i, i + 500).map((r: Record<string, unknown>) => ({
+      const slice = rows.slice(i, i + 500).filter((r: Record<string, unknown>) => {
+        if (edited.has(String(r.external_id))) { skippedEdited++; return false }
+        return true
+      })
+      if (!slice.length) continue
+      const batch = slice.map((r: Record<string, unknown>) => ({
         external_id:     r.external_id,
         document_number: r.document_number,
         email:           r.email,
@@ -50,7 +68,7 @@ export async function POST(req: NextRequest) {
       upserted += batch.length
     }
 
-    return NextResponse.json({ ok: true, upserted })
+    return NextResponse.json({ ok: true, upserted, skipped_edited: skippedEdited })
   } catch (err) {
     try { await client?.end() } catch { /* ignore */ }
     return NextResponse.json({ error: String(err) }, { status: 500 })
