@@ -24,15 +24,23 @@ async function readAll(sb: any, table: string, cols: string): Promise<any[]> {
 // Reporte "Estado de estudiantes": por categoría de programa,
 //   Matriculados · Egresados · Titulados · Retirados (IW+LOA) · Reentry · Activos · Campus socio
 //
-// Cada estudiante se atribuye a UNA categoría (la de su matrícula más reciente)
-// para que las filas sumen limpio al total. La situación (activo/egresado/…) ya
-// está calculada y mantenida en academic_students.situation.
+// La unidad es la MATRÍCULA (estudiante × programa), no el estudiante: quien
+// cursa dos programas cuenta dos veces, cada matrícula con su propio estado.
+// Se tituló de la maestría y hoy cursa el doctorado -> titulado en Master
+// Program y activo en Doctoral Program. Atribuir al estudiante una sola
+// categoría hacía aparecer titulados de doctorado que no existen.
 //
-// Titulados sale de student_graduations, que es por (estudiante, programa),
-// mientras que la fila del reporte es por estudiante. Por eso sólo se cuenta
-// como titulado a quien ya cuenta como egresado en esa misma celda: así
-// Egresados y Titulados parten exactamente el mismo grupo y la resta no puede
-// dejar la columna en negativo ni descuadrar el total.
+// Estado de cada matrícula, en este orden:
+//   titulado / egresado — del par exacto en student_graduations. Un programa
+//     terminado no se borra porque el estudiante se retire de otro.
+//   retirado — el retiro (IW/LOA) no tiene programa: es del estudiante frente a
+//     la institución, así que arrastra sus matrículas NO terminadas.
+//   campus socio — el programa de la matrícula es de campus socio
+//     (academic_programs.partner_campus); esto sí es del programa.
+//   activo — el resto.
+//
+// Reentry va aparte (no suma): matrículas activas de estudiantes que se
+// retiraron y volvieron.
 export async function GET() {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
@@ -42,19 +50,12 @@ export async function GET() {
   const cats = await readAll(sb, 'academic_programs_category', 'id, name')
   const nameOfCat = new Map<string, string>(cats.map((c: { id: string; name: string }) => [c.id, c.name]))
 
-  const programs = await readAll(sb, 'academic_programs', 'id, category_id')
+  const programs = await readAll(sb, 'academic_programs', 'id, category_id, partner_campus')
   const catOfProgram = new Map<string, string | null>(programs.map((p: { id: string; category_id: string | null }) => [p.id, p.category_id]))
+  const partnerPrograms = new Set<string>(
+    (programs as { id: string; partner_campus: boolean | null }[]).filter(p => p.partner_campus).map(p => p.id))
 
-  // Estudiante → categoría de su matrícula MÁS RECIENTE (atribución única)
-  const enrolls = await readAll(sb, 'academic_student_enrollments', 'student_id, program_id, enrollment_date')
-  const bestOf = new Map<string, { date: string; cat: string | null }>()
-  for (const e of enrolls as { student_id: string | null; program_id: string | null; enrollment_date: string | null }[]) {
-    if (!e.student_id) continue
-    const cat = e.program_id ? (catOfProgram.get(e.program_id) ?? null) : null
-    const date = e.enrollment_date ?? ''
-    const cur = bestOf.get(e.student_id)
-    if (!cur || date > cur.date) bestOf.set(e.student_id, { date, cat })
-  }
+  const enrolls = await readAll(sb, 'academic_student_enrollments', 'student_id, program_id')
 
   // Estudiantes reincorporados (tienen un retiro con estado 'reincorporado')
   const wds = await readAll(sb, 'student_withdrawals', 'student_id, status')
@@ -64,35 +65,39 @@ export async function GET() {
   const students = await readAll(sb, 'academic_students', 'id, situation')
   const sitOf = new Map<string, string>(students.map((s: { id: string; situation: string }) => [s.id, s.situation]))
 
-  // Titulados: recibieron su título final de algún programa (marcado por la
-  // emisión del documento o por la importación de la lista histórica).
-  const grads = await readAll(sb, 'student_graduations', 'student_id, titulacion_status')
-  const titulados = new Set<string>(
-    (grads as { student_id: string; titulacion_status: string }[])
-      .filter(g => g.titulacion_status === 'titulado').map(g => g.student_id))
+  // Egreso/titulación por (estudiante, programa)
+  const grads = await readAll(sb, 'student_graduations', 'student_id, program_id, titulacion_status')
+  const gradOf = new Map<string, string>(
+    (grads as { student_id: string; program_id: string; titulacion_status: string }[])
+      .map(g => [`${g.student_id}|${g.program_id}`, g.titulacion_status]))
 
   type Cell = { matriculados: number; egresados: number; titulados: number; retirados: number; reentry: number; activos: number; campus_socio: number }
   const zero = (): Cell => ({ matriculados: 0, egresados: 0, titulados: 0, retirados: 0, reentry: 0, activos: 0, campus_socio: 0 })
   const byCat = new Map<string, Cell>()
   const total = zero()
+  const seen = new Set<string>()
 
-  for (const [studentId, best] of bestOf) {
-    const key = best.cat ?? '__none__'
-    if (!byCat.has(key)) byCat.set(key, zero())
-    const c = byCat.get(key)!
-    const sit = sitOf.get(studentId) ?? 'activo'
+  for (const e of enrolls as { student_id: string | null; program_id: string | null }[]) {
+    if (!e.student_id || !e.program_id) continue
+    const pair = `${e.student_id}|${e.program_id}`
+    if (seen.has(pair)) continue
+    seen.add(pair)
+
+    const catKey = catOfProgram.get(e.program_id) ?? '__none__'
+    if (!byCat.has(catKey)) byCat.set(catKey, zero())
+    const c = byCat.get(catKey)!
+    const sit = sitOf.get(e.student_id) ?? 'activo'
+    const grad = gradOf.get(pair)
 
     c.matriculados++; total.matriculados++
-    if (sit === 'egresado') {
-      // Egresados queda como "egresó pero aún no tiene su título"; el titulado
-      // se cuenta aparte. Los dos juntos son el total de quienes terminaron.
-      if (titulados.has(studentId)) { c.titulados++; total.titulados++ }
-      else { c.egresados++; total.egresados++ }
-    }
+    let activa = false
+    if (grad === 'titulado') { c.titulados++; total.titulados++ }
+    else if (grad) { c.egresados++; total.egresados++ }
     else if (sit === 'retiro_permanente' || sit === 'retiro_temporal') { c.retirados++; total.retirados++ }
-    else if (sit === 'campus_socio') { c.campus_socio++; total.campus_socio++ }
-    else { c.activos++; total.activos++ }   // 'activo' y cualquier otro
-    if (reincorporados.has(studentId)) { c.reentry++; total.reentry++ }
+    else if (partnerPrograms.has(e.program_id)) { c.campus_socio++; total.campus_socio++ }
+    else { c.activos++; total.activos++; activa = true }
+
+    if (activa && reincorporados.has(e.student_id)) { c.reentry++; total.reentry++ }
   }
 
   const rows = [...byCat.entries()].map(([key, c]) => ({

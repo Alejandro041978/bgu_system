@@ -58,10 +58,10 @@ export function StudentStatusReport() {
       </div>
 
       <div className="text-[11px] text-gray-400 space-y-1">
-        <p><b>Matriculados</b> = Egresados + Titulados + Retirados + Activos + Campus socio (cada estudiante en una situación).</p>
-        <p><b>Egresados</b> son los que terminaron pero aún no recibieron su título; al emitirse pasan a <b>Titulados</b>. Los dos juntos son el total de quienes terminaron.</p>
-        <p><b>Reentry</b> se muestra aparte: son estudiantes que se retiraron y volvieron; hoy cuentan como Activos.</p>
-        <p>Cada estudiante se atribuye a la categoría de su matrícula más reciente.</p>
+        <p>La unidad es la <b>matrícula</b> (estudiante × programa): quien cursa dos programas cuenta en ambos, y cada matrícula tiene su propio estado. Quien se tituló de su maestría y hoy cursa el doctorado es titulado en Master Program y activo en Doctoral Program.</p>
+        <p><b>Matriculados</b> = Egresados + Titulados + Retirados + Activos + Campus socio (cada matrícula en un solo estado).</p>
+        <p><b>Egresados</b> son matrículas terminadas cuyo título aún no se emite; al emitirse pasan a <b>Titulados</b>. Los dos juntos son el total de programas completados.</p>
+        <p><b>Reentry</b> se muestra aparte (no suma): matrículas activas de estudiantes que se retiraron y volvieron.</p>
       </div>
     </div>
   )
