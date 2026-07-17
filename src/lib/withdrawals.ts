@@ -94,6 +94,11 @@ export async function nextResolutionNumber(sb: any, studentId: string, type: 'IW
 // Egresado va por encima de campus socio porque es más informativo: quien
 // terminó su malla entra al embudo de titulación, no al de retención.
 // Nunca pisa situation_source='manual'.
+//
+// Egresado exige haber terminado TODOS los programas matriculados, no alguno:
+// cada matrícula es un proceso independiente, y quien se tituló de su maestría
+// y hoy cursa el doctorado es un estudiante activo — si se le marca egresado,
+// Camila deja de verlo aunque abandone el doctorado.
 // ---------------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function recomputeSituations(sb: any): Promise<{ activo: number; retiro_permanente: number; retiro_temporal: number; egresado: number; campus_socio: number; updated: number }> {
@@ -106,30 +111,33 @@ export async function recomputeSituations(sb: any): Promise<{ activo: number; re
     else if (w.type === 'LOA') hasLOA.add(w.student_id)
   }
 
-  // Egresados detectados (tolerante a que la tabla no exista todavía)
-  const grads = await readAll(sb, 'student_graduations', 'student_id').catch(() => [])
-  const isGraduate = new Set<string>((grads as { student_id: string }[]).map(g => g.student_id))
+  // Egresos por (estudiante, programa) — tolerante a que la tabla no exista todavía
+  const grads = await readAll(sb, 'student_graduations', 'student_id, program_id').catch(() => [])
+  const gradPairs = new Set<string>(
+    (grads as { student_id: string; program_id: string }[]).map(g => `${g.student_id}|${g.program_id}`))
 
-  // Campus socio: todas las matrículas en programas de socio
+  // Programas de cada estudiante (para egresado y campus socio: AMBOS exigen
+  // que la condición se cumpla en todas sus matrículas)
   const partner = await readAll(sb, 'academic_programs', 'id, partner_campus')
   const partnerIds = new Set<string>((partner as { id: string; partner_campus: boolean }[]).filter(p => p.partner_campus).map(p => p.id))
   const enrolls = await readAll(sb, 'academic_student_enrollments', 'student_id, program_id')
-  const total = new Map<string, number>(), inPartner = new Map<string, number>()
+  const progsOf = new Map<string, Set<string>>()
   for (const e of enrolls as { student_id: string | null; program_id: string | null }[]) {
-    if (!e.student_id) continue
-    total.set(e.student_id, (total.get(e.student_id) ?? 0) + 1)
-    if (e.program_id && partnerIds.has(e.program_id)) inPartner.set(e.student_id, (inPartner.get(e.student_id) ?? 0) + 1)
+    if (!e.student_id || !e.program_id) continue
+    if (!progsOf.has(e.student_id)) progsOf.set(e.student_id, new Set())
+    progsOf.get(e.student_id)!.add(e.program_id)
   }
 
   const studs = await readAll(sb, 'academic_students', 'id, situation, situation_source')
   const counts = { activo: 0, retiro_permanente: 0, retiro_temporal: 0, egresado: 0, campus_socio: 0, updated: 0 }
   const changes: { id: string; situation: string }[] = []
   for (const s of studs as { id: string; situation: string; situation_source: string }[]) {
+    const programas = [...(progsOf.get(s.id) ?? [])]
     let want: string
     if (hasIW.has(s.id)) want = 'retiro_permanente'
     else if (hasLOA.has(s.id)) want = 'retiro_temporal'
-    else if (isGraduate.has(s.id)) want = 'egresado'
-    else if ((total.get(s.id) ?? 0) > 0 && (inPartner.get(s.id) ?? 0) >= (total.get(s.id) ?? 0)) want = 'campus_socio'
+    else if (programas.length > 0 && programas.every(p => gradPairs.has(`${s.id}|${p}`))) want = 'egresado'
+    else if (programas.length > 0 && programas.every(p => partnerIds.has(p))) want = 'campus_socio'
     else want = 'activo'
     counts[want as keyof typeof counts]++
     if (s.situation_source !== 'manual' && s.situation !== want) changes.push({ id: s.id, situation: want })
