@@ -5,7 +5,11 @@ import Link from 'next/link'
 import { Plus, Loader2, Users, BookOpen, ChevronRight, Pencil, Trash2, Check, X } from 'lucide-react'
 
 interface Ref { id: string; name: string; category_id?: string | null }
-interface Group { id: string; abbreviation: string | null; name: string | null; detail: string | null; offerings_count: number; students_count: number }
+interface Group {
+  id: string; abbreviation: string | null; name: string | null; detail: string | null
+  offerings_count: number; students_count: number
+  prev_label: string | null; next_label: string | null
+}
 
 export function GroupsManager() {
   const [categories, setCategories] = useState<Ref[]>([])
@@ -141,6 +145,14 @@ export function GroupsManager() {
                     </p>
                     {g.detail && <p className="text-xs text-gray-400">{g.detail}</p>}
                   </Link>
+                  <div className="hidden md:flex flex-col items-start gap-0.5 text-[11px] mr-4 min-w-[200px]">
+                    <span className={g.prev_label ? 'text-gray-500' : 'text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full font-medium'}>
+                      {g.prev_label ? <>← viene de <b className="text-gray-700">{g.prev_label}</b></> : 'Carrusel de entrada'}
+                    </span>
+                    <span className={g.next_label ? 'text-gray-500' : 'text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full font-medium'}>
+                      {g.next_label ? <>→ avanza a <b className="text-gray-700">{g.next_label}</b></> : 'Final: al completarlo egresa'}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-3 text-xs text-gray-500">
                     <span className="hidden sm:flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" />{g.offerings_count}</span>
                     <span className="hidden sm:flex items-center gap-1"><Users className="w-3.5 h-3.5" />{g.students_count}</span>

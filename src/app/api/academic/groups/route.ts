@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   let groups: any[] = []
   if (programId) {
     const { data: gs } = await sb.from('academic_groups')
-      .select('id, abbreviation, name, detail').eq('program_id', programId).order('name')
+      .select('id, abbreviation, name, detail, next_group_id').eq('program_id', programId).order('name')
     const groupIds = (gs ?? []).map((g: { id: string }) => g.id)
     const offCount = new Map<string, number>()
     const stuCount = new Map<string, number>()
@@ -40,10 +40,21 @@ export async function GET(req: NextRequest) {
       for (const o of offs ?? []) offCount.set(o.group_id, (offCount.get(o.group_id) ?? 0) + 1)
       for (const s of gss ?? []) stuCount.set(s.group_id, (stuCount.get(s.group_id) ?? 0) + 1)
     }
+    // Secuencia: etiqueta del previo (quién desemboca aquí) y del siguiente
+    const label = (g: { abbreviation: string | null; name: string | null } | undefined) =>
+      g ? ([g.abbreviation, g.name].filter(Boolean).join(' · ') || '(sin nombre)') : null
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    groups = (gs ?? []).map((g: any) => ({
-      ...g, offerings_count: offCount.get(g.id) ?? 0, students_count: stuCount.get(g.id) ?? 0,
-    }))
+    const byId = new Map<string, any>((gs ?? []).map((g: { id: string }) => [g.id, g]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    groups = (gs ?? []).map((g: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const prev = (gs ?? []).find((x: any) => x.id !== g.id && x.next_group_id === g.id)
+      return {
+        ...g,
+        offerings_count: offCount.get(g.id) ?? 0, students_count: stuCount.get(g.id) ?? 0,
+        prev_label: label(prev), next_label: g.next_group_id ? label(byId.get(g.next_group_id)) : null,
+      }
+    })
   }
 
   return NextResponse.json({ categories: categories ?? [], programs: programs ?? [], groups })
