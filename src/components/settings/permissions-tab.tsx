@@ -12,6 +12,7 @@ const PAGE_GROUPS = [
     label: 'General',
     pages: [
       { key: 'dashboard', label: 'Dashboard' },
+      { key: 'report_student_status', label: 'Reportes · Estado de estudiantes' },
     ],
   },
   {

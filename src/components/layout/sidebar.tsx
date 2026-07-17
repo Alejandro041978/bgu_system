@@ -22,7 +22,15 @@ type NavGroup = { label: string; items: NavNode[] }
 const navigation: NavGroup[] = [
   {
     label: 'General',
-    items: [{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, pageKey: 'dashboard' }],
+    items: [
+      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, pageKey: 'dashboard' },
+      {
+        name: 'Reportes', href: '/reports/estado-estudiantes', icon: BarChart3,
+        children: [
+          { name: 'Estado de estudiantes', href: '/reports/estado-estudiantes', icon: Users, pageKey: 'report_student_status' },
+        ],
+      },
+    ],
   },
   {
     label: 'Comercial',
