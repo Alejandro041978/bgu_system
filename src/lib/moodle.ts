@@ -52,6 +52,14 @@ export async function getUserByEmail(email: string): Promise<{ id: number } | nu
   return Array.isArray(users) && users.length ? users[0] : null
 }
 
+// El idnumber de Moodle es el Users.Id de SystemActiva, que guardamos en
+// academic_students.external_id — es la llave FIABLE (el correo de Moodle es el
+// institucional y nosotros guardamos el personal; casi nunca coinciden).
+export async function getUserByIdnumber(idnumber: string): Promise<{ id: number } | null> {
+  const users = await moodleCall('core_user_get_users_by_field', { field: 'idnumber', values: [idnumber] })
+  return Array.isArray(users) && users.length ? users[0] : null
+}
+
 export async function getCourseByCode(code: string): Promise<{ id: number } | null> {
   const res = await moodleCall('core_course_get_courses_by_field', { field: MOODLE_COURSE_MATCH_FIELD, value: code })
   const courses = res?.courses

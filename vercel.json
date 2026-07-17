@@ -37,6 +37,10 @@
       "schedule": "50 4 * * *"
     },
     {
+      "path": "/api/cron/carousels",
+      "schedule": "40 4 * * *"
+    },
+    {
       "path": "/api/cron/retention-commitments",
       "schedule": "55 4 * * *"
     },

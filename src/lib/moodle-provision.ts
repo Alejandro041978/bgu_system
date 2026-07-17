@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { getUserByEmail, getCourseByCode, enrolUser, unenrolUser, moodleConfigured } from './moodle'
+import { getUserByEmail, getUserByIdnumber, getCourseByCode, enrolUser, unenrolUser, moodleConfigured } from './moodle'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -14,11 +14,15 @@ export interface SyncResult {
   errors: string[]
 }
 
+// La cuenta Moodle se resuelve primero por external_id (= idnumber en Moodle,
+// el Users.Id de SystemActiva: llave fiable, 550/550 en las aulas reales) y
+// como respaldo por correo (casi nunca coincide: Moodle usa el institucional).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function ensureMoodleUser(sb: any, s: { id: string; email: string | null; moodle_user_id: string | null }): Promise<number | null> {
+async function ensureMoodleUser(sb: any, s: { id: string; email: string | null; moodle_user_id: string | null; external_id?: string | null }): Promise<number | null> {
   if (s.moodle_user_id) return Number(s.moodle_user_id)
-  if (!s.email) return null
-  const u = await getUserByEmail(s.email)
+  let u: { id: number } | null = null
+  if (s.external_id) u = await getUserByIdnumber(s.external_id)
+  if (!u && s.email) u = await getUserByEmail(s.email)
   if (!u) return null
   await sb.from('academic_students').update({ moodle_user_id: String(u.id) }).eq('id', s.id)
   return u.id
@@ -55,7 +59,7 @@ export async function provisionStudent(groupId: string, studentId: string, actio
   if (!result.configured) return result
   const sb = admin()
   try {
-    const { data: s } = await sb.from('academic_students').select('id, email, moodle_user_id').eq('id', studentId).maybeSingle()
+    const { data: s } = await sb.from('academic_students').select('id, email, moodle_user_id, external_id').eq('id', studentId).maybeSingle()
     if (!s) { result.errors.push('Estudiante no encontrado'); return result }
     const { courseIds, unmapped } = await loadGroupCourses(sb, groupId)
     result.courses_unmapped = unmapped
@@ -79,7 +83,7 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
     const { courseIds, unmapped } = await loadGroupCourses(sb, groupId)
     result.courses_unmapped = unmapped
     const { data: members } = await sb.from('academic_group_students')
-      .select('academic_students(id, email, moodle_user_id)').eq('group_id', groupId)
+      .select('academic_students(id, email, moodle_user_id, external_id)').eq('group_id', groupId)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const students = (members ?? []).map((m: any) => m.academic_students).filter(Boolean)
     result.students_total = students.length

@@ -1,4 +1,5 @@
 import { recomputeStudentByDocument } from './graduates'
+import { advanceCarousels } from './carousel'
 
 // ---------------------------------------------------------------------------
 // Camino ÚNICO de escritura de notas. Toda modificación — editor manual, carga
@@ -66,10 +67,18 @@ export async function applyGradeEdit(
   const { error: uErr } = await sb.from('academic_grades').update(patch).eq('external_id', externalId)
   if (uErr) return { ok: false, changed: [], note: uErr.message }
 
-  // Efectos inmediatos (egreso/situación). Si falla no rompe la edición:
-  // el cron nocturno converge igual.
+  // Efectos inmediatos: egreso/situación y avance de carrusel (una nota
+  // cerrada puede completar el carrusel actual). Si fallan no rompen la
+  // edición: los crons nocturnos convergen igual.
   if (row.document_number) {
     try { await recomputeStudentByDocument(sb, String(row.document_number)) } catch { /* cron converge */ }
+    try {
+      const { data: studs } = await sb.from('academic_students')
+        .select('id').eq('document_number', row.document_number)
+      for (const s of (studs ?? []) as { id: string }[]) {
+        await advanceCarousels(sb, { studentId: s.id })
+      }
+    } catch { /* cron converge */ }
   }
 
   return { ok: true, changed: audits.map(a => String(a.field)) }
