@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 
-type Cell = { matriculados: number; egresados: number; retirados: number; reentry: number; activos: number; campus_socio: number }
+type Cell = { matriculados: number; egresados: number; titulados: number; retirados: number; reentry: number; activos: number; campus_socio: number }
 type Row = Cell & { category: string }
 type Data = { rows: Row[]; total: Cell }
 
 const COLS: { key: keyof Cell; label: string; cls: string }[] = [
   { key: 'matriculados', label: 'Matriculados', cls: 'text-gray-900 font-semibold' },
   { key: 'egresados',    label: 'Egresados',    cls: 'text-blue-700' },
+  { key: 'titulados',    label: 'Titulados',    cls: 'text-amber-700' },
   { key: 'retirados',    label: 'Retirados (IW+LOA)', cls: 'text-rose-700' },
   { key: 'reentry',      label: 'Reentry', cls: 'text-emerald-700' },
   { key: 'activos',      label: 'Activos',      cls: 'text-green-700' },
@@ -57,7 +58,8 @@ export function StudentStatusReport() {
       </div>
 
       <div className="text-[11px] text-gray-400 space-y-1">
-        <p><b>Matriculados</b> = Egresados + Retirados + Activos + Campus socio (cada estudiante en una situación).</p>
+        <p><b>Matriculados</b> = Egresados + Titulados + Retirados + Activos + Campus socio (cada estudiante en una situación).</p>
+        <p><b>Egresados</b> son los que terminaron pero aún no recibieron su título; al emitirse pasan a <b>Titulados</b>. Los dos juntos son el total de quienes terminaron.</p>
         <p><b>Reentry</b> se muestra aparte: son estudiantes que se retiraron y volvieron; hoy cuentan como Activos.</p>
         <p>Cada estudiante se atribuye a la categoría de su matrícula más reciente.</p>
       </div>

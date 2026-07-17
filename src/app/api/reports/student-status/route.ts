@@ -22,11 +22,17 @@ async function readAll(sb: any, table: string, cols: string): Promise<any[]> {
 }
 
 // Reporte "Estado de estudiantes": por categoría de programa,
-//   Matriculados · Egresados · Retirados (IW+LOA) · Reentry · Activos · Campus socio
+//   Matriculados · Egresados · Titulados · Retirados (IW+LOA) · Reentry · Activos · Campus socio
 //
 // Cada estudiante se atribuye a UNA categoría (la de su matrícula más reciente)
 // para que las filas sumen limpio al total. La situación (activo/egresado/…) ya
 // está calculada y mantenida en academic_students.situation.
+//
+// Titulados sale de student_graduations, que es por (estudiante, programa),
+// mientras que la fila del reporte es por estudiante. Por eso sólo se cuenta
+// como titulado a quien ya cuenta como egresado en esa misma celda: así
+// Egresados y Titulados parten exactamente el mismo grupo y la resta no puede
+// dejar la columna en negativo ni descuadrar el total.
 export async function GET() {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
@@ -58,8 +64,15 @@ export async function GET() {
   const students = await readAll(sb, 'academic_students', 'id, situation')
   const sitOf = new Map<string, string>(students.map((s: { id: string; situation: string }) => [s.id, s.situation]))
 
-  type Cell = { matriculados: number; egresados: number; retirados: number; reentry: number; activos: number; campus_socio: number }
-  const zero = (): Cell => ({ matriculados: 0, egresados: 0, retirados: 0, reentry: 0, activos: 0, campus_socio: 0 })
+  // Titulados: recibieron su título final de algún programa (marcado por la
+  // emisión del documento o por la importación de la lista histórica).
+  const grads = await readAll(sb, 'student_graduations', 'student_id, titulacion_status')
+  const titulados = new Set<string>(
+    (grads as { student_id: string; titulacion_status: string }[])
+      .filter(g => g.titulacion_status === 'titulado').map(g => g.student_id))
+
+  type Cell = { matriculados: number; egresados: number; titulados: number; retirados: number; reentry: number; activos: number; campus_socio: number }
+  const zero = (): Cell => ({ matriculados: 0, egresados: 0, titulados: 0, retirados: 0, reentry: 0, activos: 0, campus_socio: 0 })
   const byCat = new Map<string, Cell>()
   const total = zero()
 
@@ -70,7 +83,12 @@ export async function GET() {
     const sit = sitOf.get(studentId) ?? 'activo'
 
     c.matriculados++; total.matriculados++
-    if (sit === 'egresado') { c.egresados++; total.egresados++ }
+    if (sit === 'egresado') {
+      // Egresados queda como "egresó pero aún no tiene su título"; el titulado
+      // se cuenta aparte. Los dos juntos son el total de quienes terminaron.
+      if (titulados.has(studentId)) { c.titulados++; total.titulados++ }
+      else { c.egresados++; total.egresados++ }
+    }
     else if (sit === 'retiro_permanente' || sit === 'retiro_temporal') { c.retirados++; total.retirados++ }
     else if (sit === 'campus_socio') { c.campus_socio++; total.campus_socio++ }
     else { c.activos++; total.activos++ }   // 'activo' y cualquier otro
