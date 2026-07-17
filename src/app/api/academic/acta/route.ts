@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { sameCourse } from '@/lib/course-match'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-
-const norm = (s: string | null) => (s ?? '').toLowerCase().trim().replace(/\s+/g, ' ')
 
 // GET ?student_id=&program_id= → acta: malla del programa con estado por asignatura
 export async function GET(req: NextRequest) {
@@ -70,7 +69,7 @@ export async function GET(req: NextRequest) {
     // Empareja notas por código o nombre
     const matches = gradeRows.filter(g =>
       (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
-      (norm(g.course_name) === norm(c.name) && norm(c.name) !== '')
+      sameCourse(g.course_name, c.name)
     )
     const withValue = matches.map(g => ({ g, v: (g.retake_grade ?? g.final_grade) as number | null })).filter(x => x.v != null)
     if (withValue.length) {

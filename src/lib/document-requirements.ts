@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { sameCourse } from './course-match'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -42,8 +43,6 @@ export async function checkRequirements(
   if (kinds.has('graduated')) {
     if (!programId || !stu?.document_number) out.push({ kind: 'graduated', ok: null, note: 'Requiere programa' })
     else {
-      const norm = (s: string | null) => (s ?? '').toLowerCase().trim().replace(/\s+/g, ' ')
-
       // Nota aprobatoria de la categoría del programa (fallback)
       const { data: program } = await sb.from('academic_programs').select('category_id').eq('id', programId).maybeSingle()
       let categoryPassing: number | null = null
@@ -80,7 +79,7 @@ export async function checkRequirements(
         // Nota real aprobatoria
         const matches = gradeRows.filter(g =>
           (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
-          (norm(g.course_name) === norm(c.name) && norm(c.name) !== '')
+          sameCourse(g.course_name, c.name)
         )
         const values = matches.map(g => (g.retake_grade ?? g.final_grade) as number | null).filter(v => v != null) as number[]
         if (values.length) {

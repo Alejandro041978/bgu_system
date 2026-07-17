@@ -11,7 +11,7 @@
 // desbloquea la conversación.
 // ---------------------------------------------------------------------------
 
-const norm = (s: string | null | undefined) => (s ?? '').toLowerCase().trim().replace(/\s+/g, ' ')
+import { sameCourse } from './course-match'
 
 export interface RetentionContext {
   studentId: string
@@ -74,7 +74,7 @@ export async function buildRetentionContext(sb: any, studentId: string): Promise
       if (transferred.has(c.id)) continue
       const matches = gradeRows.filter(g =>
         (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
-        (norm(g.course_name) === norm(c.name) && norm(c.name) !== ''))
+        sameCourse(g.course_name, c.name))
       const values = matches.map(g => g.retake_grade ?? g.final_grade).filter((v: number | null): v is number => v != null)
       if (!values.length) { pending++; continue }
       const best = Math.max(...values)

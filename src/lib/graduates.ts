@@ -1,4 +1,5 @@
 import { readAll } from './withdrawals'
+import { sameCourse } from './course-match'
 
 // ---------------------------------------------------------------------------
 // Detección masiva de egresados.
@@ -10,8 +11,6 @@ import { readAll } from './withdrawals'
 //   Aquí se resuelve en una sola pasada en memoria: la versión por estudiante
 //   hace ~6 consultas cada uno y no escala a un cron sobre 1400 estudiantes.
 // ---------------------------------------------------------------------------
-
-const norm = (s: string | null | undefined) => (s ?? '').toLowerCase().trim().replace(/\s+/g, ' ')
 
 type GradeRow = {
   document_number: string | null; course_code: string | null; course_name: string | null
@@ -103,7 +102,7 @@ export async function computeGraduates(sb: any): Promise<{
       if (transferred.has(c.id)) { covered++; continue }
       const matches = gradeRows.filter(g =>
         (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
-        (norm(g.course_name) === norm(c.name) && norm(c.name) !== '')
+        sameCourse(g.course_name, c.name)
       )
       const values = matches.map(g => (g.retake_grade ?? g.final_grade)).filter((v): v is number => v != null)
       if (!values.length) continue
