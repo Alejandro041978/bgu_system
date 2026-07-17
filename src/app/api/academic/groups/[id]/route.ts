@@ -19,9 +19,26 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const sb = db()
 
   const { data: group } = await sb.from('academic_groups')
-    .select('id, abbreviation, name, detail, program_id, academic_programs(name)')
+    .select('id, abbreviation, name, detail, program_id, next_group_id, academic_programs(name)')
     .eq('id', id).maybeSingle()
   if (!group) return NextResponse.json({ error: 'Grupo no encontrado' }, { status: 404 })
+
+  // Secuencia de carruseles del programa: hermanos (para el selector de
+  // siguiente), quién desemboca en este, y si es el carrusel de entrada
+  // (nadie lo apunta).
+  const { data: sibs } = await sb.from('academic_groups')
+    .select('id, abbreviation, name, next_group_id')
+    .eq('program_id', group.program_id)
+  const label = (g: { abbreviation: string | null; name: string | null }) =>
+    [g.abbreviation, g.name].filter(Boolean).join(' · ') || '(sin nombre)'
+  const prev = (sibs ?? []).find((g: { id: string; next_group_id: string | null }) => g.id !== id && g.next_group_id === id)
+  const sequence = {
+    next_group_id: group.next_group_id ?? null,
+    is_entry: !prev,
+    prev_label: prev ? label(prev) : null,
+    siblings: (sibs ?? []).filter((g: { id: string }) => g.id !== id)
+      .map((g: { id: string; abbreviation: string | null; name: string | null }) => ({ id: g.id, label: label(g) })),
+  }
 
   const OFF = 'id, start_date, end_date, moodle_course_id, course:academic_courses(id, name, code), assignments:faculty_assignments(employee:hr_employees(full_name))'
   const [{ data: offerings }, { data: members }] = await Promise.all([
@@ -50,6 +67,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       id: group.id, abbreviation: group.abbreviation, name: group.name, detail: group.detail,
       program_name: group.academic_programs?.name ?? '',
     },
+    sequence,
     offerings: (offerings ?? []).map(mapOff),
     students,
   })

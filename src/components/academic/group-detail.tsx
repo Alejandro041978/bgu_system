@@ -11,7 +11,8 @@ interface Off {
   start_date: string | null; end_date: string | null; moodle_course_id: string | null
 }
 interface Stu { id: string; name: string; document_number: string | null }
-interface Data { group: { id: string; abbreviation: string | null; name: string | null; detail: string | null; program_name: string }; offerings: Off[]; students: Stu[] }
+interface Sequence { next_group_id: string | null; is_entry: boolean; prev_label: string | null; siblings: { id: string; label: string }[] }
+interface Data { group: { id: string; abbreviation: string | null; name: string | null; detail: string | null; program_name: string }; sequence: Sequence; offerings: Off[]; students: Stu[] }
 
 const fdate = (d: string | null) => (d ? d.split('T')[0].split('-').reverse().join('/') : '—')
 
@@ -23,6 +24,8 @@ export function GroupDetail({ groupId }: { groupId: string }) {
   const [savingMoodle, setSavingMoodle] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [sync, setSync] = useState<SyncResult | null>(null)
+  const [savingSeq, setSavingSeq] = useState(false)
+  const [seqErr, setSeqErr] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const d = await fetch(`/api/academic/groups/${groupId}`).then(r => r.json())
@@ -64,6 +67,17 @@ export function GroupDetail({ groupId }: { groupId: string }) {
     setSyncing(false); setSync(r); load()
   }
 
+  async function saveNextGroup(value: string) {
+    setSavingSeq(true); setSeqErr(null)
+    const r = await fetch('/api/academic/groups', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: groupId, next_group_id: value || null }),
+    }).then(res => res.json())
+    setSavingSeq(false)
+    if (r.error) { setSeqErr(r.error); return }
+    load()
+  }
+
   if (loading) return <div className="flex items-center justify-center py-20 text-gray-400"><Loader2 className="w-5 h-5 animate-spin" /></div>
   if (!data) return <p className="text-sm text-gray-400 py-10 text-center">Grupo no encontrado.</p>
 
@@ -78,6 +92,32 @@ export function GroupDetail({ groupId }: { groupId: string }) {
           {data.group.abbreviation && data.group.name ? ' · ' : ''}{data.group.name}
         </h2>
         <p className="text-sm text-gray-400">{data.group.program_name}{data.group.detail ? ` · ${data.group.detail}` : ''}</p>
+      </div>
+
+      {/* Secuencia de carruseles */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
+        <h3 className="text-sm font-semibold text-gray-700">Secuencia (carrusel)</h3>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          {data.sequence.is_entry
+            ? <span className="text-xs font-medium bg-green-50 text-green-700 px-2 py-1 rounded-full">Carrusel de entrada</span>
+            : <span className="text-xs text-gray-500">Viene de: <b className="text-gray-700">{data.sequence.prev_label}</b></span>}
+          <span className="text-gray-300">→</span>
+          <label className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Al aprobar todo, avanza a</span>
+            <select
+              value={data.sequence.next_group_id ?? ''}
+              onChange={e => saveNextGroup(e.target.value)}
+              disabled={savingSeq}
+              className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">— (último: al completarlo egresa)</option>
+              {data.sequence.siblings.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+            {savingSeq && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />}
+          </label>
+        </div>
+        {seqErr && <p className="text-xs text-red-600">{seqErr}</p>}
+        <p className="text-[11px] text-gray-400">El estudiante avanza al siguiente carrusel cuando aprueba todas las asignaturas de este; se desconecta de estas aulas y se matricula en las del siguiente.</p>
       </div>
 
       {/* Asignaturas (solo lectura; se asignan en Oferta Académica) */}

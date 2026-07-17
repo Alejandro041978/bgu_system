@@ -65,7 +65,10 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, id: data.id })
 }
 
-// PATCH → editar campos descriptivos
+// PATCH → editar campos descriptivos y/o la secuencia de carruseles.
+// next_group_id define el carrusel al que se avanza al aprobar este; se valida
+// que sea del mismo programa, que no forme ciclo y que la cadena siga lineal
+// (dos carruseles no pueden desembocar en el mismo siguiente).
 export async function PATCH(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
@@ -74,6 +77,35 @@ export async function PATCH(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const patch: any = {}
   for (const k of ['abbreviation', 'name', 'detail'] as const) if (k in b) patch[k] = b[k]?.trim() || null
+
+  if ('next_group_id' in b) {
+    const next = b.next_group_id || null
+    if (next) {
+      const { data: all } = await sb.from('academic_groups').select('id, program_id, next_group_id, abbreviation, name')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const byId = new Map<string, any>((all ?? []).map((g: { id: string }) => [g.id, g]))
+      const me = byId.get(b.id), target = byId.get(next)
+      if (!me || !target) return NextResponse.json({ error: 'Grupo no encontrado' }, { status: 404 })
+      if (next === b.id) return NextResponse.json({ error: 'Un carrusel no puede ser su propio siguiente' }, { status: 400 })
+      if (target.program_id !== me.program_id) {
+        return NextResponse.json({ error: 'El siguiente carrusel debe ser del mismo programa' }, { status: 400 })
+      }
+      const otro = (all ?? []).find((g: { id: string; next_group_id: string | null }) => g.id !== b.id && g.next_group_id === next)
+      if (otro) {
+        return NextResponse.json({ error: `"${otro.abbreviation ?? otro.name}" ya desemboca en ese carrusel; la secuencia debe ser lineal` }, { status: 400 })
+      }
+      // ¿la cadena desde el destino regresa a este grupo? → ciclo
+      let cur = target, hops = 0
+      while (cur?.next_group_id && hops++ < 100) {
+        if (cur.next_group_id === b.id) {
+          return NextResponse.json({ error: 'Eso formaría un ciclo: la cadena del destino regresa a este carrusel' }, { status: 400 })
+        }
+        cur = byId.get(cur.next_group_id)
+      }
+    }
+    patch.next_group_id = next
+  }
+
   const { error } = await sb.from('academic_groups').update(patch).eq('id', b.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

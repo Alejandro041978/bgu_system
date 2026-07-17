@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Trash2, Save, Loader2, CalendarDays } from 'lucide-react'
+import { Plus, Trash2, Save, Loader2, CalendarDays, X } from 'lucide-react'
 
 interface Ref { id: string; name: string }
+interface EntryGroup { id: string; program_id: string; label: string }
 interface Conv {
   id: string; name: string
   deadline_date: string | null; first_day: string | null
+  group_ids: string[]
 }
 interface Sem { id: string; name: string; start_date: string | null; end_date: string | null; convocatorias: Conv[] }
 
@@ -16,6 +18,7 @@ export function ConvocatoriasManager() {
   const [categoryId, setCategoryId] = useState('')
   const [yearId, setYearId] = useState('')
   const [semesters, setSemesters] = useState<Sem[]>([])
+  const [entryGroups, setEntryGroups] = useState<EntryGroup[]>([])
   const [loading, setLoading] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
 
@@ -29,7 +32,7 @@ export function ConvocatoriasManager() {
     if (!cat || !yr) { setSemesters([]); return }
     setLoading(true)
     const d = await fetch(`/api/convocatorias?category_id=${cat}&year_id=${yr}`).then(r => r.json())
-    setSemesters(d.semesters ?? []); setLoading(false)
+    setSemesters(d.semesters ?? []); setEntryGroups(d.entry_groups ?? []); setLoading(false)
   }, [])
 
   useEffect(() => { loadData(categoryId, yearId) }, [categoryId, yearId, loadData])
@@ -60,6 +63,20 @@ export function ConvocatoriasManager() {
     if (!confirm('¿Eliminar esta convocatoria?')) return
     const d = await fetch(`/api/convocatorias?id=${id}`, { method: 'DELETE' }).then(r => r.json())
     if (d.error) { alert(d.error); return }
+    loadData(categoryId, yearId)
+  }
+
+  async function linkGroup(convId: string, groupId: string) {
+    if (!groupId) return
+    const d = await fetch('/api/convocatorias/groups', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ convocatoria_id: convId, group_id: groupId }),
+    }).then(r => r.json())
+    if (d.error) { alert(d.error); return }
+    loadData(categoryId, yearId)
+  }
+  async function unlinkGroup(convId: string, groupId: string) {
+    await fetch(`/api/convocatorias/groups?convocatoria_id=${convId}&group_id=${groupId}`, { method: 'DELETE' })
     loadData(categoryId, yearId)
   }
 
@@ -112,6 +129,7 @@ export function ConvocatoriasManager() {
                         <th className="text-left px-3 py-2">Nombre</th>
                         <th className="text-left px-3 py-2">Cierre matrícula</th>
                         <th className="text-left px-3 py-2">Primer día</th>
+                        <th className="text-left px-3 py-2">Carruseles de entrada</th>
                         <th className="px-3 py-2"></th>
                       </tr>
                     </thead>
@@ -121,6 +139,25 @@ export function ConvocatoriasManager() {
                           <td className="px-3 py-1.5"><input value={c.name ?? ''} onChange={e => editConv(s.id, c.id, 'name', e.target.value)} className={`${inp} min-w-[220px]`} /></td>
                           <td className="px-3 py-1.5"><input type="date" value={c.deadline_date ?? ''} onChange={e => editConv(s.id, c.id, 'deadline_date', e.target.value)} className={inp} /></td>
                           <td className="px-3 py-1.5"><input type="date" value={c.first_day ?? ''} onChange={e => editConv(s.id, c.id, 'first_day', e.target.value)} className={inp} /></td>
+                          <td className="px-3 py-1.5">
+                            <div className="flex flex-wrap items-center gap-1 max-w-md">
+                              {(c.group_ids ?? []).map(gid => {
+                                const g = entryGroups.find(x => x.id === gid)
+                                return (
+                                  <span key={gid} className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full whitespace-normal">
+                                    {g?.label ?? gid}
+                                    <button onClick={() => unlinkGroup(c.id, gid)} className="text-blue-300 hover:text-red-600" title="Desvincular"><X className="w-3 h-3" /></button>
+                                  </span>
+                                )
+                              })}
+                              <select value="" onChange={e => linkGroup(c.id, e.target.value)}
+                                className="border border-dashed border-gray-300 rounded-full px-2 py-0.5 text-[11px] text-gray-500 focus:outline-none max-w-[220px]">
+                                <option value="">+ vincular carrusel…</option>
+                                {entryGroups.filter(g => !(c.group_ids ?? []).includes(g.id)).map(g =>
+                                  <option key={g.id} value={g.id}>{g.label}</option>)}
+                              </select>
+                            </div>
+                          </td>
                           <td className="px-3 py-1.5 text-right">
                             <button onClick={() => saveConv(c)} disabled={savingId === c.id} className="text-gray-400 hover:text-blue-600 mr-3" title="Guardar">
                               {savingId === c.id ? <Loader2 className="w-4 h-4 inline animate-spin" /> : <Save className="w-4 h-4 inline" />}

@@ -22,13 +22,16 @@ export async function GET(req: NextRequest) {
   const categoryId = sp.get('category_id')
   const yearId = sp.get('year_id')
 
-  const [{ data: categories }, { data: years }] = await Promise.all([
+  const [{ data: categories }, { data: years }, { data: programs }] = await Promise.all([
     sb.from('academic_programs_category').select('id, name').order('name'),
     sb.from('academic_years').select('id, name').order('name', { ascending: false }),
+    sb.from('academic_programs').select('id, name, category_id'),
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let semesters: any[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let entryGroups: any[] = []
   if (categoryId && yearId) {
     const { data: sems } = await sb.from('academic_semesters')
       .select('id, name, start_date, end_date').eq('academic_year_id', yearId).order('start_date')
@@ -42,12 +45,39 @@ export async function GET(req: NextRequest) {
         .eq('product_category_id', categoryId).in('academic_semester_id', semIds).order('first_day')
       convs = data ?? []
     }
+
+    // Carruseles de la categoría (para vincular como entrada de una convocatoria)
+    const catProgs = (programs ?? []).filter((p: { category_id: string | null }) => p.category_id === categoryId)
+    const progName = new Map<string, string>(catProgs.map((p: { id: string; name: string }) => [p.id, p.name]))
+    if (catProgs.length) {
+      const { data: gs } = await sb.from('academic_groups')
+        .select('id, abbreviation, name, program_id')
+        .in('program_id', catProgs.map((p: { id: string }) => p.id))
+      entryGroups = (gs ?? []).map((g: { id: string; abbreviation: string | null; name: string | null; program_id: string }) => ({
+        id: g.id, program_id: g.program_id,
+        label: ([g.abbreviation, g.name].filter(Boolean).join(' · ') || '(sin nombre)') + ' — ' + (progName.get(g.program_id) ?? ''),
+      })).sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label))
+    }
+
+    // Vínculos convocatoria → carruseles de entrada
+    const convIds = convs.map((c: { id: string }) => c.id)
+    const linksByConv = new Map<string, string[]>()
+    if (convIds.length) {
+      const { data: links } = await sb.from('convocatoria_groups')
+        .select('convocatoria_id, group_id').in('convocatoria_id', convIds)
+      for (const l of (links ?? []) as { convocatoria_id: string; group_id: string }[]) {
+        if (!linksByConv.has(l.convocatoria_id)) linksByConv.set(l.convocatoria_id, [])
+        linksByConv.get(l.convocatoria_id)!.push(l.group_id)
+      }
+    }
+    convs = convs.map((c: { id: string }) => ({ ...c, group_ids: linksByConv.get(c.id) ?? [] }))
+
     const bySem = new Map<string, typeof convs>()
     for (const c of convs) { const l = bySem.get(c.academic_semester_id) ?? []; l.push(c); bySem.set(c.academic_semester_id, l) }
     semesters = (sems ?? []).map((s: { id: string }) => ({ ...s, convocatorias: bySem.get(s.id) ?? [] }))
   }
 
-  return NextResponse.json({ categories: categories ?? [], years: years ?? [], semesters })
+  return NextResponse.json({ categories: categories ?? [], years: years ?? [], semesters, entry_groups: entryGroups })
 }
 
 // POST → crear convocatoria (con su categoría única)
