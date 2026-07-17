@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { emitCertificate } from './simplecert'
+import { marcarTitulado } from './titulacion'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -12,7 +13,7 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
   const sb = admin()
 
   const { data: r } = await sb.from('document_requests')
-    .select('id, status, paid, field_values, program_id, student:academic_students(first_name, last_name, second_last_name, document_number, email), type:document_types(name, price, simplecert_project_id, field_map)')
+    .select('id, status, paid, field_values, program_id, student_id, document_type_id, student:academic_students(first_name, last_name, second_last_name, document_number, email), type:document_types(name, price, simplecert_project_id, field_map)')
     .eq('id', requestId).maybeSingle()
   if (!r) return { ok: false, error: 'Solicitud no encontrada' }
   if (r.status === 'delivered') return { ok: false, error: 'La solicitud ya fue emitida' }
@@ -100,6 +101,21 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
     document_url: res.certificateUrl, status: 'delivered', emitted_at: now.toISOString(), updated_at: now.toISOString(),
   }).eq('id', requestId)
   if (error) return { ok: false, error: error.message }
+
+  // Si el documento emitido ES el título final (Degree, Certificate DCE), el
+  // egresado pasa a titulado en ese programa. Emitir el título es el acto que
+  // lo confiere; la entrega física se registra aparte, como hito logístico.
+  // No se interrumpe la emisión si esto falla: el documento ya salió.
+  try {
+    const { data: t } = await sb.from('document_types')
+      .select('is_final_degree').eq('id', r.document_type_id).maybeSingle()
+    if (t?.is_final_degree) {
+      const studentId = (r as { student_id?: string }).student_id
+      if (studentId) await marcarTitulado(studentId, r.program_id ?? null, { source: 'emision' })
+    }
+  } catch (e) {
+    console.error('marcarTitulado tras emitir', e)
+  }
 
   return { ok: true, url: res.certificateUrl }
 }

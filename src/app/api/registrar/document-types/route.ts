@@ -43,6 +43,9 @@ function clean(b: any) {
     requirements: Array.isArray(b?.requirements) ? b.requirements : [],
     stages: Array.isArray(b?.stages) ? b.stages : [],
     active: b?.active !== false,
+    // Al emitir un título final, el egresado pasa a titulado (ver lib/titulacion).
+    is_final_degree: b?.is_final_degree === true,
+    delivery_mode: ['electronico', 'fisico', 'ambos'].includes(b?.delivery_mode) ? b.delivery_mode : 'electronico',
   }
 }
 
