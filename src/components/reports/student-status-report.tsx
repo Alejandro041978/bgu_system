@@ -11,7 +11,7 @@ const COLS: { key: keyof Cell; label: string; cls: string }[] = [
   { key: 'matriculados', label: 'Matriculados', cls: 'text-gray-900 font-semibold' },
   { key: 'egresados',    label: 'Egresados',    cls: 'text-blue-700' },
   { key: 'titulados',    label: 'Titulados',    cls: 'text-amber-700' },
-  { key: 'retirados',    label: 'Retirados (IW+LOA)', cls: 'text-rose-700' },
+  { key: 'retirados',    label: 'Retirados', cls: 'text-rose-700' },
   { key: 'reentry',      label: 'Reentry', cls: 'text-emerald-700' },
   { key: 'activos',      label: 'Activos',      cls: 'text-green-700' },
   { key: 'campus_socio', label: 'Campus socio', cls: 'text-violet-700' },
