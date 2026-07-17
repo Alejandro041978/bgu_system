@@ -28,6 +28,7 @@ const navigation: NavGroup[] = [
         name: 'Reportes', href: '/reports/estado-estudiantes', icon: BarChart3,
         children: [
           { name: 'Estado de estudiantes', href: '/reports/estado-estudiantes', icon: Users, pageKey: 'report_student_status' },
+          { name: 'Estado de los docentes', href: '/reports/estado-docentes', icon: GraduationCap, pageKey: 'report_faculty_status' },
         ],
       },
     ],
