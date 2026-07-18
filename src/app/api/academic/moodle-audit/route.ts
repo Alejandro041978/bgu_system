@@ -41,18 +41,28 @@ export async function GET() {
     rows.push(...chunk)
     if (chunk.length < 1000) break
   }
-  const conDatos = rows.filter(r => !r.error)
+  // Cada aula vive en EXACTAMENTE una categoría (suman el total), por esta
+  // precedencia: sin datos > sin evaluaciones > incumple (viola algo medible)
+  // > cumple > sin ponderación reportada (no reporta pesos y nada más falla).
+  const estadoDe = (r: { error: string | null; items_evaluacion: number | null; cumple_pesos: boolean | null; cumple_escala: boolean | null }): string => {
+    if (r.error) return 'sin_datos'
+    if ((r.items_evaluacion ?? 0) === 0) return 'sin_evaluaciones'
+    if (r.cumple_pesos === false || r.cumple_escala === false) return 'incumplen'
+    if (r.cumple_pesos === true && r.cumple_escala === true) return 'cumplen'
+    return 'sin_ponderacion'
+  }
+  const porEstado = new Map<string, number>()
+  for (const r of rows) porEstado.set(estadoDe(r), (porEstado.get(estadoDe(r)) ?? 0) + 1)
   return NextResponse.json({
     audited_at: rows[0]?.audited_at ?? null,
     total: rows.length,
-    cumplen: conDatos.filter(r => r.cumple_pesos && r.cumple_escala).length,
-    // Aulas DISTINTAS que incumplen algo (una que falla en ambas cosas cuenta una vez)
-    incumplen: conDatos.filter(r => r.cumple_pesos === false || r.cumple_escala === false).length,
-    pesos_mal: conDatos.filter(r => r.cumple_pesos === false).length,
-    escala_mal: conDatos.filter(r => r.cumple_escala === false).length,
-    sin_evaluaciones: conDatos.filter(r => r.items_evaluacion === 0).length,
-    sin_ponderacion: conDatos.filter(r => (r.items_evaluacion ?? 0) > 0 && r.suma_pesos == null).length,
-    sin_datos: rows.filter(r => r.error).length,
+    cumplen: porEstado.get('cumplen') ?? 0,
+    incumplen: porEstado.get('incumplen') ?? 0,
+    pesos_mal: rows.filter(r => r.cumple_pesos === false).length,
+    escala_mal: rows.filter(r => r.cumple_escala === false).length,
+    sin_evaluaciones: porEstado.get('sin_evaluaciones') ?? 0,
+    sin_ponderacion: porEstado.get('sin_ponderacion') ?? 0,
+    sin_datos: porEstado.get('sin_datos') ?? 0,
     vinculadas: rows.filter(r => r.linked_course).length,
     aulas: rows,
   })

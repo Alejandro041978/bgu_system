@@ -47,14 +47,15 @@ export function CampusAudit() {
     load()
   }
 
-  const visibles = (d?.aulas ?? []).filter(a => {
-    if (filtro === 'incumplen') return a.cumple_pesos === false || a.cumple_escala === false
-    if (filtro === 'cumplen') return a.cumple_pesos && a.cumple_escala
-    if (filtro === 'sin_evaluaciones') return !a.error && a.items_evaluacion === 0
-    if (filtro === 'sin_ponderacion') return !a.error && (a.items_evaluacion ?? 0) > 0 && a.suma_pesos == null
-    if (filtro === 'sin_datos') return !!a.error
-    return true
-  })
+  // Misma precedencia que la API: cada aula vive en UNA sola categoría
+  const estadoDe = (a: Aula): Filtro => {
+    if (a.error) return 'sin_datos'
+    if ((a.items_evaluacion ?? 0) === 0) return 'sin_evaluaciones'
+    if (a.cumple_pesos === false || a.cumple_escala === false) return 'incumplen'
+    if (a.cumple_pesos === true && a.cumple_escala === true) return 'cumplen'
+    return 'sin_ponderacion'
+  }
+  const visibles = (d?.aulas ?? []).filter(a => filtro === 'todas' || estadoDe(a) === filtro)
 
   // Agrupación por categoría de Moodle
   const grupos = new Map<string, Aula[]>()
@@ -156,15 +157,15 @@ export function CampusAudit() {
                       {a.escala_total != null ? a.escala_total : '—'}
                     </td>
                     <td className="px-4 py-2.5">
-                      {a.error
+                      {estadoDe(a) === 'sin_datos'
                         ? <span className="text-[11px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">{a.error}</span>
-                        : a.items_evaluacion === 0
+                        : estadoDe(a) === 'sin_evaluaciones'
                           ? <span className="text-[11px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">sin evaluaciones</span>
-                          : (a.cumple_pesos === false || a.cumple_escala === false)
+                          : estadoDe(a) === 'incumplen'
                             ? <span className="text-[11px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full">
                               {[a.cumple_pesos === false ? 'pesos ≠ 100%' : null, a.cumple_escala === false ? 'escala ≠ 100' : null].filter(Boolean).join(' · ')}
                             </span>
-                            : (a.cumple_pesos && a.cumple_escala)
+                            : estadoDe(a) === 'cumplen'
                               ? <span className="text-[11px] bg-green-50 text-green-700 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><ShieldCheck className="w-3 h-3" />cumple</span>
                               : <span className="text-[11px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">sin ponderación reportada</span>}
                     </td>
