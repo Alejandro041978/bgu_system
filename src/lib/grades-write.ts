@@ -112,11 +112,14 @@ export interface ImportRow {
 
 // ---------------------------------------------------------------------------
 // ¿Dónde debe aterrizar una nota importada para este estudiante y asignatura?
-// Evita duplicar lo que ya vino de SystemActiva:
-//   - ya existe una fila CON valor → 'skip' (lo histórico de Activa manda; ni
-//     se duplica ni se toca; correcciones solo por el editor manual)
-//   - existe fila SIN valor ("en curso") → 'fill': se reutiliza SU external_id
-//     y se blinda, para que quede UNA sola fila por asignatura
+// La regla es de PROPIEDAD de la fila:
+//   - fila escrita por una importación anterior (source moodle/csv, o el mismo
+//     external_id) → 'update': las notas CAMBIAN en Moodle (segundos intentos,
+//     correcciones del docente) y cada corrida debe reflejarlo
+//   - fila histórica CON valor (Activa, manual) → 'skip': no se duplica ni se
+//     toca; correcciones solo por el editor
+//   - fila SIN valor ("en curso" de Activa) → 'fill': se reutiliza SU
+//     external_id y se blinda contra el sync de N8N
 //   - no existe → 'new' con el external_id propio de la importación
 // studentRows = filas de academic_grades del estudiante (se filtran aquí las
 // convalidaciones).
@@ -126,16 +129,27 @@ export function resolveImportTarget(
   studentRows: any[],
   course: { code: string | null; name: string | null },
   fallbackExternalId: string,
-): { action: 'skip' | 'fill' | 'new'; external_id: string; shield: boolean } {
+): { action: 'skip' | 'fill' | 'new' | 'update'; external_id: string; shield: boolean; prev_value: number | null } {
   const matches = (studentRows ?? [])
     .filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
     .filter(g =>
       (course.code && g.course_code && String(g.course_code) === String(course.code)) ||
       sameCourse(g.course_name, course.name))
-  const valued = matches.find(g => (g.retake_grade ?? g.final_grade) != null)
-  if (valued) return { action: 'skip', external_id: String(valued.external_id), shield: false }
-  if (matches.length) return { action: 'fill', external_id: String(matches[0].external_id), shield: true }
-  return { action: 'new', external_id: fallbackExternalId, shield: false }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const val = (g: any): number | null => g.retake_grade ?? g.final_grade ?? null
+
+  const own = matches.find(m => String(m.external_id) === fallbackExternalId)
+    ?? matches.find(m => m.source === 'moodle' || m.source === 'csv')
+  if (own) {
+    const ext = String(own.external_id)
+    // shield: la fila rellenada sobre un external_id de Activa necesita seguir
+    // blindada contra N8N; las filas moodle:/csv: no (N8N nunca las toca)
+    return { action: 'update', external_id: ext, shield: !(ext.startsWith('moodle:') || ext.startsWith('csv:')), prev_value: val(own) }
+  }
+  const valued = matches.find(g => val(g) != null)
+  if (valued) return { action: 'skip', external_id: String(valued.external_id), shield: false, prev_value: val(valued) }
+  if (matches.length) return { action: 'fill', external_id: String(matches[0].external_id), shield: true, prev_value: null }
+  return { action: 'new', external_id: fallbackExternalId, shield: false, prev_value: null }
 }
 
 export async function importGrades(
@@ -158,17 +172,39 @@ export async function importGrades(
     for (const g of (data ?? []) as any[]) existing.set(g.external_id, g)
   }
 
+  // Filas con edited_at: puede ser el blindaje de una importación anterior
+  // (actualizable por la importación) o una corrección de Registros por el
+  // editor (intocable). Lo distingue el ORIGEN del último cambio auditado.
+  const editedIds = rows
+    .map(r => r.external_id)
+    .filter(id => existing.get(id)?.edited_at)
+  const lastOrigin = new Map<string, string>()
+  for (let i = 0; i < editedIds.length; i += 200) {
+    const { data } = await sb.from('grade_audit')
+      .select('grade_external_id, origin, changed_at')
+      .in('grade_external_id', editedIds.slice(i, i + 200))
+      .order('changed_at', { ascending: false })
+    for (const a of (data ?? []) as { grade_external_id: string; origin: string }[]) {
+      if (!lastOrigin.has(a.grade_external_id)) lastOrigin.set(a.grade_external_id, a.origin)
+    }
+  }
+
   const toWrite: ImportRow[] = []
   const audits: Record<string, unknown>[] = []
   for (const r of rows) {
     const prev = existing.get(r.external_id)
+    let row = r
     if (prev) {
       if (prev.locked_at) { out.locked_rows++; continue }     // acta cerrada: intocable por importación
       if (String(prev.final_grade ?? '') === String(r.final_grade ?? '')) { out.unchanged++; continue }
-      if (prev.edited_at) { out.protected_rows++; continue }  // el trigger la protegería igual; ni lo intentamos
+      if (prev.edited_at) {
+        const origen = lastOrigin.get(r.external_id)
+        if (!origen || origen === 'editor') { out.protected_rows++; continue }  // corrección de Registros: intocable
+        row = { ...r, shield: true }  // blindaje de importación: se actualiza y se re-blinda
+      }
       out.updated++
     } else out.inserted++
-    toWrite.push(r)
+    toWrite.push(row)
     audits.push({
       grade_external_id: r.external_id,
       document_number: r.document_number,

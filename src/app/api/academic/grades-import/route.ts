@@ -150,7 +150,10 @@ export async function POST(req: NextRequest) {
     const studentName = [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' ')
     ok.push({
       fila, document: doc, student_name: studentName, course_code: course.code, course_name: course.name, grade: nota,
-      destino: target.action === 'fill' ? 'rellena pendiente' : 'nueva',
+      destino: target.action === 'fill' ? 'rellena pendiente'
+        : target.action === 'update'
+          ? (target.prev_value != null && Math.abs(Number(target.prev_value) - nota) < 0.005 ? 'sin cambio' : `actualiza (${target.prev_value ?? '—'} → ${nota})`)
+          : 'nueva',
     })
     importRows.push({
       external_id: externalId,

@@ -36,6 +36,50 @@ function courseTotal(gradeitems: any[]): number | null {
   return Math.round(v * 100) / 100
 }
 
+// Política del aula (mismos criterios del Auditor), calculada EN VIVO al
+// previsualizar/importar: ponderaciones activas de primer nivel suman 100%,
+// escala del total sobre 100, aula visible. Un aula que no cumple no se puede
+// importar.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function aulaPolicy(courseid: number, report: any): Promise<{ suma_pesos: number | null; escala: number | null; visible: boolean | null; violations: string[] }> {
+  let visible: boolean | null = null
+  try {
+    const cf = await moodleCall('core_course_get_courses_by_field', { field: 'id', value: String(courseid) })
+    const c0 = cf?.courses?.[0]
+    if (c0) visible = c0.visible !== 0
+  } catch { /* sin permiso para ver el curso */ }
+
+  const visibleByCmid = new Map<number, boolean>()
+  try {
+    const contents = await moodleCall('core_course_get_contents', { courseid })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const sec of (Array.isArray(contents) ? contents : []) as any[]) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const m of (sec.modules ?? []) as any[]) visibleByCmid.set(Number(m.id), (m.visible ?? 1) !== 0)
+    }
+  } catch { /* función no habilitada: se evalúa sin filtro de visibilidad */ }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const items = (report?.usergrades?.[0]?.gradeitems ?? []) as any[]
+  const courseItem = items.find(i => i.itemtype === 'course')
+  const rootId = courseItem?.iteminstance ?? null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const esActivo = (i: any) => i.cmid == null || (visibleByCmid.get(Number(i.cmid)) ?? true)
+  const topLevel = items.filter(i => i.itemtype !== 'course' && i.categoryid === rootId && esActivo(i))
+  const reportan = topLevel.filter(i => i.weightraw != null)
+  const sumaPesos = topLevel.length && reportan.length
+    ? Math.round(topLevel.reduce((s, i) => s + (Number(i.weightraw) || 0), 0) * 10000) / 100
+    : null
+  const escala = courseItem?.grademax != null ? Number(courseItem.grademax) : null
+
+  const violations: string[] = []
+  if (visible === false) violations.push('el aula está oculta (no activa)')
+  if (escala != null && escala !== 100) violations.push(`la escala del total es ${escala}, no 100`)
+  if (sumaPesos == null) violations.push('los recursos activos no reportan ponderación')
+  else if (Math.abs(sumaPesos - 100) > 0.5) violations.push(`las ponderaciones activas suman ${sumaPesos}%, no 100%`)
+  return { suma_pesos: sumaPesos, escala, visible, violations }
+}
+
 // Alumnos del aula: userid → identidad (el idnumber es nuestro external_id)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function enrolledMap(courseid: number): Promise<Map<number, { idnumber: string; fullname: string; email: string | null }>> {
@@ -131,11 +175,15 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  const politica = await aulaPolicy(courseid, report)
+
   const matched: { document: string; name: string; total: number | null; destino: string }[] = []
   const unmatched: { fullname: string; idnumber: string }[] = []
-  let yaRegistradas = 0, rellenan = 0, nuevas = 0
+  const reportUserIds = new Set<number>()
+  let yaRegistradas = 0, rellenan = 0, nuevas = 0, actualizan = 0, sinCambio = 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const ug of ((report?.usergrades ?? []) as any[])) {
+    reportUserIds.add(Number(ug.userid))
     const u = users.get(Number(ug.userid))
     const stu = u?.idnumber ? byExternal.get(u.idnumber) : null
     const total = courseTotal(ug.gradeitems)
@@ -144,7 +192,11 @@ export async function GET(req: NextRequest) {
     let destino = 'en curso'
     if (total != null && linkedCourse) {
       const r = resolveImportTarget(gradesByDoc.get(doc) ?? [], linkedCourse, `moodle:${courseid}:${ug.userid}`)
-      if (r.action === 'skip') { destino = 'ya registrada (Activa)'; yaRegistradas++ }
+      if (r.action === 'skip') { destino = 'ya registrada (histórico)'; yaRegistradas++ }
+      else if (r.action === 'update') {
+        if (r.prev_value != null && Math.abs(Number(r.prev_value) - total) < 0.005) { destino = 'sin cambio'; sinCambio++ }
+        else { destino = `actualiza (${r.prev_value ?? '—'} → ${total})`; actualizan++ }
+      }
       else if (r.action === 'fill') { destino = 'rellena pendiente'; rellenan++ }
       else { destino = 'nueva'; nuevas++ }
     } else if (total != null) destino = 'nueva'
@@ -156,14 +208,20 @@ export async function GET(req: NextRequest) {
   }
   matched.sort((a, b) => a.name.localeCompare(b.name))
 
-  // ¿Cuántas notas de esta aula ya están en el ERP y cuántas cerradas?
+  // Notas de esta aula ya en el ERP; y las de cuentas que YA NO aparecen en el
+  // aula (cohortes que rotaron, desmatriculados): se conservan y se reportan.
   const { data: existentes } = await sb.from('academic_grades')
-    .select('external_id, locked_at').like('external_id', `moodle:${courseid}:%`)
+    .select('external_id, locked_at, student_name, document_number, final_grade')
+    .like('external_id', `moodle:${courseid}:%`)
   const yaImportadas = (existentes ?? []).length
   const cerradas = ((existentes ?? []) as { locked_at: string | null }[]).filter(g => g.locked_at).length
+  const desaparecidos = ((existentes ?? []) as { external_id: string; student_name: string | null; document_number: string | null; final_grade: number | null }[])
+    .filter(g => !reportUserIds.has(Number(g.external_id.split(':')[2])))
+    .map(g => ({ name: g.student_name ?? '?', document: g.document_number ?? '', value: g.final_grade }))
 
   return NextResponse.json({
     courseid,
+    politica,
     alumnos_en_reporte: (report?.usergrades ?? []).length,
     matched_total: matched.length,
     con_nota: matched.filter(m => m.total != null).length,
@@ -173,6 +231,9 @@ export async function GET(req: NextRequest) {
     ya_registradas_activa: yaRegistradas,
     rellenan_pendiente: rellenan,
     nuevas,
+    actualizan,
+    sin_cambio: sinCambio,
+    desaparecidos,
     unmatched,
     matched,
   })
@@ -241,6 +302,15 @@ export async function POST(req: NextRequest) {
     moodleCall('gradereport_user_get_grade_items', { courseid: b.courseid }),
   ])
 
+  // Compuerta de política: un aula que no cumple NO se importa.
+  const politica = await aulaPolicy(b.courseid, report)
+  if (politica.violations.length) {
+    return NextResponse.json({
+      error: 'El aula no cumple la política del campus y no se puede importar: ' + politica.violations.join('; ') + '. Corrígela en Moodle y vuelve a intentar.',
+      politica,
+    }, { status: 400 })
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const studs: any[] = []
   for (let from = 0; ; from += 1000) {
@@ -286,8 +356,9 @@ export async function POST(req: NextRequest) {
     const total = courseTotal(ug.gradeitems)
     if (total == null) { sinTotal++; continue }
 
-    // ¿Ya existe esta asignatura para el alumno? (skip = de Activa con nota;
-    // fill = fila "en curso" que se rellena y blinda; new = fila nueva)
+    // skip = histórico con nota (intocable); update = fila de una importación
+    // anterior (las notas cambian en Moodle y se reflejan); fill = "en curso"
+    // que se rellena y blinda; new = fila nueva
     const target = resolveImportTarget(
       gradesByDoc.get(String(stu.document_number ?? '')) ?? [],
       { code: destCourse.code, name: destCourse.name },

@@ -9,11 +9,15 @@ interface Aula {
   linked: { course: Candidate; group: string | null } | null
 }
 interface MatchedRow { document: string; name: string; total: number | null; destino: string }
+interface Politica { suma_pesos: number | null; escala: number | null; visible: boolean | null; violations: string[] }
 interface Preview {
   courseid: number; alumnos_en_reporte: number; matched_total: number
+  politica: Politica
   con_nota: number; sin_nota: number
   ya_importadas: number; cerradas: number
   ya_registradas_activa: number; rellenan_pendiente: number; nuevas: number
+  actualizan: number; sin_cambio: number
+  desaparecidos: { name: string; document: string; value: number | null }[]
   unmatched: { fullname: string; idnumber: string }[]
   matched: MatchedRow[]
 }
@@ -129,6 +133,19 @@ export function MoodleActasImport() {
             <div className="py-6 text-center"><Loader2 className="w-5 h-5 animate-spin text-blue-500 mx-auto" /></div>
           ) : preview && (
             <>
+              {preview.politica.violations.length > 0 ? (
+                <div className="text-sm bg-rose-50 border border-rose-200 text-rose-800 rounded-lg px-4 py-3">
+                  <p className="font-semibold">⛔ Esta aula no cumple la política del campus — no se puede importar:</p>
+                  <ul className="list-disc ml-5 mt-1 text-xs">
+                    {preview.politica.violations.map((v, i) => <li key={i}>{v}</li>)}
+                  </ul>
+                  <p className="text-xs mt-1 text-rose-600">Corrígela en Moodle y vuelve a abrir la vista previa.</p>
+                </div>
+              ) : (
+                <p className="text-xs text-green-700 bg-green-50 rounded-lg px-3 py-2">
+                  ✓ Cumple la política: ponderaciones activas {preview.politica.suma_pesos}% · escala {preview.politica.escala}
+                </p>
+              )}
               <div className="flex flex-wrap gap-2 text-xs">
                 <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full">{preview.alumnos_en_reporte} en el aula</span>
                 <span className="bg-green-50 text-green-700 px-2 py-1 rounded-full">{preview.con_nota} con nota final</span>
@@ -137,7 +154,7 @@ export function MoodleActasImport() {
                   <span className="bg-rose-50 text-rose-700 px-2 py-1 rounded-full">{preview.unmatched.length} sin identificar en el ERP</span>
                 )}
                 {preview.ya_registradas_activa > 0 && (
-                  <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">{preview.ya_registradas_activa} ya registradas (Activa) — se saltan</span>
+                  <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">{preview.ya_registradas_activa} histórico intacto — se saltan</span>
                 )}
                 {preview.rellenan_pendiente > 0 && (
                   <span className="bg-teal-50 text-teal-700 px-2 py-1 rounded-full">{preview.rellenan_pendiente} rellenan nota pendiente</span>
@@ -145,7 +162,23 @@ export function MoodleActasImport() {
                 {preview.nuevas > 0 && (
                   <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full">{preview.nuevas} nuevas</span>
                 )}
+                {preview.actualizan > 0 && (
+                  <span className="bg-orange-50 text-orange-700 px-2 py-1 rounded-full">{preview.actualizan} cambian de valor</span>
+                )}
+                {preview.sin_cambio > 0 && (
+                  <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-full">{preview.sin_cambio} sin cambio</span>
+                )}
               </div>
+              {preview.desaparecidos.length > 0 && (
+                <details className="text-xs bg-amber-50 text-amber-800 rounded-lg px-3 py-2">
+                  <summary className="cursor-pointer">
+                    ⚠ {preview.desaparecidos.length} nota(s) en el ERP de cuentas que ya no aparecen en el aula (se conservan, no se tocan)
+                  </summary>
+                  <ul className="mt-1 space-y-0.5">
+                    {preview.desaparecidos.map((x, i) => <li key={i}>{x.name} · {x.document} · nota {x.value ?? '—'}</li>)}
+                  </ul>
+                </details>
+              )}
               {preview.cerradas > 0 && (
                 <div className="flex items-center gap-3 text-xs bg-gray-100 text-gray-700 rounded-lg px-3 py-2">
                   🔒 <b>Acta cerrada</b>: {preview.cerradas} nota(s) selladas — ninguna importación puede tocarlas (el editor manual sí).
@@ -170,9 +203,11 @@ export function MoodleActasImport() {
                         <td className="px-3 py-1.5 text-gray-500">{m.document}</td>
                         <td className={`px-3 py-1.5 text-right font-medium ${m.total == null ? 'text-gray-300' : 'text-gray-800'}`}>{m.total ?? 'en curso'}</td>
                         <td className={`px-3 py-1.5 text-xs ${
-                          m.destino === 'ya registrada (Activa)' ? 'text-indigo-600'
+                          m.destino === 'ya registrada (histórico)' ? 'text-indigo-600'
                             : m.destino === 'rellena pendiente' ? 'text-teal-600'
-                              : m.destino === 'nueva' ? 'text-blue-600' : 'text-gray-300'}`}>{m.destino}</td>
+                              : m.destino === 'nueva' ? 'text-blue-600'
+                                : m.destino.startsWith('actualiza') ? 'text-orange-600 font-medium'
+                                  : m.destino === 'sin cambio' ? 'text-gray-400' : 'text-gray-300'}`}>{m.destino}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -216,10 +251,10 @@ export function MoodleActasImport() {
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
               </div>
-              <button onClick={doImport} disabled={importing || !termBlock.trim()}
+              <button onClick={doImport} disabled={importing || !termBlock.trim() || preview.politica.violations.length > 0}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
                 {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                Importar {preview.rellenan_pendiente + preview.nuevas} notas al expediente
+                Importar {preview.rellenan_pendiente + preview.nuevas + preview.actualizan} notas al expediente
               </button>
               <p className="text-[11px] text-gray-400">
                 Solo entran los alumnos identificados y con nota final. Reimportar es seguro: actualiza lo que cambió y
