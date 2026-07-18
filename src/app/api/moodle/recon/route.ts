@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moodleCall, moodleConfigured } from '@/lib/moodle'
+import { sameCourse } from '@/lib/course-match'
 
 export const maxDuration = 120
 export const revalidate = 0
@@ -26,6 +27,83 @@ export async function GET(req: NextRequest) {
   const out: Record<string, any> = {}
   const probe = async (name: string, fn: () => Promise<unknown>) => {
     try { out[name] = await fn() } catch (e) { out[name] = { error: e instanceof Error ? e.message : String(e) } }
+  }
+
+  // ?comparar=<aulaId> → coteja, alumno por alumno, la nota que dejó Activa en
+  // el ERP contra el total que Moodle calcula hoy para la asignatura vinculada.
+  // Responde la pregunta: ¿la integración directa coincide con lo importado?
+  const comparar = req.nextUrl.searchParams.get('comparar')
+  if (comparar) {
+    const sbc = db()
+    const courseid = Number(comparar)
+    const { data: offs } = await sbc.from('semester_offerings')
+      .select('course:academic_courses(id, code, name)').eq('moodle_course_id', String(courseid))
+    const course = offs?.[0]?.course
+    if (!course) return NextResponse.json({ error: 'Aula sin vínculo a asignatura' }, { status: 400 })
+
+    const enrolled = await moodleCall('core_enrol_get_enrolled_users', { courseid })
+    const idnOf = new Map<number, string>(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ((Array.isArray(enrolled) ? enrolled : []) as any[]).map(u => [Number(u.id), String(u.idnumber ?? '').trim()]))
+    const rep = await moodleCall('gradereport_user_get_grade_items', { courseid })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const studs: any[] = []
+    for (let from = 0; ; from += 1000) {
+      const { data } = await sbc.from('academic_students').select('id, external_id, document_number').range(from, from + 999)
+      const rows = data ?? []
+      studs.push(...rows)
+      if (rows.length < 1000) break
+    }
+    const byExternal = new Map(studs.filter(s => s.external_id).map(s => [String(s.external_id), s]))
+    const docs = [...new Set([...idnOf.values()].map(i => byExternal.get(i)).filter(Boolean).map(s => String(s.document_number)))]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const gradesByDoc = new Map<string, any[]>()
+    for (let i = 0; i < docs.length; i += 200) {
+      const { data } = await sbc.from('academic_grades')
+        .select('document_number, course_code, course_name, final_grade, retake_grade, source')
+        .in('document_number', docs.slice(i, i + 200))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const g of (data ?? []) as any[]) {
+        const k = String(g.document_number)
+        if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
+        gradesByDoc.get(k)!.push(g)
+      }
+    }
+
+    let comparables = 0, iguales = 0, difLeve = 0, difGrande = 0, soloMoodle = 0, soloActiva = 0
+    const ejemplos: { doc: string; erp: number; moodle: number; dif: number }[] = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const ug of ((rep?.usergrades ?? []) as any[])) {
+      const stu = byExternal.get(idnOf.get(Number(ug.userid)) ?? '')
+      if (!stu) continue
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const t = (ug.gradeitems ?? []).find((i: any) => i.itemtype === 'course')
+      let moodleVal: number | null = t?.graderaw ?? null
+      const max = Number(t?.grademax ?? 100)
+      if (moodleVal != null && isFinite(max) && max > 0 && max !== 100) moodleVal = (moodleVal / max) * 100
+      const erpRows = (gradesByDoc.get(String(stu.document_number)) ?? [])
+        .filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
+        .filter(g => (course.code && g.course_code && String(g.course_code) === String(course.code)) || sameCourse(g.course_name, course.name))
+      const erpVals = erpRows.map(g => g.retake_grade ?? g.final_grade).filter((v: number | null): v is number => v != null)
+      const erpVal = erpVals.length ? Math.max(...erpVals) : null
+
+      if (moodleVal != null && erpVal != null) {
+        comparables++
+        const dif = Math.abs(moodleVal - erpVal)
+        if (dif < 0.5) iguales++
+        else if (dif <= 2) { difLeve++; if (ejemplos.length < 10) ejemplos.push({ doc: String(stu.document_number), erp: erpVal, moodle: Math.round(moodleVal * 10) / 10, dif: Math.round(dif * 10) / 10 }) }
+        else { difGrande++; if (ejemplos.length < 10) ejemplos.push({ doc: String(stu.document_number), erp: erpVal, moodle: Math.round(moodleVal * 10) / 10, dif: Math.round(dif * 10) / 10 }) }
+      } else if (moodleVal != null) soloMoodle++
+      else if (erpVal != null) soloActiva++
+    }
+    return NextResponse.json({
+      aula: courseid, asignatura: `${course.code} · ${course.name}`,
+      comparables, coinciden_hasta_medio_punto: iguales,
+      difieren_hasta_2_puntos: difLeve, difieren_mas_de_2: difGrande,
+      solo_moodle_tiene: soloMoodle, solo_activa_tiene: soloActiva,
+      ejemplos_de_diferencias: ejemplos.sort((a, b) => b.dif - a.dif),
+    })
   }
 
   await probe('site', async () => {
