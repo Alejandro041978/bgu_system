@@ -76,6 +76,25 @@ export async function GET(req: NextRequest) {
       .filter(c => c.format !== 'site')
       .map(c => ({ id: c.id, shortname: c.shortname, fullname: c.fullname, visible: c.visible }))
 
+    // VÍNCULO EXACTO: semester_offerings.moodle_course_id (el ID de aula que se
+    // configura en el detalle del grupo). Cuando existe, ESA es la asignatura
+    // destino — sin interpretar nombres. El parseo del código del shortname
+    // queda solo como sugerencia para aulas aún no vinculadas.
+    const { data: linkedOffs } = await sb.from('semester_offerings')
+      .select('moodle_course_id, course:academic_courses(id, code, name, academic_programs(name)), grupo:academic_groups(abbreviation, name)')
+      .not('moodle_course_id', 'is', null)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const linkedByAula = new Map<number, any>()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const o of (linkedOffs ?? []) as any[]) {
+      const aulaId = Number(o.moodle_course_id)
+      if (!isFinite(aulaId) || !o.course) continue
+      linkedByAula.set(aulaId, {
+        course: { id: o.course.id, code: o.course.code, name: o.course.name, program: o.course.academic_programs?.name ?? '' },
+        group: o.grupo ? [o.grupo.abbreviation, o.grupo.name].filter(Boolean).join(' · ') : null,
+      })
+    }
+
     // Candidatos de asignatura: el shortname empieza con el código ("PMB 270 - …")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allCourses: any[] = []
@@ -94,10 +113,12 @@ export async function GET(req: NextRequest) {
       byCode.get(k)!.push(c)
     }
     const withCandidates = aulas.map(a => {
+      const linked = linkedByAula.get(Number(a.id)) ?? null
       const m = String(a.shortname ?? '').toUpperCase().match(/^([A-Z]{2,4}\s?\d{3})/)
       const cands = m ? (byCode.get(m[1].replace(/(\S)(\d)/, '$1 $2')) ?? byCode.get(m[1]) ?? []) : []
       return {
         ...a,
+        linked,
         candidates: cands.map(c => ({ id: c.id, code: c.code, name: c.name, program: c.academic_programs?.name ?? '' })),
       }
     })

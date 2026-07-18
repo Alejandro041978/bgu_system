@@ -4,7 +4,11 @@ import { useEffect, useState, useRef } from 'react'
 import { Loader2, Search, Download, CheckCircle2, AlertTriangle } from 'lucide-react'
 
 interface Candidate { id: string; code: string | null; name: string; program: string }
-interface Aula { id: number; shortname: string; fullname: string; visible?: number; candidates: Candidate[] }
+interface Aula {
+  id: number; shortname: string; fullname: string; visible?: number
+  linked: { course: Candidate; group: string | null } | null
+  candidates: Candidate[]
+}
 interface MatchedRow { document: string; name: string; total: number | null }
 interface Preview {
   courseid: number; alumnos_en_reporte: number; matched_total: number
@@ -47,7 +51,8 @@ export function MoodleActasImport() {
 
   async function selectAula(a: Aula) {
     setSelected(a); setPreview(null); setResult(null); setError(null)
-    setDestCourse(a.candidates.length === 1 ? a.candidates[0] : null)
+    // Prioridad: vínculo exacto del grupo (moodle_course_id) > candidato único por código
+    setDestCourse(a.linked?.course ?? (a.candidates.length === 1 ? a.candidates[0] : null))
     setLoadingPreview(true)
     const d = await fetch(`/api/academic/moodle-actas?courseid=${a.id}`).then(r => r.json())
     setLoadingPreview(false)
@@ -101,6 +106,11 @@ export function MoodleActasImport() {
                   className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50/50 ${selected?.id === a.id ? 'bg-blue-50' : ''}`}>
                   <span className="font-medium text-gray-800">{a.shortname}</span>
                   <span className="text-xs text-gray-400 ml-2">#{a.id}{a.visible === 0 ? ' · oculta' : ''}</span>
+                  {a.linked && (
+                    <span className="text-[10px] font-medium bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full ml-2">
+                      vinculada{a.linked.group ? `: ${a.linked.group}` : ''}
+                    </span>
+                  )}
                 </button>
               ))}
               {visibleAulas.length === 0 && <p className="text-xs text-gray-400 px-3 py-4">Sin aulas que coincidan.</p>}
@@ -166,10 +176,15 @@ export function MoodleActasImport() {
             <div className="sm:col-span-3">
               <label className="block text-xs text-gray-500 mb-1">Asignatura</label>
               {destCourse ? (
-                <div className="flex items-center gap-2 text-sm bg-blue-50 text-blue-800 rounded-lg px-3 py-2">
+                <div className={`flex items-center gap-2 text-sm rounded-lg px-3 py-2 ${selected.linked?.course.id === destCourse.id ? 'bg-green-50 text-green-800' : 'bg-blue-50 text-blue-800'}`}>
                   <span className="font-medium">{destCourse.code} · {destCourse.name}</span>
-                  <span className="text-xs text-blue-500">{destCourse.program}</span>
-                  <button onClick={() => setDestCourse(null)} className="ml-auto text-xs text-blue-500 hover:underline">cambiar</button>
+                  <span className="text-xs opacity-70">{destCourse.program}</span>
+                  {selected.linked?.course.id === destCourse.id && (
+                    <span className="text-[10px] font-medium bg-white/70 px-1.5 py-0.5 rounded-full">
+                      vínculo exacto del grupo{selected.linked.group ? ` ${selected.linked.group}` : ''}
+                    </span>
+                  )}
+                  <button onClick={() => setDestCourse(null)} className="ml-auto text-xs opacity-70 hover:underline">cambiar</button>
                 </div>
               ) : (
                 <div className="relative">
