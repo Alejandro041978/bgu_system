@@ -311,10 +311,14 @@ export async function POST(req: NextRequest) {
       passing_score: passing,
     })
 
-    // Ítems con ponderación o con nota (excluye videos/podcasts sin peso ni nota)
+    // SOLO ítems con ponderación. Los ítems sin peso no entran al acta aunque
+    // tengan nota: son asistencia a sincrónicas, simulacros, evaluaciones
+    // desactivadas de cohortes anteriores o subsanaciones — ninguno afecta el
+    // promedio (decisión del usuario, 2026-07-19). Las subsanaciones se
+    // registran a mano en retake_grade por el editor.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const items = ((ug.gradeitems ?? []) as any[])
-      .filter(i => i.itemtype === 'mod' && ((i.weightraw ?? 0) > 0 || i.graderaw != null))
+      .filter(i => i.itemtype === 'mod' && (i.weightraw ?? 0) > 0)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const process = items.map((i: any, idx: number) => {
       let val: number | null = i.graderaw ?? null
