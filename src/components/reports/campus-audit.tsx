@@ -6,10 +6,11 @@ import { Loader2, RefreshCw, ShieldCheck, AlertTriangle } from 'lucide-react'
 interface Aula {
   aula_id: number; shortname: string; fullname: string; visible: boolean
   linked_course: string | null
-  recursos: number | null; items_evaluacion: number | null; items_con_peso: number | null
+  recursos: number | null; recursos_activos: number | null
+  items_evaluacion: number | null; items_activos: number | null; items_con_peso: number | null
   suma_pesos: number | null; escala_total: number | null
   cumple_pesos: boolean | null; cumple_escala: boolean | null
-  error: string | null; audited_at: string
+  metodo: string | null; error: string | null; audited_at: string
 }
 interface Data {
   audited_at: string | null; total: number; cumplen: number
@@ -97,10 +98,10 @@ export function CampusAudit() {
                 <tr className="border-b border-gray-100 bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">
                   <th className="text-left px-4 py-3">Aula</th>
                   <th className="text-left px-4 py-3">Vinculada a</th>
-                  <th className="text-right px-4 py-3">Recursos</th>
-                  <th className="text-right px-4 py-3">Ítems eval.</th>
+                  <th className="text-right px-4 py-3">Recursos (activos/total)</th>
+                  <th className="text-right px-4 py-3">Evaluados (activos/total)</th>
                   <th className="text-right px-4 py-3">Con peso</th>
-                  <th className="text-right px-4 py-3">Σ pesos</th>
+                  <th className="text-right px-4 py-3">Σ pesos activos</th>
                   <th className="text-right px-4 py-3">Escala</th>
                   <th className="text-left px-4 py-3">Política</th>
                 </tr>
@@ -113,8 +114,12 @@ export function CampusAudit() {
                       <p className="text-[11px] text-gray-400">#{a.aula_id}{!a.visible ? ' · oculta' : ''}</p>
                     </td>
                     <td className="px-4 py-2.5 text-xs text-gray-500 max-w-[220px] truncate">{a.linked_course ?? <span className="text-gray-300">—</span>}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-600">{a.recursos ?? '—'}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-600">{a.items_evaluacion ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-right text-gray-600">
+                      {a.recursos != null ? <><b className="text-gray-800">{a.recursos_activos ?? '?'}</b><span className="text-gray-400"> / {a.recursos}</span></> : '—'}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-gray-600">
+                      {a.items_evaluacion != null ? <><b className="text-gray-800">{a.items_activos ?? '?'}</b><span className="text-gray-400"> / {a.items_evaluacion}</span></> : '—'}
+                    </td>
                     <td className="px-4 py-2.5 text-right text-gray-600">{a.items_con_peso ?? '—'}</td>
                     <td className={`px-4 py-2.5 text-right font-medium ${a.cumple_pesos === false ? 'text-rose-700' : a.cumple_pesos ? 'text-green-700' : 'text-gray-300'}`}>
                       {a.suma_pesos != null ? `${a.suma_pesos}%` : '—'}
@@ -139,9 +144,9 @@ export function CampusAudit() {
           </div>
 
           <div className="text-[11px] text-gray-400 space-y-1">
-            <p><b>Política del campus</b>: las ponderaciones de primer nivel del aula deben sumar 100% y el total del curso debe estar en escala sobre 100.</p>
-            <p><b>Recursos</b> = módulos del aula (todo el contenido). <b>Ítems eval.</b> = actividades con entrada en el libro de calificaciones; <b>con peso</b> = las que ponderan en la nota.</p>
-            <p>Las aulas se reutilizan entre cohortes y cambian: vuelve a auditar tras cada preparación de bloque.</p>
+            <p><b>Auditoría estructural</b>: mide el diseño del aula, tenga o no estudiantes y tenga o no calificaciones. <b>Política</b>: las ponderaciones de los recursos evaluados <b>activos</b> (de primer nivel) suman 100% y el total del curso está sobre 100. Los recursos ocultos no cuentan.</p>
+            <p><b>Recursos</b> = módulos del aula (activos / total). <b>Evaluados</b> = con entrada en el libro de calificaciones; <b>con peso</b> = activos que ponderan en la nota.</p>
+            <p>Las aulas vacías se leen con la cuenta de servicio &quot;Auditor ERP&quot; (se matricula un instante y se retira). Las aulas se reutilizan entre cohortes: vuelve a auditar tras cada preparación de bloque.</p>
           </div>
         </>
       )}

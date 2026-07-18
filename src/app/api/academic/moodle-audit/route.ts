@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { moodleCall, moodleConfigured } from '@/lib/moodle'
+import { moodleCall, moodleConfigured, MOODLE_STUDENT_ROLEID } from '@/lib/moodle'
+import { randomBytes } from 'crypto'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -15,12 +16,16 @@ async function requireUser() {
   return user
 }
 
-// Auditor del Campus.
+// Auditor del Campus — auditoría ESTRUCTURAL del aula, independiente de
+// estudiantes y calificaciones: recursos, cuáles son evaluados, cuáles están
+// activos (visibles) y sus ponderaciones. Política: las ponderaciones de
+// primer nivel de los recursos evaluados ACTIVOS suman 100% y el total del
+// curso está en escala sobre 100. Los recursos ocultos no cuentan.
 //
-// Política institucional: en cada aula, las ponderaciones de PRIMER NIVEL
-// (ítems y categorías colgando directo del curso) deben sumar 100%, y el total
-// del curso debe estar en escala sobre 100. Las aulas se reutilizan entre
-// cohortes y cambian: esta auditoría detecta cuándo dejaron de cumplir.
+// Moodle solo expone las ponderaciones a través del reporte de un usuario
+// matriculado. Para aulas con matriculados se usa el primero; para aulas
+// vacías, la cuenta de servicio "Auditor ERP" se matricula un instante, lee la
+// estructura y se desmatricula.
 //
 // GET  → última foto guardada + resumen
 // POST → barre Moodle aula por aula y guarda la foto (toma 1-3 minutos)
@@ -49,6 +54,26 @@ export async function GET() {
   })
 }
 
+const AUDITOR_USERNAME = 'erp-auditor'
+
+// Cuenta de servicio para leer la estructura de aulas sin matriculados.
+// Se crea una sola vez; no tiene sesión ni recibe correos.
+async function ensureAuditorUser(): Promise<number> {
+  const found = await moodleCall('core_user_get_users_by_field', { field: 'username', values: [AUDITOR_USERNAME] })
+  if (Array.isArray(found) && found.length) return Number(found[0].id)
+  const created = await moodleCall('core_user_create_users', {
+    users: [{
+      username: AUDITOR_USERNAME,
+      password: 'Aud!' + randomBytes(18).toString('base64url'),
+      firstname: 'Auditor',
+      lastname: 'ERP',
+      email: 'auditor.erp@blackwell.university',
+      idnumber: 'ERP-AUDITOR',
+    }],
+  })
+  return Number(created?.[0]?.id)
+}
+
 export async function POST() {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no configurado' }, { status: 400 })
@@ -57,6 +82,9 @@ export async function POST() {
   const courses = await moodleCall('core_course_get_courses', {})
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const aulas = ((Array.isArray(courses) ? courses : []) as any[]).filter(c => c.format !== 'site')
+
+  let auditorId: number | null = null
+  try { auditorId = await ensureAuditorUser() } catch { /* sin cuenta de servicio: aulas vacías quedarán sin datos */ }
 
   // Vínculos aula → asignatura del ERP
   const { data: offs } = await sb.from('semester_offerings')
@@ -74,52 +102,88 @@ export async function POST() {
       visible: c.visible !== 0, linked_course: linkedBy.get(Number(c.id)) ?? null,
       audited_at: new Date().toISOString(),
     }
+    const vacio = {
+      recursos: null, recursos_activos: null, items_evaluacion: null, items_activos: null,
+      items_con_peso: null, suma_pesos: null, escala_total: null, cumple_pesos: null, cumple_escala: null,
+    }
     try {
-      // Recursos: módulos del contenido del aula
-      let recursos = 0
+      // Contenido del aula: módulos y su visibilidad (activo = visible)
+      let recursos = 0, recursosActivos = 0
+      const visibleByCmid = new Map<number, boolean>()
       try {
         const contents = await moodleCall('core_course_get_contents', { courseid: c.id })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const sec of (Array.isArray(contents) ? contents : []) as any[]) recursos += (sec.modules ?? []).length
+        for (const sec of (Array.isArray(contents) ? contents : []) as any[]) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          for (const m of (sec.modules ?? []) as any[]) {
+            recursos++
+            const activo = (m.visible ?? 1) !== 0
+            if (activo) recursosActivos++
+            visibleByCmid.set(Number(m.id), activo)
+          }
+        }
       } catch { /* algunas aulas no exponen contenido */ }
 
-      // Un alumno cualquiera para leer la estructura de calificaciones
+      // Lector de estructura: primer matriculado, o la cuenta Auditor ERP
       const enrolled = await moodleCall('core_enrol_get_enrolled_users', {
         courseid: c.id, options: [{ name: 'limitnumber', value: 1 }],
       })
-      const first = Array.isArray(enrolled) && enrolled.length ? enrolled[0] : null
-      if (!first) {
-        return { ...base, recursos, items_evaluacion: null, items_con_peso: null, suma_pesos: null, escala_total: null, cumple_pesos: null, cumple_escala: null, error: 'sin matriculados' }
+      let readerId: number | null = Array.isArray(enrolled) && enrolled.length ? Number(enrolled[0].id) : null
+      let metodo = 'alumno'
+      let desmatricular = false
+      if (!readerId) {
+        if (!auditorId) return { ...base, ...vacio, recursos, recursos_activos: recursosActivos, metodo: null, error: 'aula vacía y sin cuenta de servicio' }
+        await moodleCall('enrol_manual_enrol_users', { enrolments: [{ roleid: MOODLE_STUDENT_ROLEID, userid: auditorId, courseid: c.id }] })
+        readerId = auditorId
+        metodo = 'auditor'
+        desmatricular = true
       }
-      const rep = await moodleCall('gradereport_user_get_grade_items', { courseid: c.id, userid: first.id })
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const items = (rep?.usergrades?.[0]?.gradeitems ?? []) as any[]
-      const courseItem = items.find(i => i.itemtype === 'course')
+      let items: any[] = []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let courseItem: any = null
+      try {
+        const rep = await moodleCall('gradereport_user_get_grade_items', { courseid: c.id, userid: readerId })
+        items = rep?.usergrades?.[0]?.gradeitems ?? []
+        courseItem = items.find(i => i.itemtype === 'course') ?? null
+      } finally {
+        if (desmatricular) {
+          try { await moodleCall('enrol_manual_unenrol_users', { enrolments: [{ userid: readerId, courseid: c.id }] }) } catch { /* best effort */ }
+        }
+      }
+
       const rootId = courseItem?.iteminstance ?? null
+      // Activo = su módulo es visible (los ítems sin cmid — categorías, manuales — se consideran activos)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const esActivo = (i: any) => i.cmid == null || (visibleByCmid.get(Number(i.cmid)) ?? true)
       const mods = items.filter(i => i.itemtype === 'mod')
-      const conPeso = mods.filter(i => (i.weightraw ?? 0) > 0)
-      // Primer nivel: lo que cuelga directo de la categoría raíz (ítems y categorías)
-      const topLevel = items.filter(i => i.itemtype !== 'course' && i.categoryid === rootId)
+      const modsActivos = mods.filter(esActivo)
+      const conPeso = modsActivos.filter(i => (i.weightraw ?? 0) > 0)
+      // Política: primer nivel (cuelga directo del curso), solo ACTIVOS
+      const topLevel = items.filter(i => i.itemtype !== 'course' && i.categoryid === rootId && esActivo(i))
       const sumaPesos = topLevel.length
         ? Math.round(topLevel.reduce((s, i) => s + (Number(i.weightraw) || 0), 0) * 10000) / 100
         : null
       const escala = courseItem?.grademax != null ? Number(courseItem.grademax) : null
       return {
-        ...base, recursos,
+        ...base,
+        recursos, recursos_activos: recursosActivos,
         items_evaluacion: mods.length,
+        items_activos: modsActivos.length,
         items_con_peso: conPeso.length,
         suma_pesos: sumaPesos,
         escala_total: escala,
         cumple_pesos: sumaPesos == null ? null : Math.abs(sumaPesos - 100) <= 0.5,
         cumple_escala: escala == null ? null : escala === 100,
-        error: null,
+        metodo, error: null,
       }
     } catch (e) {
-      return { ...base, recursos: null, items_evaluacion: null, items_con_peso: null, suma_pesos: null, escala_total: null, cumple_pesos: null, cumple_escala: null, error: e instanceof Error ? e.message.slice(0, 120) : 'error' }
+      return { ...base, ...vacio, metodo: null, error: e instanceof Error ? e.message.slice(0, 120) : 'error' }
     }
   }
 
-  // En tandas para no exceder el tiempo (3 llamadas por aula)
+  // En tandas para no exceder el tiempo
   const resultados: Record<string, unknown>[] = []
   for (let i = 0; i < aulas.length; i += 6) {
     const tanda = await Promise.all(aulas.slice(i, i + 6).map(auditOne))
