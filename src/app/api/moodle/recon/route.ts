@@ -133,12 +133,20 @@ export async function GET(req: NextRequest) {
   if (target) {
     await probe('grade_items', async () => {
       const rep = await moodleCall('gradereport_user_get_grade_items', { courseid: target.courseid })
-      const items = rep?.usergrades?.[0]?.gradeitems
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const usergrades = (rep?.usergrades ?? []) as any[]
+      // Un alumno con total calculado, para ver los campos crudos reales
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const conNota = usergrades.find(ug => (ug.gradeitems ?? []).some((i: any) => i.itemtype === 'course' && i.graderaw != null))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const totalItem = conNota?.gradeitems?.find((i: any) => i.itemtype === 'course') ?? null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const modItem = conNota?.gradeitems?.find((i: any) => i.itemtype === 'mod' && i.graderaw != null) ?? null
       return {
         courseid: target.courseid,
-        alumnos_en_reporte: Array.isArray(rep?.usergrades) ? rep.usergrades.length : 0,
-        items: (Array.isArray(items) ? items : []).map((i: { itemname: string | null; itemtype: string; itemmodule: string | null; grademax: number | null }) =>
-          ({ itemname: i.itemname, itemtype: i.itemtype, itemmodule: i.itemmodule, grademax: i.grademax })),
+        alumnos_en_reporte: usergrades.length,
+        item_total_crudo: totalItem,
+        item_mod_crudo: modItem,
       }
     })
     // Alternativa si la anterior no está permitida
