@@ -55,19 +55,6 @@ export async function GET(req: NextRequest) {
   if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no configurado' }, { status: 400 })
   const sb = db()
   const courseidParam = req.nextUrl.searchParams.get('courseid')
-  const courseSearch = req.nextUrl.searchParams.get('course_search')?.trim()
-
-  // Búsqueda manual de asignatura destino (cuando el candidato automático no aplica)
-  if (courseSearch && courseSearch.length >= 2) {
-    const { data } = await sb.from('academic_courses')
-      .select('id, code, name, academic_programs(name)')
-      .or(`code.ilike.%${courseSearch}%,name.ilike.%${courseSearch}%`)
-      .limit(20)
-    return NextResponse.json({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      courses: ((data ?? []) as any[]).map(c => ({ id: c.id, code: c.code, name: c.name, program: c.academic_programs?.name ?? '' })),
-    })
-  }
 
   if (!courseidParam) {
     const courses = await moodleCall('core_course_get_courses', {})
@@ -95,34 +82,11 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Candidatos de asignatura: el shortname empieza con el código ("PMB 270 - …")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const allCourses: any[] = []
-    for (let from = 0; ; from += 1000) {
-      const { data } = await sb.from('academic_courses')
-        .select('id, code, name, credits, program_id, academic_programs(name)').range(from, from + 999)
-      const rows = data ?? []
-      allCourses.push(...rows)
-      if (rows.length < 1000) break
-    }
-    const byCode = new Map<string, typeof allCourses>()
-    for (const c of allCourses) {
-      const k = String(c.code ?? '').trim().toUpperCase()
-      if (!k) continue
-      if (!byCode.has(k)) byCode.set(k, [])
-      byCode.get(k)!.push(c)
-    }
-    const withCandidates = aulas.map(a => {
-      const linked = linkedByAula.get(Number(a.id)) ?? null
-      const m = String(a.shortname ?? '').toUpperCase().match(/^([A-Z]{2,4}\s?\d{3})/)
-      const cands = m ? (byCode.get(m[1].replace(/(\S)(\d)/, '$1 $2')) ?? byCode.get(m[1]) ?? []) : []
-      return {
-        ...a,
-        linked,
-        candidates: cands.map(c => ({ id: c.id, code: c.code, name: c.name, program: c.academic_programs?.name ?? '' })),
-      }
-    })
-    return NextResponse.json({ aulas: withCandidates })
+    // Regla institucional: SOLO se importa por vínculo exacto. Las aulas sin
+    // vincular se muestran para que se vea qué falta, pero no son importables.
+    // Los programas de campus socio usan otras aulas virtuales: esos van por
+    // el importador CSV, no por aquí.
+    return NextResponse.json({ aulas: aulas.map(a => ({ ...a, linked: linkedByAula.get(Number(a.id)) ?? null })) })
   }
 
   // Vista previa de un aula
@@ -171,25 +135,38 @@ export async function GET(req: NextRequest) {
   })
 }
 
-// POST { courseid, dest_course_id, term_year, term_block } → importa el acta.
-// Se importan solo los alumnos que cruzan por el puente y traen total; los
-// "en curso" (sin total) no entran. Reimportar es seguro: upsert por
-// external_id moodle:{aula}:{usuario}, y las filas corregidas a mano quedan
-// protegidas por el trigger.
+// POST { courseid, term_year, term_block } → importa el acta.
+// La asignatura destino NO viene del cliente: la decide el vínculo exacto
+// (semester_offerings.moodle_course_id). Un aula sin vincular no se puede
+// importar — se vincula en el detalle del grupo. Se importan solo los alumnos
+// que cruzan por el puente y traen total; los "en curso" no entran.
+// Reimportar es seguro: upsert por external_id moodle:{aula}:{usuario}, y las
+// filas corregidas a mano quedan protegidas por el trigger.
 export async function POST(req: NextRequest) {
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no configurado' }, { status: 400 })
 
-  const b = await req.json().catch(() => null) as { courseid?: number; dest_course_id?: string; term_year?: number; term_block?: string } | null
-  if (!b?.courseid || !b?.dest_course_id || !b?.term_year || !b?.term_block?.trim()) {
-    return NextResponse.json({ error: 'Falta courseid, dest_course_id, term_year o term_block' }, { status: 400 })
+  const b = await req.json().catch(() => null) as { courseid?: number; term_year?: number; term_block?: string } | null
+  if (!b?.courseid || !b?.term_year || !b?.term_block?.trim()) {
+    return NextResponse.json({ error: 'Falta courseid, term_year o term_block' }, { status: 400 })
   }
 
   const sb = db()
-  const { data: destCourse } = await sb.from('academic_courses')
-    .select('id, code, name, credits, program_id, academic_programs(category_id)').eq('id', b.dest_course_id).maybeSingle()
-  if (!destCourse) return NextResponse.json({ error: 'Asignatura destino no encontrada' }, { status: 404 })
+  const { data: linkedOffs } = await sb.from('semester_offerings')
+    .select('course:academic_courses(id, code, name, credits, program_id, academic_programs(category_id))')
+    .eq('moodle_course_id', String(b.courseid))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const linkedCourses = new Map<string, any>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const o of (linkedOffs ?? []) as any[]) if (o.course) linkedCourses.set(o.course.id, o.course)
+  if (linkedCourses.size === 0) {
+    return NextResponse.json({ error: 'Esta aula no está vinculada a ninguna asignatura. Vincúlala en el detalle del grupo (ID curso Moodle) antes de importar.' }, { status: 400 })
+  }
+  if (linkedCourses.size > 1) {
+    return NextResponse.json({ error: 'Esta aula está vinculada a más de una asignatura distinta; corrige el vínculo en los grupos antes de importar.' }, { status: 400 })
+  }
+  const destCourse = [...linkedCourses.values()][0]
   let passing: number | null = null
   if (destCourse.academic_programs?.category_id) {
     const { data: cat } = await sb.from('academic_programs_category')

@@ -15,6 +15,7 @@ const PAGE_GROUPS = [
       { key: 'report_student_status', label: 'Reportes · Estado de estudiantes' },
       { key: 'report_faculty_status', label: 'Reportes · Estado de los docentes' },
       { key: 'academic_moodle_actas', label: 'Académico · Actas de Moodle' },
+      { key: 'academic_grades_import', label: 'Académico · Cargar Notas (CSV)' },
     ],
   },
   {

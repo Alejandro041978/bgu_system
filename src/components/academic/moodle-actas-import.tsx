@@ -1,13 +1,12 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Loader2, Search, Download, CheckCircle2, AlertTriangle } from 'lucide-react'
 
 interface Candidate { id: string; code: string | null; name: string; program: string }
 interface Aula {
   id: number; shortname: string; fullname: string; visible?: number
   linked: { course: Candidate; group: string | null } | null
-  candidates: Candidate[]
 }
 interface MatchedRow { document: string; name: string; total: number | null }
 interface Preview {
@@ -31,11 +30,6 @@ export function MoodleActasImport() {
   const [preview, setPreview] = useState<Preview | null>(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
 
-  const [destCourse, setDestCourse] = useState<Candidate | null>(null)
-  const [courseQuery, setCourseQuery] = useState('')
-  const [courseHits, setCourseHits] = useState<Candidate[]>([])
-  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   const [termYear, setTermYear] = useState(String(new Date().getFullYear()))
   const [termBlock, setTermBlock] = useState('')
   const [importing, setImporting] = useState(false)
@@ -51,8 +45,6 @@ export function MoodleActasImport() {
 
   async function selectAula(a: Aula) {
     setSelected(a); setPreview(null); setResult(null); setError(null)
-    // Prioridad: vínculo exacto del grupo (moodle_course_id) > candidato único por código
-    setDestCourse(a.linked?.course ?? (a.candidates.length === 1 ? a.candidates[0] : null))
     setLoadingPreview(true)
     const d = await fetch(`/api/academic/moodle-actas?courseid=${a.id}`).then(r => r.json())
     setLoadingPreview(false)
@@ -60,23 +52,14 @@ export function MoodleActasImport() {
     setPreview(d)
   }
 
-  function searchCourse(v: string) {
-    setCourseQuery(v)
-    if (debounce.current) clearTimeout(debounce.current)
-    if (v.trim().length < 2) { setCourseHits([]); return }
-    debounce.current = setTimeout(async () => {
-      const d = await fetch(`/api/academic/moodle-actas?course_search=${encodeURIComponent(v.trim())}`).then(r => r.json())
-      setCourseHits(d.courses ?? [])
-    }, 300)
-  }
-
   async function doImport() {
-    if (!selected || !destCourse || !termYear || !termBlock.trim()) return
-    if (!confirm(`Se importará el acta del aula "${selected.shortname}" hacia ${destCourse.code ?? ''} ${destCourse.name} (${termYear} · ${termBlock}). ¿Continuar?`)) return
+    if (!selected?.linked || !termYear || !termBlock.trim()) return
+    const c = selected.linked.course
+    if (!confirm(`Se importará el acta del aula "${selected.shortname}" hacia ${c.code ?? ''} ${c.name} (${termYear} · ${termBlock}). ¿Continuar?`)) return
     setImporting(true); setError(null); setResult(null)
     const r = await fetch('/api/academic/moodle-actas', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseid: selected.id, dest_course_id: destCourse.id, term_year: Number(termYear), term_block: termBlock.trim() }),
+      body: JSON.stringify({ courseid: selected.id, term_year: Number(termYear), term_block: termBlock.trim() }),
     })
     const d = await r.json()
     setImporting(false)
@@ -168,71 +151,48 @@ export function MoodleActasImport() {
         </div>
       )}
 
-      {/* Destino e importación */}
+      {/* Destino e importación — SOLO por vínculo exacto */}
       {selected && preview && (
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <h3 className="text-sm font-semibold text-gray-700">3 · Destino en el expediente</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="sm:col-span-3">
-              <label className="block text-xs text-gray-500 mb-1">Asignatura</label>
-              {destCourse ? (
-                <div className={`flex items-center gap-2 text-sm rounded-lg px-3 py-2 ${selected.linked?.course.id === destCourse.id ? 'bg-green-50 text-green-800' : 'bg-blue-50 text-blue-800'}`}>
-                  <span className="font-medium">{destCourse.code} · {destCourse.name}</span>
-                  <span className="text-xs opacity-70">{destCourse.program}</span>
-                  {selected.linked?.course.id === destCourse.id && (
-                    <span className="text-[10px] font-medium bg-white/70 px-1.5 py-0.5 rounded-full">
-                      vínculo exacto del grupo{selected.linked.group ? ` ${selected.linked.group}` : ''}
-                    </span>
-                  )}
-                  <button onClick={() => setDestCourse(null)} className="ml-auto text-xs opacity-70 hover:underline">cambiar</button>
-                </div>
-              ) : (
-                <div className="relative">
-                  {selected.candidates.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {selected.candidates.map(c => (
-                        <button key={c.id} onClick={() => setDestCourse(c)}
-                          className="text-xs bg-gray-50 border border-gray-200 hover:border-blue-400 rounded-full px-2.5 py-1">
-                          {c.code} · {c.name} <span className="text-gray-400">({c.program})</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <input value={courseQuery} onChange={e => searchCourse(e.target.value)} placeholder="Buscar asignatura por código o nombre…"
+          {selected.linked ? (
+            <>
+              <div className="flex items-center gap-2 text-sm rounded-lg px-3 py-2 bg-green-50 text-green-800">
+                <span className="font-medium">{selected.linked.course.code} · {selected.linked.course.name}</span>
+                <span className="text-xs opacity-70">{selected.linked.course.program}</span>
+                <span className="text-[10px] font-medium bg-white/70 px-1.5 py-0.5 rounded-full">
+                  vínculo exacto{selected.linked.group ? ` · grupo ${selected.linked.group}` : ''}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Año (term)</label>
+                  <input value={termYear} onChange={e => setTermYear(e.target.value)} inputMode="numeric"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                  {courseHits.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-auto">
-                      {courseHits.map(c => (
-                        <button key={c.id} onClick={() => { setDestCourse(c); setCourseHits([]); setCourseQuery('') }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0">
-                          {c.code} · {c.name} <span className="text-xs text-gray-400">{c.program}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              )}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs text-gray-500 mb-1">Bloque (term)</label>
+                  <input value={termBlock} onChange={e => setTermBlock(e.target.value)} placeholder="Ej. AY_25-26_SPRING_2026"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+              <button onClick={doImport} disabled={importing || !termBlock.trim()}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+                {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                Importar {preview.con_nota} notas al expediente
+              </button>
+              <p className="text-[11px] text-gray-400">
+                Solo entran los alumnos identificados y con nota final. Reimportar es seguro: actualiza lo que cambió y
+                nunca pisa una nota corregida a mano en el ERP.
+              </p>
+            </>
+          ) : (
+            <div className="text-sm bg-amber-50 text-amber-800 rounded-lg px-4 py-3">
+              Esta aula no está vinculada a ninguna asignatura, así que no se puede importar. El vínculo se configura en el
+              detalle del grupo correspondiente (columna &quot;ID curso Moodle&quot; de la asignatura). Las aulas de campus socio
+              (otras plataformas) se cargan por el importador CSV.
             </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Año (term)</label>
-              <input value={termYear} onChange={e => setTermYear(e.target.value)} inputMode="numeric"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs text-gray-500 mb-1">Bloque (term)</label>
-              <input value={termBlock} onChange={e => setTermBlock(e.target.value)} placeholder="Ej. AY_25-26_SPRING_2026"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-          </div>
-          <button onClick={doImport} disabled={importing || !destCourse || !termBlock.trim()}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
-            {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Importar {preview.con_nota} notas al expediente
-          </button>
-          <p className="text-[11px] text-gray-400">
-            Solo entran los alumnos identificados y con nota final. Reimportar es seguro: actualiza lo que cambió y
-            nunca pisa una nota corregida a mano en el ERP.
-          </p>
+          )}
         </div>
       )}
 

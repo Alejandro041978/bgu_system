@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -106,6 +106,7 @@ const navigation: NavGroup[] = [
           { name: 'Acta Personal', href: '/academic/acta', icon: FileText, pageKey: 'academic_acta' },
           { name: 'Acta Detallada', href: '/academic/acta-detalle', icon: FileText, pageKey: 'academic_acta_detail' },
           { name: 'Actas de Moodle', href: '/academic/moodle-actas', icon: Download, pageKey: 'academic_moodle_actas' },
+          { name: 'Cargar Notas (CSV)', href: '/academic/grades-import', icon: Upload, pageKey: 'academic_grades_import' },
         ],
       },
       {
