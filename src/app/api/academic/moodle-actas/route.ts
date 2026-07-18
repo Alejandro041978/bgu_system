@@ -124,15 +124,42 @@ export async function GET(req: NextRequest) {
   }
   matched.sort((a, b) => a.name.localeCompare(b.name))
 
+  // ¿Cuántas notas de esta aula ya están en el ERP y cuántas cerradas?
+  const { data: existentes } = await sb.from('academic_grades')
+    .select('external_id, locked_at').like('external_id', `moodle:${courseid}:%`)
+  const yaImportadas = (existentes ?? []).length
+  const cerradas = ((existentes ?? []) as { locked_at: string | null }[]).filter(g => g.locked_at).length
+
   return NextResponse.json({
     courseid,
     alumnos_en_reporte: (report?.usergrades ?? []).length,
     matched_total: matched.length,
     con_nota: matched.filter(m => m.total != null).length,
     sin_nota: matched.filter(m => m.total == null).length,
+    ya_importadas: yaImportadas,
+    cerradas,
     unmatched,
     matched,
   })
+}
+
+// PATCH { courseid, action: 'lock' | 'unlock' } → cierra o reabre el acta del
+// aula. Cerrada = ninguna importación (Moodle/CSV/sync) puede tocar esas notas;
+// protege contra aulas que se limpian para reutilizarlas con otra cohorte.
+// El editor manual sigue pudiendo corregir, con auditoría.
+export async function PATCH(req: NextRequest) {
+  const user = await requireUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const b = await req.json().catch(() => null) as { courseid?: number; action?: 'lock' | 'unlock' } | null
+  if (!b?.courseid || !b?.action || !['lock', 'unlock'].includes(b.action)) {
+    return NextResponse.json({ error: 'Falta courseid o action (lock|unlock)' }, { status: 400 })
+  }
+  const sb = db()
+  const patch = b.action === 'lock' ? { locked_at: new Date().toISOString() } : { locked_at: null }
+  const { data, error } = await sb.from('academic_grades')
+    .update(patch).like('external_id', `moodle:${b.courseid}:%`).select('external_id')
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true, action: b.action, filas: (data ?? []).length })
 }
 
 // POST { courseid, term_year, term_block } → importa el acta.

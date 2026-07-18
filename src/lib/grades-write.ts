@@ -110,8 +110,8 @@ export async function importGrades(
   sb: any,
   rows: ImportRow[],
   opts: { origin: 'moodle' | 'csv'; reason: string; userId: string },
-): Promise<{ inserted: number; updated: number; unchanged: number; protected_rows: number; errors: string[] }> {
-  const out = { inserted: 0, updated: 0, unchanged: 0, protected_rows: 0, errors: [] as string[] }
+): Promise<{ inserted: number; updated: number; unchanged: number; protected_rows: number; locked_rows: number; errors: string[] }> {
+  const out = { inserted: 0, updated: 0, unchanged: 0, protected_rows: 0, locked_rows: 0, errors: [] as string[] }
   if (!rows.length) return out
 
   // Estado actual de las filas que vamos a tocar
@@ -120,7 +120,7 @@ export async function importGrades(
   const ids = rows.map(r => r.external_id)
   for (let i = 0; i < ids.length; i += 200) {
     const { data } = await sb.from('academic_grades')
-      .select('external_id, final_grade, edited_at').in('external_id', ids.slice(i, i + 200))
+      .select('external_id, final_grade, edited_at, locked_at').in('external_id', ids.slice(i, i + 200))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const g of (data ?? []) as any[]) existing.set(g.external_id, g)
   }
@@ -130,6 +130,7 @@ export async function importGrades(
   for (const r of rows) {
     const prev = existing.get(r.external_id)
     if (prev) {
+      if (prev.locked_at) { out.locked_rows++; continue }     // acta cerrada: intocable por importación
       if (String(prev.final_grade ?? '') === String(r.final_grade ?? '')) { out.unchanged++; continue }
       if (prev.edited_at) { out.protected_rows++; continue }  // el trigger la protegería igual; ni lo intentamos
       out.updated++

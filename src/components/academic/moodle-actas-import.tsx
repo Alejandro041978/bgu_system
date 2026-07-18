@@ -12,11 +12,12 @@ interface MatchedRow { document: string; name: string; total: number | null }
 interface Preview {
   courseid: number; alumnos_en_reporte: number; matched_total: number
   con_nota: number; sin_nota: number
+  ya_importadas: number; cerradas: number
   unmatched: { fullname: string; idnumber: string }[]
   matched: MatchedRow[]
 }
 interface ImportResult {
-  inserted: number; updated: number; unchanged: number; protected_rows: number
+  inserted: number; updated: number; unchanged: number; protected_rows: number; locked_rows: number
   sin_puente: number; sin_total: number; importables: number
   errors: string[]
   recompute: { egresados_detectados?: number; situaciones_actualizadas?: number; avances_de_carrusel?: number; error?: string } | null
@@ -50,6 +51,21 @@ export function MoodleActasImport() {
     setLoadingPreview(false)
     if (d.error) { setError(d.error); return }
     setPreview(d)
+  }
+
+  async function setLock(action: 'lock' | 'unlock') {
+    if (!selected) return
+    const msg = action === 'lock'
+      ? `Se cerrará el acta del aula "${selected.shortname}": ninguna importación podrá tocar esas notas (el editor manual sí). ¿Continuar?`
+      : `Se REABRIRÁ el acta del aula "${selected.shortname}": las importaciones podrán volver a actualizar esas notas. ¿Continuar?`
+    if (!confirm(msg)) return
+    const r = await fetch('/api/academic/moodle-actas', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courseid: selected.id, action }),
+    })
+    const d = await r.json()
+    if (!r.ok) { setError(d.error ?? 'Error'); return }
+    selectAula(selected)  // refrescar estado
   }
 
   async function doImport() {
@@ -117,7 +133,17 @@ export function MoodleActasImport() {
                 {preview.unmatched.length > 0 && (
                   <span className="bg-rose-50 text-rose-700 px-2 py-1 rounded-full">{preview.unmatched.length} sin identificar en el ERP</span>
                 )}
+                {preview.ya_importadas > 0 && (
+                  <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full">{preview.ya_importadas} ya en el ERP</span>
+                )}
               </div>
+              {preview.cerradas > 0 && (
+                <div className="flex items-center gap-3 text-xs bg-gray-100 text-gray-700 rounded-lg px-3 py-2">
+                  🔒 <b>Acta cerrada</b>: {preview.cerradas} nota(s) selladas — ninguna importación puede tocarlas (el editor manual sí).
+                  Si el aula se limpió para otra cohorte, esto protege lo ya registrado.
+                  <button onClick={() => setLock('unlock')} className="ml-auto text-blue-600 hover:underline">Reabrir acta</button>
+                </div>
+              )}
               <div className="max-h-72 overflow-auto border border-gray-100 rounded-lg">
                 <table className="w-full text-sm whitespace-nowrap">
                   <thead>
@@ -199,9 +225,16 @@ export function MoodleActasImport() {
       {error && <div className="text-sm bg-rose-50 text-rose-700 rounded-lg px-4 py-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4" />{error}</div>}
 
       {result && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800 space-y-1">
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800 space-y-2">
           <p className="flex items-center gap-2 font-semibold"><CheckCircle2 className="w-4 h-4" />Acta importada</p>
-          <p>{result.inserted} notas nuevas · {result.updated} actualizadas · {result.unchanged} sin cambios · {result.protected_rows} protegidas (editadas a mano)</p>
+          <p>
+            {result.inserted} notas nuevas · {result.updated} actualizadas · {result.unchanged} sin cambios · {result.protected_rows} protegidas (editadas a mano)
+            {result.locked_rows > 0 ? ` · ${result.locked_rows} selladas (acta cerrada)` : ''}
+          </p>
+          <button onClick={() => setLock('lock')}
+            className="text-xs font-medium bg-white border border-green-300 text-green-800 rounded-lg px-3 py-1.5 hover:bg-green-100">
+            🔒 Cerrar acta — sellar estas notas contra futuras importaciones
+          </button>
           {(result.sin_puente > 0 || result.sin_total > 0) && (
             <p className="text-green-700">{result.sin_puente} sin identificar y {result.sin_total} en curso no se importaron.</p>
           )}
