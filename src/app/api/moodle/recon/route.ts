@@ -121,12 +121,15 @@ export async function GET(req: NextRequest) {
     const resultados: Record<string, unknown>[] = []
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let ejemplo: any = null
-    let conValores = 0
-    for (const c of list.slice(0, 12)) {
+    let conValores = 0, vacias = 0, revisadas = 0
+    for (const c of list.slice(0, 80)) {
+      if (revisadas >= 20 || conValores >= 2) break
       try {
         const rep = await moodleCall('gradereport_user_get_grade_items', { courseid: c.id })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ugs = (rep?.usergrades ?? []) as any[]
+        if (!ugs.length) { vacias++; continue }
+        revisadas++
         let valores = 0
         for (const ug of ugs.slice(0, 60)) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -139,12 +142,11 @@ export async function GET(req: NextRequest) {
         }
         if (valores > 0) conValores++
         resultados.push({ id: c.id, shortname: String(c.shortname).slice(0, 40), alumnos: ugs.length, items_con_valor: valores })
-        if (conValores >= 2) break
       } catch (e) {
         resultados.push({ id: c.id, shortname: String(c.shortname).slice(0, 40), error: e instanceof Error ? e.message.slice(0, 60) : 'error' })
       }
     }
-    return { aulas_revisadas: resultados, ejemplo_item_con_valor: ejemplo }
+    return { aulas_vacias_saltadas: vacias, aulas_revisadas: resultados, ejemplo_item_con_valor: ejemplo }
   })
 
   // ?idnumbers=a,b,c → ¿existen usuarios de Moodle con esos idnumber?
