@@ -83,3 +83,91 @@ export async function applyGradeEdit(
 
   return { ok: true, changed: audits.map(a => String(a.field)) }
 }
+
+// ---------------------------------------------------------------------------
+// Importación masiva (Moodle / CSV). Upsert por external_id con auditoría de
+// lo que de verdad cambia. NO recalcula por estudiante (para cientos de filas
+// sería lentísimo): el llamador corre los recálculos globales al final.
+// El trigger protect_edited_grades garantiza que una fila corregida a mano
+// jamás se pisa, también aquí.
+// ---------------------------------------------------------------------------
+export interface ImportRow {
+  external_id: string
+  document_number: string | null
+  email?: string | null
+  student_name?: string | null
+  course_code?: string | null
+  course_name: string | null
+  credits?: number | null
+  term_year?: number | null
+  term_block?: string | null
+  final_grade: number | null
+  passing_score?: number | null
+}
+
+export async function importGrades(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sb: any,
+  rows: ImportRow[],
+  opts: { origin: 'moodle' | 'csv'; reason: string; userId: string },
+): Promise<{ inserted: number; updated: number; unchanged: number; protected_rows: number; errors: string[] }> {
+  const out = { inserted: 0, updated: 0, unchanged: 0, protected_rows: 0, errors: [] as string[] }
+  if (!rows.length) return out
+
+  // Estado actual de las filas que vamos a tocar
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existing = new Map<string, any>()
+  const ids = rows.map(r => r.external_id)
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data } = await sb.from('academic_grades')
+      .select('external_id, final_grade, edited_at').in('external_id', ids.slice(i, i + 200))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const g of (data ?? []) as any[]) existing.set(g.external_id, g)
+  }
+
+  const toWrite: ImportRow[] = []
+  const audits: Record<string, unknown>[] = []
+  for (const r of rows) {
+    const prev = existing.get(r.external_id)
+    if (prev) {
+      if (String(prev.final_grade ?? '') === String(r.final_grade ?? '')) { out.unchanged++; continue }
+      if (prev.edited_at) { out.protected_rows++; continue }  // el trigger la protegería igual; ni lo intentamos
+      out.updated++
+    } else out.inserted++
+    toWrite.push(r)
+    audits.push({
+      grade_external_id: r.external_id,
+      document_number: r.document_number,
+      course_name: r.course_name,
+      field: 'final_grade',
+      old_value: prev ? (prev.final_grade == null ? null : String(prev.final_grade)) : null,
+      new_value: r.final_grade == null ? null : String(r.final_grade),
+      reason: opts.reason, origin: opts.origin, changed_by: opts.userId,
+    })
+  }
+
+  for (let i = 0; i < audits.length; i += 200) {
+    const { error } = await sb.from('grade_audit').insert(audits.slice(i, i + 200))
+    if (error) { out.errors.push('auditoría: ' + error.message); return out }
+  }
+  for (let i = 0; i < toWrite.length; i += 200) {
+    const batch = toWrite.slice(i, i + 200).map(r => ({
+      external_id: r.external_id,
+      document_number: r.document_number,
+      email: r.email ?? null,
+      student_name: r.student_name ?? null,
+      course_code: r.course_code ?? null,
+      course_name: r.course_name,
+      credits: r.credits ?? null,
+      term_year: r.term_year ?? null,
+      term_block: r.term_block ?? null,
+      final_grade: r.final_grade,
+      passing_score: r.passing_score ?? null,
+      source: opts.origin,
+      synced_at: new Date().toISOString(),
+    }))
+    const { error } = await sb.from('academic_grades').upsert(batch, { onConflict: 'external_id' })
+    if (error) { out.errors.push(error.message); return out }
+  }
+  return out
+}
