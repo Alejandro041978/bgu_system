@@ -165,10 +165,17 @@ function SlotTable({ title, slots }: { title: string; slots: Slot[] }) {
 }
 
 function DetailPanel({ d }: { d: Detail }) {
+  // Lista unificada: ya no se distingue entre notas principales y de proceso
+  // (las integraciones nuevas escriben todo en una sola lista; la separación
+  // era herencia de SystemActiva). Se oculta el marcador "Total" vacío que
+  // dejaba SystemActiva como placeholder.
+  const evaluaciones = [
+    ...(d.grades ?? []).filter(s => !(s.val == null && (s.desc ?? '').trim().toLowerCase() === 'total')),
+    ...(d.process_grades ?? []),
+  ].map((s, i) => ({ ...s, n: i + 1 }))
   return (
     <div className="px-4 pb-4 pt-1 bg-gray-50/50 space-y-3">
-      <SlotTable title="Notas principales" slots={d.grades ?? []} />
-      <SlotTable title="Notas de proceso" slots={d.process_grades ?? []} />
+      <SlotTable title="Evaluaciones" slots={evaluaciones} />
       <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600 pt-1">
         <span>Final <span className="text-gray-400">(SystemActiva)</span>: <b>{g(d.final_grade)}</b></span>
         {(() => {
