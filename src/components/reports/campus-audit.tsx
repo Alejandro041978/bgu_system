@@ -10,10 +10,10 @@ interface Aula {
   items_evaluacion: number | null; items_activos: number | null; items_con_peso: number | null
   suma_pesos: number | null; escala_total: number | null
   cumple_pesos: boolean | null; cumple_escala: boolean | null
-  metodo: string | null; error: string | null; audited_at: string
+  metodo: string | null; categoria: string | null; error: string | null; audited_at: string
 }
 interface Data {
-  audited_at: string | null; total: number; cumplen: number
+  audited_at: string | null; total: number; cumplen: number; incumplen: number
   pesos_mal: number; escala_mal: number; sin_datos: number; vinculadas: number
   aulas: Aula[]
 }
@@ -52,6 +52,15 @@ export function CampusAudit() {
     return true
   })
 
+  // Agrupación por categoría de Moodle
+  const grupos = new Map<string, Aula[]>()
+  for (const a of visibles) {
+    const k = a.categoria ?? '(sin categoría)'
+    if (!grupos.has(k)) grupos.set(k, [])
+    grupos.get(k)!.push(a)
+  }
+  const gruposOrdenados = [...grupos.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -79,7 +88,7 @@ export function CampusAudit() {
               <p className="text-xs text-green-700">Cumplen la política</p>
             </button>
             <button onClick={() => setFiltro('incumplen')} className={`rounded-lg p-3 text-left border ${filtro === 'incumplen' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'}`}>
-              <p className="text-2xl font-bold text-rose-700">{d.pesos_mal + d.escala_mal}</p>
+              <p className="text-2xl font-bold text-rose-700">{d.incumplen}</p>
               <p className="text-xs text-rose-700">Incumplen (pesos {d.pesos_mal} · escala {d.escala_mal})</p>
             </button>
             <button onClick={() => setFiltro('sin_datos')} className={`rounded-lg p-3 text-left border ${filtro === 'sin_datos' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'}`}>
@@ -107,7 +116,18 @@ export function CampusAudit() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {visibles.map(a => (
+                {gruposOrdenados.map(([cat, aulasGrupo]) => [
+                  <tr key={`cat-${cat}`} className="bg-gray-100/80">
+                    <td colSpan={8} className="px-4 py-2">
+                      <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">{cat}</span>
+                      <span className="text-[11px] text-gray-500 ml-3">
+                        {aulasGrupo.length} aula(s)
+                        {' · '}<span className="text-green-700">{aulasGrupo.filter(x => x.cumple_pesos && x.cumple_escala).length} cumplen</span>
+                        {' · '}<span className="text-rose-700">{aulasGrupo.filter(x => x.cumple_pesos === false || x.cumple_escala === false).length} incumplen</span>
+                      </span>
+                    </td>
+                  </tr>,
+                  ...aulasGrupo.map(a => (
                   <tr key={a.aula_id} className="hover:bg-gray-50/50">
                     <td className="px-4 py-2.5">
                       <p className="text-gray-800">{a.shortname}</p>
@@ -137,7 +157,8 @@ export function CampusAudit() {
                           </span>}
                     </td>
                   </tr>
-                ))}
+                  )),
+                ])}
               </tbody>
             </table>
             {visibles.length === 0 && <p className="text-sm text-gray-400 text-center py-8">Nada que mostrar con este filtro.</p>}

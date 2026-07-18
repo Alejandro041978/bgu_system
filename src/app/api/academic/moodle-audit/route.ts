@@ -46,6 +46,8 @@ export async function GET() {
     audited_at: rows[0]?.audited_at ?? null,
     total: rows.length,
     cumplen: conDatos.filter(r => r.cumple_pesos && r.cumple_escala).length,
+    // Aulas DISTINTAS que incumplen algo (una que falla en ambas cosas cuenta una vez)
+    incumplen: conDatos.filter(r => r.cumple_pesos === false || r.cumple_escala === false).length,
     pesos_mal: conDatos.filter(r => r.cumple_pesos === false).length,
     escala_mal: conDatos.filter(r => r.cumple_escala === false).length,
     sin_datos: rows.filter(r => r.error).length,
@@ -86,6 +88,20 @@ export async function POST() {
   let auditorId: number | null = null
   try { auditorId = await ensureAuditorUser() } catch { /* sin cuenta de servicio: aulas vacías quedarán sin datos */ }
 
+  // Categorías de Moodle (para agrupar el reporte). Si la función no está
+  // habilitada en el servicio, se agrupa como "(sin categoría)".
+  const catName = new Map<number, string>()
+  try {
+    const cats = await moodleCall('core_course_get_categories', {})
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const byId = new Map<number, any>(((Array.isArray(cats) ? cats : []) as any[]).map(c => [Number(c.id), c]))
+    for (const [id, c] of byId) {
+      // Ruta legible: "Padre / Hija" (hasta 2 niveles hacia arriba)
+      const parent = c.parent ? byId.get(Number(c.parent)) : null
+      catName.set(id, parent ? `${parent.name} / ${c.name}` : c.name)
+    }
+  } catch { /* función no habilitada */ }
+
   // Vínculos aula → asignatura del ERP
   const { data: offs } = await sb.from('semester_offerings')
     .select('moodle_course_id, course:academic_courses(code, name)').not('moodle_course_id', 'is', null)
@@ -100,6 +116,7 @@ export async function POST() {
     const base = {
       aula_id: c.id, shortname: c.shortname, fullname: c.fullname,
       visible: c.visible !== 0, linked_course: linkedBy.get(Number(c.id)) ?? null,
+      categoria: catName.get(Number(c.categoryid)) ?? null,
       audited_at: new Date().toISOString(),
     }
     const vacio = {
@@ -107,11 +124,14 @@ export async function POST() {
       items_con_peso: null, suma_pesos: null, escala_total: null, cumple_pesos: null, cumple_escala: null,
     }
     try {
-      // Contenido del aula: módulos y su visibilidad (activo = visible)
-      let recursos = 0, recursosActivos = 0
+      // Contenido del aula: módulos y su visibilidad (activo = visible).
+      // Si la función no está habilitada en el servicio, queda null (se
+      // muestra "—", nunca un 0/0 engañoso).
+      let recursos: number | null = null, recursosActivos: number | null = null
       const visibleByCmid = new Map<number, boolean>()
       try {
         const contents = await moodleCall('core_course_get_contents', { courseid: c.id })
+        recursos = 0; recursosActivos = 0
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const sec of (Array.isArray(contents) ? contents : []) as any[]) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,7 +142,7 @@ export async function POST() {
             visibleByCmid.set(Number(m.id), activo)
           }
         }
-      } catch { /* algunas aulas no exponen contenido */ }
+      } catch { /* función no habilitada o aula sin contenido expuesto */ }
 
       // Lector de estructura: primer matriculado, o la cuenta Auditor ERP
       const enrolled = await moodleCall('core_enrol_get_enrolled_users', {
