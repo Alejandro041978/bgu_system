@@ -29,6 +29,7 @@ const navigation: NavGroup[] = [
         children: [
           { name: 'Estado de estudiantes', href: '/reports/estado-estudiantes', icon: Users, pageKey: 'report_student_status' },
           { name: 'Estado de los docentes', href: '/reports/estado-docentes', icon: GraduationCap, pageKey: 'report_faculty_status' },
+          { name: 'Auditor del Campus', href: '/reports/auditor-campus', icon: Shield, pageKey: 'report_campus_audit' },
         ],
       },
     ],
