@@ -14,11 +14,13 @@ interface Aula {
 }
 interface Data {
   audited_at: string | null; total: number; cumplen: number; incumplen: number
-  pesos_mal: number; escala_mal: number; sin_datos: number; vinculadas: number
+  pesos_mal: number; escala_mal: number
+  sin_evaluaciones: number; sin_ponderacion: number
+  sin_datos: number; vinculadas: number
   aulas: Aula[]
 }
 
-type Filtro = 'todas' | 'incumplen' | 'cumplen' | 'sin_datos'
+type Filtro = 'todas' | 'incumplen' | 'cumplen' | 'sin_evaluaciones' | 'sin_ponderacion' | 'sin_datos'
 
 export function CampusAudit() {
   const [d, setD] = useState<Data | null>(null)
@@ -48,6 +50,8 @@ export function CampusAudit() {
   const visibles = (d?.aulas ?? []).filter(a => {
     if (filtro === 'incumplen') return a.cumple_pesos === false || a.cumple_escala === false
     if (filtro === 'cumplen') return a.cumple_pesos && a.cumple_escala
+    if (filtro === 'sin_evaluaciones') return !a.error && a.items_evaluacion === 0
+    if (filtro === 'sin_ponderacion') return !a.error && (a.items_evaluacion ?? 0) > 0 && a.suma_pesos == null
     if (filtro === 'sin_datos') return !!a.error
     return true
   })
@@ -78,7 +82,7 @@ export function CampusAudit() {
 
       {d && d.total > 0 && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <button onClick={() => setFiltro('todas')} className={`rounded-lg p-3 text-left border ${filtro === 'todas' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'}`}>
               <p className="text-2xl font-bold text-gray-900">{d.total}</p>
               <p className="text-xs text-gray-500">Aulas</p>
@@ -91,14 +95,18 @@ export function CampusAudit() {
               <p className="text-2xl font-bold text-rose-700">{d.incumplen}</p>
               <p className="text-xs text-rose-700">Incumplen (pesos {d.pesos_mal} · escala {d.escala_mal})</p>
             </button>
+            <button onClick={() => setFiltro('sin_ponderacion')} className={`rounded-lg p-3 text-left border ${filtro === 'sin_ponderacion' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'}`}>
+              <p className="text-2xl font-bold text-amber-700">{d.sin_ponderacion}</p>
+              <p className="text-xs text-amber-700">Sin ponderación reportada</p>
+            </button>
+            <button onClick={() => setFiltro('sin_evaluaciones')} className={`rounded-lg p-3 text-left border ${filtro === 'sin_evaluaciones' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'}`}>
+              <p className="text-2xl font-bold text-gray-600">{d.sin_evaluaciones}</p>
+              <p className="text-xs text-gray-500">Sin evaluaciones (no académicas)</p>
+            </button>
             <button onClick={() => setFiltro('sin_datos')} className={`rounded-lg p-3 text-left border ${filtro === 'sin_datos' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'}`}>
               <p className="text-2xl font-bold text-amber-700">{d.sin_datos}</p>
-              <p className="text-xs text-amber-700">Sin datos (vacías/error)</p>
+              <p className="text-xs text-amber-700">Sin datos (error)</p>
             </button>
-            <div className="rounded-lg p-3 border border-gray-200 bg-white">
-              <p className="text-2xl font-bold text-gray-700">{d.vinculadas}</p>
-              <p className="text-xs text-gray-500">Vinculadas al ERP</p>
-            </div>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
@@ -150,11 +158,15 @@ export function CampusAudit() {
                     <td className="px-4 py-2.5">
                       {a.error
                         ? <span className="text-[11px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">{a.error}</span>
-                        : (a.cumple_pesos && a.cumple_escala)
-                          ? <span className="text-[11px] bg-green-50 text-green-700 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><ShieldCheck className="w-3 h-3" />cumple</span>
-                          : <span className="text-[11px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full">
-                            {[a.cumple_pesos === false ? 'pesos ≠ 100%' : null, a.cumple_escala === false ? 'escala ≠ 100' : null].filter(Boolean).join(' · ')}
-                          </span>}
+                        : a.items_evaluacion === 0
+                          ? <span className="text-[11px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">sin evaluaciones</span>
+                          : (a.cumple_pesos === false || a.cumple_escala === false)
+                            ? <span className="text-[11px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full">
+                              {[a.cumple_pesos === false ? 'pesos ≠ 100%' : null, a.cumple_escala === false ? 'escala ≠ 100' : null].filter(Boolean).join(' · ')}
+                            </span>
+                            : (a.cumple_pesos && a.cumple_escala)
+                              ? <span className="text-[11px] bg-green-50 text-green-700 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><ShieldCheck className="w-3 h-3" />cumple</span>
+                              : <span className="text-[11px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">sin ponderación reportada</span>}
                     </td>
                   </tr>
                   )),

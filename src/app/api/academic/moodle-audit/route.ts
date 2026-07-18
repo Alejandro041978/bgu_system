@@ -50,6 +50,8 @@ export async function GET() {
     incumplen: conDatos.filter(r => r.cumple_pesos === false || r.cumple_escala === false).length,
     pesos_mal: conDatos.filter(r => r.cumple_pesos === false).length,
     escala_mal: conDatos.filter(r => r.cumple_escala === false).length,
+    sin_evaluaciones: conDatos.filter(r => r.items_evaluacion === 0).length,
+    sin_ponderacion: conDatos.filter(r => (r.items_evaluacion ?? 0) > 0 && r.suma_pesos == null).length,
     sin_datos: rows.filter(r => r.error).length,
     vinculadas: rows.filter(r => r.linked_course).length,
     aulas: rows,
@@ -182,10 +184,17 @@ export async function POST() {
       const conPeso = modsActivos.filter(i => (i.weightraw ?? 0) > 0)
       // Política: primer nivel (cuelga directo del curso), solo ACTIVOS
       const topLevel = items.filter(i => i.itemtype !== 'course' && i.categoryid === rootId && esActivo(i))
-      const sumaPesos = topLevel.length
+      // Si NINGÚN ítem reporta ponderación, el aula no usa (o no expone) pesos
+      // — p. ej. agregación por media simple. Eso es "sin ponderación
+      // reportada", un estado a investigar, NO un incumplimiento al 0%.
+      const reportanPeso = topLevel.filter(i => i.weightraw != null)
+      const sumaPesos = topLevel.length && reportanPeso.length
         ? Math.round(topLevel.reduce((s, i) => s + (Number(i.weightraw) || 0), 0) * 10000) / 100
         : null
       const escala = courseItem?.grademax != null ? Number(courseItem.grademax) : null
+      // Un aula sin evaluaciones (encuestas, informativas) queda fuera de la
+      // política: no se le exige ni suma ni escala.
+      const sinEvaluaciones = mods.length === 0
       return {
         ...base,
         recursos, recursos_activos: recursosActivos,
@@ -194,8 +203,8 @@ export async function POST() {
         items_con_peso: conPeso.length,
         suma_pesos: sumaPesos,
         escala_total: escala,
-        cumple_pesos: sumaPesos == null ? null : Math.abs(sumaPesos - 100) <= 0.5,
-        cumple_escala: escala == null ? null : escala === 100,
+        cumple_pesos: sinEvaluaciones ? null : (sumaPesos == null ? null : Math.abs(sumaPesos - 100) <= 0.5),
+        cumple_escala: sinEvaluaciones ? null : (escala == null ? null : escala === 100),
         metodo, error: null,
       }
     } catch (e) {
