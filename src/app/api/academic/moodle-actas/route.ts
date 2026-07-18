@@ -218,6 +218,12 @@ export async function POST(req: NextRequest) {
   const byExternal = new Map(studs.filter(s => s.external_id).map(s => [String(s.external_id), s]))
 
   const rows: ImportRow[] = []
+  // Espejo del detalle: los ítems del aula tal cual (nombre + ponderación +
+  // nota), en el formato del Acta Detallada ({n, pct, val, desc}). No hay
+  // mapeo contra casillas: el acta es auto-descriptiva y Moodle es la fuente
+  // de la estructura de evaluación.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const detailByExternal = new Map<string, { student_id: string; process: any[]; total: number }>()
   let sinPuente = 0, sinTotal = 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const ug of ((report?.usergrades ?? []) as any[])) {
@@ -226,8 +232,9 @@ export async function POST(req: NextRequest) {
     if (!stu) { sinPuente++; continue }
     const total = courseTotal(ug.gradeitems)
     if (total == null) { sinTotal++; continue }
+    const externalId = `moodle:${b.courseid}:${ug.userid}`
     rows.push({
-      external_id: `moodle:${b.courseid}:${ug.userid}`,
+      external_id: externalId,
       document_number: String(stu.document_number ?? ''),
       email: stu.email ?? null,
       student_name: [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' '),
@@ -239,12 +246,88 @@ export async function POST(req: NextRequest) {
       final_grade: total,
       passing_score: passing,
     })
+
+    // Ítems con ponderación o con nota (excluye videos/podcasts sin peso ni nota)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items = ((ug.gradeitems ?? []) as any[])
+      .filter(i => i.itemtype === 'mod' && ((i.weightraw ?? 0) > 0 || i.graderaw != null))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const process = items.map((i: any, idx: number) => {
+      let val: number | null = i.graderaw ?? null
+      const max = Number(i.grademax ?? 100)
+      if (val != null && isFinite(max) && max > 0 && max !== 100) val = (val / max) * 100
+      return {
+        n: idx + 1,
+        pct: i.weightraw != null ? Math.round(Number(i.weightraw) * 10000) / 100 : null,
+        val: val == null ? null : Math.round(val * 100) / 100,
+        desc: i.itemname ?? '',
+      }
+    })
+    detailByExternal.set(externalId, { student_id: stu.id, process, total })
   }
 
   const result = await importGrades(sb, rows, {
     origin: 'moodle', userId: user.id,
     reason: `Importación de acta Moodle (aula ${b.courseid}) → ${destCourse.code ?? ''} ${destCourse.name ?? ''}`,
   })
+
+  // Espejo del detalle hacia el Acta Detallada. Respeta el cierre de acta:
+  // las filas selladas no se tocan.
+  let detallesEscritos = 0
+  if (!result.errors.length && detailByExternal.size) {
+    const extIds = [...detailByExternal.keys()]
+    const locked = new Set<string>()
+    for (let i = 0; i < extIds.length; i += 200) {
+      const { data } = await sb.from('academic_grades').select('external_id, locked_at').in('external_id', extIds.slice(i, i + 200))
+      for (const g of (data ?? []) as { external_id: string; locked_at: string | null }[]) if (g.locked_at) locked.add(g.external_id)
+    }
+    const sids = [...new Set([...detailByExternal.values()].map(d => d.student_id))]
+    const enrOf = new Map<string, string>()
+    for (let i = 0; i < sids.length; i += 200) {
+      const { data } = await sb.from('academic_student_enrollments')
+        .select('id, student_id').eq('program_id', destCourse.program_id).in('student_id', sids.slice(i, i + 200))
+      for (const e of (data ?? []) as { id: string; student_id: string }[]) if (!enrOf.has(e.student_id)) enrOf.set(e.student_id, e.id)
+    }
+    const existingDetail = new Map<string, string>()
+    for (let i = 0; i < extIds.length; i += 200) {
+      const { data } = await sb.from('academic_grade_details').select('id, external_id').in('external_id', extIds.slice(i, i + 200))
+      for (const d of (data ?? []) as { id: string; external_id: string }[]) existingDetail.set(d.external_id, d.id)
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inserts: any[] = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updates: { id: string; patch: any }[] = []
+    for (const [externalId, d] of detailByExternal) {
+      if (locked.has(externalId)) continue
+      const row = {
+        external_id: externalId,
+        student_id: d.student_id,
+        enrollment_id: enrOf.get(d.student_id) ?? null,
+        course_code: destCourse.code,
+        course_name: destCourse.name,
+        term_year: b.term_year,
+        term_block: b.term_block.trim(),
+        final_grade: d.total,
+        passing_score: passing,
+        max_score: 100,
+        grades: [{ n: 1, pct: 100, val: null, desc: 'Total' }],
+        process_grades: d.process,
+      }
+      const id = existingDetail.get(externalId)
+      if (id) updates.push({ id, patch: row })
+      else inserts.push(row)
+    }
+    for (let i = 0; i < inserts.length; i += 200) {
+      const { error } = await sb.from('academic_grade_details').insert(inserts.slice(i, i + 200))
+      if (error) { result.errors.push('detalle: ' + error.message); break }
+      detallesEscritos += Math.min(200, inserts.length - i)
+    }
+    for (let i = 0; i < updates.length; i += 20) {
+      const chunk = updates.slice(i, i + 20)
+      await Promise.all(chunk.map(u => sb.from('academic_grade_details').update(u.patch).eq('id', u.id)))
+      detallesEscritos += chunk.length
+    }
+  }
 
   // Efectos globales en una pasada (no por estudiante: serían cientos)
   let recompute: Record<string, unknown> | null = null
@@ -263,5 +346,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ...result, sin_puente: sinPuente, sin_total: sinTotal, importables: rows.length, recompute })
+  return NextResponse.json({ ...result, sin_puente: sinPuente, sin_total: sinTotal, importables: rows.length, detalles_escritos: detallesEscritos, recompute })
 }

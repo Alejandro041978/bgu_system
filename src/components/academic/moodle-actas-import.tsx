@@ -19,6 +19,7 @@ interface Preview {
 interface ImportResult {
   inserted: number; updated: number; unchanged: number; protected_rows: number; locked_rows: number
   sin_puente: number; sin_total: number; importables: number
+  detalles_escritos: number
   errors: string[]
   recompute: { egresados_detectados?: number; situaciones_actualizadas?: number; avances_de_carrusel?: number; error?: string } | null
 }
@@ -231,6 +232,7 @@ export function MoodleActasImport() {
             {result.inserted} notas nuevas · {result.updated} actualizadas · {result.unchanged} sin cambios · {result.protected_rows} protegidas (editadas a mano)
             {result.locked_rows > 0 ? ` · ${result.locked_rows} selladas (acta cerrada)` : ''}
           </p>
+          <p className="text-green-700">{result.detalles_escritos} actas detalladas espejadas (evaluaciones con sus ponderaciones).</p>
           <button onClick={() => setLock('lock')}
             className="text-xs font-medium bg-white border border-green-300 text-green-800 rounded-lg px-3 py-1.5 hover:bg-green-100">
             🔒 Cerrar acta — sellar estas notas contra futuras importaciones
