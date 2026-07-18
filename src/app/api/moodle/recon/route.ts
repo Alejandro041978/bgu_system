@@ -175,26 +175,38 @@ export async function GET(req: NextRequest) {
       const rep = await moodleCall('gradereport_user_get_grade_items', { courseid: target.courseid })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const usergrades = (rep?.usergrades ?? []) as any[]
-      // Ítems CRUDOS del primer alumno, sin condiciones: ver qué campos llegan
-      const first = usergrades[0]
+      // ¿Se recorta TODO, o solo el total del curso? Barrer todos los ítems de
+      // todos los alumnos distinguiendo mod vs course.
+      let totalesConValor = 0, modsConValor = 0, alumnosConAlgunMod = 0
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const totalItem = first?.gradeitems?.find((i: any) => i.itemtype === 'course') ?? null
+      let ejemploMod: any = null
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const modConAlgo = first?.gradeitems?.find((i: any) => i.itemtype === 'mod' && (i.graderaw != null || (i.gradeformatted && i.gradeformatted !== '-'))) ?? null
-      let conRaw = 0, conFormatted = 0
+      let ejemploTotalDeAlumnoConMods: any = null
       for (const ug of usergrades) {
+        let tuvoMod = false
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const t = (ug.gradeitems ?? []).find((i: any) => i.itemtype === 'course')
-        if (t?.graderaw != null) conRaw++
-        if (t?.gradeformatted && t.gradeformatted !== '-') conFormatted++
+        for (const i of (ug.gradeitems ?? []) as any[]) {
+          const tieneValor = i.graderaw != null || (i.gradeformatted && i.gradeformatted !== '-' && i.gradeformatted !== '')
+          if (!tieneValor) continue
+          if (i.itemtype === 'course') totalesConValor++
+          else { modsConValor++; tuvoMod = true; if (!ejemploMod) ejemploMod = i }
+        }
+        if (tuvoMod) {
+          alumnosConAlgunMod++
+          if (!ejemploTotalDeAlumnoConMods) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ejemploTotalDeAlumnoConMods = (ug.gradeitems ?? []).find((i: any) => i.itemtype === 'course') ?? null
+          }
+        }
       }
       return {
         courseid: target.courseid,
         alumnos_en_reporte: usergrades.length,
-        totales_con_graderaw: conRaw,
-        totales_con_gradeformatted: conFormatted,
-        item_total_crudo_primer_alumno: totalItem,
-        item_mod_crudo_primer_alumno: modConAlgo,
+        totales_con_valor: totalesConValor,
+        items_mod_con_valor: modsConValor,
+        alumnos_con_algun_mod: alumnosConAlgunMod,
+        ejemplo_item_mod_crudo: ejemploMod,
+        ejemplo_total_de_alumno_con_mods: ejemploTotalDeAlumnoConMods,
       }
     })
     // Alternativa si la anterior no está permitida
