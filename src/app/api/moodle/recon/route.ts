@@ -122,7 +122,9 @@ export async function GET(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let ejemplo: any = null
     let conValores = 0, vacias = 0, revisadas = 0
-    for (const c of list.slice(0, 80)) {
+    // De las más recientes hacia atrás: las primeras 80 por id resultaron cascarones vacíos
+    const ordenadas = [...list].sort((a, b) => Number(b.id) - Number(a.id))
+    for (const c of ordenadas) {
       if (revisadas >= 20 || conValores >= 2) break
       try {
         const rep = await moodleCall('gradereport_user_get_grade_items', { courseid: c.id })
