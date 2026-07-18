@@ -135,18 +135,26 @@ export async function GET(req: NextRequest) {
       const rep = await moodleCall('gradereport_user_get_grade_items', { courseid: target.courseid })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const usergrades = (rep?.usergrades ?? []) as any[]
-      // Un alumno con total calculado, para ver los campos crudos reales
+      // Ítems CRUDOS del primer alumno, sin condiciones: ver qué campos llegan
+      const first = usergrades[0]
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const conNota = usergrades.find(ug => (ug.gradeitems ?? []).some((i: any) => i.itemtype === 'course' && i.graderaw != null))
+      const totalItem = first?.gradeitems?.find((i: any) => i.itemtype === 'course') ?? null
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const totalItem = conNota?.gradeitems?.find((i: any) => i.itemtype === 'course') ?? null
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const modItem = conNota?.gradeitems?.find((i: any) => i.itemtype === 'mod' && i.graderaw != null) ?? null
+      const modConAlgo = first?.gradeitems?.find((i: any) => i.itemtype === 'mod' && (i.graderaw != null || (i.gradeformatted && i.gradeformatted !== '-'))) ?? null
+      let conRaw = 0, conFormatted = 0
+      for (const ug of usergrades) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const t = (ug.gradeitems ?? []).find((i: any) => i.itemtype === 'course')
+        if (t?.graderaw != null) conRaw++
+        if (t?.gradeformatted && t.gradeformatted !== '-') conFormatted++
+      }
       return {
         courseid: target.courseid,
         alumnos_en_reporte: usergrades.length,
-        item_total_crudo: totalItem,
-        item_mod_crudo: modItem,
+        totales_con_graderaw: conRaw,
+        totales_con_gradeformatted: conFormatted,
+        item_total_crudo_primer_alumno: totalItem,
+        item_mod_crudo_primer_alumno: modConAlgo,
       }
     })
     // Alternativa si la anterior no está permitida
