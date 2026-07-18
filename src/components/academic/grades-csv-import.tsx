@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { Loader2, Upload, Download, CheckCircle2, AlertTriangle, FileSpreadsheet } from 'lucide-react'
 
-interface OkRow { fila: number; document: string; student_name: string; course_code: string | null; course_name: string; grade: number }
+interface OkRow { fila: number; document: string; student_name: string; course_code: string | null; course_name: string; grade: number; destino: string }
 interface ErrRow { fila: number; motivo: string; documento?: string }
-interface Preview { validas: number; con_error: number; ok: OkRow[]; errores: ErrRow[] }
+interface Preview { validas: number; con_error: number; omitidas_activa: number; ok: OkRow[]; errores: ErrRow[]; omitidas: ErrRow[] }
 interface ApplyResult {
   inserted: number; updated: number; unchanged: number; protected_rows: number; errors: string[]
   recompute: { egresados_detectados?: number; situaciones_actualizadas?: number; avances_de_carrusel?: number; error?: string } | null
@@ -109,6 +109,9 @@ export function GradesCsvImport() {
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="bg-green-50 text-green-700 px-2 py-1 rounded-full">{preview.validas} filas válidas</span>
             <span className={`px-2 py-1 rounded-full ${preview.con_error ? 'bg-rose-50 text-rose-700' : 'bg-gray-100 text-gray-500'}`}>{preview.con_error} con error</span>
+            {preview.omitidas_activa > 0 && (
+              <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">{preview.omitidas_activa} ya registradas (Activa) — se omiten</span>
+            )}
           </div>
 
           {preview.errores.length > 0 && (

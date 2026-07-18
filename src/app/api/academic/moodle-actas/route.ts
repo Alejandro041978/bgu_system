@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { moodleCall, moodleConfigured } from '@/lib/moodle'
-import { importGrades, type ImportRow } from '@/lib/grades-write'
+import { importGrades, resolveImportTarget, type ImportRow } from '@/lib/grades-write'
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
@@ -108,18 +108,50 @@ export async function GET(req: NextRequest) {
   }
   const byExternal = new Map(studs.filter(s => s.external_id).map(s => [String(s.external_id), s]))
 
-  const matched: { document: string; name: string; total: number | null }[] = []
+  // Asignatura vinculada (para anticipar el destino de cada nota) y notas
+  // existentes de los alumnos del aula
+  const { data: prevOffs } = await sb.from('semester_offerings')
+    .select('course:academic_courses(code, name)').eq('moodle_course_id', String(courseid))
+  const linkedCourse = prevOffs?.[0]?.course ?? null
+  const docsAula = [...new Set([...users.values()].map(u => byExternal.get(u.idnumber))
+    .filter(Boolean).map(s => String(s.document_number ?? '')).filter(Boolean))]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gradesByDoc = new Map<string, any[]>()
+  if (linkedCourse) {
+    for (let i = 0; i < docsAula.length; i += 200) {
+      const { data } = await sb.from('academic_grades')
+        .select('external_id, document_number, course_code, course_name, final_grade, retake_grade, source')
+        .in('document_number', docsAula.slice(i, i + 200))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const g of (data ?? []) as any[]) {
+        const k = String(g.document_number)
+        if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
+        gradesByDoc.get(k)!.push(g)
+      }
+    }
+  }
+
+  const matched: { document: string; name: string; total: number | null; destino: string }[] = []
   const unmatched: { fullname: string; idnumber: string }[] = []
+  let yaRegistradas = 0, rellenan = 0, nuevas = 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const ug of ((report?.usergrades ?? []) as any[])) {
     const u = users.get(Number(ug.userid))
     const stu = u?.idnumber ? byExternal.get(u.idnumber) : null
     const total = courseTotal(ug.gradeitems)
     if (!stu) { unmatched.push({ fullname: u?.fullname ?? ug.userfullname ?? '?', idnumber: u?.idnumber ?? '' }); continue }
+    const doc = String(stu.document_number ?? '')
+    let destino = 'en curso'
+    if (total != null && linkedCourse) {
+      const r = resolveImportTarget(gradesByDoc.get(doc) ?? [], linkedCourse, `moodle:${courseid}:${ug.userid}`)
+      if (r.action === 'skip') { destino = 'ya registrada (Activa)'; yaRegistradas++ }
+      else if (r.action === 'fill') { destino = 'rellena pendiente'; rellenan++ }
+      else { destino = 'nueva'; nuevas++ }
+    } else if (total != null) destino = 'nueva'
     matched.push({
-      document: String(stu.document_number ?? ''),
+      document: doc,
       name: [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' '),
-      total,
+      total, destino,
     })
   }
   matched.sort((a, b) => a.name.localeCompare(b.name))
@@ -138,6 +170,9 @@ export async function GET(req: NextRequest) {
     sin_nota: matched.filter(m => m.total == null).length,
     ya_importadas: yaImportadas,
     cerradas,
+    ya_registradas_activa: yaRegistradas,
+    rellenan_pendiente: rellenan,
+    nuevas,
     unmatched,
     matched,
   })
@@ -217,6 +252,24 @@ export async function POST(req: NextRequest) {
   }
   const byExternal = new Map(studs.filter(s => s.external_id).map(s => [String(s.external_id), s]))
 
+  // Notas existentes de los alumnos del aula, para resolver el destino de
+  // cada una sin duplicar lo que ya vino de SystemActiva.
+  const docsImport = [...new Set([...users.values()].map(u => byExternal.get(u.idnumber))
+    .filter(Boolean).map(s => String(s.document_number ?? '')).filter(Boolean))]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gradesByDoc = new Map<string, any[]>()
+  for (let i = 0; i < docsImport.length; i += 200) {
+    const { data } = await sb.from('academic_grades')
+      .select('external_id, document_number, course_code, course_name, final_grade, retake_grade, source')
+      .in('document_number', docsImport.slice(i, i + 200))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const g of (data ?? []) as any[]) {
+      const k = String(g.document_number)
+      if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
+      gradesByDoc.get(k)!.push(g)
+    }
+  }
+
   const rows: ImportRow[] = []
   // Espejo del detalle: los ítems del aula tal cual (nombre + ponderación +
   // nota), en el formato del Acta Detallada ({n, pct, val, desc}). No hay
@@ -224,7 +277,7 @@ export async function POST(req: NextRequest) {
   // de la estructura de evaluación.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const detailByExternal = new Map<string, { student_id: string; process: any[]; total: number }>()
-  let sinPuente = 0, sinTotal = 0
+  let sinPuente = 0, sinTotal = 0, yaRegistradas = 0, rellenadas = 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const ug of ((report?.usergrades ?? []) as any[])) {
     const u = users.get(Number(ug.userid))
@@ -232,9 +285,20 @@ export async function POST(req: NextRequest) {
     if (!stu) { sinPuente++; continue }
     const total = courseTotal(ug.gradeitems)
     if (total == null) { sinTotal++; continue }
-    const externalId = `moodle:${b.courseid}:${ug.userid}`
+
+    // ¿Ya existe esta asignatura para el alumno? (skip = de Activa con nota;
+    // fill = fila "en curso" que se rellena y blinda; new = fila nueva)
+    const target = resolveImportTarget(
+      gradesByDoc.get(String(stu.document_number ?? '')) ?? [],
+      { code: destCourse.code, name: destCourse.name },
+      `moodle:${b.courseid}:${ug.userid}`,
+    )
+    if (target.action === 'skip') { yaRegistradas++; continue }
+    if (target.action === 'fill') rellenadas++
+    const externalId = target.external_id
     rows.push({
       external_id: externalId,
+      shield: target.shield,
       document_number: String(stu.document_number ?? ''),
       email: stu.email ?? null,
       student_name: [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' '),
@@ -346,5 +410,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ...result, sin_puente: sinPuente, sin_total: sinTotal, importables: rows.length, detalles_escritos: detallesEscritos, recompute })
+  return NextResponse.json({
+    ...result, sin_puente: sinPuente, sin_total: sinTotal, importables: rows.length,
+    ya_registradas_activa: yaRegistradas, rellenadas_pendientes: rellenadas,
+    detalles_escritos: detallesEscritos, recompute,
+  })
 }

@@ -1,5 +1,6 @@
 import { recomputeStudentByDocument } from './graduates'
 import { advanceCarousels } from './carousel'
+import { sameCourse } from './course-match'
 
 // ---------------------------------------------------------------------------
 // Camino ÚNICO de escritura de notas. Toda modificación — editor manual, carga
@@ -103,6 +104,38 @@ export interface ImportRow {
   term_block?: string | null
   final_grade: number | null
   passing_score?: number | null
+  // Blinda la fila contra el sync de N8N (escribe edited_at). Se usa al
+  // RELLENAR una fila "en curso" heredada de SystemActiva: sin el blindaje,
+  // el sync nocturno la revertiría a null porque en Activa sigue vacía.
+  shield?: boolean
+}
+
+// ---------------------------------------------------------------------------
+// ¿Dónde debe aterrizar una nota importada para este estudiante y asignatura?
+// Evita duplicar lo que ya vino de SystemActiva:
+//   - ya existe una fila CON valor → 'skip' (lo histórico de Activa manda; ni
+//     se duplica ni se toca; correcciones solo por el editor manual)
+//   - existe fila SIN valor ("en curso") → 'fill': se reutiliza SU external_id
+//     y se blinda, para que quede UNA sola fila por asignatura
+//   - no existe → 'new' con el external_id propio de la importación
+// studentRows = filas de academic_grades del estudiante (se filtran aquí las
+// convalidaciones).
+// ---------------------------------------------------------------------------
+export function resolveImportTarget(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  studentRows: any[],
+  course: { code: string | null; name: string | null },
+  fallbackExternalId: string,
+): { action: 'skip' | 'fill' | 'new'; external_id: string; shield: boolean } {
+  const matches = (studentRows ?? [])
+    .filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
+    .filter(g =>
+      (course.code && g.course_code && String(g.course_code) === String(course.code)) ||
+      sameCourse(g.course_name, course.name))
+  const valued = matches.find(g => (g.retake_grade ?? g.final_grade) != null)
+  if (valued) return { action: 'skip', external_id: String(valued.external_id), shield: false }
+  if (matches.length) return { action: 'fill', external_id: String(matches[0].external_id), shield: true }
+  return { action: 'new', external_id: fallbackExternalId, shield: false }
 }
 
 export async function importGrades(
@@ -166,6 +199,9 @@ export async function importGrades(
       passing_score: r.passing_score ?? null,
       source: opts.origin,
       synced_at: new Date().toISOString(),
+      // shield=true blinda contra el sync N8N; null es inocuo: las filas
+      // editadas a mano ya fueron saltadas antes de llegar aquí.
+      edited_at: r.shield ? new Date().toISOString() : null,
     }))
     const { error } = await sb.from('academic_grades').upsert(batch, { onConflict: 'external_id' })
     if (error) { out.errors.push(error.message); return out }

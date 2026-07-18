@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { sameCourse } from '@/lib/course-match'
-import { importGrades, type ImportRow } from '@/lib/grades-write'
+import { importGrades, resolveImportTarget, type ImportRow } from '@/lib/grades-write'
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
@@ -79,8 +79,25 @@ export async function POST(req: NextRequest) {
     return cats.find(c => c.id === catId)?.passing_score ?? null
   }
 
-  const ok: { fila: number; document: string; student_name: string; course_code: string | null; course_name: string; grade: number }[] = []
+  // Notas existentes de los documentos del archivo (para no duplicar Activa)
+  const docsArchivo = [...new Set(b.rows.map(r => String(r.documento ?? '').trim()).filter(Boolean))]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gradesByDoc = new Map<string, any[]>()
+  for (let i = 0; i < docsArchivo.length; i += 200) {
+    const { data } = await sb.from('academic_grades')
+      .select('external_id, document_number, course_code, course_name, final_grade, retake_grade, source')
+      .in('document_number', docsArchivo.slice(i, i + 200))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const g of (data ?? []) as any[]) {
+      const k = String(g.document_number)
+      if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
+      gradesByDoc.get(k)!.push(g)
+    }
+  }
+
+  const ok: { fila: number; document: string; student_name: string; course_code: string | null; course_name: string; grade: number; destino: string }[] = []
   const errores: { fila: number; motivo: string; documento?: string }[] = []
+  const omitidas: { fila: number; motivo: string; documento?: string }[] = []
   const importRows: ImportRow[] = []
   const seen = new Set<string>()
 
@@ -118,14 +135,26 @@ export async function POST(req: NextRequest) {
     if (distinct.length > 1) { errores.push({ fila, motivo: `Asignatura "${codigo || nombre}" es ambigua entre sus programas`, documento: doc }); return }
     const course = distinct[0]
 
-    const externalId = `csv:${doc}:${course.id}:${anio}:${bloque}`
+    // ¿Ya existe esta asignatura para el alumno? skip = de Activa con nota
+    // (se omite, no es error); fill = rellena la fila "en curso" y la blinda
+    const target = resolveImportTarget(gradesByDoc.get(doc) ?? [],
+      { code: course.code, name: course.name }, `csv:${doc}:${course.id}:${anio}:${bloque}`)
+    if (target.action === 'skip') {
+      omitidas.push({ fila, motivo: 'Ya registrada con nota en el ERP (Activa) — se omite, no se duplica', documento: doc })
+      return
+    }
+    const externalId = target.external_id
     if (seen.has(externalId)) { errores.push({ fila, motivo: 'Fila duplicada dentro del archivo', documento: doc }); return }
     seen.add(externalId)
 
     const studentName = [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' ')
-    ok.push({ fila, document: doc, student_name: studentName, course_code: course.code, course_name: course.name, grade: nota })
+    ok.push({
+      fila, document: doc, student_name: studentName, course_code: course.code, course_name: course.name, grade: nota,
+      destino: target.action === 'fill' ? 'rellena pendiente' : 'nueva',
+    })
     importRows.push({
       external_id: externalId,
+      shield: target.shield,
       document_number: doc,
       email: stu.email ?? null,
       student_name: studentName,
@@ -140,7 +169,10 @@ export async function POST(req: NextRequest) {
   })
 
   if (dry) {
-    return NextResponse.json({ dry: true, validas: ok.length, con_error: errores.length, ok: ok.slice(0, 500), errores: errores.slice(0, 200) })
+    return NextResponse.json({
+      dry: true, validas: ok.length, con_error: errores.length, omitidas_activa: omitidas.length,
+      ok: ok.slice(0, 500), errores: errores.slice(0, 200), omitidas: omitidas.slice(0, 200),
+    })
   }
   if (errores.length) {
     return NextResponse.json({ error: `El archivo tiene ${errores.length} fila(s) con error; corrígelas antes de aplicar`, errores: errores.slice(0, 200) }, { status: 400 })

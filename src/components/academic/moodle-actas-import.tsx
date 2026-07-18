@@ -8,17 +8,19 @@ interface Aula {
   id: number; shortname: string; fullname: string; visible?: number
   linked: { course: Candidate; group: string | null } | null
 }
-interface MatchedRow { document: string; name: string; total: number | null }
+interface MatchedRow { document: string; name: string; total: number | null; destino: string }
 interface Preview {
   courseid: number; alumnos_en_reporte: number; matched_total: number
   con_nota: number; sin_nota: number
   ya_importadas: number; cerradas: number
+  ya_registradas_activa: number; rellenan_pendiente: number; nuevas: number
   unmatched: { fullname: string; idnumber: string }[]
   matched: MatchedRow[]
 }
 interface ImportResult {
   inserted: number; updated: number; unchanged: number; protected_rows: number; locked_rows: number
   sin_puente: number; sin_total: number; importables: number
+  ya_registradas_activa: number; rellenadas_pendientes: number
   detalles_escritos: number
   errors: string[]
   recompute: { egresados_detectados?: number; situaciones_actualizadas?: number; avances_de_carrusel?: number; error?: string } | null
@@ -134,8 +136,14 @@ export function MoodleActasImport() {
                 {preview.unmatched.length > 0 && (
                   <span className="bg-rose-50 text-rose-700 px-2 py-1 rounded-full">{preview.unmatched.length} sin identificar en el ERP</span>
                 )}
-                {preview.ya_importadas > 0 && (
-                  <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full">{preview.ya_importadas} ya en el ERP</span>
+                {preview.ya_registradas_activa > 0 && (
+                  <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">{preview.ya_registradas_activa} ya registradas (Activa) — se saltan</span>
+                )}
+                {preview.rellenan_pendiente > 0 && (
+                  <span className="bg-teal-50 text-teal-700 px-2 py-1 rounded-full">{preview.rellenan_pendiente} rellenan nota pendiente</span>
+                )}
+                {preview.nuevas > 0 && (
+                  <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full">{preview.nuevas} nuevas</span>
                 )}
               </div>
               {preview.cerradas > 0 && (
@@ -152,6 +160,7 @@ export function MoodleActasImport() {
                       <th className="text-left px-3 py-2">Estudiante</th>
                       <th className="text-left px-3 py-2">Documento</th>
                       <th className="text-right px-3 py-2">Nota final</th>
+                      <th className="text-left px-3 py-2">Destino</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -160,6 +169,10 @@ export function MoodleActasImport() {
                         <td className="px-3 py-1.5 text-gray-800">{m.name}</td>
                         <td className="px-3 py-1.5 text-gray-500">{m.document}</td>
                         <td className={`px-3 py-1.5 text-right font-medium ${m.total == null ? 'text-gray-300' : 'text-gray-800'}`}>{m.total ?? 'en curso'}</td>
+                        <td className={`px-3 py-1.5 text-xs ${
+                          m.destino === 'ya registrada (Activa)' ? 'text-indigo-600'
+                            : m.destino === 'rellena pendiente' ? 'text-teal-600'
+                              : m.destino === 'nueva' ? 'text-blue-600' : 'text-gray-300'}`}>{m.destino}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -206,7 +219,7 @@ export function MoodleActasImport() {
               <button onClick={doImport} disabled={importing || !termBlock.trim()}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
                 {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                Importar {preview.con_nota} notas al expediente
+                Importar {preview.rellenan_pendiente + preview.nuevas} notas al expediente
               </button>
               <p className="text-[11px] text-gray-400">
                 Solo entran los alumnos identificados y con nota final. Reimportar es seguro: actualiza lo que cambió y
@@ -233,6 +246,13 @@ export function MoodleActasImport() {
             {result.locked_rows > 0 ? ` · ${result.locked_rows} selladas (acta cerrada)` : ''}
           </p>
           <p className="text-green-700">{result.detalles_escritos} actas detalladas espejadas (evaluaciones con sus ponderaciones).</p>
+          {(result.ya_registradas_activa > 0 || result.rellenadas_pendientes > 0) && (
+            <p className="text-green-700">
+              {result.ya_registradas_activa > 0 ? `${result.ya_registradas_activa} ya registradas de Activa (intactas, no se duplicaron)` : ''}
+              {result.ya_registradas_activa > 0 && result.rellenadas_pendientes > 0 ? ' · ' : ''}
+              {result.rellenadas_pendientes > 0 ? `${result.rellenadas_pendientes} notas pendientes rellenadas y blindadas contra el sync` : ''}
+            </p>
+          )}
           <button onClick={() => setLock('lock')}
             className="text-xs font-medium bg-white border border-green-300 text-green-800 rounded-lg px-3 py-1.5 hover:bg-green-100">
             🔒 Cerrar acta — sellar estas notas contra futuras importaciones
