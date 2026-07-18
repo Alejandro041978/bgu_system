@@ -8,7 +8,7 @@ export default function AuditorCampusPage() {
     <>
       <Topbar title="Auditor del Campus" subtitle="Reportes" />
       <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full">
           <CampusAudit />
         </div>
       </div>

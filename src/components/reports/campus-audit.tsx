@@ -111,17 +111,17 @@ export function CampusAudit() {
           </div>
 
           <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
-            <table className="w-full text-sm whitespace-nowrap">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">
-                  <th className="text-left px-4 py-3">Aula</th>
-                  <th className="text-left px-4 py-3">Vinculada a</th>
-                  <th className="text-right px-4 py-3">Recursos (activos/total)</th>
-                  <th className="text-right px-4 py-3">Evaluados (activos/total)</th>
-                  <th className="text-right px-4 py-3">Con peso</th>
-                  <th className="text-right px-4 py-3">Σ pesos activos</th>
-                  <th className="text-right px-4 py-3">Escala</th>
-                  <th className="text-left px-4 py-3">Política</th>
+                <tr className="border-b border-gray-100 bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                  <th className="text-left px-3 py-3 w-full">Aula</th>
+                  <th className="text-left px-3 py-3">Vinculada a</th>
+                  <th className="text-right px-3 py-3">Recursos</th>
+                  <th className="text-right px-3 py-3">Evaluados</th>
+                  <th className="text-right px-3 py-3">Con peso</th>
+                  <th className="text-right px-3 py-3">Σ pesos</th>
+                  <th className="text-right px-3 py-3">Escala</th>
+                  <th className="text-left px-3 py-3">Política</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -138,25 +138,25 @@ export function CampusAudit() {
                   </tr>,
                   ...aulasGrupo.map(a => (
                   <tr key={a.aula_id} className="hover:bg-gray-50/50">
-                    <td className="px-4 py-2.5">
-                      <p className="text-gray-800">{a.shortname}</p>
+                    <td className="px-3 py-2">
+                      <p className="text-gray-800 leading-snug">{a.shortname}</p>
                       <p className="text-[11px] text-gray-400">#{a.aula_id}{!a.visible ? ' · oculta' : ''}</p>
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-500 max-w-[220px] truncate">{a.linked_course ?? <span className="text-gray-300">—</span>}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-600">
+                    <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap max-w-[200px] truncate">{a.linked_course ?? <span className="text-gray-300">—</span>}</td>
+                    <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
                       {a.recursos != null ? <><b className="text-gray-800">{a.recursos_activos ?? '?'}</b><span className="text-gray-400"> / {a.recursos}</span></> : '—'}
                     </td>
-                    <td className="px-4 py-2.5 text-right text-gray-600">
+                    <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">
                       {a.items_evaluacion != null ? <><b className="text-gray-800">{a.items_activos ?? '?'}</b><span className="text-gray-400"> / {a.items_evaluacion}</span></> : '—'}
                     </td>
-                    <td className="px-4 py-2.5 text-right text-gray-600">{a.items_con_peso ?? '—'}</td>
-                    <td className={`px-4 py-2.5 text-right font-medium ${a.cumple_pesos === false ? 'text-rose-700' : a.cumple_pesos ? 'text-green-700' : 'text-gray-300'}`}>
+                    <td className="px-3 py-2 text-right text-gray-600">{a.items_con_peso ?? '—'}</td>
+                    <td className={`px-3 py-2 text-right font-medium whitespace-nowrap ${a.cumple_pesos === false ? 'text-rose-700' : a.cumple_pesos ? 'text-green-700' : 'text-gray-300'}`}>
                       {a.suma_pesos != null ? `${a.suma_pesos}%` : '—'}
                     </td>
-                    <td className={`px-4 py-2.5 text-right ${a.cumple_escala === false ? 'text-rose-700 font-medium' : a.cumple_escala ? 'text-green-700' : 'text-gray-300'}`}>
+                    <td className={`px-3 py-2 text-right whitespace-nowrap ${a.cumple_escala === false ? 'text-rose-700 font-medium' : a.cumple_escala ? 'text-green-700' : 'text-gray-300'}`}>
                       {a.escala_total != null ? a.escala_total : '—'}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 py-2 whitespace-nowrap">
                       {estadoDe(a) === 'sin_datos'
                         ? <span className="text-[11px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">{a.error}</span>
                         : estadoDe(a) === 'sin_evaluaciones'
