@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Loader2, RefreshCw, ShieldCheck, AlertTriangle } from 'lucide-react'
+import { Loader2, RefreshCw, ShieldCheck, AlertTriangle, ExternalLink, Scale } from 'lucide-react'
 
 interface Aula {
   aula_id: number; shortname: string; fullname: string; visible: boolean
@@ -13,7 +13,8 @@ interface Aula {
   metodo: string | null; categoria: string | null; error: string | null; audited_at: string
 }
 interface Data {
-  audited_at: string | null; total: number; cumplen: number; incumplen: number
+  audited_at: string | null; moodle_url: string | null
+  total: number; cumplen: number; incumplen: number
   pesos_mal: number; escala_mal: number
   sin_evaluaciones: number; sin_ponderacion: number
   sin_datos: number; vinculadas: number
@@ -139,8 +140,23 @@ export function CampusAudit() {
                   ...aulasGrupo.map(a => (
                   <tr key={a.aula_id} className="hover:bg-gray-50/50">
                     <td className="px-3 py-2">
-                      <p className="text-gray-800 leading-snug">{a.shortname}</p>
-                      <p className="text-[11px] text-gray-400">#{a.aula_id}{!a.visible ? ' · oculta' : ''}</p>
+                      {d.moodle_url ? (
+                        <a href={`${d.moodle_url}/course/view.php?id=${a.aula_id}`} target="_blank" rel="noopener noreferrer"
+                          className="text-gray-800 leading-snug hover:text-blue-600 hover:underline inline-flex items-center gap-1">
+                          {a.shortname}<ExternalLink className="w-3 h-3 text-gray-300" />
+                        </a>
+                      ) : (
+                        <p className="text-gray-800 leading-snug">{a.shortname}</p>
+                      )}
+                      <p className="text-[11px] text-gray-400">
+                        #{a.aula_id}{!a.visible ? ' · oculta' : ''}
+                        {d.moodle_url && (
+                          <a href={`${d.moodle_url}/grade/edit/tree/index.php?id=${a.aula_id}`} target="_blank" rel="noopener noreferrer"
+                            className="ml-2 text-blue-500 hover:underline inline-flex items-center gap-0.5" title="Configuración de calificaciones (pesos y escala)">
+                            <Scale className="w-3 h-3" />calificaciones
+                          </a>
+                        )}
+                      </p>
                     </td>
                     <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap max-w-[200px] truncate">{a.linked_course ?? <span className="text-gray-300">—</span>}</td>
                     <td className="px-3 py-2 text-right text-gray-600 whitespace-nowrap">

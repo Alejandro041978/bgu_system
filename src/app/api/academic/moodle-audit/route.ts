@@ -55,6 +55,7 @@ export async function GET() {
   for (const r of rows) porEstado.set(estadoDe(r), (porEstado.get(estadoDe(r)) ?? 0) + 1)
   return NextResponse.json({
     audited_at: rows[0]?.audited_at ?? null,
+    moodle_url: process.env.MOODLE_URL ?? null,
     total: rows.length,
     cumplen: porEstado.get('cumplen') ?? 0,
     incumplen: porEstado.get('incumplen') ?? 0,
