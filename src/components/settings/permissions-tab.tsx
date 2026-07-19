@@ -29,6 +29,7 @@ const PAGE_GROUPS = [
       { key: 'crm', label: 'Contactos / CRM' },
       { key: 'convenios', label: 'Convenios institucionales' },
       { key: 'admision_matriculas', label: 'Matrículas' },
+      { key: 'admision_nueva_matricula', label: 'Nueva Matrícula' },
       // Ventas
       { key: 'sales_prospectos', label: 'Prospectos' },
       { key: 'sales_funnels', label: 'Configuración de embudos' },

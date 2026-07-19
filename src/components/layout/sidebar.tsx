@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -43,6 +43,7 @@ const navigation: NavGroup[] = [
           { name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' },
           { name: 'Convenios', href: '/convenios', icon: Handshake, pageKey: 'convenios' },
           { name: 'Matrículas', href: '/admision/matriculas', icon: GraduationCap, pageKey: 'admision_matriculas' },
+          { name: 'Nueva Matrícula', href: '/admision/nueva-matricula', icon: UserPlus, pageKey: 'admision_nueva_matricula' },
         ],
       },
       {
