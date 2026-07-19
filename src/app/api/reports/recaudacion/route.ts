@@ -49,12 +49,16 @@ export async function GET(req: NextRequest) {
   }
 
   // Catálogos chicos
+  // select('*') en categorías para tolerar que la columna sigla exista o no
   const [{ data: cats }, { data: progs }, { data: convs }] = await Promise.all([
-    sb.from('academic_programs_category').select('id, name').order('name'),
+    sb.from('academic_programs_category').select('*').order('name'),
     sb.from('academic_programs').select('id, category_id'),
     sb.from('convocatorias').select('id, product_category_id'),
   ])
-  const catName = new Map(((cats ?? []) as { id: string; name: string }[]).map(c => [c.id, c.name]))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const catRows = (cats ?? []) as any[]
+  const catName = new Map<string, string>(catRows.map(c => [c.id, c.name]))
+  const catSigla = new Map<string, string>(catRows.filter(c => c.sigla).map(c => [c.name, c.sigla]))
   const progCat = new Map(((progs ?? []) as { id: string; category_id: string | null }[]).map(p => [p.id, p.category_id]))
   const convCat = new Map(((convs ?? []) as { id: string; product_category_id: string | null }[]).map(c => [c.id, c.product_category_id]))
 
@@ -133,6 +137,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     years, year,
     columns,
+    column_labels: columns.map(c => catSigla.get(c) ?? c),
     rows: Array.from({ length: 12 }, (_, m) => ({
       month: m + 1,
       cells: columns.map(c => matrix.get(c)![m]),

@@ -6,6 +6,7 @@ import { Loader2, Banknote } from 'lucide-react'
 interface Data {
   years: number[]; year: number
   columns: string[]
+  column_labels?: string[]
   rows: { month: number; cells: number[]; total: number; count: number }[]
   column_totals: number[]
   total: number
@@ -64,7 +65,9 @@ export function RecaudacionReport() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">
                   <th className="text-left px-4 py-3 sticky left-0 bg-gray-50">Mes</th>
-                  {data.columns.map(c => <th key={c} className="text-right px-4 py-3">{c}</th>)}
+                  {data.columns.map((c, i) => (
+                    <th key={c} className="text-right px-4 py-3" title={c}>{data.column_labels?.[i] ?? c}</th>
+                  ))}
                   <th className="text-right px-4 py-3 border-l border-gray-200">Total mes</th>
                   <th className="text-right px-4 py-3">Pagos</th>
                 </tr>
