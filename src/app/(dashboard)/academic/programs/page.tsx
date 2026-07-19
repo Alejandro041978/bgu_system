@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { Topbar } from '@/components/layout/topbar'
 import { ProgramsManager } from '@/components/academic/programs-manager'
+import { CategoriesManager } from '@/components/academic/categories-manager'
 
 export const revalidate = 0
 
@@ -16,7 +17,8 @@ export default async function AcademicProgramsPage() {
     <>
       <Topbar title="Programas Académicos" subtitle="Gestión académica" />
       <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto space-y-4">
+          <CategoriesManager />
           <ProgramsManager initial={data ?? []} categories={categories ?? []} />
         </div>
       </div>
