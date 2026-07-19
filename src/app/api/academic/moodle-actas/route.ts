@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { moodleCall, moodleConfigured } from '@/lib/moodle'
-import { importGrades, resolveImportTarget, type ImportRow } from '@/lib/grades-write'
+import { importGrades, resolveImportTarget, fetchByIn, type ImportRow } from '@/lib/grades-write'
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
@@ -162,16 +162,13 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gradesByDoc = new Map<string, any[]>()
   if (linkedCourse) {
-    for (let i = 0; i < docsAula.length; i += 200) {
-      const { data } = await sb.from('academic_grades')
-        .select('external_id, document_number, course_code, course_name, final_grade, retake_grade, source')
-        .in('document_number', docsAula.slice(i, i + 200))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const g of (data ?? []) as any[]) {
-        const k = String(g.document_number)
-        if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
-        gradesByDoc.get(k)!.push(g)
-      }
+    const all = await fetchByIn(sb, 'academic_grades',
+      'external_id, document_number, course_code, course_name, final_grade, retake_grade, source',
+      'document_number', docsAula)
+    for (const g of all) {
+      const k = String(g.document_number)
+      if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
+      gradesByDoc.get(k)!.push(g)
     }
   }
 
@@ -328,12 +325,11 @@ export async function POST(req: NextRequest) {
     .filter(Boolean).map(s => String(s.document_number ?? '')).filter(Boolean))]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gradesByDoc = new Map<string, any[]>()
-  for (let i = 0; i < docsImport.length; i += 200) {
-    const { data } = await sb.from('academic_grades')
-      .select('external_id, document_number, course_code, course_name, final_grade, retake_grade, source')
-      .in('document_number', docsImport.slice(i, i + 200))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const g of (data ?? []) as any[]) {
+  {
+    const all = await fetchByIn(sb, 'academic_grades',
+      'external_id, document_number, course_code, course_name, final_grade, retake_grade, source',
+      'document_number', docsImport)
+    for (const g of all) {
       const k = String(g.document_number)
       if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
       gradesByDoc.get(k)!.push(g)

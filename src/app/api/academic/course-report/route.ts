@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { sameCourse } from '@/lib/course-match'
+import { fetchByIn } from '@/lib/grades-write'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -53,28 +54,31 @@ export async function GET(req: NextRequest) {
 
   // Estudiantes del programa (el acta es de la asignatura EN su programa: no
   // arrastra homónimos de otros programas)
-  const { data: enr } = await sb.from('academic_student_enrollments')
-    .select('student_id').eq('program_id', course.program_id)
-  const studentIds = [...new Set(((enr ?? []) as { student_id: string }[]).map(e => e.student_id))]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const students: any[] = []
-  for (let i = 0; i < studentIds.length; i += 200) {
-    const { data } = await sb.from('academic_students')
-      .select('id, document_number, first_name, last_name, second_last_name').in('id', studentIds.slice(i, i + 200))
-    students.push(...(data ?? []))
+  const enr: any[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data } = await sb.from('academic_student_enrollments')
+      .select('student_id').eq('program_id', course.program_id).range(from, from + 999)
+    const chunk = data ?? []
+    enr.push(...chunk)
+    if (chunk.length < 1000) break
   }
+  const studentIds = [...new Set((enr as { student_id: string }[]).map(e => e.student_id))]
+  const students = await fetchByIn(sb, 'academic_students',
+    'id, document_number, first_name, last_name, second_last_name', 'id', studentIds)
   const byDoc = new Map(students.map(s => [String(s.document_number ?? ''), s]))
   const docs = [...byDoc.keys()].filter(Boolean)
 
-  // Notas de esos estudiantes que correspondan a la asignatura
+  // Notas de esos estudiantes que correspondan a la asignatura (paginado:
+  // PostgREST corta en 1000 y un lote de documentos trae muchas más)
+  const grades = await fetchByIn(sb, 'academic_grades',
+    'external_id, document_number, course_code, course_name, term_year, term_block, final_grade, retake_grade, passing_score, source, edited_at, locked_at',
+    'document_number', docs)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: any[] = []
-  for (let i = 0; i < docs.length; i += 200) {
-    const { data } = await sb.from('academic_grades')
-      .select('external_id, document_number, course_code, course_name, term_year, term_block, final_grade, retake_grade, passing_score, source, edited_at, locked_at')
-      .in('document_number', docs.slice(i, i + 200))
+  {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const g of (data ?? []) as any[]) {
+    for (const g of grades as any[]) {
       if (!((course.code && g.course_code && String(g.course_code) === String(course.code)) || sameCourse(g.course_name, course.name))) continue
       const stu = byDoc.get(String(g.document_number))
       const efectiva = g.retake_grade ?? g.final_grade

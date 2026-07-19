@@ -12,6 +12,31 @@ import { sameCourse } from './course-match'
 //      sin esperar al cron nocturno
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// .in() + paginación: PostgREST corta en 1000 filas por consulta SIN avisar y
+// sin orden garantizado. Un lote de 200 documentos puede tener miles de notas:
+// hay que paginar DENTRO de cada lote o se pierden filas al azar (nos pasó:
+// actas de asignatura vacías y resoluciones de importación a ciegas).
+// ---------------------------------------------------------------------------
+export async function fetchByIn(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sb: any, table: string, select: string, column: string, values: string[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const out: any[] = []
+  for (let i = 0; i < values.length; i += 150) {
+    const part = values.slice(i, i + 150)
+    for (let from = 0; ; from += 1000) {
+      const { data } = await sb.from(table).select(select).in(column, part).range(from, from + 999)
+      const rows = data ?? []
+      out.push(...rows)
+      if (rows.length < 1000) break
+    }
+  }
+  return out
+}
+
 export interface GradeChanges {
   final_grade?: number | null
   retake_grade?: number | null
