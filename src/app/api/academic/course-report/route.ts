@@ -49,6 +49,48 @@ export async function GET(req: NextRequest) {
     .select('id, code, name, program_id, academic_programs(name, category_id)').eq('id', courseId).maybeSingle()
   if (!course) return NextResponse.json({ error: 'Asignatura no encontrada' }, { status: 404 })
 
+  // ?detalle=1 → las evaluaciones de proceso de cada estudiante (para la
+  // matriz del grupo y el detalle individual)
+  if (req.nextUrl.searchParams.get('detalle') === '1') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const enrD: any[] = []
+    for (let from = 0; ; from += 1000) {
+      const { data } = await sb.from('academic_student_enrollments')
+        .select('student_id').eq('program_id', course.program_id).range(from, from + 999)
+      const chunk = data ?? []
+      enrD.push(...chunk)
+      if (chunk.length < 1000) break
+    }
+    const sids = [...new Set((enrD as { student_id: string }[]).map(e => e.student_id))]
+    const studs = await fetchByIn(sb, 'academic_students',
+      'id, document_number, first_name, last_name, second_last_name', 'id', sids)
+    const nameOf = new Map(studs.map(s => [s.id, [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' ')]))
+    const docOf = new Map(studs.map(s => [s.id, String(s.document_number ?? '')]))
+    const details = await fetchByIn(sb, 'academic_grade_details',
+      'student_id, course_code, course_name, term_year, term_block, final_grade, retake_grade, process_grades, grades',
+      'student_id', sids)
+    const rows = details
+      .filter(d =>
+        (course.code && d.course_code && String(d.course_code) === String(course.code)) ||
+        sameCourse(d.course_name, course.name))
+      .map(d => ({
+        student_id: d.student_id,
+        name: nameOf.get(d.student_id) ?? '?',
+        document: docOf.get(d.student_id) ?? '',
+        term_year: d.term_year, term_block: d.term_block,
+        final_grade: d.final_grade, retake_grade: d.retake_grade,
+        // Lista unificada (misma regla que el Acta Detallada): sin el
+        // marcador "Total" vacío del histórico
+        evaluaciones: [
+          ...((d.grades ?? []) as { n: number; pct: number | null; val: number | null; desc: string }[])
+            .filter(s => !(s.val == null && (s.desc ?? '').trim().toLowerCase() === 'total')),
+          ...((d.process_grades ?? []) as { n: number; pct: number | null; val: number | null; desc: string }[]),
+        ],
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+    return NextResponse.json({ detalle: rows })
+  }
+
   let passing: number | null = null
   if (course.academic_programs?.category_id) {
     const { data: cat } = await sb.from('academic_programs_category')
