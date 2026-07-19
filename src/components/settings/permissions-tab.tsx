@@ -18,6 +18,7 @@ const PAGE_GROUPS = [
       { key: 'academic_grades_import', label: 'Académico · Cargar Notas (CSV)' },
       { key: 'report_campus_audit', label: 'Reportes · Auditor del Campus' },
       { key: 'academic_acta_course', label: 'Académico · Acta de Asignatura' },
+      { key: 'academic_convocatorias_report', label: 'Comercial · Matrículas por Convocatoria' },
     ],
   },
   {

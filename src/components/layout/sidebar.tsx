@@ -53,7 +53,13 @@ const navigation: NavGroup[] = [
         ],
       },
       { name: 'Redes Sociales', href: '/social', icon: Share2, pageKey: 'social' },
-      { name: 'Convocatorias', href: '/academic/convocatorias', icon: ClipboardList, pageKey: 'academic_convocatorias' },
+      {
+        name: 'Convocatorias', href: '/academic/convocatorias', icon: ClipboardList,
+        children: [
+          { name: 'Gestión', href: '/academic/convocatorias', icon: ClipboardList, pageKey: 'academic_convocatorias' },
+          { name: 'Matrículas por Convocatoria', href: '/academic/convocatorias-matriculas', icon: Users, pageKey: 'academic_convocatorias_report' },
+        ],
+      },
     ],
   },
   {
