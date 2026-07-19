@@ -3,15 +3,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, Check, X, Loader2, Layers, ChevronDown, ChevronRight } from 'lucide-react'
 
-interface Cat { id: string; name: string; passing_score: number | null; programs: number; convocatorias: number }
+interface Cat { id: string; name: string; sigla: string | null; passing_score: number | null; programs: number; convocatorias: number }
 
 export function CategoriesManager() {
   const [open, setOpen] = useState(false)
   const [cats, setCats] = useState<Cat[] | null>(null)
   const [newName, setNewName] = useState('')
+  const [newSigla, setNewSigla] = useState('')
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
+  const [editSigla, setEditSigla] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,12 +28,12 @@ export function CategoriesManager() {
     if (!newName.trim()) return
     setCreating(true); setError(null)
     const res = await fetch('/api/academic/program-categories', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newName }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newName, sigla: newSigla }),
     })
     const d = await res.json()
     setCreating(false)
     if (d.error) { setError(d.error); return }
-    setNewName('')
+    setNewName(''); setNewSigla('')
     load()
   }
 
@@ -39,7 +41,7 @@ export function CategoriesManager() {
     if (!editName.trim()) return
     setBusy(id); setError(null)
     const res = await fetch(`/api/academic/program-categories/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: editName }),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: editName, sigla: editSigla }),
     })
     const d = await res.json()
     setBusy(null)
@@ -83,6 +85,10 @@ export function CategoriesManager() {
                       <input value={editName} onChange={e => setEditName(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') rename(c.id); if (e.key === 'Escape') setEditing(null) }}
                         className="flex-1 border border-blue-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" autoFocus />
+                      <input value={editSigla} onChange={e => setEditSigla(e.target.value.toUpperCase())} maxLength={5}
+                        onKeyDown={e => { if (e.key === 'Enter') rename(c.id); if (e.key === 'Escape') setEditing(null) }}
+                        placeholder="Sigla"
+                        className="w-20 border border-blue-200 rounded-lg px-2.5 py-1.5 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
                       <button onClick={() => rename(c.id)} disabled={busy === c.id} className="text-green-600 hover:text-green-800" title="Guardar">
                         {busy === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                       </button>
@@ -90,12 +96,15 @@ export function CategoriesManager() {
                     </>
                   ) : (
                     <>
-                      <span className="flex-1 text-sm text-gray-800">{c.name}</span>
+                      <span className="flex-1 text-sm text-gray-800">
+                        {c.name}
+                        {c.sigla && <span className="ml-2 bg-blue-50 text-blue-700 text-[11px] font-mono px-1.5 py-0.5 rounded">{c.sigla}</span>}
+                      </span>
                       <span className="text-[11px] text-gray-400">
                         {c.programs} programa{c.programs === 1 ? '' : 's'} · {c.convocatorias} convocatoria{c.convocatorias === 1 ? '' : 's'}
                         {c.passing_score != null && ` · aprueba con ${c.passing_score}`}
                       </span>
-                      <button onClick={() => { setEditing(c.id); setEditName(c.name) }} className="text-gray-300 hover:text-blue-600" title="Renombrar"><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => { setEditing(c.id); setEditName(c.name); setEditSigla(c.sigla ?? '') }} className="text-gray-300 hover:text-blue-600" title="Editar"><Pencil className="w-3.5 h-3.5" /></button>
                       <button onClick={() => remove(c)} disabled={busy === c.id || c.programs > 0 || c.convocatorias > 0}
                         className="text-gray-300 hover:text-red-600 disabled:opacity-30 disabled:hover:text-gray-300"
                         title={c.programs > 0 || c.convocatorias > 0 ? 'Tiene programas o convocatorias asociados' : 'Eliminar'}>
@@ -114,6 +123,10 @@ export function CategoriesManager() {
               onKeyDown={e => { if (e.key === 'Enter') create() }}
               placeholder="Nueva categoría…"
               className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input value={newSigla} onChange={e => setNewSigla(e.target.value.toUpperCase())} maxLength={5}
+              onKeyDown={e => { if (e.key === 'Enter') create() }}
+              placeholder="Sigla"
+              className="w-20 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <button onClick={create} disabled={creating || !newName.trim()}
               className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm px-3 py-1.5 rounded-lg">
               {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Crear

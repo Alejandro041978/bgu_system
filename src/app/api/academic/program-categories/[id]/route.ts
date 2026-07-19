@@ -15,7 +15,7 @@ async function requireAuth() {
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
-  const b = await req.json() as { passing_score?: number | null; name?: string }
+  const b = await req.json() as { passing_score?: number | null; name?: string; sigla?: string | null }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const patch: any = {}
   if ('passing_score' in b) patch.passing_score = b.passing_score ?? null
@@ -23,6 +23,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const name = b.name.trim()
     if (!name) return NextResponse.json({ error: 'El nombre no puede quedar vacío' }, { status: 400 })
     patch.name = name
+  }
+  if ('sigla' in b) {
+    const sigla = b.sigla?.trim().toUpperCase() || null
+    if (sigla && sigla.length > 5) return NextResponse.json({ error: 'La sigla admite máximo 5 caracteres' }, { status: 400 })
+    patch.sigla = sigla
   }
   if (!Object.keys(patch).length) return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
   const { error } = await db().from('academic_programs_category')

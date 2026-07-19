@@ -17,8 +17,9 @@ async function requireAuth() {
 export async function GET() {
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
+  // select('*') para tolerar que la columna sigla exista o no todavía
   const [{ data: cats }, { data: progs }, { data: convs }] = await Promise.all([
-    sb.from('academic_programs_category').select('id, name, passing_score').order('name'),
+    sb.from('academic_programs_category').select('*').order('name'),
     sb.from('academic_programs').select('id, category_id'),
     sb.from('convocatorias').select('id, product_category_id'),
   ])
@@ -31,26 +32,35 @@ export async function GET() {
     if (c.product_category_id) convCount.set(c.product_category_id, (convCount.get(c.product_category_id) ?? 0) + 1)
   }
   return NextResponse.json({
-    categories: ((cats ?? []) as { id: string; name: string; passing_score: number | null }[]).map(c => ({
-      ...c,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    categories: ((cats ?? []) as any[]).map(c => ({
+      id: c.id,
+      name: c.name,
+      sigla: c.sigla ?? null,
+      passing_score: c.passing_score ?? null,
       programs: progCount.get(c.id) ?? 0,
       convocatorias: convCount.get(c.id) ?? 0,
     })),
   })
 }
 
-// POST { name } → crea una categoría
+// POST { name, sigla? } → crea una categoría
 export async function POST(req: NextRequest) {
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  const b = await req.json().catch(() => null) as { name?: string } | null
+  const b = await req.json().catch(() => null) as { name?: string; sigla?: string } | null
   const name = b?.name?.trim()
   if (!name) return NextResponse.json({ error: 'Falta el nombre' }, { status: 400 })
+  const sigla = b?.sigla?.trim().toUpperCase() || null
+  if (sigla && sigla.length > 5) return NextResponse.json({ error: 'La sigla admite máximo 5 caracteres' }, { status: 400 })
   const sb = db()
   const { data: dup } = await sb.from('academic_programs_category').select('id').ilike('name', name).limit(1)
   if ((dup ?? []).length) return NextResponse.json({ error: 'Ya existe una categoría con ese nombre' }, { status: 409 })
   // id explícito: la tabla nació del sync y su default no está garantizado
   const id = crypto.randomUUID()
-  const { error } = await sb.from('academic_programs_category').insert({ id, name })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const row: any = { id, name }
+  if (sigla) row.sigla = sigla
+  const { error } = await sb.from('academic_programs_category').insert(row)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true, id, name })
 }
