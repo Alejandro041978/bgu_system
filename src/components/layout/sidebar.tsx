@@ -58,6 +58,7 @@ const navigation: NavGroup[] = [
         children: [
           { name: 'Gestión', href: '/academic/convocatorias', icon: ClipboardList, pageKey: 'academic_convocatorias' },
           { name: 'Matrículas por Convocatoria', href: '/academic/convocatorias-matriculas', icon: Users, pageKey: 'academic_convocatorias_report' },
+          { name: 'Estudiantes por Convocatoria', href: '/academic/estudiantes-convocatoria', icon: Users, pageKey: 'academic_convocatoria_students' },
         ],
       },
     ],
