@@ -229,33 +229,19 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
 // ---------------------------------------------------------------------------
 // Colocación en el carrusel de entrada. Para matrículas nuevas (y para la
 // colocación masiva inicial, que siempre se simula antes).
-// El carrusel de entrada del programa es el que ningún otro apunta; si la
-// convocatoria tiene uno vinculado para ese programa, ese manda.
+// El carrusel de entrada del programa es el que ningún otro apunta. Si el
+// programa tiene varias entradas (ej. variantes por idioma), la elección es
+// humana: bandeja de colocación en Estudiantes por Convocatoria.
 // ---------------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function placeStudentInEntry(sb: any, studentId: string, programId: string, convocatoriaId?: string | null): Promise<{ ok: boolean; group_id?: string; note: string }> {
-  let entry: string | null = null
-
-  if (convocatoriaId) {
-    const { data: links } = await sb.from('convocatoria_groups')
-      .select('group_id, academic_groups(program_id)').eq('convocatoria_id', convocatoriaId)
-    const matches = ((links ?? []) as { group_id: string; academic_groups: { program_id: string } | null }[])
-      .filter(l => l.academic_groups?.program_id === programId)
-    if (matches.length === 1) entry = matches[0].group_id
-    // Varios carruseles del mismo programa vinculados (ej. variantes por
-    // idioma): la elección es humana, en la bandeja de colocación.
-    if (matches.length > 1) return { ok: false, note: 'La convocatoria tiene varios carruseles para este programa; colocar manualmente en Estudiantes por Convocatoria' }
-  }
-
-  if (!entry) {
-    const { data: gs } = await sb.from('academic_groups').select('id, next_group_id').eq('program_id', programId)
-    const groups = (gs ?? []) as { id: string; next_group_id: string | null }[]
-    if (!groups.length) return { ok: false, note: 'El programa no tiene carruseles' }
-    const pointed = new Set(groups.map(g => g.next_group_id).filter(Boolean))
-    const entries = groups.filter(g => !pointed.has(g.id))
-    if (entries.length !== 1) return { ok: false, note: `El programa tiene ${entries.length} carruseles de entrada posibles; hay que armar la secuencia o vincular la convocatoria` }
-    entry = entries[0].id
-  }
+export async function placeStudentInEntry(sb: any, studentId: string, programId: string): Promise<{ ok: boolean; group_id?: string; note: string }> {
+  const { data: gs } = await sb.from('academic_groups').select('id, next_group_id').eq('program_id', programId)
+  const groups = (gs ?? []) as { id: string; next_group_id: string | null }[]
+  if (!groups.length) return { ok: false, note: 'El programa no tiene carruseles' }
+  const pointed = new Set(groups.map(g => g.next_group_id).filter(Boolean))
+  const entries = groups.filter(g => !pointed.has(g.id))
+  if (entries.length !== 1) return { ok: false, note: `El programa tiene ${entries.length} carruseles de entrada; colocar manualmente en Estudiantes por Convocatoria` }
+  const entry = entries[0].id
 
   const { data: existing } = await sb.from('academic_group_students')
     .select('group_id, status').eq('student_id', studentId).eq('group_id', entry).maybeSingle()

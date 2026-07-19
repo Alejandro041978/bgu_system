@@ -254,7 +254,7 @@ export function ConvocatoriaStudents() {
           )}
 
           <p className="text-[11px] text-gray-400">
-            Al colocar, el estudiante entra al carrusel (membresía activa) y se matricula en sus aulas Moodle mapeadas. Si la convocatoria tiene carruseles vinculados para el programa, esos son los candidatos; si no, las entradas naturales del programa. Con varios candidatos (ej. variantes por idioma) la elección es obligatoria.
+            Al colocar, el estudiante entra al carrusel (membresía activa) y se matricula en sus aulas Moodle mapeadas. Los candidatos son las entradas naturales del programa (los carruseles que ningún otro apunta); con varios candidatos (ej. variantes por idioma) la elección es obligatoria.
           </p>
         </>
       )}

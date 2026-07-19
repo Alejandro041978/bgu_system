@@ -19,13 +19,11 @@ async function requireUser() {
 interface Group { id: string; program_id: string; next_group_id: string | null; abbreviation: string | null; name: string | null }
 const glabel = (g: Group) => [g.abbreviation, g.name].filter(Boolean).join(' · ') || g.id
 
-// Carruseles candidatos para colocar una matrícula del programa: los que la
-// convocatoria tiene vinculados para ese programa; si no vinculó ninguno, las
-// entradas naturales (carruseles a los que ningún otro del programa apunta).
-function candidatesFor(programId: string, groups: Group[], linkedIds: Set<string>): Group[] {
+// Carruseles candidatos para colocar una matrícula del programa: las entradas
+// naturales (carruseles a los que ningún otro del programa apunta). Si hay
+// varias (ej. variantes por idioma), la elección es humana.
+function candidatesFor(programId: string, groups: Group[]): Group[] {
   const ofProgram = groups.filter(g => g.program_id === programId)
-  const linked = ofProgram.filter(g => linkedIds.has(g.id))
-  if (linked.length) return linked
   const pointed = new Set(ofProgram.map(g => g.next_group_id).filter(Boolean))
   return ofProgram.filter(g => !pointed.has(g.id))
 }
@@ -63,14 +61,11 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stuOf = new Map<string, any>(students.map(s => [s.id, s]))
 
-  // Carruseles de los programas involucrados + vínculos de la convocatoria
+  // Carruseles de los programas involucrados
   const groups: Group[] = programIds.length
     ? (await sb.from('academic_groups').select('id, program_id, next_group_id, abbreviation, name').in('program_id', programIds)).data ?? []
     : []
   const groupOf = new Map(groups.map(g => [g.id, g]))
-  const { data: links } = await sb.from('convocatoria_groups')
-    .select('group_id').eq('convocatoria_id', convocatoriaId)
-  const linkedIds = new Set(((links ?? []) as { group_id: string }[]).map(l => l.group_id))
 
   // Membresías de estos estudiantes en carruseles de estos programas
   const memberships = groups.length && studentIds.length
@@ -112,7 +107,7 @@ export async function GET(req: NextRequest) {
         program_id: e.program_id,
         name: progName.get(e.program_id) ?? '(sin programa)',
         placed: placed ? { group_id: placed.group.id, label: glabel(placed.group), status: placed.status } : null,
-        candidates: placed ? [] : candidatesFor(e.program_id, groups, linkedIds).map(g => ({ id: g.id, label: glabel(g) })),
+        candidates: placed ? [] : candidatesFor(e.program_id, groups).map(g => ({ id: g.id, label: glabel(g) })),
       })
     }
     if (e.enrollment_date && (!s.fecha || e.enrollment_date < s.fecha)) s.fecha = e.enrollment_date
