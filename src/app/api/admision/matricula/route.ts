@@ -127,22 +127,34 @@ export async function POST(req: NextRequest) {
     if (!s) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
   }
 
-  // Sin matrícula duplicada en el mismo programa
+  // Matrícula existente en el mismo programa: si vino sin convocatoria (sync
+  // de SystemActiva), se subsana asignándole la elegida — conservando su fecha
+  // original. Con convocatoria ya asignada, sí es un duplicado y se rechaza.
   const { data: existing } = await sb.from('academic_student_enrollments')
-    .select('id').eq('student_id', sid).eq('program_id', program_id).limit(1)
-  if ((existing ?? []).length) {
-    return NextResponse.json({ error: 'El estudiante ya tiene una matrícula en este programa' }, { status: 409 })
+    .select('id, convocatoria_id').eq('student_id', sid).eq('program_id', program_id).limit(1)
+  const prev = (existing ?? [])[0] as { id: string; convocatoria_id: string | null } | undefined
+  let enrollmentId: string
+  let repaired = false
+  if (prev) {
+    if (prev.convocatoria_id) {
+      return NextResponse.json({ error: 'El estudiante ya tiene una matrícula en este programa, con convocatoria asignada' }, { status: 409 })
+    }
+    const { error: updErr } = await sb.from('academic_student_enrollments')
+      .update({ convocatoria_id }).eq('id', prev.id)
+    if (updErr) return NextResponse.json({ error: `No se pudo subsanar la matrícula: ${updErr.message}` }, { status: 500 })
+    enrollmentId = prev.id
+    repaired = true
+  } else {
+    enrollmentId = crypto.randomUUID()
+    const { error: enrErr } = await sb.from('academic_student_enrollments').insert({
+      id: enrollmentId,
+      student_id: sid,
+      program_id,
+      convocatoria_id,
+      enrollment_date: (enrollment_date?.trim() || new Date().toISOString().slice(0, 10)),
+    })
+    if (enrErr) return NextResponse.json({ error: `No se pudo crear la matrícula: ${enrErr.message}` }, { status: 500 })
   }
-
-  const enrollmentId = crypto.randomUUID()
-  const { error: enrErr } = await sb.from('academic_student_enrollments').insert({
-    id: enrollmentId,
-    student_id: sid,
-    program_id,
-    convocatoria_id,
-    enrollment_date: (enrollment_date?.trim() || new Date().toISOString().slice(0, 10)),
-  })
-  if (enrErr) return NextResponse.json({ error: `No se pudo crear la matrícula: ${enrErr.message}` }, { status: 500 })
 
   // Colocación automática: solo si el programa tiene una única entrada natural;
   // con varias (variantes) la elección queda para la bandeja.
@@ -158,6 +170,7 @@ export async function POST(req: NextRequest) {
     ok: true,
     student_id: sid,
     student_created: created,
+    enrollment_repaired: repaired,
     enrollment_id: enrollmentId,
     program: prog.name,
     convocatoria: conv.name,

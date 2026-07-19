@@ -89,7 +89,9 @@ export function NuevaMatricula() {
       return
     }
     const lines = [
-      `${d.student_created ? 'Estudiante creado y matriculado' : 'Matriculado'} en ${d.program} — ${d.convocatoria}.`,
+      d.enrollment_repaired
+        ? `Matrícula existente subsanada: se le asignó la convocatoria ${d.convocatoria} en ${d.program} (conserva su fecha original).`
+        : `${d.student_created ? 'Estudiante creado y matriculado' : 'Matriculado'} en ${d.program} — ${d.convocatoria}.`,
       d.placement?.ok
         ? `Carrusel: colocado en ${d.placement.group_label ?? 'la entrada del programa'} (con acceso a sus aulas Moodle).`
         : `Carrusel: ${d.placement?.note ?? 'sin colocar'} — puedes colocarlo en Estudiantes por Convocatoria.`,
