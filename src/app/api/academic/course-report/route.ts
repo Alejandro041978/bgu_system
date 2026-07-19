@@ -19,7 +19,9 @@ const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 export async function GET(req: NextRequest) {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  // v marca la versión desplegada (verificable sin sesión): sirve para
+  // detectar los deploys de Vercel que se quedan sin aplicar.
+  if (!user) return NextResponse.json({ error: 'No autorizado', v: 2 }, { status: 401 })
 
   const sb = db()
   const programId = req.nextUrl.searchParams.get('program_id')
