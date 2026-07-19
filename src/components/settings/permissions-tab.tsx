@@ -17,6 +17,7 @@ const PAGE_GROUPS = [
       { key: 'academic_moodle_actas', label: 'Académico · Actas de Moodle' },
       { key: 'academic_grades_import', label: 'Académico · Cargar Notas (CSV)' },
       { key: 'report_campus_audit', label: 'Reportes · Auditor del Campus' },
+      { key: 'academic_acta_course', label: 'Académico · Acta de Asignatura' },
     ],
   },
   {
