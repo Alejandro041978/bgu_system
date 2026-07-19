@@ -35,17 +35,20 @@ export async function GET(req: NextRequest) {
     .or(`first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,second_last_name.ilike.%${safe}%,document_number.ilike.%${safe}%,email.ilike.%${safe}%`)
     .limit(20)
 
-  // Matrículas existentes de los encontrados (para mostrar en qué programas ya están)
+  // Matrículas existentes de los encontrados: programa + convocatoria + fecha
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const found = (students ?? []) as any[]
   const ids = found.map(s => s.id)
   const enrByStudent = new Map<string, string[]>()
   if (ids.length) {
     const { data: enr } = await sb.from('academic_student_enrollments')
-      .select('student_id, academic_programs(name)').in('student_id', ids)
-    for (const e of (enr ?? []) as { student_id: string; academic_programs: { name: string } | null }[]) {
+      .select('student_id, enrollment_date, academic_programs(name), convocatorias(name)').in('student_id', ids)
+    for (const e of (enr ?? []) as { student_id: string; enrollment_date: string | null; academic_programs: { name: string } | null; convocatorias: { name: string } | null }[]) {
       if (!enrByStudent.has(e.student_id)) enrByStudent.set(e.student_id, [])
-      if (e.academic_programs?.name) enrByStudent.get(e.student_id)!.push(e.academic_programs.name)
+      if (!e.academic_programs?.name) continue
+      const fecha = e.enrollment_date ? e.enrollment_date.split('T')[0].split('-').reverse().join('/') : null
+      const conv = e.convocatorias?.name ?? 'sin convocatoria'
+      enrByStudent.get(e.student_id)!.push(`${e.academic_programs.name} — ${conv}${fecha ? ` (${fecha})` : ''}`)
     }
   }
 
