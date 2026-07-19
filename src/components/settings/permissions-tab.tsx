@@ -114,6 +114,7 @@ const PAGE_GROUPS = [
       { key: 'contracts_templates', label: 'Contratos · Plantillas' },
       // Finanzas
       { key: 'finance', label: 'Contabilidad' },
+      { key: 'finance_recaudacion', label: 'Finanzas · Recaudación' },
       // Cuentas (movidas de Académico)
       { key: 'academic_account', label: 'Estado de Cuenta' },
       { key: 'academic_concepts', label: 'Conceptos de Cuenta' },
