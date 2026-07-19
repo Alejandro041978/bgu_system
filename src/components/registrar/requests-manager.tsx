@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Search, Loader2, X, FileText, Trash2, ChevronDown, ChevronRight, Download, CheckCircle2, Send } from 'lucide-react'
+import { Plus, Search, Loader2, X, FileText, Trash2, ChevronDown, ChevronRight, Download, CheckCircle2, Send, Inbox, Zap, Clock } from 'lucide-react'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 interface DocType { id: string; name: string; price: number; currency: string; active: boolean; scope_category_id: string | null; scope_program_ids: string[] }
@@ -26,6 +26,26 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   rejected: { label: 'Rechazado', cls: 'bg-red-50 text-red-700' },
 }
 const fdate = (d: string) => new Date(d).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
+const daysSince = (d: string) => Math.floor((Date.now() - new Date(d).getTime()) / 86400000)
+const ACTIONABLE = ['payment', 'in_progress', 'ready']
+
+// ¿Qué acción exacta espera de la ejecutiva?
+function accionDe(r: Request): string {
+  if (r.status === 'payment') return 'Registrar pago'
+  if (r.status === 'ready') return 'Emitir documento'
+  if (r.status === 'in_progress') {
+    const s = r.stages?.[r.stage_index]
+    return s ? `Etapa: ${s.name}` : 'Completar etapa'
+  }
+  return '—'
+}
+
+function fmtDur(ms: number): string {
+  const h = ms / 3600000
+  if (h < 1) return `${Math.round(ms / 60000)} min`
+  if (h < 48) return `${Math.round(h)} h`
+  return `${Math.round(h / 24)} días`
+}
 
 export function RequestsManager() {
   const [requests, setRequests] = useState<Request[]>([])
@@ -33,6 +53,7 @@ export function RequestsManager() {
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [verHistorial, setVerHistorial] = useState(false)
 
   // Nueva solicitud
   const [q, setQ] = useState('')
@@ -100,8 +121,64 @@ export function RequestsManager() {
 
   if (loading) return <p className="text-center text-gray-400 py-10 text-sm">Cargando…</p>
 
+  // ------------------------------------------------------------------
+  // Bandeja: lo que espera una acción humana, lo más antiguo primero.
+  // Automáticos: tipos SIN etapas — circulan solos (requisitos + emisión);
+  // sus métricas se miden sobre los últimos 30 días.
+  // ------------------------------------------------------------------
+  const bandeja = requests
+    .filter(r => ACTIONABLE.includes(r.status))
+    .sort((a, b) => new Date(a.requested_at).getTime() - new Date(b.requested_at).getTime())
+  const historial = requests.filter(r => !ACTIONABLE.includes(r.status))
+
+  const hace30d = Date.now() - 30 * 86400000
+  const autos = requests.filter(r => r.stages_count === 0)
+  const autos30 = autos.filter(r => new Date(r.requested_at).getTime() >= hace30d)
+  const autosEmitidas30 = autos30.filter(r => r.emitted_at)
+  const duraciones = autosEmitidas30
+    .map(r => new Date(r.emitted_at!).getTime() - new Date(r.requested_at).getTime())
+    .filter(ms => ms >= 0)
+  const tiempoMedio = duraciones.length ? duraciones.reduce((a, b) => a + b, 0) / duraciones.length : null
+  const emitidas30Total = requests.filter(r => r.emitted_at && new Date(r.emitted_at).getTime() >= hace30d).length
+
+  // Circulación de automáticos por tipo (30 días)
+  const porTipo = new Map<string, { solicitadas: number; emitidas: number; durs: number[] }>()
+  for (const r of autos30) {
+    if (!porTipo.has(r.type_name)) porTipo.set(r.type_name, { solicitadas: 0, emitidas: 0, durs: [] })
+    const t = porTipo.get(r.type_name)!
+    t.solicitadas++
+    if (r.emitted_at) {
+      t.emitidas++
+      const ms = new Date(r.emitted_at).getTime() - new Date(r.requested_at).getTime()
+      if (ms >= 0) t.durs.push(ms)
+    }
+  }
+
+  const masAntigua = bandeja.length ? daysSince(bandeja[0].requested_at) : null
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Métricas de un vistazo */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className={`rounded-lg p-3 border ${bandeja.length ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'}`}>
+          <p className="text-2xl font-bold text-blue-800">{bandeja.length}</p>
+          <p className="text-xs text-blue-700 flex items-center gap-1"><Inbox className="w-3.5 h-3.5" />En tu bandeja</p>
+          {masAntigua != null && masAntigua > 0 && <p className="text-[10px] text-blue-500 mt-0.5">la más antigua espera {masAntigua} día(s)</p>}
+        </div>
+        <div className="rounded-lg p-3 border border-gray-200 bg-white">
+          <p className="text-2xl font-bold text-gray-800">{autos30.length}</p>
+          <p className="text-xs text-gray-500 flex items-center gap-1"><Zap className="w-3.5 h-3.5" />Automáticas (30 días)</p>
+        </div>
+        <div className="rounded-lg p-3 border border-gray-200 bg-white">
+          <p className="text-2xl font-bold text-green-700">{emitidas30Total}</p>
+          <p className="text-xs text-green-700">Emitidas (30 días)</p>
+        </div>
+        <div className="rounded-lg p-3 border border-gray-200 bg-white">
+          <p className="text-2xl font-bold text-gray-800">{tiempoMedio != null ? fmtDur(tiempoMedio) : '—'}</p>
+          <p className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3.5 h-3.5" />Solicitud → emisión (autom.)</p>
+        </div>
+      </div>
+
       <div className="flex justify-end">
         {!open && <button onClick={() => setOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white"><Plus className="w-4 h-4" />Nueva solicitud</button>}
       </div>
@@ -158,39 +235,113 @@ export function RequestsManager() {
         </div>
       )}
 
-      {/* Lista / cola */}
-      {requests.length === 0 ? (
-        <p className="text-sm text-gray-400 py-10 text-center">Sin solicitudes.</p>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-[11px] text-gray-400 uppercase tracking-wide">
-                <th className="w-6"></th>
-                <th className="text-left px-4 py-2.5">Estudiante</th>
-                <th className="text-left px-4 py-2.5">Documento</th>
-                <th className="text-left px-4 py-2.5">Fecha</th>
-                <th className="text-right px-4 py-2.5">Costo</th>
-                <th className="text-center px-4 py-2.5">Estado</th>
-                <th className="px-4 py-2.5"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map(r => (
-                <RequestRow key={r.id} r={r} expanded={expanded === r.id}
-                  onToggle={() => setExpanded(expanded === r.id ? null : r.id)}
-                  onChanged={load} onRemove={() => remove(r)} deleting={deleting === r.id} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* ─── BANDEJA: requieren tu participación ─── */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+          <Inbox className="w-4 h-4 text-blue-500" />Requieren tu participación ({bandeja.length})
+        </h3>
+        {bandeja.length === 0 ? (
+          <p className="text-sm text-gray-400 bg-white border border-dashed border-gray-200 rounded-xl py-6 text-center">Bandeja vacía — nada espera por ti. ✨</p>
+        ) : (
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-[11px] text-gray-400 uppercase tracking-wide">
+                  <th className="w-6"></th>
+                  <th className="text-left px-4 py-2.5">Estudiante</th>
+                  <th className="text-left px-4 py-2.5">Documento</th>
+                  <th className="text-left px-4 py-2.5">Acción requerida</th>
+                  <th className="text-left px-4 py-2.5">Espera</th>
+                  <th className="text-right px-4 py-2.5">Costo</th>
+                  <th className="px-4 py-2.5"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {bandeja.map(r => (
+                  <RequestRow key={r.id} r={r} bandeja expanded={expanded === r.id}
+                    onToggle={() => setExpanded(expanded === r.id ? null : r.id)}
+                    onChanged={load} onRemove={() => remove(r)} deleting={deleting === r.id} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ─── CIRCULACIÓN DE AUTOMÁTICOS ─── */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+          <Zap className="w-4 h-4 text-amber-500" />Documentos automáticos — circulación (30 días)
+        </h3>
+        {porTipo.size === 0 ? (
+          <p className="text-xs text-gray-400">Sin movimiento de documentos automáticos en los últimos 30 días.</p>
+        ) : (
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-[11px] text-gray-400 uppercase tracking-wide">
+                  <th className="text-left px-4 py-2.5">Tipo de documento</th>
+                  <th className="text-right px-4 py-2.5">Solicitadas</th>
+                  <th className="text-right px-4 py-2.5">Emitidas</th>
+                  <th className="text-right px-4 py-2.5">En camino</th>
+                  <th className="text-right px-4 py-2.5">Tiempo medio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...porTipo.entries()].sort((a, b) => b[1].solicitadas - a[1].solicitadas).map(([tipo, m]) => (
+                  <tr key={tipo} className="border-t border-gray-50">
+                    <td className="px-4 py-2 text-gray-700">{tipo}</td>
+                    <td className="px-4 py-2 text-right text-gray-700">{m.solicitadas}</td>
+                    <td className="px-4 py-2 text-right text-green-700 font-medium">{m.emitidas}</td>
+                    <td className={`px-4 py-2 text-right ${m.solicitadas - m.emitidas > 0 ? 'text-amber-700' : 'text-gray-300'}`}>{m.solicitadas - m.emitidas}</td>
+                    <td className="px-4 py-2 text-right text-gray-500">{m.durs.length ? fmtDur(m.durs.reduce((a, b) => a + b, 0) / m.durs.length) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ─── HISTORIAL ─── */}
+      <div className="space-y-2">
+        <button onClick={() => setVerHistorial(v => !v)} className="text-sm font-semibold text-gray-600 flex items-center gap-1.5 hover:text-gray-800">
+          {verHistorial ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          Historial ({historial.length})
+        </button>
+        {verHistorial && (historial.length === 0 ? (
+          <p className="text-sm text-gray-400 py-4 text-center">Sin solicitudes pasadas.</p>
+        ) : (
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-[11px] text-gray-400 uppercase tracking-wide">
+                  <th className="w-6"></th>
+                  <th className="text-left px-4 py-2.5">Estudiante</th>
+                  <th className="text-left px-4 py-2.5">Documento</th>
+                  <th className="text-left px-4 py-2.5">Fecha</th>
+                  <th className="text-right px-4 py-2.5">Costo</th>
+                  <th className="text-center px-4 py-2.5">Estado</th>
+                  <th className="px-4 py-2.5"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {historial.map(r => (
+                  <RequestRow key={r.id} r={r} expanded={expanded === r.id}
+                    onToggle={() => setExpanded(expanded === r.id ? null : r.id)}
+                    onChanged={load} onRemove={() => remove(r)} deleting={deleting === r.id} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
-function RequestRow({ r, expanded, onToggle, onChanged, onRemove, deleting }: {
-  r: Request; expanded: boolean; onToggle: () => void; onChanged: () => void; onRemove: () => void; deleting: boolean
+function RequestRow({ r, expanded, onToggle, onChanged, onRemove, deleting, bandeja = false }: {
+  r: Request; expanded: boolean; onToggle: () => void; onChanged: () => void; onRemove: () => void; deleting: boolean; bandeja?: boolean
 }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [stageVals, setStageVals] = useState<Record<string, string>>({})
@@ -206,6 +357,7 @@ function RequestRow({ r, expanded, onToggle, onChanged, onRemove, deleting }: {
   }
 
   const currentStage = r.stages?.[r.stage_index] as Stage | undefined
+  const espera = daysSince(r.requested_at)
 
   return (
     <>
@@ -213,9 +365,25 @@ function RequestRow({ r, expanded, onToggle, onChanged, onRemove, deleting }: {
         <td className="pl-3 text-gray-300 cursor-pointer" onClick={onToggle}>{expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}</td>
         <td className="px-4 py-2.5 cursor-pointer" onClick={onToggle}><p className="text-gray-800">{r.student_name}</p><p className="text-xs text-gray-400">{r.document_number ?? ''}</p></td>
         <td className="px-4 py-2.5 text-gray-700"><span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5 text-gray-300" />{r.type_name}</span></td>
-        <td className="px-4 py-2.5 text-gray-500 text-xs">{fdate(r.requested_at)}</td>
+        {bandeja ? (
+          <>
+            <td className="px-4 py-2.5">
+              <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[r.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>{accionDe(r)}</span>
+            </td>
+            <td className="px-4 py-2.5">
+              <span className={`text-xs font-medium ${espera >= 7 ? 'text-rose-600' : espera >= 3 ? 'text-amber-600' : 'text-gray-500'}`}>
+                {espera === 0 ? 'hoy' : `${espera} día(s)`}
+              </span>
+              <p className="text-[10px] text-gray-400">{fdate(r.requested_at)}</p>
+            </td>
+          </>
+        ) : (
+          <td className="px-4 py-2.5 text-gray-500 text-xs">{fdate(r.requested_at)}</td>
+        )}
         <td className="px-4 py-2.5 text-right text-gray-600">{Number(r.price) > 0 ? `${r.currency} ${Number(r.price).toFixed(2)}${r.paid ? ' ✓' : ''}` : '—'}</td>
-        <td className="px-4 py-2.5 text-center"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[r.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>{STATUS[r.status]?.label ?? r.status}</span></td>
+        {!bandeja && (
+          <td className="px-4 py-2.5 text-center"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[r.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>{STATUS[r.status]?.label ?? r.status}</span></td>
+        )}
         <td className="px-4 py-2.5 text-right">
           {!r.paid && r.status !== 'delivered' && (
             <button onClick={onRemove} disabled={deleting} title="Borrar solicitud no pagada" className="text-gray-300 hover:text-red-600 disabled:opacity-50">
