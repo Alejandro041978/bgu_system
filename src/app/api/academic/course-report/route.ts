@@ -146,7 +146,6 @@ export async function GET(req: NextRequest) {
   const terms = [...new Set(rows.map(r => `${r.term_year ?? '—'} · ${r.term_block ?? '—'}`))].sort().reverse()
   const conNota = rows.filter(r => r.efectiva != null)
   return NextResponse.json({
-    debug: { matriculas: enr.length, estudiantes: students.length, docs: docs.length, notas: grades.length },
     course: { id: course.id, code: course.code, name: course.name, program: course.academic_programs?.name ?? '', passing },
     resumen: {
       total: rows.length,
