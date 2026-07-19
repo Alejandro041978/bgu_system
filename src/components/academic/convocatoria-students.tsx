@@ -1,12 +1,21 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Loader2, Users } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Loader2, Users, CheckCircle2, ArrowRightCircle } from 'lucide-react'
 
 interface Ref { id: string; name: string }
 interface Conv { id: string; name: string; semester: string; first_day: string | null }
-interface Row { name: string; document: string; situation: string | null; programs: string[]; fecha: string | null }
-interface Data { matriculas: number; estudiantes: number; por_programa: { programa: string; n: number }[]; rows: Row[] }
+interface ProgEntry {
+  program_id: string; name: string
+  placed: { group_id: string; label: string; status: string } | null
+  candidates: { id: string; label: string }[]
+}
+interface Row { student_id: string; name: string; document: string; situation: string | null; programs: ProgEntry[]; fecha: string | null }
+interface Data {
+  matriculas: number; estudiantes: number; sin_colocar: number
+  por_programa: { programa: string; n: number; sin_colocar: number }[]
+  rows: Row[]
+}
 
 const fdate = (d: string | null) => (d ? d.split('T')[0].split('-').reverse().join('/') : '—')
 
@@ -27,6 +36,10 @@ export function ConvocatoriaStudents() {
   const [data, setData] = useState<Data | null>(null)
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('')
+  // selección de carrusel por matrícula (clave student|program) y estado de colocación
+  const [choice, setChoice] = useState<Record<string, string>>({})
+  const [placing, setPlacing] = useState<Record<string, boolean>>({})
+  const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
   useEffect(() => {
     fetch('/api/convocatorias').then(r => r.json()).then(d => {
@@ -50,18 +63,46 @@ export function ConvocatoriaStudents() {
       })
   }, [categoryId, yearId])
 
-  useEffect(() => {
-    setData(null); setFilter('')
-    if (!convId) return
+  const load = useCallback((cid: string) => {
     setLoading(true)
-    fetch(`/api/academic/convocatoria-students?convocatoria_id=${convId}`)
+    fetch(`/api/academic/convocatoria-students?convocatoria_id=${cid}`)
       .then(r => r.json()).then(d => { if (!d.error) setData(d); setLoading(false) })
-  }, [convId])
+  }, [])
+
+  useEffect(() => {
+    setData(null); setFilter(''); setChoice({}); setNotice(null)
+    if (!convId) return
+    load(convId)
+  }, [convId, load])
+
+  async function place(row: Row, p: ProgEntry) {
+    const key = `${row.student_id}|${p.program_id}`
+    const groupId = p.candidates.length === 1 ? p.candidates[0].id : choice[key]
+    if (!groupId) return
+    setPlacing(prev => ({ ...prev, [key]: true }))
+    setNotice(null)
+    const res = await fetch('/api/academic/convocatoria-students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: row.student_id, program_id: p.program_id, group_id: groupId }),
+    })
+    const d = await res.json()
+    setPlacing(prev => ({ ...prev, [key]: false }))
+    if (!res.ok || d.error) {
+      setNotice({ kind: 'error', text: `${row.name}: ${d.error ?? 'error al colocar'}` })
+    } else {
+      const moodleNote = d.moodle?.configured
+        ? (d.moodle.errors?.length ? ` · Moodle con avisos: ${d.moodle.errors.join('; ')}` : ` · ${d.moodle.enrol_ops} matrículas en aulas Moodle`)
+        : ' · Moodle no configurado'
+      setNotice({ kind: 'ok', text: `${row.name} colocado en ${d.group_label}${moodleNote}` })
+    }
+    load(convId)
+  }
 
   const visible = data?.rows.filter(r => {
     if (!filter) return true
     const q = filter.toLowerCase()
-    return r.name.toLowerCase().includes(q) || r.document.includes(q) || r.programs.some(p => p.toLowerCase().includes(q))
+    return r.name.toLowerCase().includes(q) || r.document.includes(q) || r.programs.some(p => p.name.toLowerCase().includes(q))
   }) ?? []
 
   return (
@@ -89,11 +130,17 @@ export function ConvocatoriaStudents() {
         </label>
       </div>
 
-      {loading && <div className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>}
+      {loading && !data && <div className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>}
+
+      {notice && (
+        <p className={`text-sm px-3 py-2 rounded-lg ${notice.kind === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+          {notice.text}
+        </p>
+      )}
 
       {data && (
         <>
-          {/* Parte intermedia: sumas de estudiantes por programa */}
+          {/* Parte intermedia: sumas por programa */}
           <div className="bg-white border border-gray-200 rounded-xl p-4">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-3">Matrículas por programa en esta convocatoria</p>
             {data.por_programa.length === 0 ? (
@@ -104,17 +151,27 @@ export function ConvocatoriaStudents() {
                   <span key={p.programa} className="inline-flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm">
                     <span className="text-gray-700">{p.programa}</span>
                     <span className="font-bold text-blue-700">{p.n}</span>
+                    {p.sin_colocar > 0 && <span className="text-[11px] text-amber-600 font-medium">({p.sin_colocar} sin carrusel)</span>}
                   </span>
                 ))}
                 <span className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5 text-sm">
                   <Users className="w-3.5 h-3.5 text-blue-500" />
                   <span className="text-blue-800">{data.estudiantes} estudiantes · {data.matriculas} matrículas</span>
                 </span>
+                {data.sin_colocar > 0 ? (
+                  <span className="inline-flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5 text-sm text-amber-700">
+                    ⚠ {data.sin_colocar} sin colocar en carrusel
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 bg-green-50 border border-green-100 rounded-lg px-3 py-1.5 text-sm text-green-700">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Todas colocadas
+                  </span>
+                )}
               </div>
             )}
           </div>
 
-          {/* Parte inferior: tabla de estudiantes */}
+          {/* Parte inferior: tabla de estudiantes con colocación */}
           {data.rows.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
@@ -131,21 +188,55 @@ export function ConvocatoriaStudents() {
                     <tr className="border-b border-gray-100 bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">
                       <th className="text-left px-4 py-3">Estudiante</th>
                       <th className="text-left px-3 py-3">Documento</th>
-                      <th className="text-left px-3 py-3">Programas</th>
+                      <th className="text-left px-3 py-3">Programa → Carrusel</th>
                       <th className="text-left px-3 py-3">Situación</th>
                       <th className="text-left px-3 py-3">Fecha matrícula</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {visible.map((r, i) => (
-                      <tr key={i} className="hover:bg-gray-50/50">
+                    {visible.map(r => (
+                      <tr key={r.student_id} className="hover:bg-gray-50/50 align-top">
                         <td className="px-4 py-2.5 text-gray-800">{r.name}</td>
                         <td className="px-3 py-2.5 text-xs text-gray-500 font-mono">{r.document}</td>
                         <td className="px-3 py-2.5">
-                          <div className="flex flex-wrap gap-1">
-                            {r.programs.map(p => (
-                              <span key={p} className="bg-gray-100 text-gray-600 text-[11px] px-2 py-0.5 rounded-full">{p}</span>
-                            ))}
+                          <div className="space-y-1.5">
+                            {r.programs.map(p => {
+                              const key = `${r.student_id}|${p.program_id}`
+                              return (
+                                <div key={p.program_id} className="flex items-center flex-wrap gap-1.5">
+                                  <span className="bg-gray-100 text-gray-600 text-[11px] px-2 py-0.5 rounded-full">{p.name}</span>
+                                  {p.placed ? (
+                                    <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-[11px] px-2 py-0.5 rounded-full">
+                                      <CheckCircle2 className="w-3 h-3" />{p.placed.label}
+                                      {p.placed.status !== 'activo' && <span className="text-green-500">({p.placed.status})</span>}
+                                    </span>
+                                  ) : p.candidates.length === 0 ? (
+                                    <span className="text-[11px] text-red-500">sin carruseles en el programa</span>
+                                  ) : (
+                                    <>
+                                      {p.candidates.length > 1 && (
+                                        <select
+                                          value={choice[key] ?? ''}
+                                          onChange={e => setChoice(prev => ({ ...prev, [key]: e.target.value }))}
+                                          className="border border-amber-200 bg-amber-50/50 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                          <option value="">Elegir carrusel…</option>
+                                          {p.candidates.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                                        </select>
+                                      )}
+                                      <button
+                                        onClick={() => place(r, p)}
+                                        disabled={placing[key] || (p.candidates.length > 1 && !choice[key])}
+                                        className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-[11px] px-2.5 py-1 rounded-lg transition-colors"
+                                      >
+                                        {placing[key] ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRightCircle className="w-3 h-3" />}
+                                        {p.candidates.length === 1 ? `Colocar en ${p.candidates[0].label}` : 'Colocar'}
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              )
+                            })}
                           </div>
                         </td>
                         <td className="px-3 py-2.5">
@@ -161,6 +252,10 @@ export function ConvocatoriaStudents() {
               </div>
             </div>
           )}
+
+          <p className="text-[11px] text-gray-400">
+            Al colocar, el estudiante entra al carrusel (membresía activa) y se matricula en sus aulas Moodle mapeadas. Si la convocatoria tiene carruseles vinculados para el programa, esos son los candidatos; si no, las entradas naturales del programa. Con varios candidatos (ej. variantes por idioma) la elección es obligatoria.
+          </p>
         </>
       )}
     </div>

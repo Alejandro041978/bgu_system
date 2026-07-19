@@ -239,9 +239,12 @@ export async function placeStudentInEntry(sb: any, studentId: string, programId:
   if (convocatoriaId) {
     const { data: links } = await sb.from('convocatoria_groups')
       .select('group_id, academic_groups(program_id)').eq('convocatoria_id', convocatoriaId)
-    const match = ((links ?? []) as { group_id: string; academic_groups: { program_id: string } | null }[])
-      .find(l => l.academic_groups?.program_id === programId)
-    if (match) entry = match.group_id
+    const matches = ((links ?? []) as { group_id: string; academic_groups: { program_id: string } | null }[])
+      .filter(l => l.academic_groups?.program_id === programId)
+    if (matches.length === 1) entry = matches[0].group_id
+    // Varios carruseles del mismo programa vinculados (ej. variantes por
+    // idioma): la elección es humana, en la bandeja de colocación.
+    if (matches.length > 1) return { ok: false, note: 'La convocatoria tiene varios carruseles para este programa; colocar manualmente en Estudiantes por Convocatoria' }
   }
 
   if (!entry) {
