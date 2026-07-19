@@ -20,8 +20,10 @@ export async function GET(req: NextRequest) {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   // v marca la versión desplegada (verificable sin sesión): sirve para
-  // detectar los deploys de Vercel que se quedan sin aplicar.
-  if (!user) return NextResponse.json({ error: 'No autorizado', v: 2 }, { status: 401 })
+  // detectar los deploys de Vercel que se quedan sin aplicar. El CRON_SECRET
+  // permite diagnosticar la ruta desde afuera.
+  const cronOk = req.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`
+  if (!user && !cronOk) return NextResponse.json({ error: 'No autorizado', v: 3 }, { status: 401 })
 
   const sb = db()
   const programId = req.nextUrl.searchParams.get('program_id')
@@ -102,6 +104,7 @@ export async function GET(req: NextRequest) {
   const terms = [...new Set(rows.map(r => `${r.term_year ?? '—'} · ${r.term_block ?? '—'}`))].sort().reverse()
   const conNota = rows.filter(r => r.efectiva != null)
   return NextResponse.json({
+    debug: { matriculas: enr.length, estudiantes: students.length, docs: docs.length, notas: grades.length },
     course: { id: course.id, code: course.code, name: course.name, program: course.academic_programs?.name ?? '', passing },
     resumen: {
       total: rows.length,
