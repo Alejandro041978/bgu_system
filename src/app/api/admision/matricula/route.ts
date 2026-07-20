@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { placeStudentInEntry } from '@/lib/carousel'
+import { createStudentEmail, notifyStudentEmail, googleConfigured } from '@/lib/google-workspace'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -174,6 +175,36 @@ export async function POST(req: NextRequest) {
 
   // Colocación automática: solo si el programa tiene una única entrada natural;
   // con varias (variantes) la elección queda para la bandeja.
+  // Correo estudiantil @blackwell.pro: automático al matricular si no tiene.
+  // NO bloqueante: si Google falla, la matrícula sigue y queda el botón en la Ficha.
+  let student_email: { ok: boolean; email?: string; notified?: boolean; note?: string } = { ok: false, note: 'sin intentar' }
+  try {
+    const { data: stu } = await sb.from('academic_students')
+      .select('first_name, last_name, second_last_name, email, email_alt').eq('id', sid).maybeSingle()
+    if (stu?.email_alt) {
+      student_email = { ok: true, email: stu.email_alt, note: 'ya tenía correo institucional' }
+    } else if (!googleConfigured()) {
+      student_email = { ok: false, note: 'Google Workspace sin configurar (pendiente: crear desde la Ficha)' }
+    } else if (stu) {
+      const taken = new Set<string>()
+      for (let from = 0; ; from += 1000) {
+        const { data } = await sb.from('academic_students')
+          .select('email_alt').not('email_alt', 'is', null).range(from, from + 999)
+        for (const r of (data ?? [])) taken.add(String(r.email_alt).toLowerCase())
+        if ((data ?? []).length < 1000) break
+      }
+      const created = await createStudentEmail(stu, taken)
+      await sb.from('academic_students').update({ email_alt: created.email }).eq('id', sid)
+      let notified = false
+      if (stu.email) {
+        try { await notifyStudentEmail(stu.email, [stu.first_name, stu.last_name].filter(Boolean).join(' '), created); notified = true } catch { /* aviso abajo */ }
+      }
+      student_email = { ok: true, email: created.email, notified }
+    }
+  } catch (e) {
+    student_email = { ok: false, note: e instanceof Error ? e.message : String(e) }
+  }
+
   const placement = await placeStudentInEntry(sb, sid, program_id)
   let group_label: string | null = null
   if (placement.ok && placement.group_id) {
@@ -191,5 +222,6 @@ export async function POST(req: NextRequest) {
     program: prog.name,
     convocatoria: conv.name,
     placement: { ...placement, group_label },
+    student_email,
   })
 }

@@ -81,6 +81,19 @@ export function StudentProfile() {
     open(student.id)
   }
 
+  async function crearCorreo() {
+    if (!student) return
+    setSaving(true); setNotice(null)
+    const d = await fetch(`/api/students/${student.id}/create-email`, { method: 'POST' }).then(r => r.json())
+    setSaving(false)
+    if (d.error) { setNotice({ kind: 'error', text: d.error }); return }
+    setNotice({
+      kind: 'ok',
+      text: `Correo creado: ${d.email}${d.notified ? ' — credenciales enviadas a su correo personal' : ` — ⚠ ${d.notify_error ?? 'sin notificar'}`}`,
+    })
+    open(student.id)
+  }
+
   async function situacionAuto() {
     if (!student) return
     await fetch(`/api/students/${student.id}`, {
@@ -156,7 +169,16 @@ export function StudentProfile() {
               <Field label="Documento *"><input value={form.document_number} onChange={e => set('document_number', e.target.value)} className={inp} /></Field>
               <Field label="Fecha de nacimiento"><input type="date" value={form.date_of_birth} onChange={e => set('date_of_birth', e.target.value)} className={inp} /></Field>
               <Field label="Correo"><input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={inp} /></Field>
-              <Field label="Correo alterno"><input type="email" value={form.email_alt} onChange={e => set('email_alt', e.target.value)} className={inp} /></Field>
+              <Field label="Correo institucional">
+                {student.email_alt ? (
+                  <input type="email" value={form.email_alt} onChange={e => set('email_alt', e.target.value)} className={inp} />
+                ) : (
+                  <button onClick={crearCorreo} disabled={saving}
+                    className="w-full border border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 rounded-lg px-2.5 py-2 text-sm transition-colors">
+                    {saving ? 'Creando…' : '+ Crear correo estudiantil (@blackwell.pro)'}
+                  </button>
+                )}
+              </Field>
               <Field label={`Teléfono${student.phone_number ? ` (envíos: ${student.phone_number})` : ''}`}>
                 <div className="flex gap-1.5">
                   <select value={form.phone_code} onChange={e => set('phone_code', e.target.value)} className={`${inp} w-32 shrink-0`}>

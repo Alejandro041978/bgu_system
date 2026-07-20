@@ -110,6 +110,9 @@ export function NuevaMatricula() {
       d.enrollment_repaired
         ? `Matrícula existente subsanada: se le asignó la convocatoria ${d.convocatoria} en ${d.program} (conserva su fecha original).`
         : `${d.student_created ? 'Estudiante creado y matriculado' : 'Matriculado'} en ${d.program} — ${d.convocatoria}.`,
+      d.student_email?.ok
+        ? `Correo estudiantil: ${d.student_email.email}${d.student_email.notified ? ' (credenciales enviadas a su correo personal)' : d.student_email.note ? ` (${d.student_email.note})` : ' — ⚠ no se pudo notificar, entrega las credenciales por otro canal'}`
+        : `Correo estudiantil: pendiente — ${d.student_email?.note ?? 'crear desde la Ficha del Estudiante'}`,
       d.placement?.ok
         ? `Carrusel: colocado en ${d.placement.group_label ?? 'la entrada del programa'} (con acceso a sus aulas Moodle).`
         : `Carrusel: ${d.placement?.note ?? 'sin colocar'} — puedes colocarlo en Estudiantes por Convocatoria.`,
