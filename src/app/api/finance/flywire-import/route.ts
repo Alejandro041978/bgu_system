@@ -19,6 +19,7 @@ interface Row {
   dni: string
   amount: number
   currency: string
+  country: string
   method: string
   status: string
   finished_date: string | null
@@ -201,7 +202,7 @@ export async function POST(req: NextRequest) {
       !paidCharges.has(c.external_id) && Math.abs(Number(c.amount) - r.amount) < 0.01)
     if (open) chargeExt = open.external_id
 
-    const { error } = await sb.from('account_payments').insert({
+    const base = {
       external_id: crypto.randomUUID(),
       flywire_payment_id: r.reference,
       charge_external_id: chargeExt,
@@ -210,7 +211,17 @@ export async function POST(req: NextRequest) {
       paid_date: paidDate,
       series_code: 'FLYWIRE',
       transaction_reference: r.reference,
+    }
+    // Analítica (método/moneda/país): si la migración aún no corrió, reintenta sin ellas
+    let { error } = await sb.from('account_payments').insert({
+      ...base,
+      payment_method: r.method || null,
+      currency_from: r.currency || null,
+      country_from: r.country || null,
     })
+    if (error && /column/i.test(error.message)) {
+      ({ error } = await sb.from('account_payments').insert(base))
+    }
     if (error) { errors.push(`${r.reference}: ${error.message}`); continue }
     inserted++
     if (chargeExt) {
@@ -221,5 +232,32 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, counts, inserted, updated, linked_to_charge: linked, errors })
+  // Embudo completo a flywire_events: TODA fila del CSV (incluidos iniciados y
+  // cancelados) queda en el log histórico, sin duplicar referencia+estado.
+  let eventsLogged = 0
+  {
+    const refs = [...new Set(rows.map(r => r.reference))]
+    const seen = new Set<string>()
+    for (let i = 0; i < refs.length; i += 150) {
+      const { data } = await sb.from('flywire_events')
+        .select('payment_id, status').in('payment_id', refs.slice(i, i + 150))
+      for (const e of (data ?? [])) seen.add(`${e.payment_id}|${e.status}`)
+    }
+    const newEvents = rows.filter(r => !seen.has(`${r.reference}|${r.status}`)).map(r => ({
+      payment_id: r.reference,
+      status: r.status,
+      event_type: 'csv_import',
+      amount_to: r.amount,
+      currency_to: 'USD',
+      currency_from: r.currency || null,
+      raw: { ...r },
+    }))
+    for (let i = 0; i < newEvents.length; i += 500) {
+      const { error } = await sb.from('flywire_events').insert(newEvents.slice(i, i + 500))
+      if (error) { errors.push(`eventos: ${error.message}`); break }
+      eventsLogged += Math.min(500, newEvents.length - i)
+    }
+  }
+
+  return NextResponse.json({ ok: true, counts, inserted, updated, linked_to_charge: linked, events_logged: eventsLogged, errors })
 }

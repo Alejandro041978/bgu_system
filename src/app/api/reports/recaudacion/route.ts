@@ -35,12 +35,12 @@ export async function GET(req: NextRequest) {
   const year = Number(yearParam) || y1
   if (!yearParam) return NextResponse.json({ years, year })
 
-  // Pagos del año (paginado)
+  // Pagos del año (paginado; select * para tolerar columnas de analítica nuevas)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pays: any[] = []
   for (let from = 0; ; from += 1000) {
     const { data } = await sb.from('account_payments')
-      .select('amount, paid_date, charge_external_id, student_id')
+      .select('*')
       .gte('paid_date', `${year}-01-01`).lte('paid_date', `${year}-12-31`)
       .range(from, from + 999)
     const chunk = data ?? []
@@ -134,8 +134,24 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => (a.cat === SIN ? 1 : b.cat === SIN ? -1 : b.total - a.total))
     .map(c => c.cat)
 
+  // Desglose Flywire del año: medio de pago, moneda y país de origen
+  const agg = (key: string) => {
+    const m = new Map<string, { n: number; sum: number }>()
+    for (const p of pays) {
+      const v = p[key] || '(sin dato)'
+      const a = m.get(v) ?? { n: 0, sum: 0 }
+      a.n++; a.sum += Number(p.amount) || 0
+      m.set(v, a)
+    }
+    return [...m.entries()].sort((x, y) => y[1].sum - x[1].sum)
+      .map(([label, v]) => ({ label, n: v.n, sum: v.sum }))
+  }
+
   return NextResponse.json({
     years, year,
+    metodos: agg('payment_method'),
+    monedas: agg('currency_from'),
+    paises: agg('country_from'),
     columns,
     column_labels: columns.map(c => catSigla.get(c) ?? c),
     rows: Array.from({ length: 12 }, (_, m) => ({

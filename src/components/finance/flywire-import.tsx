@@ -5,7 +5,7 @@ import { Loader2, Upload, CheckCircle2, AlertTriangle } from 'lucide-react'
 
 interface Row {
   reference: string; first_name: string; last_name: string; dni: string
-  amount: number; currency: string; method: string; status: string; finished_date: string | null
+  amount: number; currency: string; country: string; method: string; status: string; finished_date: string | null
 }
 interface Detalle {
   referencia: string; nombre_csv: string; dni: string | null; monto: number
@@ -68,9 +68,11 @@ export function FlywireImport() {
     const iMet = col('Payment Method'), iSt = col('Payment Status'), iFd = col('Transfer Finished Date')
     if (iRef < 0 || iSt < 0 || iAmt < 0) { alert('El CSV no parece un reporte de Flywire (faltan columnas)'); return }
     const out: Row[] = parsed.slice(1).map(r => {
-      // El export trae Country From y Currency From invertidas: la moneda es el valor que parezca código
+      // El export trae Country From y Currency From invertidas: la moneda es el
+      // valor que parezca código ISO; el otro es el país de origen del pago
       const a = (r[iCf] ?? '').trim(), b = (r[iCu] ?? '').trim()
       const currency = CURRENCIES.has(a) ? a : (CURRENCIES.has(b) ? b : a)
+      const country = CURRENCIES.has(a) ? b : a
       return {
         reference: (r[iRef] ?? '').trim(),
         first_name: (r[iFn] ?? '').trim(),
@@ -78,6 +80,7 @@ export function FlywireImport() {
         dni: (r[iDni] ?? '').trim(),
         amount: parseFloat(r[iAmt] || '0') || 0,
         currency,
+        country,
         method: (r[iMet] ?? '').trim(),
         status: (r[iSt] ?? '').trim(),
         finished_date: (r[iFd] ?? '').trim() || null,

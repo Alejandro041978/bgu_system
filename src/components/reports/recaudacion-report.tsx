@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Banknote } from 'lucide-react'
 
+interface Agg { label: string; n: number; sum: number }
 interface Data {
   years: number[]; year: number
+  metodos?: Agg[]; monedas?: Agg[]; paises?: Agg[]
   columns: string[]
   column_labels?: string[]
   rows: { month: number; cells: number[]; total: number; count: number }[]
@@ -15,6 +17,24 @@ interface Data {
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 const fmt = (n: number) => n === 0 ? '—' : n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+function MiniAgg({ title, rows }: { title: string; rows: { label: string; n: number; sum: number }[] }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4">
+      <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">{title}</p>
+      <div className="space-y-1">
+        {rows.map(r => (
+          <div key={r.label} className="flex items-center justify-between text-sm">
+            <span className={r.label === '(sin dato)' ? 'text-gray-400' : 'text-gray-700'}>
+              {r.label} <span className="text-[11px] text-gray-400">({r.n})</span>
+            </span>
+            <span className={`tabular-nums ${r.label === '(sin dato)' ? 'text-gray-400' : 'text-gray-800 font-medium'}`}>{fmt(r.sum)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export function RecaudacionReport() {
   const [years, setYears] = useState<number[]>([])
@@ -99,9 +119,17 @@ export function RecaudacionReport() {
         </div>
       )}
 
+      {data && (data.metodos?.length ?? 0) > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <MiniAgg title="Por medio de pago" rows={data.metodos!} />
+          <MiniAgg title="Por moneda de origen" rows={data.monedas!} />
+          <MiniAgg title="Por país del pago" rows={data.paises!} />
+        </div>
+      )}
+
       {data && (
         <p className="text-[11px] text-gray-400">
-          Todos los pagos recibidos (cualquier concepto), por fecha de pago. La categoría se resuelve por la cuota pagada → matrícula → programa; si la cuota no lo permite, por la convocatoria de la cuota o el programa único del estudiante. &quot;Sin categoría&quot; agrupa lo que no se pudo atribuir.
+          Todos los pagos recibidos (cualquier concepto), por fecha de pago. La categoría se resuelve por la cuota pagada → matrícula → programa; si la cuota no lo permite, por la convocatoria de la cuota o el programa único del estudiante. &quot;Sin categoría&quot; agrupa lo que no se pudo atribuir. Medio de pago, moneda y país solo existen en pagos entrados vía Flywire; &quot;(sin dato)&quot; agrupa lo migrado de Activa.
         </p>
       )}
     </div>
