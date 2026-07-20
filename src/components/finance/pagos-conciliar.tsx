@@ -8,19 +8,28 @@ interface Row {
   id: string; reference: string; source: string; amount: number; paid_date: string | null
   student: string | null; document: string | null; candidates: Candidate[]
 }
+interface SinRegistrar {
+  reference: string; status: string; name: string; dni: string | null
+  amount: number; method: string | null; fecha: string | null
+}
+interface Found { id: string; name: string; document_number: string | null }
 
 const fdate = (d: string | null) => (d ? d.split('T')[0].split('-').reverse().join('/') : '—')
 const fmt = (n: number) => n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export function PagosConciliar() {
   const [rows, setRows] = useState<Row[] | null>(null)
+  const [sinRegistrar, setSinRegistrar] = useState<SinRegistrar[]>([])
   const [choice, setChoice] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  // Búsqueda de estudiante por fila de "sin registrar"
+  const [query, setQuery] = useState<Record<string, string>>({})
+  const [found, setFound] = useState<Record<string, Found[]>>({})
 
   const load = useCallback(async () => {
     const d = await fetch('/api/finance/pagos-conciliar').then(r => r.json())
-    if (!d.error) setRows(d.rows ?? [])
+    if (!d.error) { setRows(d.rows ?? []); setSinRegistrar(d.sin_registrar ?? []) }
   }, [])
   useEffect(() => { load() }, [load])
 
@@ -36,12 +45,74 @@ export function PagosConciliar() {
     load()
   }
 
+  async function actFly(ref: string, body: object, okText: string) {
+    setBusy(ref); setNotice(null)
+    const d = await fetch('/api/finance/pagos-conciliar', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ flywire_ref: ref, ...body }),
+    }).then(r => r.json())
+    setBusy(null)
+    if (d.error) { setNotice({ kind: 'error', text: d.error }); return }
+    setNotice({ kind: 'ok', text: okText })
+    load()
+  }
+
+  async function buscar(ref: string) {
+    const q = (query[ref] ?? '').trim()
+    if (q.length < 2) return
+    const d = await fetch(`/api/students/search?q=${encodeURIComponent(q)}`).then(r => r.json())
+    setFound(prev => ({ ...prev, [ref]: d.students ?? [] }))
+  }
+
   if (rows === null) return <div className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>
 
   return (
     <div className="space-y-4">
       {notice && (
         <p className={`text-sm px-3 py-2 rounded-lg ${notice.kind === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>{notice.text}</p>
+      )}
+
+      {/* Sección: pagos entregados en Flywire que no existen como pago en el ERP */}
+      {sinRegistrar.length > 0 && (
+        <div className="bg-white border border-amber-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 bg-amber-50/60 border-b border-amber-100">
+            <p className="text-sm font-medium text-amber-800">Pagos Flywire sin registrar ({sinRegistrar.length})</p>
+            <p className="text-[11px] text-amber-600">Entregados en Flywire pero sin pago en el ERP: sin estudiante identificado o excluidos al importar. Asigna el estudiante y regístralo, o descártalo (pruebas, pagadores externos).</p>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {sinRegistrar.map(r => (
+              <div key={r.reference} className="px-4 py-3 space-y-2">
+                <div className="flex items-center flex-wrap gap-2 text-sm">
+                  <span className="font-mono text-xs text-gray-500">{r.reference}</span>
+                  <span className="text-gray-800">{r.name}</span>
+                  {r.dni && <span className="text-xs text-gray-400">DNI: {r.dni}</span>}
+                  <span className="font-medium tabular-nums ml-auto">{fmt(r.amount)}</span>
+                  <span className="text-xs text-gray-500">{fdate(r.fecha)}</span>
+                  <span className="bg-gray-100 text-gray-500 text-[10px] px-1.5 py-0.5 rounded-full">{r.method ?? r.status}</span>
+                </div>
+                <div className="flex items-center flex-wrap gap-1.5">
+                  <input value={query[r.reference] ?? ''} onChange={e => setQuery(p => ({ ...p, [r.reference]: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') buscar(r.reference) }}
+                    placeholder="Buscar estudiante…"
+                    className="border border-gray-200 rounded-lg px-2.5 py-1 text-xs w-56 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <button onClick={() => buscar(r.reference)} className="text-xs text-blue-600 hover:text-blue-800 font-medium">Buscar</button>
+                  {(found[r.reference] ?? []).map(f => (
+                    <button key={f.id} onClick={() => actFly(r.reference, { student_id: f.id }, `Pago ${r.reference} registrado para ${f.name}`)}
+                      disabled={busy === r.reference}
+                      className="inline-flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] px-2 py-1 rounded-lg border border-blue-100">
+                      <Link2 className="w-3 h-3" /> {f.name} {f.document_number ? `(${f.document_number})` : ''}
+                    </button>
+                  ))}
+                  <button onClick={() => { if (confirm(`¿Descartar ${r.reference} (${r.name})? No se registrará como pago.`)) actFly(r.reference, { dismiss: true }, 'Referencia descartada') }}
+                    disabled={busy === r.reference}
+                    className="inline-flex items-center gap-1 border border-gray-200 hover:border-gray-300 text-gray-500 text-[11px] px-2 py-1 rounded-lg ml-auto">
+                    <CircleSlash className="w-3 h-3" /> Descartar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {rows.length === 0 ? (
