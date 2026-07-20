@@ -1,0 +1,195 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+
+export const revalidate = 0
+export const maxDuration = 60
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+const normDoc = (s: string | null | undefined) => (s ?? '').replace(/[^0-9a-zA-Z]/g, '')
+const normName = (s: string | null | undefined) =>
+  (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
+
+interface Row {
+  reference: string
+  first_name: string
+  last_name: string
+  dni: string
+  amount: number
+  currency: string
+  method: string
+  status: string
+  finished_date: string | null
+}
+
+// POST { rows, commit?, include_duplicates? } — importa el reporte CSV de Flywire.
+// delivered/guaranteed → pago; initiated/cancelled → solo informativo.
+// Idempotente por Transfer Reference (flywire_payment_id).
+export async function POST(req: NextRequest) {
+  const auth = await createAuthClient()
+  const { data: { user } } = await auth.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const body = await req.json().catch(() => null) as { rows?: Row[]; commit?: boolean; include_duplicates?: boolean } | null
+  const rows = body?.rows ?? []
+  if (!rows.length) return NextResponse.json({ error: 'Sin filas' }, { status: 400 })
+  const commit = !!body?.commit
+  const includeDups = !!body?.include_duplicates
+
+  const sb = db()
+
+  // Estudiantes: por documento normalizado y por nombre normalizado
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const students: any[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data } = await sb.from('academic_students')
+      .select('id, first_name, last_name, second_last_name, document_number').range(from, from + 999)
+    students.push(...(data ?? []))
+    if ((data ?? []).length < 1000) break
+  }
+  const byDoc = new Map<string, string>()
+  const byName = new Map<string, string[]>()
+  for (const s of students) {
+    if (s.document_number) byDoc.set(normDoc(String(s.document_number)), s.id)
+    const keys = new Set([
+      `${normName(s.first_name)}|${normName(s.last_name)}`,
+      `${normName(s.first_name)}|${normName([s.last_name, s.second_last_name].filter(Boolean).join(' '))}`,
+    ])
+    for (const k of keys) {
+      if (!byName.has(k)) byName.set(k, [])
+      if (!byName.get(k)!.includes(s.id)) byName.get(k)!.push(s.id)
+    }
+  }
+
+  // Pagos Flywire ya importados (idempotencia)
+  const existingFly = new Set<string>()
+  for (let from = 0; ; from += 1000) {
+    const { data } = await sb.from('account_payments')
+      .select('flywire_payment_id').not('flywire_payment_id', 'is', null).range(from, from + 999)
+    for (const p of (data ?? [])) existingFly.add(p.flywire_payment_id)
+    if ((data ?? []).length < 1000) break
+  }
+
+  const importables = rows.filter(r => ['delivered', 'guaranteed'].includes(r.status))
+  const informativos = rows.length - importables.length
+
+  // Pagos existentes de los estudiantes implicados (detección de duplicados vs Activa)
+  interface Existing { amount: number; paid_date: string | null; flywire_payment_id: string | null }
+  const payByStudent = new Map<string, Existing[]>()
+  {
+    const ids = [...new Set(importables.map(r => {
+      const sid = byDoc.get(normDoc(r.dni)) ?? null
+      if (sid) return sid
+      const c = byName.get(`${normName(r.first_name)}|${normName(r.last_name)}`)
+      return c?.length === 1 ? c[0] : null
+    }).filter(Boolean))] as string[]
+    for (let i = 0; i < ids.length; i += 150) {
+      const part = ids.slice(i, i + 150)
+      const { data } = await sb.from('account_payments')
+        .select('student_id, amount, paid_date, flywire_payment_id').in('student_id', part)
+      for (const p of (data ?? [])) {
+        if (!payByStudent.has(p.student_id)) payByStudent.set(p.student_id, [])
+        payByStudent.get(p.student_id)!.push(p)
+      }
+    }
+  }
+
+  const dayDiff = (a: string | null, b: string | null) => {
+    if (!a || !b) return 999
+    return Math.abs((new Date(a).getTime() - new Date(b).getTime()) / 86400000)
+  }
+
+  type Verdict = 'importar' | 'ya_importado' | 'posible_duplicado' | 'sin_estudiante' | 'nombre_ambiguo'
+  const out: { row: Row; verdict: Verdict; student_id?: string; student?: string; detail?: string }[] = []
+
+  for (const r of importables) {
+    if (existingFly.has(r.reference)) { out.push({ row: r, verdict: 'ya_importado' }); continue }
+
+    // Resolver estudiante: documento primero, nombre después
+    let sid: string | null = byDoc.get(normDoc(r.dni)) ?? null
+    if (!sid) {
+      const cands = byName.get(`${normName(r.first_name)}|${normName(r.last_name)}`) ?? []
+      if (cands.length === 1) sid = cands[0]
+      else if (cands.length > 1) { out.push({ row: r, verdict: 'nombre_ambiguo', detail: `${cands.length} estudiantes con ese nombre` }); continue }
+    }
+    if (!sid) { out.push({ row: r, verdict: 'sin_estudiante' }); continue }
+
+    const stu = students.find(s => s.id === sid)
+    const studentName = [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' ')
+
+    // ¿Ya está registrado vía Activa? (mismo monto ±0.01 y fecha ±5 días, sin marca Flywire)
+    const paidDate = r.finished_date ? r.finished_date.slice(0, 10) : new Date().toISOString().slice(0, 10)
+    const dup = (payByStudent.get(sid) ?? []).find(p =>
+      !p.flywire_payment_id && Math.abs(Number(p.amount) - r.amount) < 0.01 && dayDiff(p.paid_date, paidDate) <= 5)
+    if (dup && !includeDups) {
+      out.push({ row: r, verdict: 'posible_duplicado', student_id: sid, student: studentName, detail: `ya hay un pago de ${dup.amount} el ${dup.paid_date}` })
+      continue
+    }
+    out.push({ row: r, verdict: 'importar', student_id: sid, student: studentName })
+  }
+
+  const counts = {
+    total_csv: rows.length,
+    informativos,
+    importar: out.filter(o => o.verdict === 'importar').length,
+    ya_importado: out.filter(o => o.verdict === 'ya_importado').length,
+    posible_duplicado: out.filter(o => o.verdict === 'posible_duplicado').length,
+    sin_estudiante: out.filter(o => o.verdict === 'sin_estudiante').length,
+    nombre_ambiguo: out.filter(o => o.verdict === 'nombre_ambiguo').length,
+  }
+
+  if (!commit) {
+    return NextResponse.json({
+      preview: true, counts,
+      detalle: out.filter(o => o.verdict !== 'ya_importado').map(o => ({
+        referencia: o.row.reference, nombre_csv: `${o.row.first_name} ${o.row.last_name}`,
+        dni: o.row.dni || null, monto: o.row.amount, estado: o.row.status,
+        fecha: o.row.finished_date?.slice(0, 10) ?? null,
+        veredicto: o.verdict, estudiante: o.student ?? null, nota: o.detail ?? null,
+      })),
+    })
+  }
+
+  // COMMIT: insertar pagos + enlazar cuota impaga del mismo monto + estado en la cuota
+  let inserted = 0, linked = 0
+  const errors: string[] = []
+  for (const o of out) {
+    if (o.verdict !== 'importar') continue
+    const r = o.row
+    const paidDate = r.finished_date ? r.finished_date.slice(0, 10) : new Date().toISOString().slice(0, 10)
+
+    // Cuota impaga del mismo monto (la más antigua) para enlazar el pago
+    let chargeExt: string | null = null
+    const { data: charges } = await sb.from('account_charges')
+      .select('external_id, amount, due_date').eq('student_id', o.student_id).order('due_date', { ascending: true })
+    const { data: paysOf } = await sb.from('account_payments')
+      .select('charge_external_id').eq('student_id', o.student_id).not('charge_external_id', 'is', null)
+    const paidCharges = new Set((paysOf ?? []).map((p: { charge_external_id: string }) => p.charge_external_id))
+    const open = (charges ?? []).find((c: { external_id: string; amount: number }) =>
+      !paidCharges.has(c.external_id) && Math.abs(Number(c.amount) - r.amount) < 0.01)
+    if (open) chargeExt = open.external_id
+
+    const { error } = await sb.from('account_payments').insert({
+      external_id: crypto.randomUUID(),
+      flywire_payment_id: r.reference,
+      charge_external_id: chargeExt,
+      student_id: o.student_id,
+      amount: r.amount,
+      paid_date: paidDate,
+      series_code: 'FLYWIRE',
+      transaction_reference: r.reference,
+    })
+    if (error) { errors.push(`${r.reference}: ${error.message}`); continue }
+    inserted++
+    if (chargeExt) {
+      linked++
+      await sb.from('account_charges')
+        .update({ flywire_status: r.status, flywire_payment_id: r.reference })
+        .eq('external_id', chargeExt)
+    }
+  }
+
+  return NextResponse.json({ ok: true, counts, inserted, linked_to_charge: linked, errors })
+}

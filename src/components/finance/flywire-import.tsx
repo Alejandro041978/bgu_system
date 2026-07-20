@@ -1,0 +1,201 @@
+'use client'
+
+import { useState } from 'react'
+import { Loader2, Upload, CheckCircle2, AlertTriangle } from 'lucide-react'
+
+interface Row {
+  reference: string; first_name: string; last_name: string; dni: string
+  amount: number; currency: string; method: string; status: string; finished_date: string | null
+}
+interface Detalle {
+  referencia: string; nombre_csv: string; dni: string | null; monto: number
+  estado: string; fecha: string | null; veredicto: string; estudiante: string | null; nota: string | null
+}
+interface Counts {
+  total_csv: number; informativos: number; importar: number; ya_importado: number
+  posible_duplicado: number; sin_estudiante: number; nombre_ambiguo: number
+}
+
+// Parser CSV con comillas
+function parseCsv(text: string): string[][] {
+  const lines = text.split(/\r?\n/).filter(l => l.trim())
+  return lines.map(l => {
+    const out: string[] = []; let cur = '', q = false
+    for (const ch of l) {
+      if (ch === '"') q = !q
+      else if (ch === ',' && !q) { out.push(cur); cur = '' }
+      else cur += ch
+    }
+    out.push(cur)
+    return out
+  })
+}
+
+const CURRENCIES = new Set(['USD', 'PEN', 'EUR', 'COP', 'CLP', 'MXN', 'DOP', 'HNL', 'ARS', 'BOB', 'BRL', 'CRC', 'GTQ', 'NIO', 'PAB', 'PYG', 'UYU', 'VES', 'GBP', 'CAD'])
+
+const V_STYLE: Record<string, string> = {
+  importar: 'bg-green-50 text-green-700',
+  posible_duplicado: 'bg-amber-50 text-amber-700',
+  sin_estudiante: 'bg-red-50 text-red-600',
+  nombre_ambiguo: 'bg-red-50 text-red-600',
+}
+const V_LABEL: Record<string, string> = {
+  importar: 'Importar',
+  posible_duplicado: 'Posible duplicado (Activa)',
+  sin_estudiante: 'Sin estudiante',
+  nombre_ambiguo: 'Nombre ambiguo',
+}
+
+export function FlywireImport() {
+  const [rows, setRows] = useState<Row[] | null>(null)
+  const [fileName, setFileName] = useState('')
+  const [counts, setCounts] = useState<Counts | null>(null)
+  const [detalle, setDetalle] = useState<Detalle[]>([])
+  const [includeDups, setIncludeDups] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<{ inserted: number; linked: number; errors: string[] } | null>(null)
+
+  async function onFile(f: File) {
+    setFileName(f.name); setCounts(null); setDetalle([]); setResult(null)
+    const text = await f.text()
+    const parsed = parseCsv(text)
+    const header = parsed[0]
+    const col = (n: string) => header.indexOf(n)
+    const iRef = col('Transfer Reference'), iFn = col('Student First Name'), iLn = col('Student Last Name')
+    const iDni = col('DNI'), iAmt = col('Transfer Amount'), iCf = col('Country From'), iCu = col('Currency From')
+    const iMet = col('Payment Method'), iSt = col('Payment Status'), iFd = col('Transfer Finished Date')
+    if (iRef < 0 || iSt < 0 || iAmt < 0) { alert('El CSV no parece un reporte de Flywire (faltan columnas)'); return }
+    const out: Row[] = parsed.slice(1).map(r => {
+      // El export trae Country From y Currency From invertidas: la moneda es el valor que parezca código
+      const a = (r[iCf] ?? '').trim(), b = (r[iCu] ?? '').trim()
+      const currency = CURRENCIES.has(a) ? a : (CURRENCIES.has(b) ? b : a)
+      return {
+        reference: (r[iRef] ?? '').trim(),
+        first_name: (r[iFn] ?? '').trim(),
+        last_name: (r[iLn] ?? '').trim(),
+        dni: (r[iDni] ?? '').trim(),
+        amount: parseFloat(r[iAmt] || '0') || 0,
+        currency,
+        method: (r[iMet] ?? '').trim(),
+        status: (r[iSt] ?? '').trim(),
+        finished_date: (r[iFd] ?? '').trim() || null,
+      }
+    }).filter(r => r.reference)
+    setRows(out)
+    preview(out, includeDups)
+  }
+
+  async function preview(data: Row[], dups: boolean) {
+    setLoading(true)
+    const d = await fetch('/api/finance/flywire-import', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows: data, include_duplicates: dups }),
+    }).then(r => r.json())
+    setLoading(false)
+    if (d.error) { alert(d.error); return }
+    setCounts(d.counts); setDetalle(d.detalle ?? [])
+  }
+
+  async function commit() {
+    if (!rows) return
+    setLoading(true); setResult(null)
+    const d = await fetch('/api/finance/flywire-import', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows, commit: true, include_duplicates: includeDups }),
+    }).then(r => r.json())
+    setLoading(false)
+    if (d.error) { alert(d.error); return }
+    setResult({ inserted: d.inserted, linked: d.linked_to_charge, errors: d.errors ?? [] })
+    preview(rows, includeDups)
+  }
+
+  return (
+    <div className="space-y-4">
+      <label className="flex items-center gap-3 bg-white border-2 border-dashed border-gray-200 hover:border-blue-300 rounded-xl px-5 py-4 cursor-pointer transition-colors">
+        <Upload className="w-5 h-5 text-gray-400" />
+        <div className="text-sm">
+          <p className="font-medium text-gray-700">{fileName || 'Subir reporte CSV de Flywire'}</p>
+          <p className="text-xs text-gray-400">Export del dashboard (portal ZBL) — se aceptan re-subidas: nada se duplica</p>
+        </div>
+        <input type="file" accept=".csv" className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f) }} />
+      </label>
+
+      {loading && <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>}
+
+      {result && (
+        <div className={`text-sm px-4 py-3 rounded-xl ${result.errors.length ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-800'}`}>
+          <p className="font-medium">✓ {result.inserted} pagos importados, {result.linked} enlazados a su cuota.</p>
+          {result.errors.map((e, i) => <p key={i} className="text-xs">{e}</p>)}
+        </div>
+      )}
+
+      {counts && !loading && (
+        <>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{counts.total_csv} filas en el CSV</span>
+            <span className="bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{counts.informativos} initiated/cancelled (no se importan)</span>
+            <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">{counts.ya_importado} ya importados antes</span>
+            <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-medium">{counts.importar} listos para importar</span>
+            {counts.posible_duplicado > 0 && <span className="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">{counts.posible_duplicado} posibles duplicados de Activa</span>}
+            {(counts.sin_estudiante + counts.nombre_ambiguo) > 0 && <span className="bg-red-50 text-red-600 px-2.5 py-1 rounded-full">{counts.sin_estudiante + counts.nombre_ambiguo} sin resolver</span>}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input type="checkbox" checked={includeDups}
+                onChange={e => { setIncludeDups(e.target.checked); if (rows) preview(rows, e.target.checked) }}
+                className="w-4 h-4 rounded accent-amber-500" />
+              Importar también los posibles duplicados (si el pago de Activa era otro)
+            </label>
+            <button onClick={commit} disabled={loading || !counts.importar}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium px-5 py-2.5 rounded-xl">
+              <CheckCircle2 className="w-4 h-4" /> Importar {counts.importar} pagos
+            </button>
+          </div>
+
+          {detalle.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
+                <table className="w-full text-sm whitespace-nowrap">
+                  <thead className="sticky top-0 bg-gray-50">
+                    <tr className="border-b border-gray-100 text-[11px] text-gray-500 uppercase tracking-wide">
+                      <th className="text-left px-4 py-2.5">Referencia</th>
+                      <th className="text-left px-3 py-2.5">Nombre en Flywire</th>
+                      <th className="text-left px-3 py-2.5">Estudiante ERP</th>
+                      <th className="text-right px-3 py-2.5">Monto</th>
+                      <th className="text-left px-3 py-2.5">Fecha</th>
+                      <th className="text-left px-3 py-2.5">Resultado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {detalle.map(d => (
+                      <tr key={d.referencia} className="hover:bg-gray-50/50">
+                        <td className="px-4 py-2 font-mono text-xs text-gray-500">{d.referencia}</td>
+                        <td className="px-3 py-2 text-gray-700">{d.nombre_csv}{d.dni ? <span className="text-xs text-gray-400"> · {d.dni}</span> : ''}</td>
+                        <td className="px-3 py-2 text-gray-700">{d.estudiante ?? <span className="text-gray-300">—</span>}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{d.monto.toFixed(2)}</td>
+                        <td className="px-3 py-2 text-xs text-gray-500">{d.fecha ?? '—'}</td>
+                        <td className="px-3 py-2">
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full ${V_STYLE[d.veredicto] ?? 'bg-gray-100 text-gray-500'}`}>
+                            {V_LABEL[d.veredicto] ?? d.veredicto}
+                          </span>
+                          {d.nota && <span className="text-[11px] text-gray-400 ml-1.5">{d.nota}</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <p className="text-[11px] text-gray-400 flex items-start gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            Se importan solo delivered y guaranteed (montos ya en USD). El estudiante se resuelve por DNI y, si falta, por nombre; los ambiguos y no encontrados quedan listados para resolverlos a mano (corrige el nombre/documento en la Ficha y re-sube el CSV). Cada pago se enlaza a la cuota impaga del mismo monto si existe.
+          </p>
+        </>
+      )}
+    </div>
+  )
+}

@@ -116,6 +116,7 @@ const PAGE_GROUPS = [
       // Finanzas
       { key: 'finance', label: 'Contabilidad' },
       { key: 'finance_recaudacion', label: 'Finanzas · Recaudación' },
+      { key: 'finance_flywire_import', label: 'Finanzas · Cargar Pagos Flywire' },
       // Cuentas (movidas de Académico)
       { key: 'academic_account', label: 'Estado de Cuenta' },
       { key: 'academic_concepts', label: 'Conceptos de Cuenta' },

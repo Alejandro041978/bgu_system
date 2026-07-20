@@ -200,6 +200,7 @@ const navigation: NavGroup[] = [
         children: [
           { name: 'Contabilidad', href: '/finance', icon: DollarSign, pageKey: 'finance' },
           { name: 'Recaudación', href: '/finance/recaudacion', icon: Banknote, pageKey: 'finance_recaudacion' },
+          { name: 'Cargar Pagos Flywire', href: '/finance/flywire', icon: Upload, pageKey: 'finance_flywire_import' },
         ],
       },
       { name: 'Estado de Cuenta', href: '/academic/account', icon: Wallet, pageKey: 'academic_account' },
