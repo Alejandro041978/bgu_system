@@ -34,11 +34,12 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado', v: 3 }, { status: 401 })
 
-  const body = await req.json().catch(() => null) as { rows?: Row[]; commit?: boolean; include_duplicates?: boolean } | null
+  const body = await req.json().catch(() => null) as { rows?: Row[]; commit?: boolean; include_duplicates?: boolean; exclude?: string[] } | null
   const rows = body?.rows ?? []
   if (!rows.length) return NextResponse.json({ error: 'Sin filas' }, { status: 400 })
   const commit = !!body?.commit
   const includeDups = !!body?.include_duplicates
+  const excluded = new Set(body?.exclude ?? [])
 
   const sb = db()
 
@@ -271,8 +272,10 @@ export async function POST(req: NextRequest) {
     updated++
   }
 
+  let excludedCount = 0
   for (const o of out) {
     if (o.verdict !== 'importar') continue
+    if (excluded.has(o.row.reference)) { excludedCount++; continue }
     const r = o.row
     const paidDate = r.finished_date ? r.finished_date.slice(0, 10) : new Date().toISOString().slice(0, 10)
 
@@ -344,5 +347,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, counts, inserted, updated, enriched, associated, linked_to_charge: linked, events_logged: eventsLogged, errors })
+  return NextResponse.json({ ok: true, counts, inserted, excluded: excludedCount, updated, enriched, associated, linked_to_charge: linked, events_logged: eventsLogged, errors })
 }

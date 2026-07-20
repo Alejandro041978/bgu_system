@@ -54,6 +54,7 @@ export function FlywireImport() {
   const [counts, setCounts] = useState<Counts | null>(null)
   const [detalle, setDetalle] = useState<Detalle[]>([])
   const [includeDups, setIncludeDups] = useState(false)
+  const [excluded, setExcluded] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ inserted: number; updated: number; enriched: number; associated: number; linked: number; errors: string[] } | null>(null)
 
@@ -98,7 +99,7 @@ export function FlywireImport() {
     }).then(r => r.json())
     setLoading(false)
     if (d.error) { alert(d.error); return }
-    setCounts(d.counts); setDetalle(d.detalle ?? [])
+    setCounts(d.counts); setDetalle(d.detalle ?? []); setExcluded(new Set())
   }
 
   async function commit() {
@@ -106,7 +107,7 @@ export function FlywireImport() {
     setLoading(true); setResult(null)
     const d = await fetch('/api/finance/flywire-import', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rows, commit: true, include_duplicates: includeDups }),
+      body: JSON.stringify({ rows, commit: true, include_duplicates: includeDups, exclude: [...excluded] }),
     }).then(r => r.json())
     setLoading(false)
     if (d.error) { alert(d.error); return }
@@ -155,9 +156,10 @@ export function FlywireImport() {
                 className="w-4 h-4 rounded accent-amber-500" />
               Forzar importación como pagos NUEVOS en vez de asociar (solo si verificaste que el pago de Activa era otro distinto — cuenta el dinero dos veces si te equivocas)
             </label>
-            <button onClick={commit} disabled={loading || !counts.importar}
+            <button onClick={commit} disabled={loading || !(counts.importar - excluded.size > 0 || counts.enriquecer > 0 || counts.posible_duplicado > 0 || counts.actualizar > 0)}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium px-5 py-2.5 rounded-xl">
-              <CheckCircle2 className="w-4 h-4" /> Importar {counts.importar} pagos
+              <CheckCircle2 className="w-4 h-4" />
+              Procesar: {Math.max(0, counts.importar - excluded.size)} importar · {counts.enriquecer} enriquecer · {counts.posible_duplicado} asociar
             </button>
           </div>
 
@@ -184,7 +186,16 @@ export function FlywireImport() {
                         <td className="px-3 py-2 text-right tabular-nums">{d.monto.toFixed(2)}</td>
                         <td className="px-3 py-2 text-xs text-gray-500">{d.fecha ?? '—'}</td>
                         <td className="px-3 py-2">
-                          <span className={`text-[11px] px-2 py-0.5 rounded-full ${V_STYLE[d.veredicto] ?? 'bg-gray-100 text-gray-500'}`}>
+                          {d.veredicto === 'importar' && (
+                            <input type="checkbox" checked={!excluded.has(d.referencia)}
+                              onChange={e => setExcluded(prev => {
+                                const next = new Set(prev)
+                                if (e.target.checked) next.delete(d.referencia); else next.add(d.referencia)
+                                return next
+                              })}
+                              className="w-3.5 h-3.5 rounded accent-green-600 mr-1.5 align-middle" title="Desmarcar para NO importar esta fila" />
+                          )}
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full ${excluded.has(d.referencia) ? 'bg-gray-100 text-gray-400 line-through' : (V_STYLE[d.veredicto] ?? 'bg-gray-100 text-gray-500')}`}>
                             {V_LABEL[d.veredicto] ?? d.veredicto}
                           </span>
                           {d.nota && <span className="text-[11px] text-gray-400 ml-1.5">{d.nota}</span>}
