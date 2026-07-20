@@ -40,7 +40,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 // Campos editables de la ficha; todo lo demás (external_id, source, moodle,
 // retiros) lo gobiernan el sync y los motores.
 const EDITABLE = ['first_name', 'last_name', 'second_last_name', 'document_type', 'document_number',
-  'email', 'email_alt', 'phone_number', 'date_of_birth', 'city', 'country', 'situation'] as const
+  'email', 'email_alt', 'phone_code', 'phone_local', 'date_of_birth', 'city', 'country', 'situation'] as const
 
 // PATCH → edita la ficha. Cambiar la situación la marca como manual (los
 // motores de egreso/retiro no la pisan); ?situacion_auto=1 la devuelve a auto.
@@ -83,6 +83,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { data: dup } = await sb.from('academic_students')
       .select('id').eq('document_number', patch.document_number).neq('id', id).limit(1)
     if ((dup ?? []).length) return NextResponse.json({ error: 'Otro estudiante ya tiene ese documento' }, { status: 409 })
+  }
+  // Teléfono: phone_number canónico E.164 se recompone de código + número
+  if ('phone_code' in patch || 'phone_local' in patch) {
+    const code = ('phone_code' in patch ? patch.phone_code : curr.phone_code) as string | null
+    let local = ('phone_local' in patch ? patch.phone_local : curr.phone_local) as string | null
+    if (code && !/^\+\d{1,3}$/.test(code)) {
+      return NextResponse.json({ error: 'El código telefónico debe tener el formato +51' }, { status: 400 })
+    }
+    if (local) {
+      local = local.replace(/\D/g, '')
+      if (local.length < 6 || local.length > 12) {
+        return NextResponse.json({ error: 'El número telefónico debe tener entre 6 y 12 dígitos' }, { status: 400 })
+      }
+      patch.phone_local = local
+    }
+    patch.phone_number = code && local ? `${code}${local}` : (local || null)
   }
   // Situación editada a mano → deja de ser automática
   if ('situation' in patch && patch.situation !== curr.situation) {

@@ -9,7 +9,15 @@ interface Conv { id: string; name: string; semester: string; first_day: string |
 interface Found { id: string; name: string; document: string; email: string | null; situation: string | null; programs: string[] }
 
 const fdate = (d: string | null) => (d ? d.split('T')[0].split('-').reverse().join('/') : '—')
-const EMPTY_NEW = { first_name: '', last_name: '', second_last_name: '', document_number: '', email: '', phone_number: '', city: '', country: '' }
+const EMPTY_NEW = { first_name: '', last_name: '', second_last_name: '', document_number: '', email: '', phone_code: '', phone_local: '', city: '', country: '' }
+
+const CODIGOS_TEL: [string, string][] = [
+  ['+51', 'Perú'], ['+52', 'México'], ['+593', 'Ecuador'], ['+57', 'Colombia'], ['+56', 'Chile'],
+  ['+1', 'USA/Can/Dom/PR'], ['+504', 'Honduras'], ['+503', 'El Salvador'], ['+506', 'Costa Rica'],
+  ['+502', 'Guatemala'], ['+507', 'Panamá'], ['+505', 'Nicaragua'], ['+34', 'España'], ['+598', 'Uruguay'],
+  ['+595', 'Paraguay'], ['+54', 'Argentina'], ['+58', 'Venezuela'], ['+591', 'Bolivia'], ['+55', 'Brasil'],
+  ['+53', 'Cuba'], ['+509', 'Haití'], ['+39', 'Italia'], ['+33', 'Francia'], ['+49', 'Alemania'], ['+44', 'Reino Unido'],
+]
 
 // Códigos ISO-3, el mismo formato que trae el sync de SystemActiva
 const PAISES: [string, string][] = [
@@ -143,7 +151,13 @@ export function NuevaMatricula() {
               <input placeholder="Segundo apellido" value={newStudent.second_last_name} onChange={e => setNewStudent(p => ({ ...p, second_last_name: e.target.value }))} className={inp} />
               <input placeholder="Documento *" value={newStudent.document_number} onChange={e => setNewStudent(p => ({ ...p, document_number: e.target.value }))} className={inp} />
               <input placeholder="Correo" type="email" value={newStudent.email} onChange={e => setNewStudent(p => ({ ...p, email: e.target.value }))} className={inp} />
-              <input placeholder="Teléfono" value={newStudent.phone_number} onChange={e => setNewStudent(p => ({ ...p, phone_number: e.target.value }))} className={inp} />
+              <div className="flex gap-1.5">
+                <select value={newStudent.phone_code} onChange={e => setNewStudent(p => ({ ...p, phone_code: e.target.value }))} className={`${inp} w-28 shrink-0`}>
+                  <option value="">Cód…</option>
+                  {CODIGOS_TEL.map(([code, nombre]) => <option key={code} value={code}>{code} {nombre}</option>)}
+                </select>
+                <input placeholder="Teléfono" value={newStudent.phone_local} onChange={e => setNewStudent(p => ({ ...p, phone_local: e.target.value.replace(/\D/g, '') }))} className={inp} />
+              </div>
               <input placeholder="Ciudad" value={newStudent.city} onChange={e => setNewStudent(p => ({ ...p, city: e.target.value }))} className={inp} />
               <select value={newStudent.country} onChange={e => setNewStudent(p => ({ ...p, country: e.target.value }))} className={inp}>
                 <option value="">País…</option>

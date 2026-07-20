@@ -21,6 +21,14 @@ const PAISES: [string, string][] = [
 
 const SITUACIONES = ['activo', 'egresado', 'IW', 'LOA', 'campus socio']
 
+export const CODIGOS_TEL: [string, string][] = [
+  ['+51', 'Perú'], ['+52', 'México'], ['+593', 'Ecuador'], ['+57', 'Colombia'], ['+56', 'Chile'],
+  ['+1', 'USA/Can/Dom/PR'], ['+504', 'Honduras'], ['+503', 'El Salvador'], ['+506', 'Costa Rica'],
+  ['+502', 'Guatemala'], ['+507', 'Panamá'], ['+505', 'Nicaragua'], ['+34', 'España'], ['+598', 'Uruguay'],
+  ['+595', 'Paraguay'], ['+54', 'Argentina'], ['+58', 'Venezuela'], ['+591', 'Bolivia'], ['+55', 'Brasil'],
+  ['+53', 'Cuba'], ['+509', 'Haití'], ['+39', 'Italia'], ['+33', 'Francia'], ['+49', 'Alemania'], ['+44', 'Reino Unido'],
+]
+
 export function StudentProfile() {
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
@@ -52,7 +60,8 @@ export function StudentProfile() {
       second_last_name: d.student.second_last_name ?? '',
       document_type: d.student.document_type ?? '', document_number: d.student.document_number ?? '',
       email: d.student.email ?? '', email_alt: d.student.email_alt ?? '',
-      phone_number: d.student.phone_number ?? '',
+      phone_code: d.student.phone_code ?? '',
+      phone_local: d.student.phone_local ?? '',
       date_of_birth: d.student.date_of_birth ? String(d.student.date_of_birth).slice(0, 10) : '',
       city: d.student.city ?? '', country: d.student.country ?? '',
       situation: d.student.situation ?? '',
@@ -148,7 +157,16 @@ export function StudentProfile() {
               <Field label="Fecha de nacimiento"><input type="date" value={form.date_of_birth} onChange={e => set('date_of_birth', e.target.value)} className={inp} /></Field>
               <Field label="Correo"><input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={inp} /></Field>
               <Field label="Correo alterno"><input type="email" value={form.email_alt} onChange={e => set('email_alt', e.target.value)} className={inp} /></Field>
-              <Field label="Teléfono"><input value={form.phone_number} onChange={e => set('phone_number', e.target.value)} className={inp} /></Field>
+              <Field label={`Teléfono${student.phone_number ? ` (envíos: ${student.phone_number})` : ''}`}>
+                <div className="flex gap-1.5">
+                  <select value={form.phone_code} onChange={e => set('phone_code', e.target.value)} className={`${inp} w-32 shrink-0`}>
+                    <option value="">Código…</option>
+                    {CODIGOS_TEL.map(([code, nombre]) => <option key={code} value={code}>{code} {nombre}</option>)}
+                    {form.phone_code && !CODIGOS_TEL.some(([c]) => c === form.phone_code) && <option value={form.phone_code}>{form.phone_code}</option>}
+                  </select>
+                  <input value={form.phone_local} onChange={e => set('phone_local', e.target.value.replace(/\D/g, ''))} placeholder="Número" className={inp} />
+                </div>
+              </Field>
               <Field label="Ciudad"><input value={form.city} onChange={e => set('city', e.target.value)} className={inp} /></Field>
               <Field label="País">
                 <select value={form.country} onChange={e => set('country', e.target.value)} className={inp}>
