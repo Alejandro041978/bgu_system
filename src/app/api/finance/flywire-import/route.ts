@@ -63,17 +63,20 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Pagos Flywire ya importados (idempotencia)
-  const existingFly = new Set<string>()
+  // Pagos Flywire ya importados (idempotencia + pasada de actualización)
+  const existingFly = new Map<string, { id: string; paid_date: string | null; charge_external_id: string | null }>()
   for (let from = 0; ; from += 1000) {
     const { data } = await sb.from('account_payments')
-      .select('flywire_payment_id').not('flywire_payment_id', 'is', null).range(from, from + 999)
-    for (const p of (data ?? [])) existingFly.add(p.flywire_payment_id)
+      .select('id, flywire_payment_id, paid_date, charge_external_id')
+      .not('flywire_payment_id', 'is', null).range(from, from + 999)
+    for (const p of (data ?? [])) existingFly.set(p.flywire_payment_id, p)
     if ((data ?? []).length < 1000) break
   }
 
   const importables = rows.filter(r => ['delivered', 'guaranteed'].includes(r.status))
-  const informativos = rows.length - importables.length
+  // Reversión: un pago que ya importamos y que Flywire ahora reporta cancelado
+  const revertidos = rows.filter(r => r.status === 'cancelled' && existingFly.has(r.reference))
+  const informativos = rows.length - importables.length - revertidos.length
 
   // Pagos existentes de los estudiantes implicados (detección de duplicados vs Activa)
   interface Existing { amount: number; paid_date: string | null; flywire_payment_id: string | null }
@@ -101,11 +104,21 @@ export async function POST(req: NextRequest) {
     return Math.abs((new Date(a).getTime() - new Date(b).getTime()) / 86400000)
   }
 
-  type Verdict = 'importar' | 'ya_importado' | 'posible_duplicado' | 'sin_estudiante' | 'nombre_ambiguo'
+  type Verdict = 'importar' | 'actualizar' | 'revertido' | 'posible_duplicado' | 'sin_estudiante' | 'nombre_ambiguo'
   const out: { row: Row; verdict: Verdict; student_id?: string; student?: string; detail?: string }[] = []
 
+  for (const r of revertidos) {
+    out.push({ row: r, verdict: 'revertido', detail: 'ya registrado como pago y Flywire lo reporta cancelado: resolver a mano (el importador no borra pagos)' })
+  }
   for (const r of importables) {
-    if (existingFly.has(r.reference)) { out.push({ row: r, verdict: 'ya_importado' }); continue }
+    const prev = existingFly.get(r.reference)
+    if (prev) {
+      // Ya importado: ¿cambió de etapa o de fecha? (guaranteed → delivered)
+      const newDate = r.finished_date ? r.finished_date.slice(0, 10) : null
+      const needsDate = newDate && prev.paid_date !== newDate
+      out.push({ row: r, verdict: 'actualizar', detail: needsDate ? `fecha ${prev.paid_date} → ${newDate}` : 'refresca estado en la cuota' })
+      continue
+    }
 
     // Resolver estudiante: documento primero, nombre después
     let sid: string | null = byDoc.get(normDoc(r.dni)) ?? null
@@ -134,7 +147,8 @@ export async function POST(req: NextRequest) {
     total_csv: rows.length,
     informativos,
     importar: out.filter(o => o.verdict === 'importar').length,
-    ya_importado: out.filter(o => o.verdict === 'ya_importado').length,
+    actualizar: out.filter(o => o.verdict === 'actualizar').length,
+    revertido: out.filter(o => o.verdict === 'revertido').length,
     posible_duplicado: out.filter(o => o.verdict === 'posible_duplicado').length,
     sin_estudiante: out.filter(o => o.verdict === 'sin_estudiante').length,
     nombre_ambiguo: out.filter(o => o.verdict === 'nombre_ambiguo').length,
@@ -143,7 +157,7 @@ export async function POST(req: NextRequest) {
   if (!commit) {
     return NextResponse.json({
       preview: true, counts,
-      detalle: out.filter(o => o.verdict !== 'ya_importado').map(o => ({
+      detalle: out.filter(o => o.verdict !== 'actualizar').map(o => ({
         referencia: o.row.reference, nombre_csv: `${o.row.first_name} ${o.row.last_name}`,
         dni: o.row.dni || null, monto: o.row.amount, estado: o.row.status,
         fecha: o.row.finished_date?.slice(0, 10) ?? null,
@@ -153,8 +167,24 @@ export async function POST(req: NextRequest) {
   }
 
   // COMMIT: insertar pagos + enlazar cuota impaga del mismo monto + estado en la cuota
-  let inserted = 0, linked = 0
+  let inserted = 0, linked = 0, updated = 0
   const errors: string[] = []
+
+  // Pasada de actualización: referencias ya importadas que cambiaron de etapa/fecha
+  for (const o of out) {
+    if (o.verdict !== 'actualizar') continue
+    const prev = existingFly.get(o.row.reference)!
+    const newDate = o.row.finished_date ? o.row.finished_date.slice(0, 10) : null
+    if (newDate && prev.paid_date !== newDate) {
+      const { error } = await sb.from('account_payments').update({ paid_date: newDate }).eq('id', prev.id)
+      if (error) { errors.push(`${o.row.reference}: ${error.message}`); continue }
+    }
+    if (prev.charge_external_id) {
+      await sb.from('account_charges').update({ flywire_status: o.row.status }).eq('external_id', prev.charge_external_id)
+    }
+    updated++
+  }
+
   for (const o of out) {
     if (o.verdict !== 'importar') continue
     const r = o.row
@@ -191,5 +221,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, counts, inserted, linked_to_charge: linked, errors })
+  return NextResponse.json({ ok: true, counts, inserted, updated, linked_to_charge: linked, errors })
 }

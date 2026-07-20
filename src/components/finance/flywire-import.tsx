@@ -12,8 +12,8 @@ interface Detalle {
   estado: string; fecha: string | null; veredicto: string; estudiante: string | null; nota: string | null
 }
 interface Counts {
-  total_csv: number; informativos: number; importar: number; ya_importado: number
-  posible_duplicado: number; sin_estudiante: number; nombre_ambiguo: number
+  total_csv: number; informativos: number; importar: number; actualizar: number
+  revertido: number; posible_duplicado: number; sin_estudiante: number; nombre_ambiguo: number
 }
 
 // Parser CSV con comillas
@@ -38,12 +38,14 @@ const V_STYLE: Record<string, string> = {
   posible_duplicado: 'bg-amber-50 text-amber-700',
   sin_estudiante: 'bg-red-50 text-red-600',
   nombre_ambiguo: 'bg-red-50 text-red-600',
+  revertido: 'bg-red-100 text-red-700 font-semibold',
 }
 const V_LABEL: Record<string, string> = {
   importar: 'Importar',
   posible_duplicado: 'Posible duplicado (Activa)',
   sin_estudiante: 'Sin estudiante',
   nombre_ambiguo: 'Nombre ambiguo',
+  revertido: '⚠ REVERTIDO en Flywire',
 }
 
 export function FlywireImport() {
@@ -53,7 +55,7 @@ export function FlywireImport() {
   const [detalle, setDetalle] = useState<Detalle[]>([])
   const [includeDups, setIncludeDups] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ inserted: number; linked: number; errors: string[] } | null>(null)
+  const [result, setResult] = useState<{ inserted: number; updated: number; linked: number; errors: string[] } | null>(null)
 
   async function onFile(f: File) {
     setFileName(f.name); setCounts(null); setDetalle([]); setResult(null)
@@ -105,7 +107,7 @@ export function FlywireImport() {
     }).then(r => r.json())
     setLoading(false)
     if (d.error) { alert(d.error); return }
-    setResult({ inserted: d.inserted, linked: d.linked_to_charge, errors: d.errors ?? [] })
+    setResult({ inserted: d.inserted, updated: d.updated ?? 0, linked: d.linked_to_charge, errors: d.errors ?? [] })
     preview(rows, includeDups)
   }
 
@@ -125,7 +127,7 @@ export function FlywireImport() {
 
       {result && (
         <div className={`text-sm px-4 py-3 rounded-xl ${result.errors.length ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-800'}`}>
-          <p className="font-medium">✓ {result.inserted} pagos importados, {result.linked} enlazados a su cuota.</p>
+          <p className="font-medium">✓ {result.inserted} pagos importados ({result.linked} enlazados a su cuota) · {result.updated} actualizados de etapa/fecha.</p>
           {result.errors.map((e, i) => <p key={i} className="text-xs">{e}</p>)}
         </div>
       )}
@@ -135,8 +137,9 @@ export function FlywireImport() {
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{counts.total_csv} filas en el CSV</span>
             <span className="bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{counts.informativos} initiated/cancelled (no se importan)</span>
-            <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">{counts.ya_importado} ya importados antes</span>
+            <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">{counts.actualizar} ya importados (se refresca etapa/fecha)</span>
             <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-medium">{counts.importar} listos para importar</span>
+            {counts.revertido > 0 && <span className="bg-red-100 text-red-700 px-2.5 py-1 rounded-full font-semibold">⚠ {counts.revertido} REVERTIDOS (pago registrado que Flywire canceló)</span>}
             {counts.posible_duplicado > 0 && <span className="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">{counts.posible_duplicado} posibles duplicados de Activa</span>}
             {(counts.sin_estudiante + counts.nombre_ambiguo) > 0 && <span className="bg-red-50 text-red-600 px-2.5 py-1 rounded-full">{counts.sin_estudiante + counts.nombre_ambiguo} sin resolver</span>}
           </div>
