@@ -32,7 +32,7 @@ interface Row {
 export async function POST(req: NextRequest) {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado', v: 3 }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'No autorizado', v: 4 }, { status: 401 })
 
   const body = await req.json().catch(() => null) as { rows?: Row[]; commit?: boolean; include_duplicates?: boolean; exclude?: string[] } | null
   const rows = body?.rows ?? []
@@ -98,7 +98,8 @@ export async function POST(req: NextRequest) {
 
   // Pagos existentes de los estudiantes implicados (detección de duplicados vs
   // Activa). fetchByIn pagina DENTRO de cada tanda: sin el tope de 1000 filas.
-  interface Existing { id: string; amount: number; paid_date: string | null; flywire_payment_id: string | null }
+  interface Existing { id: string; amount: number; paid_date: string | null; flywire_payment_id: string | null; transaction_reference: string | null }
+  const csvRefs = new Set(rows.map(r => r.reference))
   const payByStudent = new Map<string, Existing[]>()
   {
     const ids = [...new Set(importables.map(r => {
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
       return c?.length === 1 ? c[0] : null
     }).filter(Boolean))] as string[]
     const pays = ids.length
-      ? await fetchByIn(sb, 'account_payments', 'id, student_id, amount, paid_date, flywire_payment_id', 'student_id', ids)
+      ? await fetchByIn(sb, 'account_payments', 'id, student_id, amount, paid_date, flywire_payment_id, transaction_reference', 'student_id', ids)
       : []
     for (const p of pays as (Existing & { student_id: string })[]) {
       if (!payByStudent.has(p.student_id)) payByStudent.set(p.student_id, [])
@@ -156,10 +157,16 @@ export async function POST(req: NextRequest) {
 
     // ¿Ya está registrado vía Activa? (mismo monto ±0.01 y fecha ±10 días, sin
     // marca Flywire; las transferencias se entregan días después del registro).
-    // Se elige el más cercano en fecha; al confirmar se ASOCIA (no se duplica).
+    // NO se puede reclamar un pago cuyo ZBL escrito pertenece a otra fila del
+    // CSV (ese lo resuelve el enriquecimiento). El más cercano en fecha gana.
     const paidDate = r.finished_date ? r.finished_date.slice(0, 10) : new Date().toISOString().slice(0, 10)
     const dups = (payByStudent.get(sid) ?? [])
-      .filter(p => !p.flywire_payment_id && Math.abs(Number(p.amount) - r.amount) < 0.01 && dayDiff(p.paid_date, paidDate) <= 10)
+      .filter(p => {
+        if (p.flywire_payment_id) return false
+        const written = String(p.transaction_reference ?? '').match(/ZBL\d+/)?.[0]
+        if (written && written !== r.reference && csvRefs.has(written)) return false
+        return Math.abs(Number(p.amount) - r.amount) < 0.01 && dayDiff(p.paid_date, paidDate) <= 10
+      })
       .sort((a, b) => dayDiff(a.paid_date, paidDate) - dayDiff(b.paid_date, paidDate))
     if (dups.length && !includeDups) {
       out.push({
@@ -222,54 +229,72 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Pasada de enriquecimiento EN LOTES: pagos históricos de Activa ganan la
-  // analítica Flywire (método/moneda/país + flywire_payment_id) SIN tocar
-  // monto ni fecha. Upsert parcial por id: solo actualiza las columnas enviadas.
+  // Pasada de enriquecimiento: pagos históricos de Activa ganan la analítica
+  // Flywire (método/moneda/país + flywire_payment_id) SIN tocar monto ni fecha.
+  // Updates individuales en tandas paralelas (el upsert parcial exige columnas
+  // NOT NULL que no viajan — lección aprendida).
   {
     const enr = out.filter(o => o.verdict === 'enriquecer')
-    const payRows = enr.map(o => ({
-      id: zblMap.get(o.row.reference)!.id,
-      flywire_payment_id: o.row.reference,
-      payment_method: o.row.method || null,
-      currency_from: o.row.currency || null,
-      country_from: o.row.country || null,
-    }))
-    for (let i = 0; i < payRows.length; i += 500) {
-      const chunk = payRows.slice(i, i + 500)
-      let { error } = await sb.from('account_payments').upsert(chunk, { onConflict: 'id' })
-      if (error && /column/i.test(error.message)) {
-        ({ error } = await sb.from('account_payments').upsert(
-          chunk.map(c => ({ id: c.id, flywire_payment_id: c.flywire_payment_id })), { onConflict: 'id' }))
-      }
-      if (error) { errors.push(`enriquecer: ${error.message}`); break }
-      enriched += chunk.length
+    for (let i = 0; i < enr.length; i += 100) {
+      const wave = enr.slice(i, i + 100)
+      const results = await Promise.all(wave.map(o =>
+        sb.from('account_payments').update({
+          flywire_payment_id: o.row.reference,
+          payment_method: o.row.method || null,
+          currency_from: o.row.currency || null,
+          country_from: o.row.country || null,
+        }).eq('id', zblMap.get(o.row.reference)!.id)
+      ))
+      results.forEach((r2, j) => {
+        if (r2.error) errors.push(`enriquecer ${wave[j].row.reference}: ${r2.error.message}`)
+        else enriched++
+      })
     }
-    const chargeRows = enr
-      .filter(o => zblMap.get(o.row.reference)!.charge_external_id)
-      .map(o => ({
-        external_id: zblMap.get(o.row.reference)!.charge_external_id!,
-        flywire_status: o.row.status,
-        flywire_payment_id: o.row.reference,
-      }))
-    for (let i = 0; i < chargeRows.length; i += 500) {
-      const { error } = await sb.from('account_charges').upsert(chargeRows.slice(i, i + 500), { onConflict: 'external_id' })
-      if (error) { errors.push(`estado en cuotas: ${error.message}`); break }
+    // Estado Flywire en las cuotas enlazadas (dedup: una cuota, un update)
+    const chargeUpd = new Map<string, { flywire_status: string; flywire_payment_id: string }>()
+    for (const o of enr) {
+      const ce = zblMap.get(o.row.reference)!.charge_external_id
+      if (ce) chargeUpd.set(ce, { flywire_status: o.row.status, flywire_payment_id: o.row.reference })
+    }
+    const chargeList = [...chargeUpd.entries()]
+    for (let i = 0; i < chargeList.length; i += 100) {
+      const wave = chargeList.slice(i, i + 100)
+      const results = await Promise.all(wave.map(([ce, v]) =>
+        sb.from('account_charges').update(v).eq('external_id', ce)
+      ))
+      results.forEach((r2, j) => { if (r2.error) errors.push(`cuota ${wave[j][0]}: ${r2.error.message}`) })
     }
   }
 
-  // Pasada de actualización: referencias ya importadas que cambiaron de etapa/fecha
-  for (const o of out) {
-    if (o.verdict !== 'actualizar') continue
-    const prev = existingFly.get(o.row.reference)!
-    const newDate = o.row.finished_date ? o.row.finished_date.slice(0, 10) : null
-    if (newDate && prev.paid_date !== newDate) {
-      const { error } = await sb.from('account_payments').update({ paid_date: newDate }).eq('id', prev.id)
-      if (error) { errors.push(`${o.row.reference}: ${error.message}`); continue }
+  // Pasada de actualización: referencias ya importadas — refresca etapa/fecha
+  // y completa la analítica si faltaba (en tandas paralelas)
+  {
+    const acts = out.filter(o => o.verdict === 'actualizar')
+    for (let i = 0; i < acts.length; i += 100) {
+      const wave = acts.slice(i, i + 100)
+      const results = await Promise.all(wave.map(o => {
+        const prev = existingFly.get(o.row.reference)!
+        const newDate = o.row.finished_date ? o.row.finished_date.slice(0, 10) : null
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const patch: any = {
+          payment_method: o.row.method || null,
+          currency_from: o.row.currency || null,
+          country_from: o.row.country || null,
+        }
+        if (newDate && prev.paid_date !== newDate) patch.paid_date = newDate
+        return sb.from('account_payments').update(patch).eq('id', prev.id)
+      }))
+      results.forEach((r2, j) => {
+        if (r2.error) errors.push(`actualizar ${wave[j].row.reference}: ${r2.error.message}`)
+        else updated++
+      })
+      await Promise.all(wave.map(o => {
+        const prev = existingFly.get(o.row.reference)!
+        return prev.charge_external_id
+          ? sb.from('account_charges').update({ flywire_status: o.row.status }).eq('external_id', prev.charge_external_id)
+          : Promise.resolve({ error: null })
+      }))
     }
-    if (prev.charge_external_id) {
-      await sb.from('account_charges').update({ flywire_status: o.row.status }).eq('external_id', prev.charge_external_id)
-    }
-    updated++
   }
 
   let excludedCount = 0
