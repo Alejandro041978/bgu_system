@@ -176,12 +176,19 @@ export async function POST(req: NextRequest) {
   // Colocación automática: solo si el programa tiene una única entrada natural;
   // con varias (variantes) la elección queda para la bandeja.
   // Correo estudiantil @blackwell.pro: automático al matricular si no tiene.
+  // SOLO Bachelor / Master / Doctorado tienen derecho (regla del usuario);
   // NO bloqueante: si Google falla, la matrícula sigue y queda el botón en la Ficha.
   let student_email: { ok: boolean; email?: string; notified?: boolean; note?: string } = { ok: false, note: 'sin intentar' }
   try {
+    const { data: cat } = prog.category_id
+      ? await sb.from('academic_programs_category').select('name').eq('id', prog.category_id).maybeSingle()
+      : { data: null }
+    const eligible = /bachelor|master|doctor/i.test(cat?.name ?? '')
     const { data: stu } = await sb.from('academic_students')
       .select('first_name, last_name, second_last_name, email, email_alt').eq('id', sid).maybeSingle()
-    if (stu?.email_alt) {
+    if (!eligible) {
+      student_email = { ok: false, note: `la categoría "${cat?.name ?? 'sin categoría'}" no tiene derecho a correo estudiantil` }
+    } else if (stu?.email_alt) {
       student_email = { ok: true, email: stu.email_alt, note: 'ya tenía correo institucional' }
     } else if (!googleConfigured()) {
       student_email = { ok: false, note: 'Google Workspace sin configurar (pendiente: crear desde la Ficha)' }

@@ -27,6 +27,17 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (!s) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
   if (s.email_alt) return NextResponse.json({ error: `El estudiante ya tiene correo institucional: ${s.email_alt}` }, { status: 409 })
 
+  // Derecho a correo: al menos una matrícula en Bachelor / Master / Doctorado
+  const { data: enr } = await sb.from('academic_student_enrollments')
+    .select('academic_programs(name, category:academic_programs_category(name))').eq('student_id', id)
+  const catNames = [...new Set(((enr ?? []) as { academic_programs: { name: string; category: { name: string } | null } | null }[])
+    .map(e => e.academic_programs?.category?.name).filter(Boolean))] as string[]
+  if (!catNames.some(n => /bachelor|master|doctor/i.test(n))) {
+    return NextResponse.json({
+      error: `Solo Bachelor, Master y Doctorado tienen derecho a correo estudiantil. Categorías del estudiante: ${catNames.join(', ') || '(sin matrículas)'}`,
+    }, { status: 403 })
+  }
+
   // Alias ya ocupados en nuestra base (Google se consulta dentro)
   const taken = new Set<string>()
   for (let from = 0; ; from += 1000) {
