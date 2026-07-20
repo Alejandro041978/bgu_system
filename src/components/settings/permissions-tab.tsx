@@ -57,6 +57,7 @@ const PAGE_GROUPS = [
   {
     label: 'Académico',
     pages: [
+      { key: 'academic_student_profile', label: 'Ficha del Estudiante' },
       { key: 'academic_tracking', label: 'Seguimiento estudiantil' },
       { key: 'academic_camila', label: 'Camila · Tablero de retención' },
       { key: 'academic_retention', label: 'Retención (solicitudes de retiro)' },

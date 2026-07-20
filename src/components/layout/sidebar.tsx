@@ -89,6 +89,7 @@ const navigation: NavGroup[] = [
       {
         name: 'Seguimiento estudiantil', href: '/academic/seguimiento', icon: Activity,
         children: [
+          { name: 'Ficha del Estudiante', href: '/academic/estudiantes', icon: UserCog, pageKey: 'academic_student_profile' },
           { name: 'Base de Seguimiento', href: '/academic/seguimiento', icon: Activity, pageKey: 'academic_tracking' },
           { name: 'Camila · Tablero', href: '/academic/camila', icon: Gauge, pageKey: 'academic_camila' },
           { name: 'Retención', href: '/academic/retencion', icon: HeartHandshake, pageKey: 'academic_retention' },
