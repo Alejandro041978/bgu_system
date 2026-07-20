@@ -192,26 +192,38 @@ export async function POST(req: NextRequest) {
   let inserted = 0, linked = 0, updated = 0, enriched = 0
   const errors: string[] = []
 
-  // Pasada de enriquecimiento: pagos históricos de Activa ganan la analítica
-  // Flywire (método/moneda/país + flywire_payment_id) SIN tocar monto ni fecha.
-  for (const o of out) {
-    if (o.verdict !== 'enriquecer') continue
-    const target = zblMap.get(o.row.reference)!
-    let { error } = await sb.from('account_payments').update({
+  // Pasada de enriquecimiento EN LOTES: pagos históricos de Activa ganan la
+  // analítica Flywire (método/moneda/país + flywire_payment_id) SIN tocar
+  // monto ni fecha. Upsert parcial por id: solo actualiza las columnas enviadas.
+  {
+    const enr = out.filter(o => o.verdict === 'enriquecer')
+    const payRows = enr.map(o => ({
+      id: zblMap.get(o.row.reference)!.id,
       flywire_payment_id: o.row.reference,
       payment_method: o.row.method || null,
       currency_from: o.row.currency || null,
       country_from: o.row.country || null,
-    }).eq('id', target.id)
-    if (error && /column/i.test(error.message)) {
-      ({ error } = await sb.from('account_payments').update({ flywire_payment_id: o.row.reference }).eq('id', target.id))
+    }))
+    for (let i = 0; i < payRows.length; i += 500) {
+      const chunk = payRows.slice(i, i + 500)
+      let { error } = await sb.from('account_payments').upsert(chunk, { onConflict: 'id' })
+      if (error && /column/i.test(error.message)) {
+        ({ error } = await sb.from('account_payments').upsert(
+          chunk.map(c => ({ id: c.id, flywire_payment_id: c.flywire_payment_id })), { onConflict: 'id' }))
+      }
+      if (error) { errors.push(`enriquecer: ${error.message}`); break }
+      enriched += chunk.length
     }
-    if (error) { errors.push(`${o.row.reference}: ${error.message}`); continue }
-    enriched++
-    if (target.charge_external_id) {
-      await sb.from('account_charges')
-        .update({ flywire_status: o.row.status, flywire_payment_id: o.row.reference })
-        .eq('external_id', target.charge_external_id)
+    const chargeRows = enr
+      .filter(o => zblMap.get(o.row.reference)!.charge_external_id)
+      .map(o => ({
+        external_id: zblMap.get(o.row.reference)!.charge_external_id!,
+        flywire_status: o.row.status,
+        flywire_payment_id: o.row.reference,
+      }))
+    for (let i = 0; i < chargeRows.length; i += 500) {
+      const { error } = await sb.from('account_charges').upsert(chargeRows.slice(i, i + 500), { onConflict: 'external_id' })
+      if (error) { errors.push(`estado en cuotas: ${error.message}`); break }
     }
   }
 
