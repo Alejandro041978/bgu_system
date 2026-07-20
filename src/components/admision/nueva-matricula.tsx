@@ -154,11 +154,13 @@ export function NuevaMatricula() {
               <input placeholder="Segundo apellido" value={newStudent.second_last_name} onChange={e => setNewStudent(p => ({ ...p, second_last_name: e.target.value }))} className={inp} />
               <input placeholder="Documento *" value={newStudent.document_number} onChange={e => setNewStudent(p => ({ ...p, document_number: e.target.value }))} className={inp} />
               <input placeholder="Correo" type="email" value={newStudent.email} onChange={e => setNewStudent(p => ({ ...p, email: e.target.value }))} className={inp} />
-              <select value={newStudent.phone_code} onChange={e => setNewStudent(p => ({ ...p, phone_code: e.target.value }))} className={inp}>
-                <option value="">Código telefónico…</option>
-                {CODIGOS_TEL.map(([code, nombre]) => <option key={code} value={code}>{code} {nombre}</option>)}
-              </select>
-              <input placeholder="Número de teléfono" value={newStudent.phone_local} onChange={e => setNewStudent(p => ({ ...p, phone_local: e.target.value.replace(/\D/g, '') }))} className={inp} />
+              <div className="sm:col-span-3 flex gap-1.5">
+                <select value={newStudent.phone_code} onChange={e => setNewStudent(p => ({ ...p, phone_code: e.target.value }))} className={`${inp} w-44 shrink-0`}>
+                  <option value="">Código tel…</option>
+                  {CODIGOS_TEL.map(([code, nombre]) => <option key={code} value={code}>{code} {nombre}</option>)}
+                </select>
+                <input placeholder="Número de teléfono" value={newStudent.phone_local} onChange={e => setNewStudent(p => ({ ...p, phone_local: e.target.value.replace(/\D/g, '') }))} className={`${inp} flex-1`} />
+              </div>
               <input placeholder="Ciudad" value={newStudent.city} onChange={e => setNewStudent(p => ({ ...p, city: e.target.value }))} className={inp} />
               <select value={newStudent.country} onChange={e => setNewStudent(p => ({ ...p, country: e.target.value }))} className={inp}>
                 <option value="">País…</option>

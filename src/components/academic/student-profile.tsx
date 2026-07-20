@@ -179,16 +179,17 @@ export function StudentProfile() {
                   </button>
                 )}
               </Field>
-              <Field label={`Teléfono${student.phone_number ? ` (envíos: ${student.phone_number})` : ''}`}>
+              <label className="block sm:col-span-3">
+                <span className="block text-xs text-gray-500 mb-1">{`Teléfono${student.phone_number ? ` (envíos: ${student.phone_number})` : ''}`}</span>
                 <div className="flex gap-1.5">
-                  <select value={form.phone_code} onChange={e => set('phone_code', e.target.value)} className={`${inp} w-32 shrink-0`}>
-                    <option value="">Código…</option>
+                  <select value={form.phone_code} onChange={e => set('phone_code', e.target.value)} className={`${inp} w-44 shrink-0`}>
+                    <option value="">Código tel…</option>
                     {CODIGOS_TEL.map(([code, nombre]) => <option key={code} value={code}>{code} {nombre}</option>)}
                     {form.phone_code && !CODIGOS_TEL.some(([c]) => c === form.phone_code) && <option value={form.phone_code}>{form.phone_code}</option>}
                   </select>
-                  <input value={form.phone_local} onChange={e => set('phone_local', e.target.value.replace(/\D/g, ''))} placeholder="Número" className={inp} />
+                  <input value={form.phone_local} onChange={e => set('phone_local', e.target.value.replace(/\D/g, ''))} placeholder="Número de teléfono" className={`${inp} flex-1`} />
                 </div>
-              </Field>
+              </label>
               <Field label="Ciudad"><input value={form.city} onChange={e => set('city', e.target.value)} className={inp} /></Field>
               <Field label="País">
                 <select value={form.country} onChange={e => set('country', e.target.value)} className={inp}>
