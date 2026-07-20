@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { fetchByIn } from '@/lib/grades-write'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -94,8 +95,9 @@ export async function POST(req: NextRequest) {
   const revertidos = rows.filter(r => r.status === 'cancelled' && existingFly.has(r.reference))
   const informativos = rows.length - importables.length - revertidos.length
 
-  // Pagos existentes de los estudiantes implicados (detección de duplicados vs Activa)
-  interface Existing { amount: number; paid_date: string | null; flywire_payment_id: string | null }
+  // Pagos existentes de los estudiantes implicados (detección de duplicados vs
+  // Activa). fetchByIn pagina DENTRO de cada tanda: sin el tope de 1000 filas.
+  interface Existing { id: string; amount: number; paid_date: string | null; flywire_payment_id: string | null }
   const payByStudent = new Map<string, Existing[]>()
   {
     const ids = [...new Set(importables.map(r => {
@@ -104,14 +106,12 @@ export async function POST(req: NextRequest) {
       const c = byName.get(`${normName(r.first_name)}|${normName(r.last_name)}`)
       return c?.length === 1 ? c[0] : null
     }).filter(Boolean))] as string[]
-    for (let i = 0; i < ids.length; i += 150) {
-      const part = ids.slice(i, i + 150)
-      const { data } = await sb.from('account_payments')
-        .select('student_id, amount, paid_date, flywire_payment_id').in('student_id', part)
-      for (const p of (data ?? [])) {
-        if (!payByStudent.has(p.student_id)) payByStudent.set(p.student_id, [])
-        payByStudent.get(p.student_id)!.push(p)
-      }
+    const pays = ids.length
+      ? await fetchByIn(sb, 'account_payments', 'id, student_id, amount, paid_date, flywire_payment_id', 'student_id', ids)
+      : []
+    for (const p of pays as (Existing & { student_id: string })[]) {
+      if (!payByStudent.has(p.student_id)) payByStudent.set(p.student_id, [])
+      payByStudent.get(p.student_id)!.push(p)
     }
   }
 
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
   }
 
   type Verdict = 'importar' | 'actualizar' | 'enriquecer' | 'revertido' | 'posible_duplicado' | 'sin_estudiante' | 'nombre_ambiguo'
-  const out: { row: Row; verdict: Verdict; student_id?: string; student?: string; detail?: string }[] = []
+  const out: { row: Row; verdict: Verdict; student_id?: string; student?: string; detail?: string; dup_payment_id?: string }[] = []
 
   for (const r of revertidos) {
     out.push({ row: r, verdict: 'revertido', detail: 'ya registrado como pago y Flywire lo reporta cancelado: resolver a mano (el importador no borra pagos)' })
@@ -153,12 +153,19 @@ export async function POST(req: NextRequest) {
     const stu = students.find(s => s.id === sid)
     const studentName = [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' ')
 
-    // ¿Ya está registrado vía Activa? (mismo monto ±0.01 y fecha ±5 días, sin marca Flywire)
+    // ¿Ya está registrado vía Activa? (mismo monto ±0.01 y fecha ±10 días, sin
+    // marca Flywire; las transferencias se entregan días después del registro).
+    // Se elige el más cercano en fecha; al confirmar se ASOCIA (no se duplica).
     const paidDate = r.finished_date ? r.finished_date.slice(0, 10) : new Date().toISOString().slice(0, 10)
-    const dup = (payByStudent.get(sid) ?? []).find(p =>
-      !p.flywire_payment_id && Math.abs(Number(p.amount) - r.amount) < 0.01 && dayDiff(p.paid_date, paidDate) <= 5)
-    if (dup && !includeDups) {
-      out.push({ row: r, verdict: 'posible_duplicado', student_id: sid, student: studentName, detail: `ya hay un pago de ${dup.amount} el ${dup.paid_date}` })
+    const dups = (payByStudent.get(sid) ?? [])
+      .filter(p => !p.flywire_payment_id && Math.abs(Number(p.amount) - r.amount) < 0.01 && dayDiff(p.paid_date, paidDate) <= 10)
+      .sort((a, b) => dayDiff(a.paid_date, paidDate) - dayDiff(b.paid_date, paidDate))
+    if (dups.length && !includeDups) {
+      out.push({
+        row: r, verdict: 'posible_duplicado', student_id: sid, student: studentName,
+        dup_payment_id: dups[0].id,
+        detail: `se asociará al pago de ${dups[0].amount} del ${dups[0].paid_date} en Activa`,
+      })
       continue
     }
     out.push({ row: r, verdict: 'importar', student_id: sid, student: studentName })
@@ -189,8 +196,30 @@ export async function POST(req: NextRequest) {
   }
 
   // COMMIT: insertar pagos + enlazar cuota impaga del mismo monto + estado en la cuota
-  let inserted = 0, linked = 0, updated = 0, enriched = 0
+  let inserted = 0, linked = 0, updated = 0, enriched = 0, associated = 0
   const errors: string[] = []
+
+  // Posibles duplicados → ASOCIAR al pago de Activa (ZBL + analítica, sin crear
+  // dinero nuevo). Un pago de Activa solo puede reclamar UNA fila del CSV.
+  {
+    const claimed = new Set<string>()
+    for (const o of out) {
+      if (o.verdict !== 'posible_duplicado' || !o.dup_payment_id) continue
+      if (claimed.has(o.dup_payment_id)) { errors.push(`${o.row.reference}: el pago de Activa ya fue asociado a otra referencia; revisar a mano`); continue }
+      claimed.add(o.dup_payment_id)
+      let { error } = await sb.from('account_payments').update({
+        flywire_payment_id: o.row.reference,
+        payment_method: o.row.method || null,
+        currency_from: o.row.currency || null,
+        country_from: o.row.country || null,
+      }).eq('id', o.dup_payment_id)
+      if (error && /column/i.test(error.message)) {
+        ({ error } = await sb.from('account_payments').update({ flywire_payment_id: o.row.reference }).eq('id', o.dup_payment_id))
+      }
+      if (error) { errors.push(`${o.row.reference}: ${error.message}`); continue }
+      associated++
+    }
+  }
 
   // Pasada de enriquecimiento EN LOTES: pagos históricos de Activa ganan la
   // analítica Flywire (método/moneda/país + flywire_payment_id) SIN tocar
@@ -315,5 +344,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, counts, inserted, updated, enriched, linked_to_charge: linked, events_logged: eventsLogged, errors })
+  return NextResponse.json({ ok: true, counts, inserted, updated, enriched, associated, linked_to_charge: linked, events_logged: eventsLogged, errors })
 }
