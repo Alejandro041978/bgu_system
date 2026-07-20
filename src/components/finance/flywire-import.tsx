@@ -12,7 +12,7 @@ interface Detalle {
   estado: string; fecha: string | null; veredicto: string; estudiante: string | null; nota: string | null
 }
 interface Counts {
-  total_csv: number; informativos: number; importar: number; actualizar: number
+  total_csv: number; informativos: number; importar: number; actualizar: number; enriquecer: number
   revertido: number; posible_duplicado: number; sin_estudiante: number; nombre_ambiguo: number
 }
 
@@ -55,7 +55,7 @@ export function FlywireImport() {
   const [detalle, setDetalle] = useState<Detalle[]>([])
   const [includeDups, setIncludeDups] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ inserted: number; updated: number; linked: number; errors: string[] } | null>(null)
+  const [result, setResult] = useState<{ inserted: number; updated: number; enriched: number; linked: number; errors: string[] } | null>(null)
 
   async function onFile(f: File) {
     setFileName(f.name); setCounts(null); setDetalle([]); setResult(null)
@@ -110,7 +110,7 @@ export function FlywireImport() {
     }).then(r => r.json())
     setLoading(false)
     if (d.error) { alert(d.error); return }
-    setResult({ inserted: d.inserted, updated: d.updated ?? 0, linked: d.linked_to_charge, errors: d.errors ?? [] })
+    setResult({ inserted: d.inserted, updated: d.updated ?? 0, enriched: d.enriched ?? 0, linked: d.linked_to_charge, errors: d.errors ?? [] })
     preview(rows, includeDups)
   }
 
@@ -130,7 +130,7 @@ export function FlywireImport() {
 
       {result && (
         <div className={`text-sm px-4 py-3 rounded-xl ${result.errors.length ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-800'}`}>
-          <p className="font-medium">✓ {result.inserted} pagos importados ({result.linked} enlazados a su cuota) · {result.updated} actualizados de etapa/fecha.</p>
+          <p className="font-medium">✓ {result.inserted} pagos importados ({result.linked} enlazados a su cuota) · {result.updated} actualizados de etapa/fecha · {result.enriched} históricos enriquecidos.</p>
           {result.errors.map((e, i) => <p key={i} className="text-xs">{e}</p>)}
         </div>
       )}
@@ -141,6 +141,7 @@ export function FlywireImport() {
             <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{counts.total_csv} filas en el CSV</span>
             <span className="bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{counts.informativos} initiated/cancelled (no se importan)</span>
             <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">{counts.actualizar} ya importados (se refresca etapa/fecha)</span>
+            {counts.enriquecer > 0 && <span className="bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-medium">{counts.enriquecer} históricos de Activa a enriquecer (por ZBL)</span>}
             <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-medium">{counts.importar} listos para importar</span>
             {counts.revertido > 0 && <span className="bg-red-100 text-red-700 px-2.5 py-1 rounded-full font-semibold">⚠ {counts.revertido} REVERTIDOS (pago registrado que Flywire canceló)</span>}
             {counts.posible_duplicado > 0 && <span className="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">{counts.posible_duplicado} posibles duplicados de Activa</span>}
@@ -198,7 +199,7 @@ export function FlywireImport() {
 
           <p className="text-[11px] text-gray-400 flex items-start gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            Se importan solo delivered y guaranteed (montos ya en USD). El estudiante se resuelve por DNI y, si falta, por nombre; los ambiguos y no encontrados quedan listados para resolverlos a mano (corrige el nombre/documento en la Ficha y re-sube el CSV). Cada pago se enlaza a la cuota impaga del mismo monto si existe.
+            Se importan solo delivered y guaranteed (montos ya en USD). Si la referencia ZBL ya existe en un pago histórico de Activa, se ENRIQUECE (método/moneda/país) sin duplicar ni tocar monto/fecha. El estudiante se resuelve por DNI y, si falta, por nombre; los ambiguos quedan listados para resolverlos a mano. Cada pago nuevo se enlaza a la cuota impaga del mismo monto si existe. Todo el embudo (incl. cancelados) queda en el log para analítica.
           </p>
         </>
       )}

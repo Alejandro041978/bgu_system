@@ -74,6 +74,21 @@ export async function POST(req: NextRequest) {
     if ((data ?? []).length < 1000) break
   }
 
+  // Pagos históricos de Activa con referencia ZBL (para ENRIQUECER, no duplicar):
+  // el equipo a veces anotó sufijos ("ZBL123/12OCTUBRE2023") → se extrae el patrón
+  const zblMap = new Map<string, { id: string; charge_external_id: string | null }>()
+  for (let from = 0; ; from += 1000) {
+    const { data } = await sb.from('account_payments')
+      .select('id, transaction_reference, flywire_payment_id, charge_external_id')
+      .not('transaction_reference', 'is', null).range(from, from + 999)
+    for (const p of (data ?? [])) {
+      if (p.flywire_payment_id) continue // ya asociado
+      const m = String(p.transaction_reference).match(/ZBL\d+/)
+      if (m) zblMap.set(m[0], { id: p.id, charge_external_id: p.charge_external_id })
+    }
+    if ((data ?? []).length < 1000) break
+  }
+
   const importables = rows.filter(r => ['delivered', 'guaranteed'].includes(r.status))
   // Reversión: un pago que ya importamos y que Flywire ahora reporta cancelado
   const revertidos = rows.filter(r => r.status === 'cancelled' && existingFly.has(r.reference))
@@ -105,7 +120,7 @@ export async function POST(req: NextRequest) {
     return Math.abs((new Date(a).getTime() - new Date(b).getTime()) / 86400000)
   }
 
-  type Verdict = 'importar' | 'actualizar' | 'revertido' | 'posible_duplicado' | 'sin_estudiante' | 'nombre_ambiguo'
+  type Verdict = 'importar' | 'actualizar' | 'enriquecer' | 'revertido' | 'posible_duplicado' | 'sin_estudiante' | 'nombre_ambiguo'
   const out: { row: Row; verdict: Verdict; student_id?: string; student?: string; detail?: string }[] = []
 
   for (const r of revertidos) {
@@ -118,6 +133,11 @@ export async function POST(req: NextRequest) {
       const newDate = r.finished_date ? r.finished_date.slice(0, 10) : null
       const needsDate = newDate && prev.paid_date !== newDate
       out.push({ row: r, verdict: 'actualizar', detail: needsDate ? `fecha ${prev.paid_date} → ${newDate}` : 'refresca estado en la cuota' })
+      continue
+    }
+    // Pago histórico de Activa con este ZBL: enriquecer, no duplicar
+    if (zblMap.has(r.reference)) {
+      out.push({ row: r, verdict: 'enriquecer' })
       continue
     }
 
@@ -149,6 +169,7 @@ export async function POST(req: NextRequest) {
     informativos,
     importar: out.filter(o => o.verdict === 'importar').length,
     actualizar: out.filter(o => o.verdict === 'actualizar').length,
+    enriquecer: out.filter(o => o.verdict === 'enriquecer').length,
     revertido: out.filter(o => o.verdict === 'revertido').length,
     posible_duplicado: out.filter(o => o.verdict === 'posible_duplicado').length,
     sin_estudiante: out.filter(o => o.verdict === 'sin_estudiante').length,
@@ -158,7 +179,7 @@ export async function POST(req: NextRequest) {
   if (!commit) {
     return NextResponse.json({
       preview: true, counts,
-      detalle: out.filter(o => o.verdict !== 'actualizar').map(o => ({
+      detalle: out.filter(o => o.verdict !== 'actualizar' && o.verdict !== 'enriquecer').map(o => ({
         referencia: o.row.reference, nombre_csv: `${o.row.first_name} ${o.row.last_name}`,
         dni: o.row.dni || null, monto: o.row.amount, estado: o.row.status,
         fecha: o.row.finished_date?.slice(0, 10) ?? null,
@@ -168,8 +189,31 @@ export async function POST(req: NextRequest) {
   }
 
   // COMMIT: insertar pagos + enlazar cuota impaga del mismo monto + estado en la cuota
-  let inserted = 0, linked = 0, updated = 0
+  let inserted = 0, linked = 0, updated = 0, enriched = 0
   const errors: string[] = []
+
+  // Pasada de enriquecimiento: pagos históricos de Activa ganan la analítica
+  // Flywire (método/moneda/país + flywire_payment_id) SIN tocar monto ni fecha.
+  for (const o of out) {
+    if (o.verdict !== 'enriquecer') continue
+    const target = zblMap.get(o.row.reference)!
+    let { error } = await sb.from('account_payments').update({
+      flywire_payment_id: o.row.reference,
+      payment_method: o.row.method || null,
+      currency_from: o.row.currency || null,
+      country_from: o.row.country || null,
+    }).eq('id', target.id)
+    if (error && /column/i.test(error.message)) {
+      ({ error } = await sb.from('account_payments').update({ flywire_payment_id: o.row.reference }).eq('id', target.id))
+    }
+    if (error) { errors.push(`${o.row.reference}: ${error.message}`); continue }
+    enriched++
+    if (target.charge_external_id) {
+      await sb.from('account_charges')
+        .update({ flywire_status: o.row.status, flywire_payment_id: o.row.reference })
+        .eq('external_id', target.charge_external_id)
+    }
+  }
 
   // Pasada de actualización: referencias ya importadas que cambiaron de etapa/fecha
   for (const o of out) {
@@ -259,5 +303,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, counts, inserted, updated, linked_to_charge: linked, events_logged: eventsLogged, errors })
+  return NextResponse.json({ ok: true, counts, inserted, updated, enriched, linked_to_charge: linked, events_logged: eventsLogged, errors })
 }
