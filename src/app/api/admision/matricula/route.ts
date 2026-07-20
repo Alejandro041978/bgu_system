@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { placeStudentInEntry } from '@/lib/carousel'
-import { createStudentEmail, notifyStudentEmail, googleConfigured } from '@/lib/google-workspace'
+import { createStudentEmail, notifyStudentEmail, googleConfigured, langFor } from '@/lib/google-workspace'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
       : { data: null }
     const eligible = /bachelor|master|doctor/i.test(cat?.name ?? '')
     const { data: stu } = await sb.from('academic_students')
-      .select('first_name, last_name, second_last_name, email, email_alt').eq('id', sid).maybeSingle()
+      .select('first_name, last_name, second_last_name, email, email_alt, country').eq('id', sid).maybeSingle()
     if (!eligible) {
       student_email = { ok: false, note: `la categoría "${cat?.name ?? 'sin categoría'}" no tiene derecho a correo estudiantil` }
     } else if (stu?.email_alt) {
@@ -204,7 +204,7 @@ export async function POST(req: NextRequest) {
       await sb.from('academic_students').update({ email_alt: created.email }).eq('id', sid)
       let notified = false
       if (stu.email) {
-        try { await notifyStudentEmail(stu.email, [stu.first_name, stu.last_name].filter(Boolean).join(' '), created); notified = true } catch { /* aviso abajo */ }
+        try { await notifyStudentEmail(stu.email, [stu.first_name, stu.last_name].filter(Boolean).join(' '), created, langFor(stu.country)); notified = true } catch { /* aviso abajo */ }
       }
       student_email = { ok: true, email: created.email, notified }
     }

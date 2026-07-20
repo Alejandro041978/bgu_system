@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { createStudentEmail, notifyStudentEmail, googleConfigured } from '@/lib/google-workspace'
+import { createStudentEmail, notifyStudentEmail, googleConfigured, langFor } from '@/lib/google-workspace'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -23,7 +23,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { data: s } = await sb.from('academic_students')
-    .select('id, first_name, last_name, second_last_name, email, email_alt').eq('id', id).maybeSingle()
+    .select('id, first_name, last_name, second_last_name, email, email_alt, country').eq('id', id).maybeSingle()
   if (!s) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
   if (s.email_alt) return NextResponse.json({ error: `El estudiante ya tiene correo institucional: ${s.email_alt}` }, { status: 409 })
 
@@ -55,7 +55,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     let notified = false, notifyError: string | null = null
     if (s.email) {
       try {
-        await notifyStudentEmail(s.email, [s.first_name, s.last_name].filter(Boolean).join(' '), created)
+        await notifyStudentEmail(s.email, [s.first_name, s.last_name].filter(Boolean).join(' '), created, langFor(s.country))
         notified = true
       } catch (e) { notifyError = e instanceof Error ? e.message : String(e) }
     } else {
