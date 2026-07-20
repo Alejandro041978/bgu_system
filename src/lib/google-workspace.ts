@@ -63,10 +63,13 @@ export interface EmailCreation { email: string; password: string }
 export async function createStudentEmail(
   student: { first_name: string | null; last_name: string | null; second_last_name?: string | null },
   takenLocally: Set<string>,
+  recovery?: { email?: string | null; phone?: string | null },
 ): Promise<EmailCreation> {
   if (!googleConfigured()) throw new Error('Faltan GOOGLE_OAUTH_CLIENT_ID / SECRET / REFRESH_TOKEN en Vercel')
   const first = strip((student.first_name ?? '').trim().split(/\s+/)[0])
-  const last = strip((student.last_name ?? '').trim().split(/\s+/)[0])
+  // Apellido paterno COMPLETO sin espacios: "De Los Santos" → delossantos
+  // (strip elimina espacios y tildes al filtrar a-z)
+  const last = strip(student.last_name ?? '')
   if (!first || !last) throw new Error('El estudiante no tiene nombre y apellido válidos para generar el alias')
   const secondInitial = strip((student.second_last_name ?? '').trim().split(/\s+/)[0]).slice(0, 1)
 
@@ -88,6 +91,10 @@ export async function createStudentEmail(
   if (!chosen) throw new Error('No se encontró un alias libre (agotados los candidatos)')
 
   const password = tempPassword()
+  // Recuperación autónoma: correo personal y teléfono E.164 si existen
+  // (el estudiante recupera su acceso sin pasar por helpdesk)
+  const recoveryEmail = recovery?.email?.trim() || null
+  const recoveryPhone = recovery?.phone && /^\+\d{8,15}$/.test(recovery.phone.trim()) ? recovery.phone.trim() : null
   const res = await fetch('https://admin.googleapis.com/admin/directory/v1/users', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -100,6 +107,8 @@ export async function createStudentEmail(
       password,
       changePasswordAtNextLogin: true,
       orgUnitPath: ORG_UNIT,
+      ...(recoveryEmail ? { recoveryEmail } : {}),
+      ...(recoveryPhone ? { recoveryPhone } : {}),
     }),
   })
   if (!res.ok) {

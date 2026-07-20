@@ -23,7 +23,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { data: s } = await sb.from('academic_students')
-    .select('id, first_name, last_name, second_last_name, email, email_alt, country').eq('id', id).maybeSingle()
+    .select('id, first_name, last_name, second_last_name, email, email_alt, country, phone_number').eq('id', id).maybeSingle()
   if (!s) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
   if (s.email_alt) return NextResponse.json({ error: `El estudiante ya tiene correo institucional: ${s.email_alt}` }, { status: 409 })
 
@@ -48,7 +48,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   }
 
   try {
-    const created = await createStudentEmail(s, taken)
+    const created = await createStudentEmail(s, taken, { email: s.email, phone: s.phone_number })
     const { error } = await sb.from('academic_students').update({ email_alt: created.email }).eq('id', id)
     if (error) return NextResponse.json({ error: `Cuenta creada en Google (${created.email}) pero no se pudo guardar: ${error.message}` }, { status: 500 })
 
