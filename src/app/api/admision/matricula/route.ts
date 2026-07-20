@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   const { student_id, new_student, program_id, convocatoria_id, enrollment_date } = (body ?? {}) as {
     student_id?: string
-    new_student?: { first_name?: string; last_name?: string; second_last_name?: string; document_number?: string; email?: string; phone_number?: string }
+    new_student?: { first_name?: string; last_name?: string; second_last_name?: string; document_number?: string; email?: string; phone_number?: string; city?: string; country?: string }
     program_id?: string
     convocatoria_id?: string
     enrollment_date?: string
@@ -102,6 +102,10 @@ export async function POST(req: NextRequest) {
     if (!ns.first_name?.trim() || !ns.last_name?.trim() || !ns.document_number?.trim()) {
       return NextResponse.json({ error: 'Nombres, primer apellido y documento son obligatorios' }, { status: 400 })
     }
+    const country = ns.country?.trim().toUpperCase() || null
+    if (country && !/^[A-Z]{3}$/.test(country)) {
+      return NextResponse.json({ error: 'El país debe ser un código ISO de 3 letras (como el resto de la base: PER, MEX…)' }, { status: 400 })
+    }
     const doc = ns.document_number.trim()
     const { data: dup } = await sb.from('academic_students')
       .select('id, first_name, last_name').eq('document_number', doc).limit(1)
@@ -117,6 +121,8 @@ export async function POST(req: NextRequest) {
       document_number: doc,
       email: ns.email?.trim() || null,
       phone_number: ns.phone_number?.trim() || null,
+      city: ns.city?.trim() || null,
+      country,
       situation: 'activo',
       situation_source: 'auto',
     })

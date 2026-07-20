@@ -9,7 +9,17 @@ interface Conv { id: string; name: string; semester: string; first_day: string |
 interface Found { id: string; name: string; document: string; email: string | null; situation: string | null; programs: string[] }
 
 const fdate = (d: string | null) => (d ? d.split('T')[0].split('-').reverse().join('/') : '—')
-const EMPTY_NEW = { first_name: '', last_name: '', second_last_name: '', document_number: '', email: '', phone_number: '' }
+const EMPTY_NEW = { first_name: '', last_name: '', second_last_name: '', document_number: '', email: '', phone_number: '', city: '', country: '' }
+
+// Códigos ISO-3, el mismo formato que trae el sync de SystemActiva
+const PAISES: [string, string][] = [
+  ['PER', 'Perú'], ['MEX', 'México'], ['ECU', 'Ecuador'], ['COL', 'Colombia'], ['CHL', 'Chile'],
+  ['ARG', 'Argentina'], ['BOL', 'Bolivia'], ['BRA', 'Brasil'], ['CRI', 'Costa Rica'], ['CUB', 'Cuba'],
+  ['DOM', 'Rep. Dominicana'], ['SLV', 'El Salvador'], ['ESP', 'España'], ['GTM', 'Guatemala'],
+  ['HND', 'Honduras'], ['NIC', 'Nicaragua'], ['PAN', 'Panamá'], ['PRY', 'Paraguay'], ['PRI', 'Puerto Rico'],
+  ['URY', 'Uruguay'], ['USA', 'Estados Unidos'], ['VEN', 'Venezuela'], ['CAN', 'Canadá'], ['ITA', 'Italia'],
+  ['FRA', 'Francia'], ['DEU', 'Alemania'], ['GBR', 'Reino Unido'],
+]
 
 export function NuevaMatricula() {
   // Paso 1: estudiante
@@ -134,6 +144,11 @@ export function NuevaMatricula() {
               <input placeholder="Documento *" value={newStudent.document_number} onChange={e => setNewStudent(p => ({ ...p, document_number: e.target.value }))} className={inp} />
               <input placeholder="Correo" type="email" value={newStudent.email} onChange={e => setNewStudent(p => ({ ...p, email: e.target.value }))} className={inp} />
               <input placeholder="Teléfono" value={newStudent.phone_number} onChange={e => setNewStudent(p => ({ ...p, phone_number: e.target.value }))} className={inp} />
+              <input placeholder="Ciudad" value={newStudent.city} onChange={e => setNewStudent(p => ({ ...p, city: e.target.value }))} className={inp} />
+              <select value={newStudent.country} onChange={e => setNewStudent(p => ({ ...p, country: e.target.value }))} className={inp}>
+                <option value="">País…</option>
+                {PAISES.map(([code, nombre]) => <option key={code} value={code}>{nombre}</option>)}
+              </select>
             </div>
             <div className="flex items-center justify-between">
               <p className="text-[11px] text-gray-400">El correo se usa para vincular o crear su cuenta de Moodle: recomendable llenarlo.</p>
