@@ -42,10 +42,14 @@ export function ConvocatoriasManager() {
 
   async function saveConv(c: Conv) {
     setSavingId(c.id)
-    await fetch('/api/convocatorias', {
+    const d = await fetch('/api/convocatorias', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c),
-    })
+    }).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
     setSavingId(null)
+    if (d.error) {
+      alert(d.error)
+      loadData(categoryId, yearId) // revierte la fila al valor guardado
+    }
   }
 
   async function addConv(semId: string) {

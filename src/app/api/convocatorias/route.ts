@@ -52,6 +52,21 @@ export async function GET(req: NextRequest) {
 }
 
 // POST → crear convocatoria (con su categoría única)
+// Compuerta: el primer día de clases debe caer dentro del rango de fechas del
+// semestre al que la convocatoria se asocia (regla del usuario, 2026-07-20).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function firstDayGate(sb: any, semesterId: string, firstDay: string | null | undefined): Promise<string | null> {
+  if (!firstDay) return null // sin fecha aún: se valida cuando se fije
+  const { data: sem } = await sb.from('academic_semesters')
+    .select('name, start_date, end_date').eq('id', semesterId).maybeSingle()
+  if (!sem) return 'Semestre no encontrado'
+  const day = firstDay.slice(0, 10)
+  if ((sem.start_date && day < sem.start_date) || (sem.end_date && day > sem.end_date)) {
+    return `El primer día de clases (${day}) está fuera del rango del semestre ${sem.name} (${sem.start_date} → ${sem.end_date})`
+  }
+  return null
+}
+
 export async function POST(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
@@ -59,6 +74,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Falta semestre o categoría' }, { status: 400 })
   }
   const sb = db()
+  const gate = await firstDayGate(sb, b.academic_semester_id, b.first_day)
+  if (gate) return NextResponse.json({ error: gate }, { status: 400 })
   const { error } = await sb.from('convocatorias').insert({
     name: b.name || 'Nueva convocatoria',
     product_category_id: b.category_id,
@@ -76,6 +93,11 @@ export async function PATCH(req: NextRequest) {
   const b = await req.json().catch(() => null)
   if (!b?.id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
   const sb = db()
+  const { data: curr } = await sb.from('convocatorias')
+    .select('academic_semester_id').eq('id', b.id).maybeSingle()
+  if (!curr) return NextResponse.json({ error: 'Convocatoria no encontrada' }, { status: 404 })
+  const gate = await firstDayGate(sb, curr.academic_semester_id, b.first_day)
+  if (gate) return NextResponse.json({ error: gate }, { status: 400 })
   const { error } = await sb.from('convocatorias').update({
     name: b.name,
     deadline_date: b.deadline_date || null,
