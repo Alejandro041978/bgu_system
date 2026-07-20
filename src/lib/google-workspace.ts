@@ -138,7 +138,9 @@ const T = {
   },
 }
 
-const PORTAL = 'https://email.blackwell.pro/'
+// OJO: el portal solo responde por http (sin certificado). Si algún día se le
+// agrega SSL, cambiar aquí a https.
+const PORTAL = 'http://email.blackwell.pro/'
 
 function emailHtml(lang: 'es' | 'en', studentName: string, created: EmailCreation): string {
   const t = T[lang]
