@@ -8,6 +8,8 @@ import { Resend } from 'resend'
 // ---------------------------------------------------------------------------
 
 const DOMAIN = process.env.STUDENT_EMAIL_DOMAIN || 'blackwell.pro'
+// Unidad organizativa donde nacen los correos de alumnos (sub-OU de Neumann)
+const ORG_UNIT = process.env.STUDENT_EMAIL_ORG_UNIT || '/blackwell.pro'
 
 export function googleConfigured(): boolean {
   return !!(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET && process.env.GOOGLE_OAUTH_REFRESH_TOKEN)
@@ -97,6 +99,7 @@ export async function createStudentEmail(
       },
       password,
       changePasswordAtNextLogin: true,
+      orgUnitPath: ORG_UNIT,
     }),
   })
   if (!res.ok) {
