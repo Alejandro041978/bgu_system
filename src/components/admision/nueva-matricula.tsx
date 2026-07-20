@@ -155,7 +155,7 @@ export function NuevaMatricula() {
               <input placeholder="Documento *" value={newStudent.document_number} onChange={e => setNewStudent(p => ({ ...p, document_number: e.target.value }))} className={inp} />
               <input placeholder="Correo" type="email" value={newStudent.email} onChange={e => setNewStudent(p => ({ ...p, email: e.target.value }))} className={inp} />
               <div className="sm:col-span-3 flex gap-1.5">
-                <select value={newStudent.phone_code} onChange={e => setNewStudent(p => ({ ...p, phone_code: e.target.value }))} className={`${inp} w-44 shrink-0`}>
+                <select value={newStudent.phone_code} onChange={e => setNewStudent(p => ({ ...p, phone_code: e.target.value }))} className={`${inp} !w-44 shrink-0`}>
                   <option value="">Código tel…</option>
                   {CODIGOS_TEL.map(([code, nombre]) => <option key={code} value={code}>{code} {nombre}</option>)}
                 </select>

@@ -182,7 +182,7 @@ export function StudentProfile() {
               <label className="block sm:col-span-3">
                 <span className="block text-xs text-gray-500 mb-1">{`Teléfono${student.phone_number ? ` (envíos: ${student.phone_number})` : ''}`}</span>
                 <div className="flex gap-1.5">
-                  <select value={form.phone_code} onChange={e => set('phone_code', e.target.value)} className={`${inp} w-44 shrink-0`}>
+                  <select value={form.phone_code} onChange={e => set('phone_code', e.target.value)} className={`${inp} !w-44 shrink-0`}>
                     <option value="">Código tel…</option>
                     {CODIGOS_TEL.map(([code, nombre]) => <option key={code} value={code}>{code} {nombre}</option>)}
                     {form.phone_code && !CODIGOS_TEL.some(([c]) => c === form.phone_code) && <option value={form.phone_code}>{form.phone_code}</option>}
