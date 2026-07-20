@@ -32,7 +32,7 @@ interface Row {
 export async function POST(req: NextRequest) {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'No autorizado', v: 3 }, { status: 401 })
 
   const body = await req.json().catch(() => null) as { rows?: Row[]; commit?: boolean; include_duplicates?: boolean } | null
   const rows = body?.rows ?? []
