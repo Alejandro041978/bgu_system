@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { fetchByIn } from '@/lib/grades-write'
 
 export const revalidate = 0
-export const maxDuration = 60
+export const maxDuration = 300
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -298,51 +298,83 @@ export async function POST(req: NextRequest) {
   }
 
   let excludedCount = 0
-  for (const o of out) {
-    if (o.verdict !== 'importar') continue
-    if (excluded.has(o.row.reference)) { excludedCount++; continue }
+  // Prefetch masivo de cuotas y pagos de TODOS los estudiantes del lote —
+  // antes eran 2 consultas + 1 insert POR FILA y una importación de miles de
+  // filas moría en el límite de Vercel con el spinner girando para siempre.
+  const importRows = out.filter(o => {
+    if (o.verdict !== 'importar') return false
+    if (excluded.has(o.row.reference)) { excludedCount++; return false }
+    return true
+  })
+  const importStudents = [...new Set(importRows.map(o => o.student_id).filter(Boolean))] as string[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chargesByStudent = new Map<string, any[]>()
+  const paidCharges = new Set<string>()
+  for (let i = 0; i < importStudents.length; i += 150) {
+    const part = importStudents.slice(i, i + 150)
+    const { data: cs } = await sb.from('account_charges')
+      .select('external_id, student_id, amount, due_date').in('student_id', part).order('due_date', { ascending: true })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const c of (cs ?? []) as any[]) {
+      if (!chargesByStudent.has(c.student_id)) chargesByStudent.set(c.student_id, [])
+      chargesByStudent.get(c.student_id)!.push(c)
+    }
+    const { data: ps } = await sb.from('account_payments')
+      .select('charge_external_id').in('student_id', part).not('charge_external_id', 'is', null)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const p of (ps ?? []) as any[]) if (p.charge_external_id) paidCharges.add(p.charge_external_id)
+  }
+
+  // Armar todo en memoria (el enlace consume cuotas del set para no enlazar
+  // dos pagos a la misma cuota dentro del mismo lote)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const toInsert: { base: any; analytics: any; chargeExt: string | null; status: string }[] = []
+  for (const o of importRows) {
     const r = o.row
     const paidDate = r.finished_date ? r.finished_date.slice(0, 10) : new Date().toISOString().slice(0, 10)
-
-    // Cuota impaga del mismo monto (la más antigua) para enlazar el pago
     let chargeExt: string | null = null
-    const { data: charges } = await sb.from('account_charges')
-      .select('external_id, amount, due_date').eq('student_id', o.student_id).order('due_date', { ascending: true })
-    const { data: paysOf } = await sb.from('account_payments')
-      .select('charge_external_id').eq('student_id', o.student_id).not('charge_external_id', 'is', null)
-    const paidCharges = new Set((paysOf ?? []).map((p: { charge_external_id: string }) => p.charge_external_id))
-    const open = (charges ?? []).find((c: { external_id: string; amount: number }) =>
+    const open = (chargesByStudent.get(o.student_id!) ?? []).find(c =>
       !paidCharges.has(c.external_id) && Math.abs(Number(c.amount) - r.amount) < 0.01)
-    if (open) chargeExt = open.external_id
-
-    const base = {
-      external_id: crypto.randomUUID(),
-      flywire_payment_id: r.reference,
-      charge_external_id: chargeExt,
-      student_id: o.student_id,
-      amount: r.amount,
-      paid_date: paidDate,
-      series_code: 'FLYWIRE',
-      transaction_reference: r.reference,
-    }
-    // Analítica (método/moneda/país): si la migración aún no corrió, reintenta sin ellas
-    let { error } = await sb.from('account_payments').insert({
-      ...base,
-      payment_method: r.method || null,
-      currency_from: r.currency || null,
-      country_from: r.country || null,
+    if (open) { chargeExt = open.external_id; paidCharges.add(open.external_id) }
+    toInsert.push({
+      base: {
+        external_id: crypto.randomUUID(),
+        flywire_payment_id: r.reference,
+        charge_external_id: chargeExt,
+        student_id: o.student_id,
+        amount: r.amount,
+        paid_date: paidDate,
+        series_code: 'FLYWIRE',
+        transaction_reference: r.reference,
+      },
+      analytics: { payment_method: r.method || null, currency_from: r.currency || null, country_from: r.country || null },
+      chargeExt,
+      status: r.status,
     })
-    if (error && /column/i.test(error.message)) {
-      ({ error } = await sb.from('account_payments').insert(base))
+  }
+
+  // Insertar en tandas (con analítica; si la migración no corrió, sin ella)
+  let useAnalytics = true
+  const chargeUpdates: { external_id: string; status: string; reference: string }[] = []
+  for (let i = 0; i < toInsert.length; i += 300) {
+    const wave = toInsert.slice(i, i + 300)
+    const mk = (withA: boolean) => wave.map(t => withA ? { ...t.base, ...t.analytics } : t.base)
+    let { error } = await sb.from('account_payments').insert(mk(useAnalytics))
+    if (error && /column/i.test(error.message) && useAnalytics) {
+      useAnalytics = false
+      ;({ error } = await sb.from('account_payments').insert(mk(false)))
     }
-    if (error) { errors.push(`${r.reference}: ${error.message}`); continue }
-    inserted++
-    if (chargeExt) {
-      linked++
-      await sb.from('account_charges')
-        .update({ flywire_status: r.status, flywire_payment_id: r.reference })
-        .eq('external_id', chargeExt)
+    if (error) { errors.push(`tanda de inserción: ${error.message}`); continue }
+    inserted += wave.length
+    for (const t of wave) {
+      if (t.chargeExt) { linked++; chargeUpdates.push({ external_id: t.chargeExt, status: t.status, reference: t.base.flywire_payment_id }) }
     }
+  }
+  for (let i = 0; i < chargeUpdates.length; i += 100) {
+    await Promise.all(chargeUpdates.slice(i, i + 100).map(u =>
+      sb.from('account_charges')
+        .update({ flywire_status: u.status, flywire_payment_id: u.reference })
+        .eq('external_id', u.external_id)))
   }
 
   // Embudo completo a flywire_events: TODA fila del CSV (incluidos iniciados y
