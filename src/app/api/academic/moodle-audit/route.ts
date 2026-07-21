@@ -41,14 +41,24 @@ export async function GET() {
     rows.push(...chunk)
     if (chunk.length < 1000) break
   }
+  // Pesos: si N8N sincronizó la SUMA ARITMÉTICA de coeficientes (desde la BD de
+  // Moodle), esa manda — detecta huecos que la normalización esconde (ej. 3
+  // Module Tests de 4 → suma 95). Sin sync, cae al peso normalizado del WS.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cumplePesosDe = (r: any): boolean | null => {
+    if (r.suma_coeficientes != null) return Math.abs(Number(r.suma_coeficientes) - 100) <= 0.5
+    return r.cumple_pesos
+  }
   // Cada aula vive en EXACTAMENTE una categoría (suman el total), por esta
   // precedencia: sin datos > sin evaluaciones > incumple (viola algo medible)
   // > cumple > sin ponderación reportada (no reporta pesos y nada más falla).
-  const estadoDe = (r: { error: string | null; items_evaluacion: number | null; cumple_pesos: boolean | null; cumple_escala: boolean | null }): string => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const estadoDe = (r: any): string => {
     if (r.error) return 'sin_datos'
     if ((r.items_evaluacion ?? 0) === 0) return 'sin_evaluaciones'
-    if (r.cumple_pesos === false || r.cumple_escala === false) return 'incumplen'
-    if (r.cumple_pesos === true && r.cumple_escala === true) return 'cumplen'
+    const cp = cumplePesosDe(r)
+    if (cp === false || r.cumple_escala === false) return 'incumplen'
+    if (cp === true && r.cumple_escala === true) return 'cumplen'
     return 'sin_ponderacion'
   }
   const porEstado = new Map<string, number>()
@@ -59,7 +69,8 @@ export async function GET() {
     total: rows.length,
     cumplen: porEstado.get('cumplen') ?? 0,
     incumplen: porEstado.get('incumplen') ?? 0,
-    pesos_mal: rows.filter(r => r.cumple_pesos === false).length,
+    pesos_mal: rows.filter(r => cumplePesosDe(r) === false).length,
+    con_suma_aritmetica: rows.filter(r => r.suma_coeficientes != null).length,
     escala_mal: rows.filter(r => r.cumple_escala === false).length,
     sin_evaluaciones: porEstado.get('sin_evaluaciones') ?? 0,
     sin_ponderacion: porEstado.get('sin_ponderacion') ?? 0,

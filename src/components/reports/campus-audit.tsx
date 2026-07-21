@@ -9,6 +9,7 @@ interface Aula {
   recursos: number | null; recursos_activos: number | null
   items_evaluacion: number | null; items_activos: number | null; items_con_peso: number | null
   suma_pesos: number | null; escala_total: number | null
+  suma_coeficientes?: number | null; coefs_sync_at?: string | null
   cumple_pesos: boolean | null; cumple_escala: boolean | null
   metodo: string | null; categoria: string | null; error: string | null; audited_at: string
 }
@@ -48,12 +49,19 @@ export function CampusAudit() {
     load()
   }
 
+  // La suma ARITMÉTICA de coeficientes (sync N8N desde la BD de Moodle) manda
+  // sobre el peso normalizado del WS: detecta huecos como "3 Module Tests de 4"
+  const cumplePesosDe = (a: Aula): boolean | null => {
+    if (a.suma_coeficientes != null) return Math.abs(Number(a.suma_coeficientes) - 100) <= 0.5
+    return a.cumple_pesos
+  }
   // Misma precedencia que la API: cada aula vive en UNA sola categoría
   const estadoDe = (a: Aula): Filtro => {
     if (a.error) return 'sin_datos'
     if ((a.items_evaluacion ?? 0) === 0) return 'sin_evaluaciones'
-    if (a.cumple_pesos === false || a.cumple_escala === false) return 'incumplen'
-    if (a.cumple_pesos === true && a.cumple_escala === true) return 'cumplen'
+    const cp = cumplePesosDe(a)
+    if (cp === false || a.cumple_escala === false) return 'incumplen'
+    if (cp === true && a.cumple_escala === true) return 'cumplen'
     return 'sin_ponderacion'
   }
   const visibles = (d?.aulas ?? []).filter(a => filtro === 'todas' || estadoDe(a) === filtro)
@@ -166,8 +174,10 @@ export function CampusAudit() {
                       {a.items_evaluacion != null ? <><b className="text-gray-800">{a.items_activos ?? '?'}</b><span className="text-gray-400"> / {a.items_evaluacion}</span></> : '—'}
                     </td>
                     <td className="px-3 py-2 text-right text-gray-600">{a.items_con_peso ?? '—'}</td>
-                    <td className={`px-3 py-2 text-right font-medium whitespace-nowrap ${a.cumple_pesos === false ? 'text-rose-700' : a.cumple_pesos ? 'text-green-700' : 'text-gray-300'}`}>
-                      {a.suma_pesos != null ? `${a.suma_pesos}%` : '—'}
+                    <td className={`px-3 py-2 text-right font-medium whitespace-nowrap ${cumplePesosDe(a) === false ? 'text-rose-700' : cumplePesosDe(a) ? 'text-green-700' : 'text-gray-300'}`}>
+                      {a.suma_coeficientes != null
+                        ? <span title="Suma aritmética de coeficientes (BD Moodle)">{`Σ ${a.suma_coeficientes}`}</span>
+                        : a.suma_pesos != null ? `${a.suma_pesos}%` : '—'}
                     </td>
                     <td className={`px-3 py-2 text-right whitespace-nowrap ${a.cumple_escala === false ? 'text-rose-700 font-medium' : a.cumple_escala ? 'text-green-700' : 'text-gray-300'}`}>
                       {a.escala_total != null ? a.escala_total : '—'}
@@ -179,7 +189,7 @@ export function CampusAudit() {
                           ? <span className="text-[11px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">sin evaluaciones</span>
                           : estadoDe(a) === 'incumplen'
                             ? <span className="text-[11px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full">
-                              {[a.cumple_pesos === false ? 'pesos ≠ 100%' : null, a.cumple_escala === false ? 'escala ≠ 100' : null].filter(Boolean).join(' · ')}
+                              {[cumplePesosDe(a) === false ? (a.suma_coeficientes != null ? `Σ coefs = ${a.suma_coeficientes}` : 'pesos ≠ 100%') : null, a.cumple_escala === false ? 'escala ≠ 100' : null].filter(Boolean).join(' · ')}
                             </span>
                             : estadoDe(a) === 'cumplen'
                               ? <span className="text-[11px] bg-green-50 text-green-700 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><ShieldCheck className="w-3 h-3" />cumple</span>
@@ -195,6 +205,7 @@ export function CampusAudit() {
 
           <div className="text-[11px] text-gray-400 space-y-1">
             <p><b>Auditoría estructural</b>: mide el diseño del aula, tenga o no estudiantes y tenga o no calificaciones. <b>Política</b>: las ponderaciones de los recursos evaluados <b>activos</b> (de primer nivel) suman 100% y el total del curso está sobre 100. Los recursos ocultos no cuentan.</p>
+            <p><b>Σ = suma aritmética de coeficientes</b> (sincronizada desde la base de Moodle vía N8N): a diferencia del peso normalizado —que siempre cierra en 100—, la Σ delata huecos reales del patrón (ej. Σ 95 = falta un Module Test de 5%).</p>
             <p><b>Recursos</b> = módulos del aula (activos / total). <b>Evaluados</b> = con entrada en el libro de calificaciones; <b>con peso</b> = activos que ponderan en la nota.</p>
             <p>Las aulas vacías se leen con la cuenta de servicio &quot;Auditor ERP&quot; (se matricula un instante y se retira). Las aulas se reutilizan entre cohortes: vuelve a auditar tras cada preparación de bloque.</p>
           </div>
