@@ -16,17 +16,25 @@ export async function POST(req: NextRequest) {
 
   const sb = admin()
 
-  // El correo debe pertenecer a un estudiante
+  // El correo debe pertenecer a un estudiante: acepta el personal (email) o el
+  // institucional @blackwell.pro (email_alt).
   const { data: stu } = await sb.from('academic_students')
-    .select('first_name, last_name').eq('email', mail).eq('disabled', false).maybeSingle()
+    .select('first_name, last_name, email, email_alt')
+    .or(`email.eq.${mail},email_alt.eq.${mail}`)
+    .eq('disabled', false).limit(1).maybeSingle()
   if (!stu) return NextResponse.json({ error: 'not_student' }, { status: 404 })
+
+  // La identidad de la sesión es SIEMPRE el correo personal (es el que el
+  // middleware y el portal usan para reconocer al estudiante); el enlace se
+  // envía al correo que la persona escribió.
+  const canonical = (stu.email ?? mail).trim().toLowerCase()
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://system.blackwell.university'
 
   // Genera el enlace mágico en el servidor (crea el usuario si no existe).
   const { data: link, error: linkErr } = await sb.auth.admin.generateLink({
     type: 'magiclink',
-    email: mail,
+    email: canonical,
     options: { redirectTo: `${appUrl}/auth/callback?next=/student` },
   })
   const props = link?.properties

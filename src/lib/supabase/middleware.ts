@@ -34,7 +34,8 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
-  const isAuthRoute = pathname.startsWith('/login')
+  // /portal es la entrada pública de estudiantes (mismo tratamiento que /login)
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/portal')
   const isApiRoute = pathname.startsWith('/api')
   const isPublicRoute = pathname.startsWith('/sign/') || pathname.startsWith('/auth/')
   const isStudentRoute = pathname.startsWith('/student')
