@@ -234,17 +234,16 @@ export async function POST() {
     }
   }
 
-  // En tandas para no exceder el tiempo
-  const resultados: Record<string, unknown>[] = []
+  // En tandas para no exceder el tiempo. Cada tanda se guarda apenas sale:
+  // si la función muere en el límite de Vercel (maxDuration), queda la foto
+  // parcial y el siguiente intento retoma en vez de perderlo todo.
+  let auditadas = 0
   for (let i = 0; i < aulas.length; i += 6) {
     const tanda = await Promise.all(aulas.slice(i, i + 6).map(auditOne))
-    resultados.push(...tanda)
-  }
-
-  for (let i = 0; i < resultados.length; i += 200) {
-    const { error } = await sb.from('moodle_aula_audit').upsert(resultados.slice(i, i + 200), { onConflict: 'aula_id' })
+    const { error } = await sb.from('moodle_aula_audit').upsert(tanda, { onConflict: 'aula_id' })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    auditadas += tanda.length
   }
 
-  return NextResponse.json({ ok: true, auditadas: resultados.length })
+  return NextResponse.json({ ok: true, auditadas })
 }
