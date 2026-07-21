@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -30,6 +30,7 @@ const navigation: NavGroup[] = [
           { name: 'Estado de estudiantes', href: '/reports/estado-estudiantes', icon: Users, pageKey: 'report_student_status' },
           { name: 'Estado de los docentes', href: '/reports/estado-docentes', icon: GraduationCap, pageKey: 'report_faculty_status' },
           { name: 'Auditor del Campus', href: '/reports/auditor-campus', icon: Shield, pageKey: 'report_campus_audit' },
+          { name: 'Accesos al Portal', href: '/reports/accesos-portal', icon: LogIn, pageKey: 'report_portal_logins' },
         ],
       },
     ],
