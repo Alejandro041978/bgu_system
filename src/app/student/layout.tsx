@@ -5,6 +5,7 @@ import { BrandLogo } from '@/components/brand-logo'
 import Link from 'next/link'
 import { getEffectiveStudent, isSuperadmin } from '@/lib/student-identity'
 import { ImpersonateBar } from '@/components/student/impersonate-bar'
+import { PortalHeartbeat } from '@/components/student/portal-heartbeat'
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -18,6 +19,8 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Latido de presencia (solo cuenta si la sesión es de un estudiante real) */}
+      {isRealStudent && <PortalHeartbeat />}
       {/* Barra "Entrar por" (superadmin busca/cambia el estudiante a visualizar) */}
       {superadmin && <ImpersonateBar impersonating={impersonating} currentName={student?.name ?? null} />}
 
