@@ -90,9 +90,32 @@ function ProgramAccountView({ account, canGenerate, onChanged, studentName }: { 
 
   if (account.charges.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-8 text-center space-y-3">
-        <p className="text-sm text-gray-500">Este programa aún no tiene cuotas generadas.</p>
-        {canGenerate && account.enrollment_id && <GenerateButton enrollmentId={account.enrollment_id} onChanged={onChanged} />}
+      <div className="bg-white border border-gray-200 rounded-xl p-8 space-y-3">
+        <p className="text-sm text-gray-500 text-center">Este programa aún no tiene cuotas generadas.</p>
+        {canGenerate && account.enrollment_id && <div className="text-center"><GenerateButton enrollmentId={account.enrollment_id} onChanged={onChanged} /></div>}
+        {/* Pagos recibidos sin cuota (típico del grupo "Sin programa"): dinero
+            real que espera destino — no se esconde, se muestra con su salida. */}
+        {account.payments.length > 0 && (
+          <div className="border border-amber-200 rounded-lg overflow-hidden">
+            <p className="px-3 py-2 bg-amber-50 text-xs font-medium text-amber-800">
+              💰 Pagos recibidos sin cuota asociada ({account.payments.length}) — total ${account.totals.paid.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            </p>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-gray-50">
+                {account.payments.map(p => (
+                  <tr key={p.id}>
+                    <td className="px-3 py-2 text-gray-600">{p.paid_date ? p.paid_date.split('-').reverse().join('/') : '—'}</td>
+                    <td className="px-3 py-2 text-gray-500 text-xs">{p.transaction_reference ?? '—'}</td>
+                    <td className="px-3 py-2 text-right font-semibold text-gray-900">${Number(p.amount).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="px-3 py-2 text-[11px] text-amber-600 border-t border-amber-100">
+              Enlázalos a una cuota (o márcalos &quot;sin cuota&quot;) en Finanzas → Pagos por Conciliar.
+            </p>
+          </div>
+        )}
       </div>
     )
   }

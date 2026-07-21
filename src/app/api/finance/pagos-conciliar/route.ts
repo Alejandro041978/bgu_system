@@ -17,9 +17,27 @@ async function requireUser() {
 }
 
 // GET → pagos sin cuota enlazada (la bandeja) + cuotas impagas candidatas por estudiante
-export async function GET() {
+export async function GET(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
+
+  // ?cuotas_de=<student_id> → cuotas ABIERTAS de ese estudiante (para elegir
+  // el destino al registrar un pago Flywire sin registrar)
+  const cuotasDe = req.nextUrl.searchParams.get('cuotas_de')
+  if (cuotasDe) {
+    const { data: cs } = await sb.from('account_charges')
+      .select('external_id, amount, due_date, charge_type').eq('student_id', cuotasDe).order('due_date')
+    const { data: ps } = await sb.from('account_payments')
+      .select('charge_external_id, amount').eq('student_id', cuotasDe).not('charge_external_id', 'is', null)
+    const paidBy = new Map<string, number>()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const p of (ps ?? []) as any[]) paidBy.set(p.charge_external_id, (paidBy.get(p.charge_external_id) ?? 0) + Number(p.amount ?? 0))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cuotas = ((cs ?? []) as any[])
+      .filter(c => (paidBy.get(c.external_id) ?? 0) < Number(c.amount) - 0.01)
+      .map(c => ({ external_id: c.external_id, amount: Number(c.amount), due_date: c.due_date, pagado: paidBy.get(c.external_id) ?? 0 }))
+    return NextResponse.json({ cuotas })
+  }
 
   // select('*') para tolerar que reconciled_no_charge exista o no todavía
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,7 +140,7 @@ export async function PATCH(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as {
     payment_id?: string; charge_external_id?: string; no_charge?: boolean
-    flywire_ref?: string; student_id?: string; dismiss?: boolean
+    flywire_ref?: string; student_id?: string; dismiss?: boolean; no_link?: boolean
   } | null
   const sb = db()
 
@@ -150,15 +168,25 @@ export async function PATCH(req: NextRequest) {
     const raw = ev.raw ?? {}
     const amount = Number(raw.amount) || 0
     const paidDate = raw.finished_date ? String(raw.finished_date).slice(0, 10) : new Date().toISOString().slice(0, 10)
-    // Cuota impaga del mismo monto (la más antigua)
+    // Cuota destino: elegida por el humano (charge_external_id), explícitamente
+    // ninguna (no_link → queda en la bandeja de pagos sin cuota), o el
+    // auto-calce por monto exacto de siempre.
     let chargeExt: string | null = null
-    const { data: charges } = await sb.from('account_charges')
-      .select('external_id, amount, due_date').eq('student_id', b.student_id).order('due_date', { ascending: true })
-    const { data: paysOf } = await sb.from('account_payments')
-      .select('charge_external_id').eq('student_id', b.student_id).not('charge_external_id', 'is', null)
-    const paid = new Set((paysOf ?? []).map((p: { charge_external_id: string }) => p.charge_external_id))
-    const open = (charges ?? []).find((c: { external_id: string; amount: number }) => !paid.has(c.external_id) && Math.abs(Number(c.amount) - amount) < 0.01)
-    if (open) chargeExt = open.external_id
+    if (b.charge_external_id) {
+      const { data: chosen } = await sb.from('account_charges')
+        .select('external_id, student_id').eq('external_id', b.charge_external_id).maybeSingle()
+      if (!chosen) return NextResponse.json({ error: 'Cuota elegida no encontrada' }, { status: 404 })
+      if (chosen.student_id !== b.student_id) return NextResponse.json({ error: 'La cuota elegida no pertenece a ese estudiante' }, { status: 400 })
+      chargeExt = chosen.external_id
+    } else if (!b.no_link) {
+      const { data: charges } = await sb.from('account_charges')
+        .select('external_id, amount, due_date').eq('student_id', b.student_id).order('due_date', { ascending: true })
+      const { data: paysOf } = await sb.from('account_payments')
+        .select('charge_external_id').eq('student_id', b.student_id).not('charge_external_id', 'is', null)
+      const paid = new Set((paysOf ?? []).map((p: { charge_external_id: string }) => p.charge_external_id))
+      const open = (charges ?? []).find((c: { external_id: string; amount: number }) => !paid.has(c.external_id) && Math.abs(Number(c.amount) - amount) < 0.01)
+      if (open) chargeExt = open.external_id
+    }
 
     const { error } = await sb.from('account_payments').insert({
       external_id: crypto.randomUUID(),

@@ -83,9 +83,12 @@ export function PagosConciliar() {
   const [choice, setChoice] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
-  // Búsqueda de estudiante por fila de "sin registrar"
+  // Búsqueda de estudiante por fila de "sin registrar" + elección de cuota destino
   const [query, setQuery] = useState<Record<string, string>>({})
   const [found, setFound] = useState<Record<string, Found[]>>({})
+  const [sel, setSel] = useState<Record<string, Found | null>>({})
+  const [cuotas, setCuotas] = useState<Record<string, Candidate[]>>({})
+  const [cuotaChoice, setCuotaChoice] = useState<Record<string, string>>({})
 
   const load = useCallback(async () => {
     const d = await fetch('/api/finance/pagos-conciliar').then(r => r.json())
@@ -124,6 +127,18 @@ export function PagosConciliar() {
     setFound(prev => ({ ...prev, [ref]: d.students ?? [] }))
   }
 
+  // Paso 2 del registro: elegido el estudiante, se cargan sus cuotas abiertas
+  // para que el humano decida el destino (o "sin cuota" a la bandeja).
+  async function elegir(ref: string, f: Found, amount: number) {
+    setSel(prev => ({ ...prev, [ref]: f }))
+    const d = await fetch(`/api/finance/pagos-conciliar?cuotas_de=${f.id}`).then(r => r.json())
+    const list: Candidate[] = d.cuotas ?? []
+    setCuotas(prev => ({ ...prev, [ref]: list }))
+    // Preselección: la cuota abierta del mismo monto exacto, si existe
+    const match = list.find(c => Math.abs(Number(c.amount) - amount) < 0.01)
+    setCuotaChoice(prev => ({ ...prev, [ref]: match?.external_id ?? 'none' }))
+  }
+
   if (rows === null) return <div className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>
 
   return (
@@ -159,9 +174,9 @@ export function PagosConciliar() {
                     className="border border-gray-200 rounded-lg px-2.5 py-1 text-xs w-56 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   <button onClick={() => buscar(r.reference)} className="text-xs text-blue-600 hover:text-blue-800 font-medium">Buscar</button>
                   {(found[r.reference] ?? []).map(f => (
-                    <button key={f.id} onClick={() => actFly(r.reference, { student_id: f.id }, `Pago ${r.reference} registrado para ${f.name}`)}
+                    <button key={f.id} onClick={() => elegir(r.reference, f, r.amount)}
                       disabled={busy === r.reference}
-                      className="inline-flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] px-2 py-1 rounded-lg border border-blue-100">
+                      className={`inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border ${sel[r.reference]?.id === f.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-100'}`}>
                       <Link2 className="w-3 h-3" /> {f.name} {f.document_number ? `(${f.document_number})` : ''}
                     </button>
                   ))}
@@ -171,6 +186,38 @@ export function PagosConciliar() {
                     <CircleSlash className="w-3 h-3" /> Descartar
                   </button>
                 </div>
+                {/* Paso 2: destino del pago — cuota abierta elegida o "sin cuota" */}
+                {sel[r.reference] && (
+                  <div className="flex items-center flex-wrap gap-1.5 pl-1">
+                    <span className="text-[11px] text-gray-500">Destino para <b>{sel[r.reference]!.name}</b>:</span>
+                    <select value={cuotaChoice[r.reference] ?? 'none'}
+                      onChange={e => setCuotaChoice(p => ({ ...p, [r.reference]: e.target.value }))}
+                      className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="none">Sin cuota (queda en la bandeja de abajo)</option>
+                      {(cuotas[r.reference] ?? []).map(c => (
+                        <option key={c.external_id} value={c.external_id}>
+                          Cuota {fmt(c.amount)}{c.due_date ? ` · vence ${fdate(c.due_date)}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {(cuotas[r.reference] ?? []).length === 0 && (
+                      <span className="text-[11px] text-amber-600">sin cuotas abiertas — quedará como pago sin cuota</span>
+                    )}
+                    <button
+                      onClick={() => {
+                        const choice = cuotaChoice[r.reference] ?? 'none'
+                        actFly(r.reference, {
+                          student_id: sel[r.reference]!.id,
+                          ...(choice === 'none' ? { no_link: true } : { charge_external_id: choice }),
+                        }, `Pago ${r.reference} registrado para ${sel[r.reference]!.name}${choice === 'none' ? ' (sin cuota, a la bandeja)' : ' y enlazado a su cuota'}`)
+                      }}
+                      disabled={busy === r.reference}
+                      className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] px-2.5 py-1 rounded-lg">
+                      {busy === r.reference ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                      Registrar
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
