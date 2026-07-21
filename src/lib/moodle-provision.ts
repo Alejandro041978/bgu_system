@@ -88,15 +88,17 @@ async function ensureCourse(sb: any, o: { id: string; moodle_course_id: string |
 async function loadGroupCourses(sb: any, groupId: string) {
   const { data: offs } = await sb.from('semester_offerings')
     .select('id, moodle_course_id, course:academic_courses(name, code)').eq('group_id', groupId)
-  const courseIds: number[] = []
+  // El carrusel repite la misma asignatura en varios años y todas apuntan a la
+  // MISMA aula Moodle → deduplicar para no matricular dos veces en cada aula.
+  const courseIds = new Set<number>()
   const unmapped: string[] = []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const o of (offs ?? []) as any[]) {
     const cid = await ensureCourse(sb, { id: o.id, moodle_course_id: o.moodle_course_id, code: o.course?.code ?? null })
-    if (cid) courseIds.push(cid)
+    if (cid) courseIds.add(cid)
     else unmapped.push(o.course?.name ?? o.id)
   }
-  return { courseIds, unmapped }
+  return { courseIds: [...courseIds], unmapped: [...new Set(unmapped)] }
 }
 
 // Matricula/desmatricula UN estudiante en las aulas del grupo. Best-effort.
