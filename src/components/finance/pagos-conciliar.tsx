@@ -17,6 +17,66 @@ interface Found { id: string; name: string; document_number: string | null }
 const fdate = (d: string | null) => (d ? d.split('T')[0].split('-').reverse().join('/') : '—')
 const fmt = (n: number) => n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+// Reembolsos Flywire (pestaña Reembolsos del portal ZBL): se registran como
+// pago NEGATIVO espejo del original — el saldo de la cuota revive solo.
+function RefundForm({ onDone, onError }: { onDone: (msg: string) => void; onError: (msg: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [ref, setRef] = useState('')
+  const [refundId, setRefundId] = useState('')
+  const [amount, setAmount] = useState('')
+  const [date, setDate] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function submit() {
+    setSaving(true)
+    const d = await fetch('/api/finance/refunds', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ flywire_ref: ref, refund_id: refundId, amount: Number(amount), refund_date: date }),
+    }).then(r => r.json())
+    setSaving(false)
+    if (d.error) { onError(d.error); return }
+    onDone(`Reembolso registrado: ${d.estudiante} por $${Math.abs(d.monto).toFixed(2)}${d.cuota_revivida ? ' (la cuota vuelve a quedar pendiente)' : ''}`)
+    setRef(''); setRefundId(''); setAmount(''); setDate(''); setOpen(false)
+  }
+
+  const inp = 'border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <button onClick={() => setOpen(!open)} className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50">
+        <div>
+          <p className="text-sm font-medium text-gray-700">↩ Registrar reembolso Flywire</p>
+          <p className="text-[11px] text-gray-400">Pestaña Reembolsos del portal ZBL — se registra como pago negativo espejo del original</p>
+        </div>
+        <span className="text-gray-400 text-xs">{open ? 'cerrar' : 'abrir'}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 flex flex-wrap items-end gap-3 border-t border-gray-100 pt-3">
+          <label>
+            <span className="block text-xs text-gray-500 mb-1">Referencia del pago (ZBL…)</span>
+            <input value={ref} onChange={e => setRef(e.target.value)} placeholder="ZBL436762277" className={`${inp} w-44`} />
+          </label>
+          <label>
+            <span className="block text-xs text-gray-500 mb-1">ID de reembolso (RZBL…)</span>
+            <input value={refundId} onChange={e => setRefundId(e.target.value)} placeholder="RZBLC6A0B28E" className={`${inp} w-44`} />
+          </label>
+          <label>
+            <span className="block text-xs text-gray-500 mb-1">Monto (USD)</span>
+            <input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="120.00" className={`${inp} w-28`} />
+          </label>
+          <label>
+            <span className="block text-xs text-gray-500 mb-1">Fecha del reembolso</span>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} className={inp} />
+          </label>
+          <button onClick={submit} disabled={saving || !ref.trim() || !refundId.trim() || !amount || !date}
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-40">
+            {saving ? 'Registrando…' : 'Registrar reembolso'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function PagosConciliar() {
   const [rows, setRows] = useState<Row[] | null>(null)
   const [sinRegistrar, setSinRegistrar] = useState<SinRegistrar[]>([])
@@ -71,6 +131,8 @@ export function PagosConciliar() {
       {notice && (
         <p className={`text-sm px-3 py-2 rounded-lg ${notice.kind === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>{notice.text}</p>
       )}
+
+      <RefundForm onDone={msg => { setNotice({ kind: 'ok', text: msg }); load() }} onError={msg => setNotice({ kind: 'error', text: msg })} />
 
       {/* Sección: pagos entregados en Flywire que no existen como pago en el ERP */}
       {sinRegistrar.length > 0 && (
