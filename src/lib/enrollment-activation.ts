@@ -1,7 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
+import { createHash } from 'crypto'
 import { placeStudentInEntry } from './carousel'
 import { createStudentEmail, notifyStudentEmail, googleConfigured, langFor } from './google-workspace'
 import { sameCourse } from './course-match'
+
+// UUID determinístico (formato v4) a partir de una semilla: mismo insumo →
+// mismo id → el registro de malla es idempotente aunque se re-ejecute.
+// (academic_grades.external_id es de tipo uuid.)
+function stableUuid(seed: string): string {
+  const h = createHash('sha1').update(seed).digest('hex')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -67,7 +76,7 @@ async function registerCurriculum(sb: any, enr: any, stu: any): Promise<number> 
 
   const name = [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' ')
   const rows = malla.filter(c => !hasCourse(c)).map(c => ({
-    external_id: `reg-${enr.id}-${c.id}`,
+    external_id: stableUuid(`registro|${enr.id}|${c.id}`),
     document_number: doc,
     email: stu.email ?? null,
     student_name: name,

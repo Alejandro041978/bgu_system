@@ -61,6 +61,8 @@ export async function generateChargesForEnrollment(
         amount: Number(plan.installment_amount),
         due_date: dueDate(String(plan.first_due_date).slice(0, 10), i, plan.due_day ?? null),
         charge_type: plan.installment_concept ?? null,
+        // explícito: en inserts masivos PostgREST manda null si la clave falta
+        is_initial: false,
       })
     }
   }
