@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Search, Loader2, X, FileText, Trash2, ChevronDown, ChevronRight, Download, CheckCircle2, Send, Inbox, Zap, Clock } from 'lucide-react'
+import { Plus, Search, Loader2, X, FileText, Trash2, ChevronDown, ChevronRight, Download, CheckCircle2, Send, Inbox, Zap, Clock, CircleSlash } from 'lucide-react'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 interface DocType { id: string; name: string; price: number; currency: string; active: boolean; scope_category_id: string | null; scope_program_ids: string[] }
@@ -24,6 +24,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   ready: { label: 'Listo para emitir', cls: 'bg-indigo-50 text-indigo-700' },
   delivered: { label: 'Entregado', cls: 'bg-green-100 text-green-800' },
   rejected: { label: 'Rechazado', cls: 'bg-red-50 text-red-700' },
+  cancelled: { label: 'Anulada', cls: 'bg-gray-100 text-gray-400' },
 }
 const fdate = (d: string) => new Date(d).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
 const daysSince = (d: string) => Math.floor((Date.now() - new Date(d).getTime()) / 86400000)
@@ -453,6 +454,17 @@ function RequestRow({ r, expanded, onToggle, onChanged, onRemove, deleting, band
                 <a href={r.document_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white">
                   <Download className="w-3.5 h-3.5" />Ver / descargar documento
                 </a>
+              )}
+
+              {/* Anular: disponible mientras no esté entregada ni ya anulada.
+                  Borra también su cuota impaga del estado de cuenta. */}
+              {!['delivered', 'cancelled'].includes(r.status) && (
+                <button
+                  onClick={() => { if (confirm('¿Anular esta solicitud? Si tiene una cuota impaga en el estado de cuenta, se borrará también.')) act('cancel') }}
+                  disabled={busy === 'cancel'}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50">
+                  {busy === 'cancel' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CircleSlash className="w-3.5 h-3.5" />}Anular solicitud
+                </button>
               )}
 
               {r.emitted_at && <p className="text-[11px] text-gray-400">Emitido el {fdate(r.emitted_at)}</p>}

@@ -31,5 +31,19 @@ export async function DELETE(req: NextRequest) {
 
   const { error } = await sb.from('account_charges').delete().eq('external_id', b.external_id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true })
+
+  // Si la cuota nació de una solicitud de documento, la solicitud no puede
+  // quedar esperando un pago que ya no existe: se cancela junto con ella.
+  const { data: reqs } = await sb.from('document_requests')
+    .select('id, status').eq('charge_external_id', b.external_id)
+  let solicitud_cancelada = false
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const r of (reqs ?? []) as any[]) {
+    if (r.status === 'delivered') continue
+    await sb.from('document_requests')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', r.id)
+    solicitud_cancelada = true
+  }
+
+  return NextResponse.json({ ok: true, solicitud_cancelada })
 }

@@ -63,5 +63,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ ok: true, status: 'delivered', document_url: res.url })
   }
 
+  // Anular la solicitud: borra también su cuota si sigue impaga (una cuota
+  // con pagos no se toca — habría que resolver el pago primero).
+  if (action === 'cancel') {
+    if (r.status === 'delivered') return NextResponse.json({ error: 'La solicitud ya fue entregada: no se puede anular' }, { status: 400 })
+    let cuota_borrada = false
+    if (r.charge_external_id) {
+      const { count } = await sb.from('account_payments')
+        .select('id', { count: 'exact', head: true }).eq('charge_external_id', r.charge_external_id)
+      if ((count ?? 0) > 0) {
+        return NextResponse.json({ error: 'La cuota de esta solicitud ya tiene pagos: desenlázalos o registra el reembolso antes de anular' }, { status: 409 })
+      }
+      await sb.from('account_charges').delete().eq('external_id', r.charge_external_id)
+      cuota_borrada = true
+    }
+    const { error } = await sb.from('document_requests')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, status: 'cancelled', cuota_borrada })
+  }
+
   return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
 }
