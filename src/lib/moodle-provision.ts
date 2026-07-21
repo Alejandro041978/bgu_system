@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { getUserByEmail, getUserByIdnumber, getCourseByCode, createMoodleUser, enrolUser, unenrolUser, moodleConfigured } from './moodle'
+import { getUserByEmail, getUserByIdnumber, getCourseByCode, createMoodleUser, enrolUser, enrolUsersBulk, unenrolUser, moodleConfigured } from './moodle'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -120,7 +120,10 @@ export async function provisionStudent(groupId: string, studentId: string, actio
   return result
 }
 
-// Re-aprovisiona TODOS los miembros del grupo (matricula). Útil tras logins SSO o mapear aulas.
+// Re-aprovisiona los miembros ACTIVOS del grupo (matricula). Útil tras mapear
+// aulas. Solo activos: quien completó el carrusel ya fue desmatriculado por el
+// motor y no debe volver a sus aulas. La matrícula va en LOTES (una llamada WS
+// con cientos de pares) para que grupos grandes entren en el tiempo de Vercel.
 export async function syncGroup(groupId: string): Promise<SyncResult> {
   const result: SyncResult = { configured: moodleConfigured(), students_total: 0, with_account: 0, no_account: 0, accounts_created: 0, enrol_ops: 0, courses_unmapped: [], errors: [] }
   if (!result.configured) return result
@@ -129,18 +132,22 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
     const { courseIds, unmapped } = await loadGroupCourses(sb, groupId)
     result.courses_unmapped = unmapped
     const { data: members } = await sb.from('academic_group_students')
-      .select(`academic_students(${STUDENT_FIELDS})`).eq('group_id', groupId)
+      .select(`status, academic_students(${STUDENT_FIELDS})`).eq('group_id', groupId).eq('status', 'activo')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const students = (members ?? []).map((m: any) => m.academic_students).filter(Boolean)
     result.students_total = students.length
+
+    const enrolments: { userid: number; courseid: number }[] = []
     for (const s of students) {
       const uid = await ensureMoodleUser(sb, s, result)
       if (!uid) { result.no_account++; continue }
       result.with_account++
-      for (const cid of courseIds) {
-        try { await enrolUser(cid, uid); result.enrol_ops++ }
-        catch (e) { result.errors.push(e instanceof Error ? e.message : 'error') }
-      }
+      for (const cid of courseIds) enrolments.push({ userid: uid, courseid: cid })
+    }
+    for (let i = 0; i < enrolments.length; i += 300) {
+      const wave = enrolments.slice(i, i + 300)
+      try { await enrolUsersBulk(wave); result.enrol_ops += wave.length }
+      catch (e) { result.errors.push(`lote ${i / 300 + 1}: ${e instanceof Error ? e.message : 'error'}`) }
     }
   } catch (e) { result.errors.push(e instanceof Error ? e.message : 'error') }
   return result

@@ -3,9 +3,9 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { syncGroup } from '@/lib/moodle-provision'
 
 export const revalidate = 0
-export const maxDuration = 60
+export const maxDuration = 300
 
-// POST → re-aprovisiona (matricula) todos los miembros del grupo en sus aulas Moodle.
+// POST → re-aprovisiona (matricula) los miembros activos del grupo en sus aulas Moodle.
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()

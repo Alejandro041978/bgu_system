@@ -92,6 +92,13 @@ export async function enrolUser(courseid: number, userid: number, roleid = MOODL
   await moodleCall('enrol_manual_enrol_users', { enrolments: [{ roleid, userid, courseid }] })
 }
 
+// Matrícula masiva: una sola llamada WS con cientos de pares (usuario, aula).
+// Para syncs de grupos grandes — evita miles de round-trips.
+export async function enrolUsersBulk(enrolments: { userid: number; courseid: number }[], roleid = MOODLE_STUDENT_ROLEID): Promise<void> {
+  if (!enrolments.length) return
+  await moodleCall('enrol_manual_enrol_users', { enrolments: enrolments.map(e => ({ roleid, ...e })) })
+}
+
 export async function unenrolUser(courseid: number, userid: number): Promise<void> {
   await moodleCall('enrol_manual_unenrol_users', { enrolments: [{ userid, courseid }] })
 }
