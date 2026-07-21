@@ -26,6 +26,7 @@ const T = {
     sentText: (mail: string) => `Enviamos tu enlace de acceso a ${mail}. Ábrelo para entrar al portal — es válido por 1 hora.`,
     otherEmail: 'Usar otro correo',
     errNotStudent: 'Este correo no está registrado como estudiante. Verifica tu email o escribe a soporte@blackwell.university.',
+    errUseInstitutional: (inst: string) => `Tu acceso al portal es con tu correo institucional: ${inst}`,
     errGeneric: 'No pudimos enviar el enlace. Intenta de nuevo en unos minutos.',
     staff: '¿Eres parte del equipo?',
     staffLink: 'Ingresa por el acceso de staff',
@@ -45,6 +46,7 @@ const T = {
     sentText: (mail: string) => `We sent your sign-in link to ${mail}. Open it to enter the portal — valid for 1 hour.`,
     otherEmail: 'Use another email',
     errNotStudent: 'This email is not registered as a student. Check your email or write to soporte@blackwell.university.',
+    errUseInstitutional: (inst: string) => `Your portal access is through your institutional email: ${inst}`,
     errGeneric: 'We could not send the link. Please try again in a few minutes.',
     staff: 'Are you a staff member?',
     staffLink: 'Use the staff sign-in',
@@ -69,8 +71,10 @@ export default function StudentPortalEntry() {
     })
     setLoading(false)
     if (!res.ok) {
-      const d = await res.json().catch(() => ({})) as { error?: string }
-      setError(d.error === 'not_student' ? t.errNotStudent : t.errGeneric)
+      const d = await res.json().catch(() => ({})) as { error?: string; institutional?: string }
+      if (d.error === 'not_student') setError(t.errNotStudent)
+      else if (d.error === 'use_institutional' && d.institutional) setError(t.errUseInstitutional(d.institutional))
+      else setError(t.errGeneric)
       return
     }
     setSent(true)

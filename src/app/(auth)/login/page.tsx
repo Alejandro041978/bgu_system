@@ -70,8 +70,9 @@ export default function LoginPage() {
     })
     setLoading(false)
     if (!res.ok) {
-      const d = await res.json().catch(() => ({})) as { error?: string }
+      const d = await res.json().catch(() => ({})) as { error?: string; institutional?: string }
       if (d.error === 'not_student') setError('Este correo no está registrado como estudiante. Verifica tu email.')
+      else if (d.error === 'use_institutional' && d.institutional) setError(`Tu acceso al portal es con tu correo institucional: ${d.institutional}`)
       else setError('No pudimos enviar el enlace. Intenta de nuevo en unos minutos.')
       return
     }

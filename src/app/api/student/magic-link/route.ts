@@ -24,6 +24,13 @@ export async function POST(req: NextRequest) {
     .eq('disabled', false).limit(1).maybeSingle()
   if (!stu) return NextResponse.json({ error: 'not_student' }, { status: 404 })
 
+  // REGLA: quien tiene correo educativo entra SOLO con él; el personal queda
+  // como llave únicamente para quienes aún no lo tienen.
+  const institutional = (stu.email_alt ?? '').trim().toLowerCase()
+  if (institutional && mail !== institutional) {
+    return NextResponse.json({ error: 'use_institutional', institutional }, { status: 403 })
+  }
+
   // La identidad de la sesión es SIEMPRE el correo personal (es el que el
   // middleware y el portal usan para reconocer al estudiante); el enlace se
   // envía al correo que la persona escribió.
