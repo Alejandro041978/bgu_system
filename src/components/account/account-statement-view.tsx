@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
-import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2 } from 'lucide-react'
+import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2 } from 'lucide-react'
 import { FlywirePayButton } from './flywire-pay-button'
 
 const money = (n: number) =>
@@ -179,9 +179,14 @@ function ProgramAccountView({ account, canGenerate, onChanged, studentName }: { 
                     )}
                   </td>
                   <td className="px-3 py-2.5 text-right">
-                    {r.first && c.balance > 0.005 && c.status !== 'pagada' && (
-                      <FlywirePayButton chargeExternalId={c.external_id} amount={c.balance} studentName={studentName} />
-                    )}
+                    <span className="inline-flex items-center gap-1.5">
+                      {r.first && c.balance > 0.005 && c.status !== 'pagada' && (
+                        <FlywirePayButton chargeExternalId={c.external_id} amount={c.balance} studentName={studentName} />
+                      )}
+                      {r.first && canGenerate && (
+                        <DeleteChargeButton charge={c} disabled={c.paid > 0.005} onChanged={onChanged} />
+                      )}
+                    </span>
                   </td>
                 </tr>
               )
@@ -190,6 +195,30 @@ function ProgramAccountView({ account, canGenerate, onChanged, studentName }: { 
         </table>
       </div>
     </div>
+  )
+}
+
+// Borrar cuota (solo admin). Deshabilitado si tiene pagos: el backend además
+// lo rechaza — primero se desenlazan los pagos.
+function DeleteChargeButton({ charge, disabled, onChanged }: { charge: ChargeRow; disabled: boolean; onChanged?: () => void }) {
+  const [busy, setBusy] = useState(false)
+  async function del() {
+    if (!confirm(`¿Borrar la cuota de ${money(charge.amount)} (${charge.concept_abbr})? Esta acción no se puede deshacer.`)) return
+    setBusy(true)
+    const d = await fetch('/api/account/charges', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ external_id: charge.external_id }),
+    }).then(r => r.json())
+    setBusy(false)
+    if (d.error) alert(d.error)
+    else onChanged?.()
+  }
+  return (
+    <button onClick={del} disabled={disabled || busy}
+      title={disabled ? 'Tiene pagos enlazados: desenlázalos antes de borrar' : 'Borrar cuota'}
+      className="text-gray-300 hover:text-red-500 disabled:hover:text-gray-200 disabled:opacity-40">
+      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+    </button>
   )
 }
 
