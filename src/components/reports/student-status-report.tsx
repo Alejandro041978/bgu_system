@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 
-type Cell = { matriculados: number; egresados: number; titulados: number; retirados: number; reentry: number; activos: number; campus_socio: number }
-type Row = Cell & { category: string }
+type Cell = { matriculados: number; egresados: number; titulados: number; retirados: number; reentry: number; activos: number; campus_socio: number; carrusel: number; moodle: number }
+type Row = Cell & { category: string; sigla: string }
 type Data = { rows: Row[]; total: Cell }
 
 const COLS: { key: keyof Cell; label: string; cls: string }[] = [
@@ -15,6 +15,8 @@ const COLS: { key: keyof Cell; label: string; cls: string }[] = [
   { key: 'reentry',      label: 'Reentry', cls: 'text-emerald-700' },
   { key: 'activos',      label: 'Activos',      cls: 'text-green-700' },
   { key: 'campus_socio', label: 'Campus socio', cls: 'text-violet-700' },
+  { key: 'carrusel',     label: 'Carrusel', cls: 'text-cyan-700' },
+  { key: 'moodle',       label: 'Moodle', cls: 'text-indigo-700' },
 ]
 
 export function StudentStatusReport() {
@@ -37,7 +39,7 @@ export function StudentStatusReport() {
           <tbody className="divide-y divide-gray-50">
             {d.rows.map(r => (
               <tr key={r.category} className="hover:bg-gray-50/50">
-                <td className="px-4 py-2.5 text-gray-700">{r.category}</td>
+                <td className="px-4 py-2.5 text-gray-700 font-medium" title={r.category}>{r.sigla}</td>
                 {COLS.map(c => (
                   <td key={c.key} className={`px-4 py-2.5 text-right ${r[c.key] ? c.cls : 'text-gray-300'}`}>
                     {r[c.key].toLocaleString()}
@@ -62,6 +64,8 @@ export function StudentStatusReport() {
         <p><b>Matriculados</b> = Egresados + Titulados + Retirados + Activos + Campus socio (cada matrícula en un solo estado).</p>
         <p><b>Egresados</b> son matrículas terminadas cuyo título aún no se emite; al emitirse pasan a <b>Titulados</b>. Los dos juntos son el total de programas completados.</p>
         <p><b>Reentry</b> se muestra aparte (no suma): matrículas activas de estudiantes que se retiraron y volvieron.</p>
+        <p><b>Carrusel</b> y <b>Moodle</b> miden cobertura sobre los <b>Activos</b>: cuántos ya están colocados en un carrusel (lo que da acceso a sus aulas) y cuántos tienen cuenta Moodle. Lo ideal: ambos iguales a Activos.</p>
+        <p>{d.rows.map(r => `${r.sigla} = ${r.category}`).join(' · ')}</p>
       </div>
     </div>
   )

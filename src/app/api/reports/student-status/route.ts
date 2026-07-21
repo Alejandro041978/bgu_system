@@ -47,8 +47,9 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const sb = db()
-  const cats = await readAll(sb, 'academic_programs_category', 'id, name')
+  const cats = await readAll(sb, 'academic_programs_category', 'id, name, sigla')
   const nameOfCat = new Map<string, string>(cats.map((c: { id: string; name: string }) => [c.id, c.name]))
+  const siglaOfCat = new Map<string, string | null>(cats.map((c: { id: string; sigla: string | null }) => [c.id, c.sigla]))
 
   const programs = await readAll(sb, 'academic_programs', 'id, category_id, partner_campus')
   const catOfProgram = new Map<string, string | null>(programs.map((p: { id: string; category_id: string | null }) => [p.id, p.category_id]))
@@ -62,8 +63,22 @@ export async function GET() {
   const reincorporados = new Set<string>(
     (wds as { student_id: string; status: string }[]).filter(w => w.status === 'reincorporado').map(w => w.student_id))
 
-  const students = await readAll(sb, 'academic_students', 'id, situation')
+  const students = await readAll(sb, 'academic_students', 'id, situation, moodle_user_id')
   const sitOf = new Map<string, string>(students.map((s: { id: string; situation: string }) => [s.id, s.situation]))
+  const hasMoodle = new Set<string>(
+    (students as { id: string; moodle_user_id: string | null }[]).filter(s => s.moodle_user_id).map(s => s.id))
+
+  // Carruseles: membresías ACTIVAS por (estudiante, programa) — pertenecer a
+  // un carrusel es lo que da acceso a las aulas Moodle del programa.
+  const groups = await readAll(sb, 'academic_groups', 'id, program_id')
+  const programOfGroup = new Map<string, string | null>(groups.map((g: { id: string; program_id: string | null }) => [g.id, g.program_id]))
+  const memberships = await readAll(sb, 'academic_group_students', 'group_id, student_id, status')
+  const inCarousel = new Set<string>()   // `${student}|${program}`
+  for (const m of memberships as { group_id: string; student_id: string; status: string }[]) {
+    if (m.status !== 'activo') continue
+    const pid = programOfGroup.get(m.group_id)
+    if (pid) inCarousel.add(`${m.student_id}|${pid}`)
+  }
 
   // Egreso/titulación por (estudiante, programa)
   const grads = await readAll(sb, 'student_graduations', 'student_id, program_id, titulacion_status')
@@ -71,8 +86,8 @@ export async function GET() {
     (grads as { student_id: string; program_id: string; titulacion_status: string }[])
       .map(g => [`${g.student_id}|${g.program_id}`, g.titulacion_status]))
 
-  type Cell = { matriculados: number; egresados: number; titulados: number; retirados: number; reentry: number; activos: number; campus_socio: number }
-  const zero = (): Cell => ({ matriculados: 0, egresados: 0, titulados: 0, retirados: 0, reentry: 0, activos: 0, campus_socio: 0 })
+  type Cell = { matriculados: number; egresados: number; titulados: number; retirados: number; reentry: number; activos: number; campus_socio: number; carrusel: number; moodle: number }
+  const zero = (): Cell => ({ matriculados: 0, egresados: 0, titulados: 0, retirados: 0, reentry: 0, activos: 0, campus_socio: 0, carrusel: 0, moodle: 0 })
   const byCat = new Map<string, Cell>()
   const total = zero()
   const seen = new Set<string>()
@@ -98,10 +113,15 @@ export async function GET() {
     else { c.activos++; total.activos++; activa = true }
 
     if (activa && reincorporados.has(e.student_id)) { c.reentry++; total.reentry++ }
+    // Cobertura del servicio, medida sobre las matrículas ACTIVAS:
+    // carrusel = ya colocada; moodle = el estudiante tiene cuenta Moodle.
+    if (activa && inCarousel.has(pair)) { c.carrusel++; total.carrusel++ }
+    if (activa && hasMoodle.has(e.student_id)) { c.moodle++; total.moodle++ }
   }
 
   const rows = [...byCat.entries()].map(([key, c]) => ({
     category: key === '__none__' ? '(Sin categoría)' : (nameOfCat.get(key) ?? key),
+    sigla: key === '__none__' ? '—' : (siglaOfCat.get(key) ?? nameOfCat.get(key) ?? key),
     ...c,
   })).sort((a, b) => b.matriculados - a.matriculados)
 
