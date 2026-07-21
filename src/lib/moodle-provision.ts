@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { getUserByEmail, getUserByIdnumber, getCourseByCode, createMoodleUser, enrolUser, enrolUsersBulk, unenrolUser, moodleConfigured } from './moodle'
+import { getUserByEmail, getUserByIdnumber, getCourseByCode, createMoodleUser, enrolUser, enrolUsersBulk, unenrolUser, unenrolUsersBulk, moodleConfigured } from './moodle'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -148,6 +148,23 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
       const wave = enrolments.slice(i, i + 300)
       try { await enrolUsersBulk(wave); result.enrol_ops += wave.length }
       catch (e) { result.errors.push(`lote ${i / 300 + 1}: ${e instanceof Error ? e.message : 'error'}`) }
+    }
+
+    // Reconciliación inversa: quien COMPLETÓ este carrusel no debe seguir en
+    // sus aulas (el motor lo desmatriculó al avanzar; esto repara cualquier
+    // residuo — p. ej. un sync viejo que lo haya vuelto a matricular).
+    const { data: done } = await sb.from('academic_group_students')
+      .select('academic_students(id, moodle_user_id)').eq('group_id', groupId).eq('status', 'completado')
+    const unenrolments: { userid: number; courseid: number }[] = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const m of (done ?? []) as any[]) {
+      const uid = Number(m.academic_students?.moodle_user_id)
+      if (!Number.isFinite(uid) || !uid) continue
+      for (const cid of courseIds) unenrolments.push({ userid: uid, courseid: cid })
+    }
+    for (let i = 0; i < unenrolments.length; i += 300) {
+      try { await unenrolUsersBulk(unenrolments.slice(i, i + 300)) }
+      catch { /* best effort: desmatricular a quien no está matriculado puede fallar sin consecuencia */ }
     }
   } catch (e) { result.errors.push(e instanceof Error ? e.message : 'error') }
   return result

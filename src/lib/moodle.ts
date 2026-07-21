@@ -99,6 +99,11 @@ export async function enrolUsersBulk(enrolments: { userid: number; courseid: num
   await moodleCall('enrol_manual_enrol_users', { enrolments: enrolments.map(e => ({ roleid, ...e })) })
 }
 
+export async function unenrolUsersBulk(enrolments: { userid: number; courseid: number }[]): Promise<void> {
+  if (!enrolments.length) return
+  await moodleCall('enrol_manual_unenrol_users', { enrolments })
+}
+
 export async function unenrolUser(courseid: number, userid: number): Promise<void> {
   await moodleCall('enrol_manual_unenrol_users', { enrolments: [{ userid, courseid }] })
 }
