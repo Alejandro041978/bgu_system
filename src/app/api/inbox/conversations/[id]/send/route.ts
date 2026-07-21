@@ -23,6 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   let outSubject: string | null = null
   let storedBody = body
+  let twilioSid: string | null = null
   const caseTag = conv.case_number != null ? ` [Caso #${conv.case_number}]` : ''
 
   if (conv.channel === 'email') {
@@ -64,10 +65,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .select('id', { count: 'exact', head: true }).eq('conversation_id', id).eq('direction', 'out')
     if ((outCount ?? 0) === 0 && conv.case_number != null) storedBody = `${body}\n\nCaso #${conv.case_number}`
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://system.blackwell.university'
     const sent = await sendWhatsAppMessage(conv.customer_phone, storedBody, {
       from: inbox.twilio_number, sid: inbox.twilio_account_sid, token: inbox.twilio_auth_token,
-    })
+    }, { statusCallback: `${appUrl}/api/whatsapp/status` })
     if (!sent.ok) return NextResponse.json({ error: sent.error }, { status: 500 })
+    twilioSid = sent.messageSid ?? null
   }
 
   const { data: emp } = await sb.from('hr_employees').select('full_name').eq('user_id', user.id).maybeSingle()
@@ -75,6 +78,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { data: msg } = await sb.from('wa_messages').insert({
     conversation_id: id, direction: 'out', body: storedBody, subject: outSubject, agent_id: user.id, agent_name: agentNm,
+    twilio_sid: twilioSid, delivery_status: twilioSid ? 'sent' : null,
   }).select('*').single()
 
   const now = new Date().toISOString()
