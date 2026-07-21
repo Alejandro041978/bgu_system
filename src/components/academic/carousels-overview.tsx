@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, Users, CheckCircle2, AlertTriangle, ArrowRightCircle } from 'lucide-react'
+import { Loader2, Users, CheckCircle2, AlertTriangle, ArrowRightCircle, Wand2 } from 'lucide-react'
 
 interface Ref { id: string; name: string }
 interface GroupRow {
@@ -18,6 +18,13 @@ interface Data {
   categories: Ref[]; groups: GroupRow[]; unplaced: Unplaced[]
   resumen?: { carruseles: number; activos_total: number; activos_en_carrusel: number; sin_carrusel: number }
 }
+interface AutoPlan {
+  dry_run?: boolean
+  programas_carrusel_unico: number; pendientes: number; colocados: number
+  moodle_enrols?: number; cuentas_creadas?: number
+  detalle: { group_id: string; carrusel: string; n: number; estudiantes: string[] }[]
+  errors?: string[]
+}
 
 const inp = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'
 
@@ -28,6 +35,8 @@ export function CarouselsOverview() {
   const [choice, setChoice] = useState<Record<string, string>>({})
   const [placing, setPlacing] = useState<Record<string, boolean>>({})
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  const [autoPlan, setAutoPlan] = useState<AutoPlan | null>(null)
+  const [autoBusy, setAutoBusy] = useState(false)
 
   function load(cid: string) {
     setLoading(true)
@@ -51,6 +60,25 @@ export function CarouselsOverview() {
     if (!res.ok || d.error) setNotice({ kind: 'error', text: `${u.name}: ${d.error ?? 'error al colocar'}` })
     else setNotice({ kind: 'ok', text: `${u.name} colocado en ${d.group_label}` })
     load(categoryId)
+  }
+
+  // Colocación automática global: programas con UN solo carrusel de entrada
+  // (coloca en el carrusel + crea cuenta y matricula en Moodle). Dry-run primero.
+  async function autoPlace(execute: boolean) {
+    setAutoBusy(true)
+    setNotice(null)
+    const res = await fetch('/api/academic/groups/auto-place', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dry_run: !execute }),
+    })
+    const d = await res.json()
+    setAutoBusy(false)
+    if (!res.ok || d.error) {
+      setNotice({ kind: 'error', text: d.error ?? 'Error en la colocación automática' })
+      return
+    }
+    setAutoPlan(d)
+    if (execute) load(categoryId)
   }
 
   // Agrupar carruseles por programa para pintar la secuencia
@@ -92,7 +120,57 @@ export function CarouselsOverview() {
             )}
           </div>
         )}
+        <button onClick={() => autoPlace(false)} disabled={autoBusy}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+          title="Coloca toda matrícula pendiente de programas con un solo carrusel (todas las categorías) y la matricula en Moodle">
+          {autoBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+          Colocación automática
+        </button>
       </div>
+
+      {autoPlan && (
+        <div className={`border rounded-xl p-4 text-sm space-y-2 ${autoPlan.dry_run ? 'bg-blue-50 border-blue-100 text-blue-900' : 'bg-green-50 border-green-100 text-green-800'}`}>
+          {autoPlan.dry_run ? (
+            <>
+              <p className="font-medium">
+                Plan: {autoPlan.pendientes} matrículas por colocar en {autoPlan.detalle.length} carruseles
+                ({autoPlan.programas_carrusel_unico} programas con carrusel único, todas las categorías). Nada se ha tocado aún.
+              </p>
+              {autoPlan.detalle.map(d => (
+                <p key={d.group_id} className="text-xs">
+                  <b>{d.carrusel}</b> — {d.n} estudiante{d.n === 1 ? '' : 's'}: {d.estudiantes.join(', ')}{d.n > d.estudiantes.length ? '…' : ''}
+                </p>
+              ))}
+              {autoPlan.pendientes > 0 ? (
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => autoPlace(true)} disabled={autoBusy}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+                    {autoBusy ? 'Colocando…' : `Confirmar y colocar ${autoPlan.pendientes}`}
+                  </button>
+                  <button onClick={() => setAutoPlan(null)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-100">
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs">No hay nada pendiente en programas de carrusel único. ✓</p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="font-medium">
+                ✓ {autoPlan.colocados} matrículas colocadas · {autoPlan.moodle_enrols ?? 0} matrículas en aulas Moodle
+                {(autoPlan.cuentas_creadas ?? 0) > 0 && <> · {autoPlan.cuentas_creadas} cuentas Moodle creadas</>}
+              </p>
+              {(autoPlan.errors?.length ?? 0) > 0 && (
+                <p className="text-xs text-amber-700">Avisos: {autoPlan.errors!.join(' · ')}</p>
+              )}
+              <button onClick={() => setAutoPlan(null)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-green-200 text-green-700 hover:bg-green-100">
+                Cerrar
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {notice && (
         <p className={`text-sm px-3 py-2 rounded-lg ${notice.kind === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
