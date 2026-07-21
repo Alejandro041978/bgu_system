@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { classifyInbound } from '@/lib/inbox-classify'
 import { autoAssign } from '@/lib/inbox-assign'
 import { recordInboxConversation } from '@/lib/inbox-record'
+import { gmailHelpdeskConfigured, importEmailAttachments } from '@/lib/gmail-helpdesk'
 
 export const maxDuration = 60
 
@@ -87,6 +88,7 @@ export async function POST(req: NextRequest) {
     const p = await req.json() as {
       from?: string; subject?: string; text?: string; html?: string; snippet?: string
       messageId?: string; inReplyTo?: string; references?: string; threadId?: string
+      gmailId?: string   // id interno de Gmail: habilita bajar adjuntos e imágenes
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       payload?: any
     }
@@ -102,8 +104,23 @@ export async function POST(req: NextRequest) {
     const sb0 = db()
     if (p.messageId) {
       const { data: dup } = await sb0.from('wa_messages')
-        .select('id').eq('message_id', p.messageId).limit(1).maybeSingle()
-      if (dup) return NextResponse.json({ ok: true, duplicate: true, message: 'Ya estaba en el buzón' })
+        .select('id, conversation_id').eq('message_id', p.messageId).limit(1).maybeSingle()
+      if (dup) {
+        // Backfill: si el mensaje ya estaba pero sin adjuntos (ingestas viejas
+        // o reintento tras un fallo de Gmail), intenta bajarlos ahora.
+        let backfilled = 0
+        if (p.gmailId && gmailHelpdeskConfigured()) {
+          const { count } = await sb0.from('wa_attachments')
+            .select('*', { count: 'exact', head: true }).eq('message_id', dup.id)
+          if (!count) {
+            try {
+              const r = await importEmailAttachments(sb0, { gmailId: p.gmailId, messageDbId: dup.id, conversationId: dup.conversation_id })
+              backfilled = r.saved
+            } catch { /* best effort */ }
+          }
+        }
+        return NextResponse.json({ ok: true, duplicate: true, attachments: backfilled, message: 'Ya estaba en el buzón' })
+      }
     }
 
     // Cuerpo: usa text/html explícitos; si no, decodifica el payload de Gmail; si no, el snippet
@@ -173,15 +190,28 @@ export async function POST(req: NextRequest) {
       }).eq('id', conversationId)
     }
 
-    await sb.from('wa_messages').insert({
+    const { data: inserted } = await sb.from('wa_messages').insert({
       conversation_id: conversationId, direction: 'in', body: bodyText,
       html: bodyHtml || null, subject, message_id: p.messageId ?? null, from_addr: email,
-    })
+    }).select('id').single()
+
+    // Adjuntos e imágenes incrustadas: se bajan directo de Gmail (por gmailId)
+    // a Storage. Best-effort: si Gmail falla, el correo igual queda en el buzón
+    // y el reconciliador/reintento los completa después.
+    let attachments = 0
+    const attachmentErrors: string[] = []
+    if (p.gmailId && inserted && gmailHelpdeskConfigured()) {
+      try {
+        const r = await importEmailAttachments(sb, { gmailId: p.gmailId, messageDbId: inserted.id, conversationId: conversationId! })
+        attachments = r.saved
+        attachmentErrors.push(...r.errors)
+      } catch (e) { attachmentErrors.push(e instanceof Error ? e.message : String(e)) }
+    }
 
     // Registro para el supervisor del equipo humano
     if (conversationId) await recordInboxConversation(conversationId)
 
-    return NextResponse.json({ ok: true, conversation_id: conversationId })
+    return NextResponse.json({ ok: true, conversation_id: conversationId, attachments, attachment_errors: attachmentErrors.slice(0, 3) })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }

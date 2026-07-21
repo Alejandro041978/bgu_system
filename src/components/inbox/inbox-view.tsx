@@ -39,7 +39,43 @@ const TOPICS: Record<string, { label: string; color: string }> = {
   tecnico:    { label: 'Técnico', color: 'bg-rose-100 text-rose-700' },
   otro:       { label: 'Otro', color: 'bg-gray-100 text-gray-600' },
 }
-interface Message { id: string; direction: 'in' | 'out'; body: string | null; subject?: string | null; agent_name: string | null; created_at: string }
+interface Attachment { id: string; filename: string; mime_type: string | null; size_bytes: number | null; inline: boolean; url: string | null }
+interface Message {
+  id: string; direction: 'in' | 'out'; body: string | null; html?: string | null
+  subject?: string | null; agent_name: string | null; created_at: string
+  attachments?: Attachment[]
+}
+
+const fsize = (n: number | null) => {
+  if (!n) return ''
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`
+  return `${(n / 1024 / 1024).toFixed(1)} MB`
+}
+
+// Correo con HTML: se pinta en un iframe totalmente aislado (sandbox sin
+// scripts ni same-origin) — se ve como el correo real sin riesgo de XSS.
+function EmailBody({ html }: { html: string }) {
+  const [h, setH] = useState(220)
+  const doc = `<!doctype html><html><head><meta charset="utf-8"><base target="_blank">
+    <style>body{margin:0;padding:10px 12px;font:13px/1.5 -apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#1f2937;word-break:break-word}img{max-width:100%;height:auto}</style>
+    </head><body>${html}</body></html>`
+  return (
+    <iframe
+      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      srcDoc={doc}
+      onLoad={e => {
+        try {
+          const d = (e.target as HTMLIFrameElement).contentDocument
+          if (d) setH(Math.min(Math.max(d.body.scrollHeight + 28, 60), 640))
+        } catch { /* si el navegador bloquea la lectura, queda la altura por defecto */ }
+      }}
+      style={{ height: h }}
+      className="w-full bg-white rounded-lg border-0"
+      title="Correo"
+    />
+  )
+}
 
 function timeLabel(d: string | null) {
   if (!d) return ''
@@ -253,16 +289,31 @@ export function InboxView() {
               </div>
             )}
             <div className="flex-1 overflow-auto p-5 space-y-3 bg-gray-50/50">
-              {messages.map(m => (
-                <div key={m.id} className={`flex ${m.direction === 'out' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[70%] rounded-2xl px-3.5 py-2 text-sm ${m.direction === 'out' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
-                    <p className="whitespace-pre-wrap">{m.body}</p>
-                    <p className={`text-[10px] mt-1 ${m.direction === 'out' ? 'text-blue-100' : 'text-gray-400'}`}>
-                      {m.direction === 'out' && m.agent_name ? `${m.agent_name} · ` : ''}{timeLabel(m.created_at)}
-                    </p>
+              {messages.map(m => {
+                const files = (m.attachments ?? []).filter(a => !a.inline)
+                const rich = m.direction === 'in' && !!m.html
+                return (
+                  <div key={m.id} className={`flex ${m.direction === 'out' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`${rich ? 'w-[85%] max-w-[720px]' : 'max-w-[70%]'} rounded-2xl px-3.5 py-2 text-sm ${m.direction === 'out' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
+                      {rich ? <EmailBody html={m.html!} /> : <p className="whitespace-pre-wrap">{m.body}</p>}
+                      {files.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {files.map(a => (
+                            <a key={a.id} href={a.url ?? '#'} target="_blank" rel="noopener noreferrer"
+                              className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border ${m.direction === 'out' ? 'border-blue-300 bg-blue-500 text-white' : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                              📎 <span className="max-w-[220px] truncate">{a.filename}</span>
+                              {a.size_bytes ? <span className="text-gray-400">{fsize(a.size_bytes)}</span> : null}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      <p className={`text-[10px] mt-1 ${m.direction === 'out' ? 'text-blue-100' : 'text-gray-400'}`}>
+                        {m.direction === 'out' && m.agent_name ? `${m.agent_name} · ` : ''}{timeLabel(m.created_at)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
               <div ref={bottomRef} />
             </div>
 

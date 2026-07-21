@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { INBOX_BUCKET } from '@/lib/gmail-helpdesk'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -23,10 +24,44 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { data: messages } = await sb.from('wa_messages').select('*').eq('conversation_id', id).order('created_at')
 
+  // Adjuntos: URL firmada (1h) por archivo; las imágenes incrustadas se
+  // resuelven reemplazando su cid: dentro del HTML del mensaje.
+  const { data: atts } = await sb.from('wa_attachments')
+    .select('id, message_id, filename, mime_type, content_id, size_bytes, storage_path')
+    .eq('conversation_id', id)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const attsByMsg = new Map<string, any[]>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const a of (atts ?? []) as any[]) {
+    const { data: signed } = await sb.storage.from(INBOX_BUCKET).createSignedUrl(a.storage_path, 3600)
+    a.url = signed?.signedUrl ?? null
+    if (!attsByMsg.has(a.message_id)) attsByMsg.set(a.message_id, [])
+    attsByMsg.get(a.message_id)!.push(a)
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const enriched = ((messages ?? []) as any[]).map(m => {
+    const list = attsByMsg.get(m.id) ?? []
+    let html = m.html as string | null
+    if (html) {
+      for (const a of list) {
+        if (a.content_id && a.url) html = html.split(`cid:${a.content_id}`).join(a.url)
+      }
+    }
+    return {
+      ...m, html,
+      // Al pie del mensaje se listan solo los adjuntos "de verdad" (los inline
+      // sin nombre ya van pintados dentro del HTML).
+      attachments: list.map(a => ({
+        id: a.id, filename: a.filename, mime_type: a.mime_type, size_bytes: a.size_bytes,
+        inline: !!a.content_id && !!a.url && !!html && html.includes(a.url), url: a.url,
+      })),
+    }
+  })
+
   // Marcar como leído
   if (conv.unread_count > 0) await sb.from('wa_conversations').update({ unread_count: 0 }).eq('id', id)
 
-  return NextResponse.json({ conversation: conv, messages: messages ?? [] })
+  return NextResponse.json({ conversation: conv, messages: enriched })
 }
 
 // PATCH { action: 'claim' | 'release' | 'close' | 'reopen' }
