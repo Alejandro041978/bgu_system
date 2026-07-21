@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Plus, X, Search, Loader2, BookOpen, Users, UserCheck, RefreshCw } from 'lucide-react'
 
-interface SyncResult { configured: boolean; students_total: number; with_account: number; no_account: number; enrol_ops: number; courses_unmapped: string[]; errors: string[] }
+interface SyncResult { configured: boolean; students_total: number; with_account: number; no_account: number; accounts_created?: number; enrol_ops: number; courses_unmapped: string[]; errors: string[] }
 
 interface Off {
   id: string; course_name: string; course_code: string | null; teacher: string | null
@@ -176,6 +176,7 @@ export function GroupDetail({ groupId }: { groupId: string }) {
             {!sync.configured ? 'Moodle no está configurado (faltan variables en Vercel).' : (
               <>
                 <b>{sync.enrol_ops}</b> matrículas · <b>{sync.with_account}</b> con cuenta · <b>{sync.no_account}</b> sin cuenta Moodle
+                {(sync.accounts_created ?? 0) > 0 && <> · <b>{sync.accounts_created}</b> cuentas Moodle creadas</>}
                 {sync.courses_unmapped?.length > 0 && <div className="mt-0.5">⚠ Asignaturas sin aula: {sync.courses_unmapped.join(', ')}</div>}
                 {sync.errors?.length > 0 && <div className="mt-0.5">Errores: {sync.errors.slice(0, 3).join(' · ')}</div>}
               </>
