@@ -49,6 +49,7 @@ export async function generateChargesForEnrollment(
     rows.push({
       ...base, external_id: crypto.randomUUID(),
       amount: Number(plan.registration_fee), due_date: null, charge_type: plan.registration_concept ?? null,
+      is_initial: true,   // concepto inicial: su pago activa la matrícula
     })
   }
 

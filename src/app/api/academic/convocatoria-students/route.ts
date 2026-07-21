@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   const enr: any[] = []
   for (let from = 0; ; from += 1000) {
     const { data } = await sb.from('academic_student_enrollments')
-      .select('student_id, program_id, enrollment_date')
+      .select('id, student_id, program_id, enrollment_date, status')
       .eq('convocatoria_id', convocatoriaId).range(from, from + 999)
     const chunk = data ?? []
     enr.push(...chunk)
@@ -94,6 +94,8 @@ export async function GET(req: NextRequest) {
   // Lista de estudiantes; cada programa lleva su estado de colocación
   interface ProgEntry {
     program_id: string; name: string
+    enrollment_id?: string
+    pending_payment?: boolean
     placed: { group_id: string; label: string; status: string } | null
     candidates: { id: string; label: string }[]
   }
@@ -103,11 +105,15 @@ export async function GET(req: NextRequest) {
     const s = byStudent.get(e.student_id)!
     if (!s.programs.some(p => p.program_id === e.program_id)) {
       const placed = placedOf.get(`${e.student_id}|${e.program_id}`)
+      const pending = e.status === 'pendiente_pago'
       s.programs.push({
         program_id: e.program_id,
         name: progName.get(e.program_id) ?? '(sin programa)',
+        enrollment_id: e.id,
+        pending_payment: pending,
         placed: placed ? { group_id: placed.group.id, label: glabel(placed.group), status: placed.status } : null,
-        candidates: placed ? [] : candidatesFor(e.program_id, groups).map(g => ({ id: g.id, label: glabel(g) })),
+        // Pendiente de pago: sin candidatos — la activación (pago o manual) coloca
+        candidates: placed || pending ? [] : candidatesFor(e.program_id, groups).map(g => ({ id: g.id, label: glabel(g) })),
       })
     }
     if (e.enrollment_date && (!s.fecha || e.enrollment_date < s.fecha)) s.fecha = e.enrollment_date
@@ -153,6 +159,13 @@ export async function POST(req: NextRequest) {
   if (!group) return NextResponse.json({ error: 'Carrusel no encontrado' }, { status: 404 })
   if (group.program_id !== program_id) {
     return NextResponse.json({ error: 'El carrusel no pertenece al programa de la matrícula' }, { status: 400 })
+  }
+
+  // Gate de pago: una matrícula pendiente no se coloca (se activa primero)
+  const { data: enrRow } = await sb.from('academic_student_enrollments')
+    .select('id, status').eq('student_id', student_id).eq('program_id', program_id).limit(1).maybeSingle()
+  if (enrRow?.status === 'pendiente_pago') {
+    return NextResponse.json({ error: 'La matrícula está pendiente de pago: se coloca al activarse (pago de conceptos iniciales o botón Activar)' }, { status: 409 })
   }
 
   // Si ya está en algún carrusel del programa, no colocar de nuevo (pudo avanzar)

@@ -93,9 +93,11 @@ export async function GET(req: NextRequest) {
   }
 
   // Matrículas de la categoría → activos que deberían estar en un carrusel
-  const enr = await readAll(sb, 'academic_student_enrollments', 'student_id, program_id',
+  // (las 'pendiente_pago' no cuentan: aún no compraron el acceso)
+  const enrAll = await readAll(sb, 'academic_student_enrollments', 'student_id, program_id, status',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (q: any) => q.in('program_id', programIds))
+  const enr = enrAll.filter(e => e.status !== 'pendiente_pago')
   const studentIds = [...new Set(enr.map(e => e.student_id).filter(Boolean))] as string[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const students = new Map<string, any>()

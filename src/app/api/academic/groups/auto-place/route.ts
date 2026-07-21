@@ -56,8 +56,9 @@ export async function POST(req: NextRequest) {
   if (!entryOf.size) return NextResponse.json({ ok: true, programas_carrusel_unico: 0, pendientes: 0, colocados: 0, detalle: [] })
 
   // Matrículas de esos programas + membresías existentes + situación
-  const enr = (await readAll(sb, 'academic_student_enrollments', 'student_id, program_id'))
-    .filter(e => e.student_id && entryOf.has(e.program_id))
+  // (las 'pendiente_pago' NO se colocan: el gate de pago las activa después)
+  const enr = (await readAll(sb, 'academic_student_enrollments', 'student_id, program_id, status'))
+    .filter(e => e.student_id && entryOf.has(e.program_id) && e.status !== 'pendiente_pago')
   const groupIds = new Set(groups.map(g => g.id))
   const placed = new Set(
     (await readAll(sb, 'academic_group_students', 'student_id, group_id'))

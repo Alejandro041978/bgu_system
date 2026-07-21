@@ -7,6 +7,8 @@ interface Ref { id: string; name: string }
 interface Conv { id: string; name: string; semester: string; first_day: string | null }
 interface ProgEntry {
   program_id: string; name: string
+  enrollment_id?: string
+  pending_payment?: boolean
   placed: { group_id: string; label: string; status: string } | null
   candidates: { id: string; label: string }[]
 }
@@ -95,6 +97,33 @@ export function ConvocatoriaStudents() {
         ? (d.moodle.errors?.length ? ` · Moodle con avisos: ${d.moodle.errors.join('; ')}` : ` · ${d.moodle.enrol_ops} matrículas en aulas Moodle`)
         : ' · Moodle no configurado'
       setNotice({ kind: 'ok', text: `${row.name} colocado en ${d.group_label}${moodleNote}` })
+    }
+    load(convId)
+  }
+
+  // Activación manual de una matrícula pendiente de pago (excepciones: becas,
+  // convenios). El backend exige force y deja auditado quién lo pulsó.
+  async function activate(row: Row, p: ProgEntry) {
+    if (!p.enrollment_id) return
+    if (!confirm(`¿Activar la matrícula de ${row.name} en ${p.name} sin esperar el pago? Quedará registrado a tu nombre.`)) return
+    const key = `${row.student_id}|${p.program_id}`
+    setPlacing(prev => ({ ...prev, [key]: true }))
+    setNotice(null)
+    const res = await fetch('/api/admision/matricula/activate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enrollment_id: p.enrollment_id, force: true }),
+    })
+    const d = await res.json()
+    setPlacing(prev => ({ ...prev, [key]: false }))
+    if (!res.ok && res.status !== 207) {
+      setNotice({ kind: 'error', text: `${row.name}: ${d.error ?? 'error al activar'}` })
+    } else {
+      const partes = [
+        d.acta_registradas ? `${d.acta_registradas} asignaturas registradas en el acta` : null,
+        d.correo?.ok ? `correo ${d.correo.email}` : null,
+        d.colocacion?.note ?? null,
+      ].filter(Boolean).join(' · ')
+      setNotice({ kind: d.errors?.length ? 'error' : 'ok', text: `${row.name} activado: ${partes}${d.errors?.length ? ` · avisos: ${d.errors.join('; ')}` : ''}` })
     }
     load(convId)
   }
@@ -210,6 +239,21 @@ export function ConvocatoriaStudents() {
                                       <CheckCircle2 className="w-3 h-3" />{p.placed.label}
                                       {p.placed.status !== 'activo' && <span className="text-green-500">({p.placed.status})</span>}
                                     </span>
+                                  ) : p.pending_payment ? (
+                                    <>
+                                      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] px-2 py-0.5 rounded-full">
+                                        💳 Pendiente de pago
+                                      </span>
+                                      <button
+                                        onClick={() => activate(r, p)}
+                                        disabled={placing[key]}
+                                        title="Activa sin esperar el pago (queda auditado)"
+                                        className="inline-flex items-center gap-1 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-40 text-[11px] px-2.5 py-1 rounded-lg transition-colors"
+                                      >
+                                        {placing[key] ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRightCircle className="w-3 h-3" />}
+                                        Activar
+                                      </button>
+                                    </>
                                   ) : p.candidates.length === 0 ? (
                                     <span className="text-[11px] text-red-500">sin carruseles en el programa</span>
                                   ) : (

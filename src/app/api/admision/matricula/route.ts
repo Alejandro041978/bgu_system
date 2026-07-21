@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
-import { placeStudentInEntry } from '@/lib/carousel'
-import { createStudentEmail, notifyStudentEmail, googleConfigured, langFor } from '@/lib/google-workspace'
+import { generateChargesForEnrollment } from '@/lib/billing'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -173,52 +172,15 @@ export async function POST(req: NextRequest) {
     if (enrErr) return NextResponse.json({ error: `No se pudo crear la matrícula: ${enrErr.message}` }, { status: 500 })
   }
 
-  // Colocación automática: solo si el programa tiene una única entrada natural;
-  // con varias (variantes) la elección queda para la bandeja.
-  // Correo estudiantil @blackwell.pro: automático al matricular si no tiene.
-  // SOLO Bachelor / Master / Doctorado tienen derecho (regla del usuario);
-  // NO bloqueante: si Google falla, la matrícula sigue y queda el botón en la Ficha.
-  let student_email: { ok: boolean; email?: string; notified?: boolean; note?: string } = { ok: false, note: 'sin intentar' }
-  try {
-    const { data: cat } = prog.category_id
-      ? await sb.from('academic_programs_category').select('name').eq('id', prog.category_id).maybeSingle()
-      : { data: null }
-    const eligible = /bachelor|master|doctor/i.test(cat?.name ?? '')
-    const { data: stu } = await sb.from('academic_students')
-      .select('first_name, last_name, second_last_name, email, email_alt, country, phone_number').eq('id', sid).maybeSingle()
-    if (!eligible) {
-      student_email = { ok: false, note: `la categoría "${cat?.name ?? 'sin categoría'}" no tiene derecho a correo estudiantil` }
-    } else if (stu?.email_alt) {
-      student_email = { ok: true, email: stu.email_alt, note: 'ya tenía correo institucional' }
-    } else if (!googleConfigured()) {
-      student_email = { ok: false, note: 'Google Workspace sin configurar (pendiente: crear desde la Ficha)' }
-    } else if (stu) {
-      const taken = new Set<string>()
-      for (let from = 0; ; from += 1000) {
-        const { data } = await sb.from('academic_students')
-          .select('email_alt').not('email_alt', 'is', null).range(from, from + 999)
-        for (const r of (data ?? [])) taken.add(String(r.email_alt).toLowerCase())
-        if ((data ?? []).length < 1000) break
-      }
-      const created = await createStudentEmail(stu, taken, { email: stu.email, phone: stu.phone_number })
-      await sb.from('academic_students').update({ email_alt: created.email }).eq('id', sid)
-      let notified = false
-      if (stu.email) {
-        try { await notifyStudentEmail(stu.email, [stu.first_name, stu.last_name].filter(Boolean).join(' '), created, langFor(stu.country)); notified = true } catch { /* aviso abajo */ }
-      }
-      student_email = { ok: true, email: created.email, notified }
-    }
-  } catch (e) {
-    student_email = { ok: false, note: e instanceof Error ? e.message : String(e) }
-  }
+  // FLUJO NATIVO (regla del usuario 2026-07-21): la matrícula nace
+  // 'pendiente_pago' y aquí SOLO se crea el estado de cuenta desde la
+  // plantilla (programa + convocatoria). Correo, acta, carrusel y Moodle se
+  // disparan en la ACTIVACIÓN: automática al pagarse los conceptos iniciales,
+  // o manual (botón Activar) para excepciones.
+  await sb.from('academic_student_enrollments')
+    .update({ status: 'pendiente_pago' }).eq('id', enrollmentId).is('activated_at', null)
 
-  const placement = await placeStudentInEntry(sb, sid, program_id)
-  let group_label: string | null = null
-  if (placement.ok && placement.group_id) {
-    const { data: g } = await sb.from('academic_groups')
-      .select('abbreviation, name').eq('id', placement.group_id).maybeSingle()
-    if (g) group_label = [g.abbreviation, g.name].filter(Boolean).join(' · ')
-  }
+  const charges = await generateChargesForEnrollment(enrollmentId)
 
   return NextResponse.json({
     ok: true,
@@ -228,7 +190,9 @@ export async function POST(req: NextRequest) {
     enrollment_id: enrollmentId,
     program: prog.name,
     convocatoria: conv.name,
-    placement: { ...placement, group_label },
-    student_email,
+    status: 'pendiente_pago',
+    estado_cuenta: charges.ok
+      ? { ok: true, cargos: charges.created }
+      : { ok: false, note: charges.error },
   })
 }

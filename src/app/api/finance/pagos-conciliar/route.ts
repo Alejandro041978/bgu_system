@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchByIn } from '@/lib/grades-write'
@@ -173,11 +174,14 @@ export async function PATCH(req: NextRequest) {
       country_from: raw.country || null,
     })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    let activated = null
     if (chargeExt) {
       await sb.from('account_charges')
         .update({ flywire_status: ev.status, flywire_payment_id: b.flywire_ref }).eq('external_id', chargeExt)
+      // Gate de matrícula: si la cuota pagada era un concepto inicial, activa
+      activated = await maybeActivateOnPayment(chargeExt).catch(() => null)
     }
-    return NextResponse.json({ ok: true, linked: !!chargeExt })
+    return NextResponse.json({ ok: true, linked: !!chargeExt, activated: activated?.ok ?? false })
   }
 
   if (!b?.payment_id) return NextResponse.json({ error: 'Falta payment_id' }, { status: 400 })
@@ -212,5 +216,7 @@ export async function PATCH(req: NextRequest) {
       .update({ flywire_status: 'delivered', flywire_payment_id: pay.flywire_payment_id })
       .eq('external_id', b.charge_external_id)
   }
-  return NextResponse.json({ ok: true })
+  // Gate de matrícula: si la cuota enlazada era un concepto inicial, activa
+  const activated = await maybeActivateOnPayment(b.charge_external_id).catch(() => null)
+  return NextResponse.json({ ok: true, activated: activated?.ok ?? false })
 }
