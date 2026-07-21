@@ -80,6 +80,7 @@ const PAGE_GROUPS = [
       { key: 'academic_programs', label: 'Programas' },
       { key: 'academic_offer', label: 'Oferta académica' },
       { key: 'academic_groups', label: 'Grupos' },
+      { key: 'academic_carousels', label: 'Carruseles' },
       { key: 'academic_schedules', label: 'Cronogramas' },
     ],
   },
