@@ -70,6 +70,7 @@ export async function getGmailMessageFull(id: string): Promise<any> {
 // enhebren. Requiere scope gmail.send en el refresh token.
 export async function sendGmailReply(args: {
   to: string; subject: string; text: string
+  html?: string | null
   threadId?: string | null; lastInboundGmailId?: string | null
 }): Promise<{ id: string }> {
   const token = await gmailToken()
@@ -90,16 +91,18 @@ export async function sendGmailReply(args: {
   }
 
   const subjectB64 = `=?UTF-8?B?${Buffer.from(args.subject, 'utf8').toString('base64')}?=`
+  const contentType = args.html ? 'text/html' : 'text/plain'
+  const payload = args.html ?? args.text
   const mime = [
     `To: ${args.to}`,
     `Subject: ${subjectB64}`,
     'MIME-Version: 1.0',
-    'Content-Type: text/plain; charset=UTF-8',
+    `Content-Type: ${contentType}; charset=UTF-8`,
     'Content-Transfer-Encoding: base64',
     ...(inReplyTo ? [`In-Reply-To: ${inReplyTo}`] : []),
     ...(references ? [`References: ${references}`] : []),
     '',
-    Buffer.from(args.text, 'utf8').toString('base64'),
+    Buffer.from(payload, 'utf8').toString('base64'),
   ].join('\r\n')
 
   const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {

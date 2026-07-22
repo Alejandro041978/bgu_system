@@ -266,7 +266,31 @@ async function receiveInboxMessage(from: string, body: string, inboxKey: string,
 
   // Conversación existente para este teléfono (cualquier estado; hay índice único por teléfono)
   const { data: existingConv } = await sb.from('wa_conversations')
-    .select('id, unread_count, status').eq('inbox_key', inboxKey).eq('customer_phone', from).maybeSingle()
+    .select('id, unread_count, status, survey_sent_at, rating, language, case_number')
+    .eq('inbox_key', inboxKey).eq('customer_phone', from).maybeSingle()
+
+  // Respuesta a la ENCUESTA de satisfacción (1=buena / 2=mala): registra la
+  // evaluación y cierra el caso — aunque la conversación ya esté cerrada
+  // (respuesta tardía a la encuesta). Cualquier otro texto sigue su flujo.
+  if (existingConv?.survey_sent_at && !existingConv.rating && !handoff) {
+    const t = body.trim().toLowerCase()
+    const buena = /^(1|1️⃣|buena|bueno|bien|good|👍|😊)$/.test(t)
+    const mala = /^(2|2️⃣|mala|malo|mal|bad|👎|🙁|☹️)$/.test(t)
+    if (buena || mala) {
+      const rating = buena ? 'buena' : 'mala'
+      await sb.from('wa_conversations').update({
+        rating, rating_at: now, status: 'closed', closed_at: now, closed_reason: 'evaluado',
+        unread_count: 0, updated_at: now,
+      }).eq('id', existingConv.id)
+      await sb.from('wa_messages').insert({ conversation_id: existingConv.id, direction: 'in', body })
+      const en = existingConv.language === 'en'
+      const thanks = buena
+        ? (en ? 'Thank you! 😊 Glad we could help. Your case is now closed.' : '¡Gracias! 😊 Nos alegra haberte ayudado. Tu caso queda cerrado.')
+        : (en ? 'Thank you for your honesty 🙏 Your feedback helps us improve. Your case is now closed.' : 'Gracias por tu sinceridad 🙏 Tu opinión nos ayuda a mejorar. Tu caso queda cerrado.')
+      await sendWhatsApp(from, thanks, creds)
+      return
+    }
+  }
 
   // 1) Código válido → adjunta el contexto de Sofia (reabre o crea) + acuse automático
   if (handoff) {

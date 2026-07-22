@@ -181,11 +181,6 @@ export function InboxView() {
     await fetch(`/api/inbox/conversations/${selected.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reassign', to_user_id: userId }) })
     await loadThread(selected.id); await loadList()
   }
-  async function close() {
-    if (!selected) return
-    await fetch(`/api/inbox/conversations/${selected.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'close' }) })
-    await loadThread(selected.id); await loadList()
-  }
   async function reopen() {
     if (!selected) return
     await fetch(`/api/inbox/conversations/${selected.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reopen' }) })
@@ -320,9 +315,11 @@ export function InboxView() {
                   </button>
                 )}
                 {selected.status === 'open' ? (
-                  <button onClick={close} className="flex items-center gap-1.5 text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Cerrar
-                  </button>
+                  /* El cierre es AUTOMÁTICO (regla 2026-07-22): concluyente,
+                     evaluación del estudiante, o 24h sin respuesta. */
+                  <span className="text-[11px] text-gray-400 border border-dashed border-gray-200 px-3 py-1.5 rounded-lg" title="Cierra solo: respuesta concluyente, evaluación del estudiante, o 24h sin respuesta tras la última respuesta del agente.">
+                    ⏱ Cierre automático
+                  </span>
                 ) : (
                   <button onClick={reopen} className="flex items-center gap-1.5 text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50">
                     <RotateCcw className="w-3.5 h-3.5" /> Reabrir
