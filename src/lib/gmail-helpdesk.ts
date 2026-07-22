@@ -36,6 +36,34 @@ async function gmailToken(): Promise<string> {
   return d.access_token
 }
 
+// Lista los ids de mensajes del INBOX de los últimos N días (paginado)
+export async function listInboxMessageIds(days: number): Promise<string[]> {
+  const token = await gmailToken()
+  const auth = { headers: { Authorization: `Bearer ${token}` } }
+  const ids: string[] = []
+  let pageToken = ''
+  do {
+    const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(`in:inbox newer_than:${days}d`)}&maxResults=100${pageToken ? `&pageToken=${pageToken}` : ''}`
+    const res = await fetch(url, auth)
+    const d = await res.json()
+    if (!res.ok) throw new Error(`Gmail list: ${d.error?.message ?? res.status}`)
+    for (const m of d.messages ?? []) ids.push(m.id)
+    pageToken = d.nextPageToken ?? ''
+  } while (pageToken && ids.length < 1000)
+  return ids
+}
+
+// Mensaje completo (headers + payload multipart)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getGmailMessageFull(id: string): Promise<any> {
+  const token = await gmailToken()
+  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
+    { headers: { Authorization: `Bearer ${token}` } })
+  const d = await res.json()
+  if (!res.ok) throw new Error(`Gmail get: ${d.error?.message ?? res.status}`)
+  return d
+}
+
 export interface GmailPart {
   filename: string
   mimeType: string
