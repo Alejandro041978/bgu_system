@@ -4,6 +4,16 @@
 const BASE = process.env.MOODLE_URL
 const TOKEN = process.env.MOODLE_WS_TOKEN
 export const MOODLE_STUDENT_ROLEID = Number(process.env.MOODLE_STUDENT_ROLEID || '5')
+
+// Cinturón de seguridad (incidente 2026-07-22: MOODLE_STUDENT_ROLEID quedó en
+// 1 y el ERP matriculó ~5,700 estudiantes como MANAGER, con edición y acceso
+// a respuestas). Los ids 1-4 son roles de poder en Moodle estándar
+// (manager/coursecreator/editingteacher/teacher): jamás son "estudiante".
+function assertStudentRole(roleid: number) {
+  if (!Number.isFinite(roleid) || roleid <= 4) {
+    throw new Error(`MOODLE_STUDENT_ROLEID=${roleid} es un rol de poder (manager/teacher), no de estudiante: corregir la variable en Vercel (student = 5). Matrícula BLOQUEADA por seguridad.`)
+  }
+}
 export const MOODLE_COURSE_MATCH_FIELD = process.env.MOODLE_COURSE_MATCH_FIELD || 'shortname' // 'shortname' | 'idnumber'
 
 export function moodleConfigured(): boolean {
@@ -89,6 +99,7 @@ export async function createMoodleUser(u: {
 }
 
 export async function enrolUser(courseid: number, userid: number, roleid = MOODLE_STUDENT_ROLEID): Promise<void> {
+  assertStudentRole(roleid)
   await moodleCall('enrol_manual_enrol_users', { enrolments: [{ roleid, userid, courseid }] })
 }
 
@@ -96,6 +107,7 @@ export async function enrolUser(courseid: number, userid: number, roleid = MOODL
 // Para syncs de grupos grandes — evita miles de round-trips.
 export async function enrolUsersBulk(enrolments: { userid: number; courseid: number }[], roleid = MOODLE_STUDENT_ROLEID): Promise<void> {
   if (!enrolments.length) return
+  assertStudentRole(roleid)
   await moodleCall('enrol_manual_enrol_users', { enrolments: enrolments.map(e => ({ roleid, ...e })) })
 }
 
