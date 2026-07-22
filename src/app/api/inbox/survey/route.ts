@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   const c = req.nextUrl.searchParams.get('c')
   const rParam = req.nextUrl.searchParams.get('r')
   const t = req.nextUrl.searchParams.get('t')
-  if (!c || !rParam || !t || !['buena', 'mala'].includes(rParam) || t !== surveyToken(c)) {
+  if (!c || !rParam || !t || !['buena', 'regular', 'mala'].includes(rParam) || t !== surveyToken(c)) {
     return page('🤔', 'Enlace no válido', 'Este enlace de evaluación no es válido o expiró.')
   }
 
@@ -46,9 +46,13 @@ export async function GET(req: NextRequest) {
     await sb.from('wa_conversations').update({ rating: rParam, rating_at: now, updated_at: now }).eq('id', conv.id)
   }
 
-  return page(rParam === 'buena' ? '😊' : '🙏',
-    en ? 'Thank you!' : '¡Gracias!',
-    en
-      ? (rParam === 'buena' ? 'Glad we could help. Your case is now closed.' : 'Sorry we fell short — your feedback helps us improve. Your case is now closed.')
-      : (rParam === 'buena' ? 'Nos alegra haberte ayudado. Tu caso queda cerrado.' : 'Lamentamos no haber estado a la altura: tu opinión nos ayuda a mejorar. Tu caso queda cerrado.'))
+  const emoji = rParam === 'buena' ? '😊' : rParam === 'regular' ? '😐' : '🙏'
+  const texto = en
+    ? (rParam === 'buena' ? 'Glad we could help. Your case is now closed.'
+      : rParam === 'regular' ? 'Thanks — we will keep working to do better. Your case is now closed.'
+      : 'Sorry we fell short — your feedback helps us improve. Your case is now closed.')
+    : (rParam === 'buena' ? 'Nos alegra haberte ayudado. Tu caso queda cerrado.'
+      : rParam === 'regular' ? 'Gracias — seguiremos trabajando para mejorar. Tu caso queda cerrado.'
+      : 'Lamentamos no haber estado a la altura: tu opinión nos ayuda a mejorar. Tu caso queda cerrado.')
+  return page(emoji, en ? 'Thank you!' : '¡Gracias!', texto)
 }

@@ -60,8 +60,8 @@ async function sendSurvey(sb: any, conv: any, lastInboundGmailId: string | null)
     const inbox = await getBot(conv.inbox_key ?? 'servicio')
     if (!inbox?.twilio_number || !inbox?.twilio_account_sid || !inbox?.twilio_auth_token) return null
     const texto = en
-      ? `One last thing 🙌 How was the service on your case ${caso}?\nReply with a number:\n1️⃣ Good\n2️⃣ Bad`
-      : `Para terminar 🙌 ¿Cómo fue la atención de tu caso ${caso}?\nResponde con un número:\n1️⃣ Buena\n2️⃣ Mala`
+      ? `One last thing 🙌 How was the service on your case ${caso}?\nReply with a number:\n1️⃣ Good\n2️⃣ Fair\n3️⃣ Bad`
+      : `Para terminar 🙌 ¿Cómo fue la atención de tu caso ${caso}?\nResponde con un número:\n1️⃣ Buena\n2️⃣ Regular\n3️⃣ Mala`
     const sent = await sendWhatsAppMessage(conv.customer_phone, texto, {
       from: inbox.twilio_number, sid: inbox.twilio_account_sid, token: inbox.twilio_auth_token,
     })
@@ -80,15 +80,19 @@ async function sendSurvey(sb: any, conv: any, lastInboundGmailId: string | null)
     const titulo = en ? `How was the service? · Case ${caso}` : `¿Cómo fue la atención? · Caso ${caso}`
     const pregunta = en ? 'How was the service you received?' : '¿Cómo fue la atención que recibiste?'
     const html = `
-<div style="font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;max-width:420px;margin:0 auto;padding:24px;text-align:center">
+<div style="font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;max-width:460px;margin:0 auto;padding:24px;text-align:center">
   <p style="font-size:16px;color:#111827;margin:0 0 20px">${pregunta}</p>
   <table role="presentation" style="margin:0 auto"><tr>
-    <td style="padding:0 10px">
-      <a href="${link('buena')}" style="display:inline-block;text-decoration:none;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;padding:16px 26px;font-size:34px">😊</a>
+    <td style="padding:0 8px">
+      <a href="${link('buena')}" style="display:inline-block;text-decoration:none;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;padding:16px 22px;font-size:34px">😊</a>
       <p style="font-size:12px;color:#059669;margin:6px 0 0">${en ? 'Good' : 'Buena'}</p>
     </td>
-    <td style="padding:0 10px">
-      <a href="${link('mala')}" style="display:inline-block;text-decoration:none;background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:16px 26px;font-size:34px">🙁</a>
+    <td style="padding:0 8px">
+      <a href="${link('regular')}" style="display:inline-block;text-decoration:none;background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:16px 22px;font-size:34px">😐</a>
+      <p style="font-size:12px;color:#d97706;margin:6px 0 0">${en ? 'Fair' : 'Regular'}</p>
+    </td>
+    <td style="padding:0 8px">
+      <a href="${link('mala')}" style="display:inline-block;text-decoration:none;background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:16px 22px;font-size:34px">🙁</a>
       <p style="font-size:12px;color:#dc2626;margin:6px 0 0">${en ? 'Bad' : 'Mala'}</p>
     </td>
   </tr></table>
@@ -97,7 +101,7 @@ async function sendSurvey(sb: any, conv: any, lastInboundGmailId: string | null)
     await sendGmailReply({
       to: conv.customer_email,
       subject: titulo,
-      text: `${pregunta}\n${en ? 'Good' : 'Buena'}: ${link('buena')}\n${en ? 'Bad' : 'Mala'}: ${link('mala')}`,
+      text: `${pregunta}\n${en ? 'Good' : 'Buena'}: ${link('buena')}\n${en ? 'Fair' : 'Regular'}: ${link('regular')}\n${en ? 'Bad' : 'Mala'}: ${link('mala')}`,
       html,
       threadId: conv.thread_ref ?? null,
       lastInboundGmailId,
