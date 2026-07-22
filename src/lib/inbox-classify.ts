@@ -2,12 +2,12 @@ import Anthropic from '@anthropic-ai/sdk'
 
 export interface InboundClassification { language: 'es' | 'en' | 'pt' | 'other'; topic: string }
 
-const TOPICS = ['pagos', 'notas', 'admision', 'asistencia', 'tramites', 'tecnico', 'otro']
+const TOPICS = ['pagos', 'notas', 'admision', 'asistencia', 'tramites', 'documentos', 'capstone', 'tecnico', 'otro']
 
 const SYSTEM = `Clasifica el siguiente mensaje de un estudiante o interesado a una universidad. Devuelve SOLO un JSON válido:
-{"language":"es|en|pt|other","topic":"pagos|notas|admision|asistencia|tramites|tecnico|otro"}
+{"language":"es|en|pt|other","topic":"pagos|notas|admision|asistencia|tramites|documentos|capstone|tecnico|otro"}
 - language: idioma principal del mensaje (es=español, en=inglés, pt=portugués, other=otro).
-- topic: el tema más probable (pagos=cobros/matrícula/Flywire; notas=calificaciones/rendimiento; admision=inscripción/requisitos; asistencia=consulta general/orientación; tramites=documentos/certificados; tecnico=acceso/plataforma; otro=si no encaja).`
+- topic: el tema más probable (pagos=cobros/matrícula/Flywire; notas=calificaciones/rendimiento; admision=inscripción/requisitos; asistencia=consulta general/orientación; tramites=solicitudes administrativas/constancias; documentos=emisión de certificados/títulos/diplomas/actas; capstone=proyecto final de grado/tesis/capstone project y sus entregas o asesorías; tecnico=acceso/plataforma; otro=si no encaja).`
 
 /**
  * Clasifica un mensaje entrante por idioma y tema. Degradación segura:

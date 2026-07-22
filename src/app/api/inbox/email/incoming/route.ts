@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
       // Identificar al estudiante por el remitente → asignación por las
       // CATEGORÍAS de programa de las asesoras (contenido desempata)
       const student = await identifyStudentByEmail(email)
-      const assigned = await autoAssign(language, topic, student?.categories ?? null)
+      const assigned = await autoAssign(language, topic, student?.categories ?? null, `${subject}\n${bodyText}`)
       const { data: created } = await sb.from('wa_conversations').insert({
         inbox_key: INBOX_KEY, channel: 'email', customer_email: email, customer_name: name,
         subject, language, topic, thread_ref: p.threadId ?? p.messageId ?? null,

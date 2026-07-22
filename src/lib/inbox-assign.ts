@@ -1,7 +1,35 @@
 import { createClient } from '@supabase/supabase-js'
+import Anthropic from '@anthropic-ai/sdk'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+// Desempate por ESPECIALIDAD: cuando varias asesoras cubren la categoría y el
+// tema no distingue, Claude compara el CONTENIDO del mensaje contra la
+// especialidad (texto libre) de cada candidata. Devuelve el user_id elegido o
+// null (→ round-robin). Solo se invoca con 2+ candidatas con especialidad.
+async function pickBySpecialty(
+  content: string,
+  candidates: { user_id: string; agent_name: string | null; specialty: string | null }[],
+): Promise<string | null> {
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) return null
+    const conEsp = candidates.filter(c => c.specialty?.trim())
+    if (conEsp.length < 2) return null
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const lista = conEsp.map((c, i) => `${i + 1}. ${c.agent_name ?? c.user_id}: ${c.specialty}`).join('\n')
+    const msg = await client.messages.create({
+      model: 'claude-opus-4-8',
+      max_tokens: 50,
+      system: `Eres el enrutador de un helpdesk universitario. Según el mensaje del estudiante y la especialidad de cada asesora, elige la más indicada. Responde SOLO el número de la asesora (ej. "2"). Si ninguna especialidad calza claramente mejor, responde "0".`,
+      messages: [{ role: 'user', content: `Mensaje del estudiante:\n${content.slice(0, 2000)}\n\nAsesoras:\n${lista}` }],
+    })
+    const text = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('')
+    const n = Number(text.match(/\d+/)?.[0] ?? 0)
+    if (n >= 1 && n <= conEsp.length) return conEsp[n - 1].user_id
+    return null
+  } catch { return null }
+}
 
 export interface Assignment { user_id: string; name: string }
 
@@ -78,14 +106,15 @@ export async function autoAssign(
   language: string | null,
   topic: string | null,
   studentCategories?: string[] | null,
+  content?: string | null,
 ): Promise<Assignment | null> {
   try {
     const sb = db()
     const { data: agents } = await sb.from('agent_skills')
-      .select('user_id, agent_name, languages, topics, categories, last_assigned_at, is_supervisor')
+      .select('user_id, agent_name, languages, topics, categories, specialty, last_assigned_at, is_supervisor')
       .eq('online', true)
 
-    type Row = { user_id: string; agent_name: string | null; languages: string[]; topics: string[]; categories: string[] | null; last_assigned_at: string | null; is_supervisor: boolean }
+    type Row = { user_id: string; agent_name: string | null; languages: string[]; topics: string[]; categories: string[] | null; specialty: string | null; last_assigned_at: string | null; is_supervisor: boolean }
     const rows = (agents ?? []) as Row[]
     const agentes = rows.filter(a => !a.is_supervisor)
 
@@ -101,6 +130,12 @@ export async function autoAssign(
       else if (catPool.length > 1) {
         const byTopic = catPool.filter(a => !!topic && a.topics.includes(topic))
         pool = byTopic.length ? byTopic : catPool
+        // Si sigue habiendo varias, la ESPECIALIDAD (texto libre) desempata
+        // leyendo el contenido del mensaje
+        if (pool.length > 1 && content?.trim()) {
+          const picked = await pickBySpecialty(content, pool)
+          if (picked) pool = pool.filter(a => a.user_id === picked)
+        }
       }
     }
 

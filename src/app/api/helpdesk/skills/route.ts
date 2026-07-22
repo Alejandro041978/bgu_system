@@ -33,6 +33,7 @@ export async function GET() {
     return {
       user_id: e.user_id, full_name: e.full_name, position: e.position,
       languages: s?.languages ?? [], topics: s?.topics ?? [], categories: s?.categories ?? [],
+      specialty: s?.specialty ?? null,
       is_supervisor: s?.is_supervisor ?? false, online: s?.online ?? true,
     }
   })
@@ -48,6 +49,7 @@ export async function PUT(req: NextRequest) {
   const b = await req.json() as {
     user_id: string; agent_name?: string
     languages?: string[]; topics?: string[]; categories?: string[]
+    specialty?: string | null
     is_supervisor?: boolean; online?: boolean
   }
   if (!b.user_id) return NextResponse.json({ error: 'Falta user_id' }, { status: 400 })
@@ -55,6 +57,7 @@ export async function PUT(req: NextRequest) {
   const { error } = await db().from('agent_skills').upsert({
     user_id: b.user_id, agent_name: b.agent_name ?? null,
     languages: b.languages ?? [], topics: b.topics ?? [], categories: b.categories ?? [],
+    specialty: b.specialty?.trim() || null,
     is_supervisor: b.is_supervisor ?? false, online: b.online ?? true,
   }, { onConflict: 'user_id' })
 

@@ -274,7 +274,7 @@ async function receiveInboxMessage(from: string, body: string, inboxKey: string,
     // Identificar al estudiante (documento del handoff de Sofía, o teléfono)
     // → asignación por CATEGORÍAS de programa; el tema desempata
     const student = await identifyStudentByDocOrPhone(handoff.document_number ?? null, from)
-    const assigned = await autoAssign(handoff.language, handoff.topic ?? null, student?.categories ?? null)
+    const assigned = await autoAssign(handoff.language, handoff.topic ?? null, student?.categories ?? null, handoff.summary ?? null)
     const patch = {
       status: 'open', assigned_to: assigned?.user_id ?? null, assigned_name: assigned?.name ?? null,
       customer_name: handoff.student_name ?? undefined,

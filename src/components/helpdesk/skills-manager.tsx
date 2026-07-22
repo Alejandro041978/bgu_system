@@ -7,13 +7,15 @@ interface Category { id: string; name: string }
 interface Agent {
   user_id: string; full_name: string; position: string | null
   languages: string[]; topics: string[]; categories: string[]
+  specialty: string | null
   is_supervisor: boolean; online: boolean
 }
 
 const LANG_OPTS: [string, string][] = [['es', 'Español'], ['en', 'Inglés'], ['pt', 'Portugués']]
 const TOPIC_OPTS: [string, string][] = [
   ['pagos', 'Pagos'], ['notas', 'Notas'], ['admision', 'Admisión'],
-  ['asistencia', 'Asistencia'], ['tramites', 'Trámites'], ['tecnico', 'Técnico'], ['otro', 'Otro'],
+  ['asistencia', 'Asistencia'], ['tramites', 'Trámites'], ['documentos', 'Documentos'],
+  ['capstone', 'Capstone'], ['tecnico', 'Técnico'], ['otro', 'Otro'],
 ]
 
 function Chips({ options, selected, onToggle }: { options: [string, string][]; selected: string[]; onToggle: (v: string) => void }) {
@@ -110,6 +112,21 @@ export function SkillsManager() {
               <p className="text-xs font-medium text-gray-600 mb-1.5">Categorías <span className="text-gray-400">(informativo)</span></p>
               <Chips options={categories.map(c => [c.name, c.name] as [string, string])} selected={a.categories} onToggle={v => toggleArr(a.user_id, 'categories', v)} />
             </div>
+          </div>
+
+          {/* Especialidad: texto libre que el motor usa para desempatar por
+              CONTENIDO cuando varias asesoras cubren la misma categoría */}
+          <div className="mt-3">
+            <p className="text-xs font-medium text-gray-600 mb-1.5">
+              Especialidad <span className="text-gray-400">(texto libre — el ERP lo lee para derivar el mensaje a la asesora más indicada cuando hay empate)</span>
+            </p>
+            <textarea
+              value={a.specialty ?? ''}
+              onChange={e => update(a.user_id, { specialty: e.target.value })}
+              rows={2}
+              placeholder="Ej.: Atiende todo lo relacionado al Capstone Project y trabajos finales del Bachelor; coordina fechas de sustentación…"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+            />
           </div>
 
           <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-50">

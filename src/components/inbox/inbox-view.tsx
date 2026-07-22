@@ -56,6 +56,8 @@ const TOPICS: Record<string, { label: string; color: string }> = {
   admision:   { label: 'Admisión', color: 'bg-sky-100 text-sky-700' },
   asistencia: { label: 'Asistencia', color: 'bg-blue-100 text-blue-700' },
   tramites:   { label: 'Trámites', color: 'bg-teal-100 text-teal-700' },
+  documentos: { label: 'Documentos', color: 'bg-indigo-100 text-indigo-700' },
+  capstone:   { label: 'Capstone', color: 'bg-emerald-100 text-emerald-700' },
   tecnico:    { label: 'Técnico', color: 'bg-rose-100 text-rose-700' },
   otro:       { label: 'Otro', color: 'bg-gray-100 text-gray-600' },
 }
