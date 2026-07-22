@@ -58,6 +58,7 @@ export function WithdrawalsView() {
   const [student, setStudent] = useState<Student | null>(null)
   const [form, setForm] = useState({ type: 'LOA' as 'IW' | 'LOA', withdrawal_date: new Date().toISOString().slice(0, 10), resolution_number: '', reason: '', note: '' })
   const [numberHint, setNumberHint] = useState<string | null>(null)
+  const [vigenteWarn, setVigenteWarn] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -93,9 +94,25 @@ export function WithdrawalsView() {
   }, [student, form.type, form.withdrawal_date])
 
   function resetForm() {
-    setShowForm(false); setStudent(null); setQ(''); setResults([]); setNumberHint(null)
+    setShowForm(false); setStudent(null); setQ(''); setResults([]); setNumberHint(null); setVigenteWarn(null)
     setForm({ type: 'LOA', withdrawal_date: new Date().toISOString().slice(0, 10), resolution_number: '', reason: '', note: '' })
   }
+
+  // Aviso preventivo: al elegir estudiante, si ya tiene un retiro vigente se
+  // muestra en rojo (el POST igual lo rechaza — esta es la cortesía visual).
+  useEffect(() => {
+    setVigenteWarn(null)
+    if (!student) return
+    let cancelled = false
+    ;(async () => {
+      const d = await fetch('/api/academic/withdrawals?status=vigente').then(r => r.json()).catch(() => ({}))
+      if (cancelled) return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const v = (d.rows ?? []).find((r: any) => r.student_id === student.id)
+      if (v) setVigenteWarn(`⚠ Ya tiene un retiro ${v.type} vigente (${v.resolution_number ?? 'sin resolución'}, ${v.withdrawal_date}). No se puede registrar otro hasta resolverlo (reincorporar o anular).`)
+    })()
+    return () => { cancelled = true }
+  }, [student])
 
   async function save() {
     if (!student) return
@@ -172,13 +189,18 @@ export function WithdrawalsView() {
 
           {/* Estudiante */}
           {student ? (
-            <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2">
-              <div>
-                <p className="text-sm text-gray-800">{student.name}</p>
-                <p className="text-[11px] text-gray-400">{student.document_number ?? student.email}</p>
+            <>
+              <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2">
+                <div>
+                  <p className="text-sm text-gray-800">{student.name}</p>
+                  <p className="text-[11px] text-gray-400">{student.document_number ?? student.email}</p>
+                </div>
+                <button onClick={clearStudent} className="text-xs text-blue-600 hover:underline">Cambiar</button>
               </div>
-              <button onClick={clearStudent} className="text-xs text-blue-600 hover:underline">Cambiar</button>
-            </div>
+              {vigenteWarn && (
+                <p className="mt-2 text-xs bg-red-50 border border-red-100 text-red-700 rounded-lg px-3 py-2">{vigenteWarn}</p>
+              )}
+            </>
           ) : (
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

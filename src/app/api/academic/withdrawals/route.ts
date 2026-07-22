@@ -48,6 +48,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'student_id y type (IW|LOA) requeridos' }, { status: 400 })
   }
   const sb = wdb()
+
+  // Un retiro VIGENTE bloquea registrar otro: primero se resuelve el que hay
+  // (reincorporar, vencer o anular). Evita duplicados como dos IW seguidos.
+  const { data: activo } = await sb.from('student_withdrawals')
+    .select('id, type, resolution_number, withdrawal_date')
+    .eq('student_id', body.student_id).eq('status', 'vigente').limit(1).maybeSingle()
+  if (activo) {
+    return NextResponse.json({
+      error: `El estudiante ya tiene un retiro ${activo.type} vigente (${activo.resolution_number ?? 'sin resolución'}, ${activo.withdrawal_date}). Resuélvelo primero (reincorporación o anulación) antes de registrar otro.`,
+    }, { status: 409 })
+  }
+
   const date = body.withdrawal_date || new Date().toISOString().slice(0, 10)
   const resolution = body.resolution_number || await nextResolutionNumber(sb, body.student_id, body.type, date)
 
