@@ -8,7 +8,7 @@ import { splitReply, recordOutcome } from '@/lib/retention-outcome'
 import { extractMedia, fetchMediaBlocks, messagesWithMedia, type MediaResult } from '@/lib/twilio-media'
 import { getBotByTwilioNumber, getBot, type Bot } from '@/lib/bots'
 import { extractAndSaveLead } from '@/lib/sales-leads'
-import { autoAssign } from '@/lib/inbox-assign'
+import { autoAssign, identifyStudentByDocOrPhone } from '@/lib/inbox-assign'
 import { recordInboxConversation } from '@/lib/inbox-record'
 import crypto from 'crypto'
 
@@ -271,11 +271,14 @@ async function receiveInboxMessage(from: string, body: string, inboxKey: string,
   // 1) Código válido → adjunta el contexto de Sofia (reabre o crea) + acuse automático
   if (handoff) {
     await sb.from('handoff_codes').update({ used: true, used_at: now }).eq('code', handoff.code)
-    // Auto-asignación por especialidad (null = cola para la supervisora)
-    const assigned = await autoAssign(handoff.language, handoff.topic ?? null)
+    // Identificar al estudiante (documento del handoff de Sofía, o teléfono)
+    // → asignación por CATEGORÍAS de programa; el tema desempata
+    const student = await identifyStudentByDocOrPhone(handoff.document_number ?? null, from)
+    const assigned = await autoAssign(handoff.language, handoff.topic ?? null, student?.categories ?? null)
     const patch = {
       status: 'open', assigned_to: assigned?.user_id ?? null, assigned_name: assigned?.name ?? null,
       customer_name: handoff.student_name ?? undefined,
+      student_id: student?.id ?? null,
       summary: handoff.summary, language: handoff.language, topic: handoff.topic ?? null,
       unread_count: 1, first_customer_at: now, last_message_at: now, last_message_preview: 'Derivado por Sofía', updated_at: now,
     }

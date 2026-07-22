@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { classifyInbound } from '@/lib/inbox-classify'
-import { autoAssign } from '@/lib/inbox-assign'
+import { autoAssign, identifyStudentByEmail } from '@/lib/inbox-assign'
 import { recordInboxConversation } from '@/lib/inbox-record'
 import { gmailHelpdeskConfigured, importEmailAttachments } from '@/lib/gmail-helpdesk'
 
@@ -171,11 +171,14 @@ export async function POST(req: NextRequest) {
     // ── Crear o actualizar conversación ───────────────────────────────────────
     if (!conversationId) {
       const { language, topic } = await classifyInbound(subject, bodyText)
-      // Auto-asignación por especialidad (null = queda en cola para la supervisora)
-      const assigned = await autoAssign(language, topic)
+      // Identificar al estudiante por el remitente → asignación por las
+      // CATEGORÍAS de programa de las asesoras (contenido desempata)
+      const student = await identifyStudentByEmail(email)
+      const assigned = await autoAssign(language, topic, student?.categories ?? null)
       const { data: created } = await sb.from('wa_conversations').insert({
         inbox_key: INBOX_KEY, channel: 'email', customer_email: email, customer_name: name,
         subject, language, topic, thread_ref: p.threadId ?? p.messageId ?? null,
+        student_id: student?.id ?? null,
         assigned_to: assigned?.user_id ?? null, assigned_name: assigned?.name ?? null,
         status: 'open', unread_count: 1, first_customer_at: now,
         last_message_at: now, last_message_preview: subject.slice(0, 120),
