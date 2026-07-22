@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, Loader2, User, Hand, CheckCircle2, RotateCcw, MessageSquare, Inbox, Mail, Layers, Check, CheckCheck, AlertTriangle } from 'lucide-react'
+import { Send, Loader2, User, Hand, CheckCircle2, RotateCcw, MessageSquare, Inbox, Mail, Layers, Check, CheckCheck, AlertTriangle, Tag } from 'lucide-react'
 
 // Glifo de WhatsApp (lucide no trae íconos de marca)
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -116,6 +116,7 @@ export function InboxView() {
   const [filter, setFilter] = useState<Filter>('queue')
   const [lang, setLang] = useState('')
   const [topic, setTopic] = useState('')
+  const [channel, setChannel] = useState('')   // '' | whatsapp | email | ticket
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [counts, setCounts] = useState<{ queue: number; mine: number; all: number }>({ queue: 0, mine: 0, all: 0 })
   const [selected, setSelected] = useState<Conversation | null>(null)
@@ -228,17 +229,39 @@ export function InboxView() {
             {Object.entries(TOPICS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
         </div>
+        {/* Filtro por canal (auditoría: ¿están llegando los correos?) */}
+        <div className="px-3 py-2 border-b border-gray-50 flex gap-1">
+          {([
+            ['', 'Todos', null],
+            ['whatsapp', 'WhatsApp', 'wa'],
+            ['email', 'Correo', 'mail'],
+            ['ticket', 'Ticket', 'ticket'],
+          ] as const).map(([key, label, icon]) => {
+            const n = key ? conversations.filter(c => c.channel === key).length : conversations.length
+            return (
+              <button key={key} onClick={() => setChannel(key)}
+                className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-medium rounded-lg border ${channel === key ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>
+                {icon === 'wa' && <WhatsAppIcon className={`w-3 h-3 ${channel === key ? 'text-white' : 'text-green-600'}`} />}
+                {icon === 'mail' && <Mail className={`w-3 h-3 ${channel === key ? 'text-white' : 'text-purple-500'}`} />}
+                {icon === 'ticket' && <Tag className={`w-3 h-3 ${channel === key ? 'text-white' : 'text-amber-500'}`} />}
+                {label} <span className="opacity-60">{n}</span>
+              </button>
+            )
+          })}
+        </div>
         <div className="flex-1 overflow-auto divide-y divide-gray-50">
-          {conversations.length === 0 ? (
-            <div className="py-16 text-center text-xs text-gray-400">Sin conversaciones</div>
-          ) : conversations.map(c => (
+          {conversations.filter(c => !channel || c.channel === channel).length === 0 ? (
+            <div className="py-16 text-center text-xs text-gray-400">Sin conversaciones{channel ? ' en este canal' : ''}</div>
+          ) : conversations.filter(c => !channel || c.channel === channel).map(c => (
             <button key={c.id} onClick={() => openConv(c)}
               className={`w-full text-left px-4 py-3 hover:bg-gray-50 ${selected?.id === c.id ? 'bg-blue-50' : ''}`}>
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0">
                   {c.channel === 'email'
                     ? <Mail className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
-                    : <WhatsAppIcon className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />}
+                    : c.channel === 'ticket'
+                      ? <Tag className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                      : <WhatsAppIcon className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />}
                   <p className="text-sm font-medium text-gray-800 truncate">{convName(c)}</p>
                 </div>
                 {c.unread_count > 0 && <span className="bg-green-500 text-white rounded-full px-1.5 text-[10px] flex-shrink-0">{c.unread_count}</span>}
@@ -269,7 +292,9 @@ export function InboxView() {
                 <p className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                   {selected.channel === 'email'
                     ? <Mail className="w-4 h-4 text-purple-500 flex-shrink-0" />
-                    : <WhatsAppIcon className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                    : selected.channel === 'ticket'
+                      ? <Tag className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                      : <WhatsAppIcon className="w-4 h-4 text-green-600 flex-shrink-0" />}
                   {selected.case_number != null && <span className="text-[11px] font-mono font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Caso #{selected.case_number}</span>}
                   {convName(selected)}
                   {selected.language && <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">{LANGS[selected.language] ?? selected.language}</span>}
