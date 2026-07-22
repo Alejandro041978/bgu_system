@@ -31,6 +31,7 @@ const navigation: NavGroup[] = [
           { name: 'Estado de los docentes', href: '/reports/estado-docentes', icon: GraduationCap, pageKey: 'report_faculty_status' },
           { name: 'Auditor del Campus', href: '/reports/auditor-campus', icon: Shield, pageKey: 'report_campus_audit' },
           { name: 'Accesos al Portal', href: '/reports/accesos-portal', icon: LogIn, pageKey: 'report_portal_logins' },
+          { name: 'Egresados', href: '/reports/egresados', icon: GraduationCap, pageKey: 'report_graduates' },
         ],
       },
     ],
