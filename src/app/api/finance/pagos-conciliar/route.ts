@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
+import { maybeMarkExamPaid } from '@/lib/exam-requests'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchByIn } from '@/lib/grades-write'
@@ -254,6 +255,8 @@ export async function PATCH(req: NextRequest) {
         .update({ flywire_status: ev.status, flywire_payment_id: b.flywire_ref }).eq('external_id', chargeExt)
       // Gate de matrícula: si la cuota pagada era un concepto inicial, activa
       activated = await maybeActivateOnPayment(chargeExt).catch(() => null)
+      // Gate de exámenes: si era el cargo de un examen, pasa a la Hoja de Control
+      await maybeMarkExamPaid(chargeExt).catch(() => null)
     }
     return NextResponse.json({ ok: true, linked: !!chargeExt, activated: activated?.ok ?? false })
   }
@@ -307,5 +310,7 @@ export async function PATCH(req: NextRequest) {
   }
   // Gate de matrícula: si la cuota enlazada era un concepto inicial, activa
   const activated = await maybeActivateOnPayment(b.charge_external_id).catch(() => null)
+  // Gate de exámenes: si era el cargo de un examen, pasa a la Hoja de Control
+  await maybeMarkExamPaid(b.charge_external_id).catch(() => null)
   return NextResponse.json({ ok: true, activated: activated?.ok ?? false })
 }

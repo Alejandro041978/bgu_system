@@ -119,6 +119,7 @@ const navigation: NavGroup[] = [
           { name: 'Acta de Asignatura', href: '/academic/acta-asignatura', icon: BookOpen, pageKey: 'academic_acta_course' },
           { name: 'Actas de Moodle', href: '/academic/moodle-actas', icon: Download, pageKey: 'academic_moodle_actas' },
           { name: 'Cargar Notas (CSV)', href: '/academic/grades-import', icon: Upload, pageKey: 'academic_grades_import' },
+          { name: 'Exámenes · Control', href: '/academic/examenes', icon: FileCheck, pageKey: 'academic_exams' },
         ],
       },
       {

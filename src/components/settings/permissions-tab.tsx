@@ -72,6 +72,7 @@ const PAGE_GROUPS = [
       { key: 'academic_grades', label: 'Notas' },
       { key: 'academic_acta', label: 'Acta Personal' },
       { key: 'academic_acta_detail', label: 'Acta Detallada' },
+      { key: 'academic_exams', label: 'Exámenes · Hoja de Control' },
       // Convalidaciones
       { key: 'academic_transfer_credits', label: 'Convalidaciones · Individual' },
       { key: 'academic_transfer_schemes', label: 'Convalidaciones · Esquemas masivos' },
