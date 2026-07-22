@@ -109,7 +109,7 @@ export function SkillsManager() {
               <Chips options={TOPIC_OPTS} selected={a.topics} onToggle={v => toggleArr(a.user_id, 'topics', v)} />
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-600 mb-1.5">Categorías <span className="text-gray-400">(informativo)</span></p>
+              <p className="text-xs font-medium text-gray-600 mb-1.5">Categorías de programas <span className="text-gray-400">(el estudiante identificado se asigna a quien cubre su categoría)</span></p>
               <Chips options={categories.map(c => [c.name, c.name] as [string, string])} selected={a.categories} onToggle={v => toggleArr(a.user_id, 'categories', v)} />
             </div>
           </div>
