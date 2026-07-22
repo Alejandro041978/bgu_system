@@ -49,16 +49,20 @@ export async function POST(req: NextRequest) {
   }
   const sb = wdb()
 
-  // Un retiro VIGENTE bloquea registrar otro: primero se resuelve el que hay
-  // (reincorporar, vencer o anular). Evita duplicados como dos IW seguidos.
+  // Regla de retiros vigentes:
+  //   IW vigente  → bloquea cualquier retiro nuevo (ya está retirado).
+  //   LOA vigente → bloquea otro LOA, pero PERMITE el IW (transición legítima:
+  //     el LOA se cierra como 'convertido_iw', igual que hace el cron de
+  //     vencimiento, enlazado por converted_to_id).
   const { data: activo } = await sb.from('student_withdrawals')
     .select('id, type, resolution_number, withdrawal_date')
     .eq('student_id', body.student_id).eq('status', 'vigente').limit(1).maybeSingle()
-  if (activo) {
+  if (activo && !(activo.type === 'LOA' && body.type === 'IW')) {
     return NextResponse.json({
       error: `El estudiante ya tiene un retiro ${activo.type} vigente (${activo.resolution_number ?? 'sin resolución'}, ${activo.withdrawal_date}). Resuélvelo primero (reincorporación o anulación) antes de registrar otro.`,
     }, { status: 409 })
   }
+  const loaAConvertir = activo?.type === 'LOA' && body.type === 'IW' ? activo : null
 
   const date = body.withdrawal_date || new Date().toISOString().slice(0, 10)
   const resolution = body.resolution_number || await nextResolutionNumber(sb, body.student_id, body.type, date)
@@ -79,6 +83,12 @@ export async function POST(req: NextRequest) {
   }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // LOA → IW manual: el LOA vigente se cierra como convertido, enlazado al IW
+  if (loaAConvertir) {
+    await sb.from('student_withdrawals')
+      .update({ status: 'convertido_iw', converted_to_id: data.id }).eq('id', loaAConvertir.id)
+  }
+
   await recomputeSituations(sb)
-  return NextResponse.json(data)
+  return NextResponse.json({ ...data, loa_convertido: !!loaAConvertir })
 }

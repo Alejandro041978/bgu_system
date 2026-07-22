@@ -109,7 +109,11 @@ export function WithdrawalsView() {
       if (cancelled) return
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const v = (d.rows ?? []).find((r: any) => r.student_id === student.id)
-      if (v) setVigenteWarn(`⚠ Ya tiene un retiro ${v.type} vigente (${v.resolution_number ?? 'sin resolución'}, ${v.withdrawal_date}). No se puede registrar otro hasta resolverlo (reincorporar o anular).`)
+      if (v?.type === 'IW') {
+        setVigenteWarn(`⚠ Ya tiene un retiro IW vigente (${v.resolution_number ?? 'sin resolución'}, ${v.withdrawal_date}). No se puede registrar otro hasta resolverlo (reincorporar o anular).`)
+      } else if (v?.type === 'LOA') {
+        setVigenteWarn(`⚠ Tiene un LOA vigente (${v.resolution_number ?? 'sin resolución'}, ${v.withdrawal_date}). Puedes registrar un IW — el LOA se cerrará como convertido — pero NO otro LOA.`)
+      }
     })()
     return () => { cancelled = true }
   }, [student])
