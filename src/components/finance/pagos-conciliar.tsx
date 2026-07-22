@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, Link2, CircleSlash, CheckCircle2 } from 'lucide-react'
 
-interface Candidate { external_id: string; amount: number; due_date: string | null }
+interface Candidate { external_id: string; amount: number; balance?: number; due_date: string | null }
 interface Row {
   id: string; reference: string; source: string; amount: number; paid_date: string | null
   student: string | null; document: string | null; candidates: Candidate[]
@@ -132,10 +132,14 @@ export function PagosConciliar() {
   async function elegir(ref: string, f: Found, amount: number) {
     setSel(prev => ({ ...prev, [ref]: f }))
     const d = await fetch(`/api/finance/pagos-conciliar?cuotas_de=${f.id}`).then(r => r.json())
-    const list: Candidate[] = d.cuotas ?? []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const list: Candidate[] = (d.cuotas ?? []).map((c: any) => ({
+      external_id: c.external_id, amount: Number(c.amount), due_date: c.due_date,
+      balance: Math.round((Number(c.amount) - Number(c.pagado ?? 0)) * 100) / 100,
+    }))
     setCuotas(prev => ({ ...prev, [ref]: list }))
-    // Preselección: la cuota abierta del mismo monto exacto, si existe
-    const match = list.find(c => Math.abs(Number(c.amount) - amount) < 0.01)
+    // Preselección: la cuota cuyo SALDO calza exacto con el pago, si existe
+    const match = list.find(c => Math.abs((c.balance ?? c.amount) - amount) < 0.01)
     setCuotaChoice(prev => ({ ...prev, [ref]: match?.external_id ?? 'none' }))
   }
 
@@ -194,11 +198,15 @@ export function PagosConciliar() {
                       onChange={e => setCuotaChoice(p => ({ ...p, [r.reference]: e.target.value }))}
                       className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <option value="none">Sin cuota (queda en la bandeja de abajo)</option>
-                      {(cuotas[r.reference] ?? []).map(c => (
-                        <option key={c.external_id} value={c.external_id}>
-                          Cuota {fmt(c.amount)}{c.due_date ? ` · vence ${fdate(c.due_date)}` : ''}
-                        </option>
-                      ))}
+                      {(cuotas[r.reference] ?? []).map(c => {
+                        const saldo = c.balance ?? c.amount
+                        const parcial = saldo < c.amount - 0.01
+                        return (
+                          <option key={c.external_id} value={c.external_id}>
+                            Cuota {parcial ? `saldo ${fmt(saldo)} de ${fmt(c.amount)}` : fmt(c.amount)}{c.due_date ? ` · vence ${fdate(c.due_date)}` : ''}
+                          </option>
+                        )
+                      })}
                     </select>
                     {(cuotas[r.reference] ?? []).length === 0 && (
                       <span className="text-[11px] text-amber-600">sin cuotas abiertas — quedará como pago sin cuota</span>
@@ -265,11 +273,15 @@ export function PagosConciliar() {
                           <select value={choice[r.id] ?? ''} onChange={e => setChoice(p => ({ ...p, [r.id]: e.target.value }))}
                             className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[260px]">
                             <option value="">Elegir cuota…</option>
-                            {r.candidates.map(c => (
-                              <option key={c.external_id} value={c.external_id}>
-                                {fmt(c.amount)} — vence {fdate(c.due_date)}{Math.abs(c.amount - r.amount) < 0.01 ? ' ✓ mismo monto' : ''}
-                              </option>
-                            ))}
+                            {r.candidates.map(c => {
+                              const saldo = c.balance ?? c.amount
+                              const parcial = saldo < c.amount - 0.01
+                              return (
+                                <option key={c.external_id} value={c.external_id}>
+                                  {parcial ? `saldo ${fmt(saldo)} de ${fmt(c.amount)}` : fmt(c.amount)} — vence {fdate(c.due_date)}{Math.abs(saldo - r.amount) < 0.01 ? ' ✓ mismo monto' : ''}
+                                </option>
+                              )
+                            })}
                           </select>
                         )}
                       </td>

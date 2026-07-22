@@ -57,19 +57,25 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stuOf = new Map<string, any>(students.map(s => [s.id, s]))
 
-  // Cuotas de esos estudiantes y cuáles ya están pagadas (enlazadas)
+  // Cuotas de esos estudiantes con SALDO vivo (el criterio es el saldo, no
+  // "tiene algún pago": una cuota parcialmente pagada sigue siendo candidata)
   const charges = studentIds.length
     ? await fetchByIn(sb, 'account_charges', 'external_id, student_id, amount, due_date', 'student_id', studentIds)
     : []
   const linked = studentIds.length
-    ? await fetchByIn(sb, 'account_payments', 'charge_external_id, student_id', 'student_id', studentIds)
+    ? await fetchByIn(sb, 'account_payments', 'charge_external_id, amount, student_id', 'student_id', studentIds)
     : []
-  const paidCharges = new Set(linked.map((p: { charge_external_id: string | null }) => p.charge_external_id).filter(Boolean))
-  const openByStudent = new Map<string, { external_id: string; amount: number; due_date: string | null }[]>()
+  const paidByCharge = new Map<string, number>()
+  for (const p of linked as { charge_external_id: string | null; amount: number }[]) {
+    if (!p.charge_external_id) continue
+    paidByCharge.set(p.charge_external_id, (paidByCharge.get(p.charge_external_id) ?? 0) + Number(p.amount ?? 0))
+  }
+  const openByStudent = new Map<string, { external_id: string; amount: number; balance: number; due_date: string | null }[]>()
   for (const c of charges as { external_id: string; student_id: string; amount: number; due_date: string | null }[]) {
-    if (paidCharges.has(c.external_id)) continue
+    const balance = Number(c.amount) - (paidByCharge.get(c.external_id) ?? 0)
+    if (balance <= 0.01) continue
     if (!openByStudent.has(c.student_id)) openByStudent.set(c.student_id, [])
-    openByStudent.get(c.student_id)!.push({ external_id: c.external_id, amount: Number(c.amount), due_date: c.due_date })
+    openByStudent.get(c.student_id)!.push({ external_id: c.external_id, amount: Number(c.amount), balance: Math.round(balance * 100) / 100, due_date: c.due_date })
   }
   for (const list of openByStudent.values()) list.sort((a, b) => (a.due_date ?? '9999') < (b.due_date ?? '9999') ? -1 : 1)
 
@@ -179,12 +185,17 @@ export async function PATCH(req: NextRequest) {
       if (chosen.student_id !== b.student_id) return NextResponse.json({ error: 'La cuota elegida no pertenece a ese estudiante' }, { status: 400 })
       chargeExt = chosen.external_id
     } else if (!b.no_link) {
+      // Auto-calce por SALDO exacto (cubre también cuotas parcialmente pagadas)
       const { data: charges } = await sb.from('account_charges')
         .select('external_id, amount, due_date').eq('student_id', b.student_id).order('due_date', { ascending: true })
       const { data: paysOf } = await sb.from('account_payments')
-        .select('charge_external_id').eq('student_id', b.student_id).not('charge_external_id', 'is', null)
-      const paid = new Set((paysOf ?? []).map((p: { charge_external_id: string }) => p.charge_external_id))
-      const open = (charges ?? []).find((c: { external_id: string; amount: number }) => !paid.has(c.external_id) && Math.abs(Number(c.amount) - amount) < 0.01)
+        .select('charge_external_id, amount').eq('student_id', b.student_id).not('charge_external_id', 'is', null)
+      const paidBy = new Map<string, number>()
+      for (const p of (paysOf ?? []) as { charge_external_id: string; amount: number }[]) {
+        paidBy.set(p.charge_external_id, (paidBy.get(p.charge_external_id) ?? 0) + Number(p.amount ?? 0))
+      }
+      const open = (charges ?? []).find((c: { external_id: string; amount: number }) =>
+        Math.abs((Number(c.amount) - (paidBy.get(c.external_id) ?? 0)) - amount) < 0.01)
       if (open) chargeExt = open.external_id
     }
 
@@ -232,9 +243,15 @@ export async function PATCH(req: NextRequest) {
   if (charge.student_id !== pay.student_id) {
     return NextResponse.json({ error: 'La cuota no pertenece al estudiante del pago' }, { status: 400 })
   }
+  // Solo se rechaza si la cuota ya está SALDADA (una parcial acepta más pagos)
+  const { data: chAmt } = await sb.from('account_charges')
+    .select('amount').eq('external_id', b.charge_external_id).maybeSingle()
   const { data: already } = await sb.from('account_payments')
-    .select('id').eq('charge_external_id', b.charge_external_id).limit(1)
-  if ((already ?? []).length) return NextResponse.json({ error: 'Esa cuota ya tiene un pago enlazado' }, { status: 409 })
+    .select('amount').eq('charge_external_id', b.charge_external_id)
+  const yaPagado = (already ?? []).reduce((s: number, p: { amount: number }) => s + Number(p.amount ?? 0), 0)
+  if (yaPagado >= Number(chAmt?.amount ?? 0) - 0.01) {
+    return NextResponse.json({ error: 'Esa cuota ya está totalmente pagada' }, { status: 409 })
+  }
 
   const { error } = await sb.from('account_payments')
     .update({ charge_external_id: b.charge_external_id }).eq('id', pay.id)
