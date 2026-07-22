@@ -153,6 +153,7 @@ export async function PATCH(req: NextRequest) {
   const b = await req.json().catch(() => null) as {
     payment_id?: string; charge_external_id?: string; no_charge?: boolean
     flywire_ref?: string; student_id?: string; dismiss?: boolean; no_link?: boolean
+    other_income?: { category?: string; note?: string }
   } | null
   const sb = db()
 
@@ -169,6 +170,34 @@ export async function PATCH(req: NextRequest) {
       })
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       return NextResponse.json({ ok: true })
+    }
+
+    // Derivar a OTROS INGRESOS: dinero real que no es de un estudiante ni de
+    // un programa (libros, eventos...). Sale de la bandeja vía evento de
+    // resolución y queda tabulado en su propia página.
+    if (b.other_income) {
+      const raw = ev.raw ?? {}
+      const cat = ['eventos', 'libros', 'viajes', 'otros'].includes(b.other_income.category ?? '')
+        ? b.other_income.category : 'otros'
+      const auth2 = await createAuthClient()
+      const { data: { user: u2 } } = await auth2.auth.getUser()
+      const { error: oiErr } = await sb.from('other_income').insert({
+        flywire_ref: b.flywire_ref,
+        payer_name: [raw.first_name, raw.last_name].filter(Boolean).join(' ') || null,
+        payer_dni: raw.dni || null,
+        amount: Number(raw.amount) || 0,
+        method: raw.method || null,
+        income_date: raw.finished_date ? String(raw.finished_date).slice(0, 10) : null,
+        category: cat,
+        note: b.other_income.note?.trim() || null,
+        created_by: u2?.email ?? null,
+      })
+      if (oiErr) return NextResponse.json({ error: `¿Corrió la migración other_income.sql? ${oiErr.message}` }, { status: 500 })
+      const { error } = await sb.from('flywire_events').insert({
+        payment_id: b.flywire_ref, event_type: 'resolution', status: 'otros_ingresos', raw: { categoria: cat, por: u2?.email ?? 'humano' },
+      })
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true, categoria: cat })
     }
 
     if (!b.student_id) return NextResponse.json({ error: 'Falta student_id o dismiss' }, { status: 400 })

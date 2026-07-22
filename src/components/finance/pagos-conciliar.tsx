@@ -89,6 +89,7 @@ export function PagosConciliar() {
   const [sel, setSel] = useState<Record<string, Found | null>>({})
   const [cuotas, setCuotas] = useState<Record<string, Candidate[]>>({})
   const [cuotaChoice, setCuotaChoice] = useState<Record<string, string>>({})
+  const [otherCat, setOtherCat] = useState<Record<string, string>>({})
 
   const load = useCallback(async () => {
     const d = await fetch('/api/finance/pagos-conciliar').then(r => r.json())
@@ -184,11 +185,30 @@ export function PagosConciliar() {
                       <Link2 className="w-3 h-3" /> {f.name} {f.document_number ? `(${f.document_number})` : ''}
                     </button>
                   ))}
-                  <button onClick={() => { if (confirm(`¿Descartar ${r.reference} (${r.name})? No se registrará como pago.`)) actFly(r.reference, { dismiss: true }, 'Referencia descartada') }}
-                    disabled={busy === r.reference}
-                    className="inline-flex items-center gap-1 border border-gray-200 hover:border-gray-300 text-gray-500 text-[11px] px-2 py-1 rounded-lg ml-auto">
-                    <CircleSlash className="w-3 h-3" /> Descartar
-                  </button>
+                  <span className="ml-auto inline-flex items-center gap-1">
+                    <select value={otherCat[r.reference] ?? ''}
+                      onChange={e => setOtherCat(p => ({ ...p, [r.reference]: e.target.value }))}
+                      className="border border-gray-200 rounded-lg px-2 py-1 text-[11px] bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      title="Ingreso no académico: libro, evento, viaje…">
+                      <option value="">→ Otros ingresos…</option>
+                      <option value="eventos">Eventos</option>
+                      <option value="libros">Libros</option>
+                      <option value="viajes">Viajes</option>
+                      <option value="otros">Otros</option>
+                    </select>
+                    {otherCat[r.reference] && (
+                      <button onClick={() => actFly(r.reference, { other_income: { category: otherCat[r.reference] } }, `${r.reference} derivado a Otros Ingresos (${otherCat[r.reference]})`)}
+                        disabled={busy === r.reference}
+                        className="inline-flex items-center gap-1 bg-gray-900 hover:bg-gray-800 text-white text-[11px] px-2 py-1 rounded-lg">
+                        Derivar
+                      </button>
+                    )}
+                    <button onClick={() => { if (confirm(`¿Descartar ${r.reference} (${r.name})? No se registrará como pago.`)) actFly(r.reference, { dismiss: true }, 'Referencia descartada') }}
+                      disabled={busy === r.reference}
+                      className="inline-flex items-center gap-1 border border-gray-200 hover:border-gray-300 text-gray-500 text-[11px] px-2 py-1 rounded-lg">
+                      <CircleSlash className="w-3 h-3" /> Descartar
+                    </button>
+                  </span>
                 </div>
                 {/* Paso 2: destino del pago — cuota abierta elegida o "sin cuota" */}
                 {sel[r.reference] && (
