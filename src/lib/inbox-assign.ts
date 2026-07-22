@@ -10,7 +10,7 @@ const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 // null (→ round-robin). Solo se invoca con 2+ candidatas con especialidad.
 async function pickBySpecialty(
   content: string,
-  candidates: { user_id: string; agent_name: string | null; specialty: string | null }[],
+  candidates: { user_id: string; agent_name: string | null; specialty?: string | null }[],
 ): Promise<string | null> {
   try {
     if (!process.env.ANTHROPIC_API_KEY) return null
