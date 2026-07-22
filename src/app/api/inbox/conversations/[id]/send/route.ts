@@ -4,6 +4,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { getBot } from '@/lib/bots'
 import { sendWhatsAppMessage } from '@/lib/twilio'
 import { recordInboxConversation } from '@/lib/inbox-record'
+import { gmailHelpdeskConfigured, sendGmailReply } from '@/lib/gmail-helpdesk'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -27,10 +28,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const caseTag = conv.case_number != null ? ` [Caso #${conv.case_number}]` : ''
 
   if (conv.channel === 'email') {
-    // ── Envío por CORREO vía N8N (Gmail, hilo nativo) ────────────────────────
-    const webhookUrl = process.env.N8N_EMAIL_WEBHOOK_URL
-    if (!webhookUrl) return NextResponse.json({ error: 'N8N_EMAIL_WEBHOOK_URL no está configurada' }, { status: 400 })
-
+    // ── Envío por CORREO: Gmail NATIVO (helpdesk@, hilo real); N8N queda de
+    // respaldo mientras el token no tenga gmail.send ──────────────────────────
     // Último mensaje entrante (para responder dentro del hilo de Gmail)
     const { data: lastIn } = await sb.from('wa_messages')
       .select('message_id').eq('conversation_id', id).eq('direction', 'in').not('message_id', 'is', null)
@@ -42,17 +41,34 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Número de caso en el asunto (para que el cliente pueda referirse a él)
     outSubject = base.replace(/\s*\[Caso #\d+\]/gi, '').trim() + caseTag
 
-    const resp = await fetch(webhookUrl, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        secret: process.env.CRON_SECRET,
-        to: conv.customer_email, subject: outSubject, body,
-        threadId: conv.thread_ref, messageId: lastIn?.message_id ?? null,
-      }),
-    })
-    if (!resp.ok) {
-      const t = await resp.text().catch(() => '')
-      return NextResponse.json({ error: `Error al enviar el correo por N8N: ${t}` }, { status: 500 })
+    let sentNative = false
+    if (gmailHelpdeskConfigured()) {
+      try {
+        await sendGmailReply({
+          to: conv.customer_email,
+          subject: outSubject,
+          text: body,
+          threadId: conv.thread_ref,
+          lastInboundGmailId: lastIn?.message_id ?? null,
+        })
+        sentNative = true
+      } catch { /* sin gmail.send todavía: cae al respaldo N8N */ }
+    }
+    if (!sentNative) {
+      const webhookUrl = process.env.N8N_EMAIL_WEBHOOK_URL
+      if (!webhookUrl) return NextResponse.json({ error: 'Gmail nativo falló y N8N_EMAIL_WEBHOOK_URL no está configurada' }, { status: 500 })
+      const resp = await fetch(webhookUrl, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: process.env.CRON_SECRET,
+          to: conv.customer_email, subject: outSubject, body,
+          threadId: conv.thread_ref, messageId: lastIn?.message_id ?? null,
+        }),
+      })
+      if (!resp.ok) {
+        const t = await resp.text().catch(() => '')
+        return NextResponse.json({ error: `Error al enviar el correo por N8N: ${t}` }, { status: 500 })
+      }
     }
   } else {
     // ── Envío por WHATSAPP vía Twilio ────────────────────────────────────────

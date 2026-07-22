@@ -64,6 +64,57 @@ export async function getGmailMessageFull(id: string): Promise<any> {
   return d
 }
 
+// Envía una respuesta desde helpdesk@ en el MISMO hilo de Gmail (releva al
+// webhook de N8N). Threading: threadId de Gmail + In-Reply-To/References
+// (leídos del último mensaje entrante) para que otros clientes también
+// enhebren. Requiere scope gmail.send en el refresh token.
+export async function sendGmailReply(args: {
+  to: string; subject: string; text: string
+  threadId?: string | null; lastInboundGmailId?: string | null
+}): Promise<{ id: string }> {
+  const token = await gmailToken()
+  const auth = { headers: { Authorization: `Bearer ${token}` } }
+
+  let inReplyTo = '', references = ''
+  if (args.lastInboundGmailId) {
+    try {
+      const res = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${args.lastInboundGmailId}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=References`, auth)
+      const d = await res.json()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hs = (d.payload?.headers ?? []) as any[]
+      const h = (n: string) => hs.find(x => (x.name ?? '').toLowerCase() === n)?.value ?? ''
+      inReplyTo = h('message-id')
+      references = [h('references'), inReplyTo].filter(Boolean).join(' ')
+    } catch { /* threading por threadId igual funciona */ }
+  }
+
+  const subjectB64 = `=?UTF-8?B?${Buffer.from(args.subject, 'utf8').toString('base64')}?=`
+  const mime = [
+    `To: ${args.to}`,
+    `Subject: ${subjectB64}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    ...(inReplyTo ? [`In-Reply-To: ${inReplyTo}`] : []),
+    ...(references ? [`References: ${references}`] : []),
+    '',
+    Buffer.from(args.text, 'utf8').toString('base64'),
+  ].join('\r\n')
+
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: { ...auth.headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      raw: Buffer.from(mime).toString('base64url'),
+      ...(args.threadId ? { threadId: args.threadId } : {}),
+    }),
+  })
+  const d = await res.json()
+  if (!res.ok) throw new Error(`Gmail send: ${d.error?.message ?? res.status}`)
+  return { id: d.id }
+}
+
 export interface GmailPart {
   filename: string
   mimeType: string

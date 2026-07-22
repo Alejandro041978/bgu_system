@@ -14,8 +14,9 @@ export async function GET(req: NextRequest) {
   if (!process.env.GOOGLE_OAUTH_CLIENT_ID) {
     return NextResponse.json({ error: 'Falta GOOGLE_OAUTH_CLIENT_ID en Vercel' }, { status: 500 })
   }
+  // gmail = lectura (ingesta/adjuntos) + envío (respuestas del buzón sin N8N)
   const scope = req.nextUrl.searchParams.get('scope') === 'gmail'
-    ? 'https://www.googleapis.com/auth/gmail.readonly'
+    ? 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send'
     : 'https://www.googleapis.com/auth/admin.directory.user'
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_OAUTH_CLIENT_ID,
