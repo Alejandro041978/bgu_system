@@ -129,12 +129,24 @@ export async function autocloseSweep(): Promise<AutocloseResult> {
   const r: AutocloseResult = { revisadas: 0, cerradas_24h: 0, cerradas_concluyentes: 0, encuestas_whatsapp: 0, encuestas_correo: 0, errors: [] }
 
   const { data: convs } = await sb.from('wa_conversations')
-    .select('id, inbox_key, channel, case_number, customer_phone, customer_email, language, survey_sent_at, thread_ref')
+    .select('id, inbox_key, channel, case_number, customer_phone, customer_email, language, survey_sent_at, thread_ref, first_customer_at, created_at')
     .eq('inbox_key', 'servicio').eq('status', 'open')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const conv of (convs ?? []) as any[]) {
     try {
+      // VENTANA DE 24 HORAS del WhatsApp humano (regla del usuario): el código
+      // de Sofía abre la ventana; a las 24h de la activación se cierra, dialogue
+      // lo que dialogue. Si vuelve a escribir, la puerta dura lo manda a Sofía
+      // por un código nuevo. (Solo WhatsApp: correo y tickets no tienen ventana.)
+      if (conv.channel === 'whatsapp') {
+        const activada = conv.first_customer_at ?? conv.created_at
+        if (activada && (now - new Date(activada).getTime()) / 3600000 >= 24) {
+          await closeConv(sb, conv.id, 'ventana_24h')
+          r.cerradas_24h++
+          continue
+        }
+      }
       const { data: msgsDesc } = await sb.from('wa_messages')
         .select('direction, body, subject, message_id, created_at')
         .eq('conversation_id', conv.id).order('created_at', { ascending: false }).limit(8)
