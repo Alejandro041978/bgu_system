@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
-import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2 } from 'lucide-react'
+import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag } from 'lucide-react'
 import { FlywirePayButton } from './flywire-pay-button'
 
 const money = (n: number) =>
@@ -38,8 +38,8 @@ function buildLedger(charges: ChargeRow[], payments: PaymentRow[]): LedgerRow[] 
 }
 
 export function AccountStatementView(
-  { statement, showStudent = false, canGenerate = false, onChanged }:
-  { statement: Statement; showStudent?: boolean; canGenerate?: boolean; onChanged?: () => void }
+  { statement, showStudent = false, canGenerate = false, canDiscount = false, onChanged }:
+  { statement: Statement; showStudent?: boolean; canGenerate?: boolean; canDiscount?: boolean; onChanged?: () => void }
 ) {
   const { student, programs } = statement
   const [sel, setSel] = useState(0)
@@ -79,12 +79,12 @@ export function AccountStatementView(
         </p>
       )}
 
-      <ProgramAccountView account={account} canGenerate={canGenerate} onChanged={onChanged} studentName={student.name} />
+      <ProgramAccountView account={account} canGenerate={canGenerate} canDiscount={canDiscount} onChanged={onChanged} studentName={student.name} />
     </div>
   )
 }
 
-function ProgramAccountView({ account, canGenerate, onChanged, studentName }: { account: ProgramAccount; canGenerate: boolean; onChanged?: () => void; studentName?: string | null }) {
+function ProgramAccountView({ account, canGenerate, canDiscount = false, onChanged, studentName }: { account: ProgramAccount; canGenerate: boolean; canDiscount?: boolean; onChanged?: () => void; studentName?: string | null }) {
   const { totals } = account
   const ledger = buildLedger(account.charges, account.payments)
 
@@ -122,9 +122,10 @@ function ProgramAccountView({ account, canGenerate, onChanged, studentName }: { 
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <Card icon={<Wallet className="w-4 h-4" />} label="Facturado" value={money(totals.charged)} cls="text-gray-900" />
         <Card icon={<CheckCircle2 className="w-4 h-4" />} label="Pagado" value={money(totals.paid)} cls="text-green-600" />
+        <Card icon={<Tag className="w-4 h-4" />} label="Descuentos" value={money(totals.discounts)} cls={totals.discounts > 0 ? 'text-violet-600' : 'text-gray-400'} />
         <Card icon={<TrendingDown className="w-4 h-4" />} label="Saldo" value={money(totals.balance)} cls={totals.balance > 0 ? 'text-gray-900' : 'text-green-600'} />
         <Card icon={<AlertTriangle className="w-4 h-4" />} label="Vencido" value={money(totals.overdue)} cls={totals.overdue > 0 ? 'text-red-600' : 'text-gray-400'} />
       </div>
@@ -166,8 +167,10 @@ function ProgramAccountView({ account, canGenerate, onChanged, studentName }: { 
                   {/* Columnas de pago */}
                   <td className="px-3 py-2.5 text-gray-700">{p ? fdate(p.paid_date) : '—'}</td>
                   <td className="px-3 py-2.5 text-gray-500">{p?.receipt_number ?? '—'}</td>
-                  <td className="px-3 py-2.5 text-gray-500 text-xs">{p?.transaction_reference ?? '—'}</td>
-                  <td className="px-3 py-2.5 text-right text-green-600">{p ? money(p.amount) : '—'}</td>
+                  <td className={`px-3 py-2.5 text-xs ${p?.is_discount ? 'text-violet-600 font-medium' : 'text-gray-500'}`}>
+                    {p?.is_discount ? <span className="inline-flex items-center gap-1"><Tag className="w-3 h-3" />{p.transaction_reference}</span> : (p?.transaction_reference ?? '—')}
+                  </td>
+                  <td className={`px-3 py-2.5 text-right ${p?.is_discount ? 'text-violet-600' : 'text-green-600'}`}>{p ? money(p.amount) : '—'}</td>
                   {/* Rollup de la cuota */}
                   <td className="px-3 py-2.5 text-right text-green-600">{r.first ? (c.paid > 0 ? money(c.paid) : '—') : ''}</td>
                   <td className="px-3 py-2.5 text-right font-medium text-gray-900">{r.first ? money(c.balance) : ''}</td>
@@ -183,6 +186,9 @@ function ProgramAccountView({ account, canGenerate, onChanged, studentName }: { 
                       {r.first && c.balance > 0.005 && c.status !== 'pagada' && (
                         <FlywirePayButton chargeExternalId={c.external_id} amount={c.balance} studentName={studentName} />
                       )}
+                      {r.first && canDiscount && c.balance > 0.005 && (
+                        <DiscountButton charge={c} onChanged={onChanged} />
+                      )}
                       {r.first && canGenerate && (
                         <DeleteChargeButton charge={c} disabled={c.paid > 0.005} onChanged={onChanged} />
                       )}
@@ -195,6 +201,39 @@ function ProgramAccountView({ account, canGenerate, onChanged, studentName }: { 
         </table>
       </div>
     </div>
+  )
+}
+
+// Aplicar descuento a una cuota (solo SUPERADMIN — el backend lo exige).
+// El descuento reduce el saldo como un pago, con serie DESCUENTO y código;
+// arriba suma en su propia tarjeta. Las becas seguirán esta estructura.
+function DiscountButton({ charge, onChanged }: { charge: ChargeRow; onChanged?: () => void }) {
+  const [busy, setBusy] = useState(false)
+  async function apply() {
+    const montoStr = prompt(
+      `Descuento para la cuota de ${money(charge.amount)} (${charge.concept_abbr}).\nSaldo actual: ${money(charge.balance)}.\n\nMonto del descuento:`,
+      String(charge.balance.toFixed(2)))
+    if (montoStr == null) return
+    const monto = Number(montoStr)
+    if (!Number.isFinite(monto) || monto <= 0) { alert('Monto inválido'); return }
+    const code = prompt('Código del descuento (déjalo así para autogenerar):', `DSC-${new Date().getFullYear()}`)
+    if (code == null) return
+    if (!confirm(`¿Aplicar descuento de ${money(monto)} con código ${code || '(auto)'}? Reducirá el saldo de la cuota.`)) return
+    setBusy(true)
+    const d = await fetch('/api/account/discount', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ charge_external_id: charge.external_id, amount: monto, code }),
+    }).then(r => r.json())
+    setBusy(false)
+    if (d.error) alert(d.error)
+    else onChanged?.()
+  }
+  return (
+    <button onClick={apply} disabled={busy}
+      title="Aplicar descuento (solo superadministrador)"
+      className="text-gray-300 hover:text-violet-600 disabled:opacity-40">
+      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Tag className="w-3.5 h-3.5" />}
+    </button>
   )
 }
 

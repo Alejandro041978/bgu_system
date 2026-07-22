@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { getAccountStatement } from '@/lib/account-statement'
+import { isSuperadmin } from '@/lib/student-identity'
 
 export const revalidate = 0
 
@@ -18,5 +19,7 @@ export async function GET(req: NextRequest) {
   }
 
   const statement = await getAccountStatement({ studentId, documentNumber })
-  return NextResponse.json(statement)
+  // superadmin habilita acciones sensibles del estado de cuenta (descuentos)
+  const superadmin = await isSuperadmin(user.id)
+  return NextResponse.json({ ...statement, superadmin })
 }

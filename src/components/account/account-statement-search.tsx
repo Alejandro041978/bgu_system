@@ -58,7 +58,7 @@ export function AccountStatementSearch() {
       )}
 
       {!loading && statement && (
-        <AccountStatementView statement={statement} showStudent canGenerate
+        <AccountStatementView statement={statement} showStudent canGenerate canDiscount={(statement as { superadmin?: boolean }).superadmin ?? false}
           onChanged={() => { if (currentId) loadStatement(currentId) }} />
       )}
     </div>

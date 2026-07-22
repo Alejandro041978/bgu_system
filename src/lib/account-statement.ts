@@ -25,9 +25,10 @@ export interface PaymentRow {
   receipt_number: number | null
   transaction_reference: string | null
   payment_type: number | null
+  is_discount: boolean
 }
 
-export interface Totals { charged: number; paid: number; balance: number; overdue: number }
+export interface Totals { charged: number; paid: number; discounts: number; balance: number; overdue: number }
 
 // Una cuenta económica independiente por programa (enrollment) en que participa el estudiante.
 export interface ProgramAccount {
@@ -87,7 +88,7 @@ export async function getAccountStatement(
       .select('id, external_id, enrollment_id, amount, due_date, charge_type, convocatorias(name)')
       .eq('student_id', student.id),
     sb.from('account_payments')
-      .select('id, amount, paid_date, receipt_number, transaction_reference, payment_type, charge_external_id')
+      .select('id, amount, paid_date, receipt_number, transaction_reference, payment_type, charge_external_id, series_code')
       .eq('student_id', student.id),
   ])
 
@@ -109,7 +110,7 @@ export async function getAccountStatement(
   const groups = new Map<string, ProgramAccount>()
   const newGroup = (enr: string | null, conv: string | null, name: string): ProgramAccount => ({
     enrollment_id: enr, convocatoria_id: conv, program_name: name,
-    totals: { charged: 0, paid: 0, balance: 0, overdue: 0 }, charges: [], payments: [],
+    totals: { charged: 0, paid: 0, discounts: 0, balance: 0, overdue: 0 }, charges: [], payments: [],
   })
 
   // Un grupo por cada matrícula (aunque no tenga cuotas)
@@ -146,16 +147,20 @@ export async function getAccountStatement(
     if ((status === 'vencida' || status === 'parcial') && c.due_date && c.due_date <= today) g.totals.overdue += balance
   }
 
-  // Pagos (atribuidos a su programa vía la cuota)
+  // Pagos (atribuidos a su programa vía la cuota). Los DESCUENTOS reducen la
+  // deuda como un pago, pero se suman en su propia columna (no son ingreso).
   for (const p of paymentsRaw) {
     const enr = p.charge_external_id ? enrollmentByCharge.get(p.charge_external_id) ?? null : null
     const g = groupFor(enr)
     const amount = Number(p.amount ?? 0)
+    const esDescuento = p.series_code === 'DESCUENTO'
     g.payments.push({
       id: p.id, charge_external_id: p.charge_external_id ?? null, amount, paid_date: p.paid_date,
       receipt_number: p.receipt_number, transaction_reference: p.transaction_reference, payment_type: p.payment_type,
+      is_discount: esDescuento,
     })
-    g.totals.paid += amount
+    if (esDescuento) g.totals.discounts += amount
+    else g.totals.paid += amount
   }
 
   // Descartar el grupo huérfano si quedó vacío
@@ -166,8 +171,8 @@ export async function getAccountStatement(
     g.charges.sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''))
     g.payments.sort((a, b) => (b.paid_date ?? '').localeCompare(a.paid_date ?? ''))
     g.totals = {
-      charged: r2(g.totals.charged), paid: r2(g.totals.paid),
-      balance: r2(g.totals.charged - g.totals.paid), overdue: r2(g.totals.overdue),
+      charged: r2(g.totals.charged), paid: r2(g.totals.paid), discounts: r2(g.totals.discounts),
+      balance: r2(g.totals.charged - g.totals.paid - g.totals.discounts), overdue: r2(g.totals.overdue),
     }
     return g
   }).sort((a, b) => a.program_name.localeCompare(b.program_name))
