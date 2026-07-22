@@ -140,11 +140,13 @@ export async function autoAssign(
 ): Promise<Assignment | null> {
   try {
     const sb = db()
-    const { data: agents } = await sb.from('agent_skills')
-      .select('user_id, agent_name, languages, topics, categories, specialty, last_assigned_at, is_supervisor')
-      .eq('online', true)
+    // select('*') a propósito: pedir una columna que aún no existe (migración
+    // sin correr) hacía fallar TODO el motor en silencio y nada se asignaba.
+    const { data: agents, error: agErr } = await sb.from('agent_skills')
+      .select('*').eq('online', true)
+    if (agErr) console.error('autoAssign agent_skills:', agErr.message)
 
-    type Row = { user_id: string; agent_name: string | null; languages: string[]; topics: string[]; categories: string[] | null; specialty: string | null; last_assigned_at: string | null; is_supervisor: boolean }
+    type Row = { user_id: string; agent_name: string | null; languages: string[]; topics: string[]; categories: string[] | null; specialty?: string | null; last_assigned_at: string | null; is_supervisor: boolean }
     const rows = (agents ?? []) as Row[]
     const agentes = rows.filter(a => !a.is_supervisor)
 
