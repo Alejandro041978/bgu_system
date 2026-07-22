@@ -364,18 +364,40 @@ export function InboxView() {
               <div ref={bottomRef} />
             </div>
 
-            <div className="p-3 border-t border-gray-100">
-              <div className="flex items-end gap-2">
+            {selected.channel === 'email' ? (
+              /* Compositor de CORREO: Enter hace salto de línea (nunca envía);
+                 el correo sale solo con el botón. Adiós a los correos partidos. */
+              <div className="p-3 border-t border-gray-100 space-y-2">
+                <p className="text-[11px] text-gray-400">
+                  <b>Para:</b> {selected.customer_email ?? '—'} · <b>Asunto:</b> {selected.subject ? (/^re:/i.test(selected.subject) ? selected.subject : `Re: ${selected.subject}`) : 'Re:'}
+                  {selected.case_number != null && ` [Caso #${selected.case_number}]`}
+                </p>
                 <textarea value={input} onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-                  rows={1} placeholder="Escribe una respuesta…"
-                  className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-32" />
-                <button onClick={send} disabled={!input.trim() || sending}
-                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                </button>
+                  rows={6} placeholder="Escribe el correo completo… (Enter hace salto de línea)"
+                  className="w-full resize-y border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]" />
+                <div className="flex justify-end">
+                  <button onClick={send} disabled={!input.trim() || sending}
+                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                    {sending ? 'Enviando…' : 'Enviar correo'}
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Chat (WhatsApp/ticket): Enter envía, Shift+Enter salto de línea */
+              <div className="p-3 border-t border-gray-100">
+                <div className="flex items-end gap-2">
+                  <textarea value={input} onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+                    rows={1} placeholder="Escribe una respuesta…"
+                    className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-32" />
+                  <button onClick={send} disabled={!input.trim() || sending}
+                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
