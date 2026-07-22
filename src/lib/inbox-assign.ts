@@ -33,6 +33,34 @@ async function pickBySpecialty(
 
 export interface Assignment { user_id: string; name: string }
 
+const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
+// Saludo DIRIGIDO: "Hola Sara", "Buenas tardes Srta Claudia" — el estudiante
+// ya eligió a su asesora. Se busca el primer nombre de cada integrante en
+// línea dentro de la ZONA DE SALUDO (primeros 250 caracteres, para no pescar
+// menciones de pasada más abajo). Solo aplica si UNA sola persona calza; con
+// ambigüedad (dos nombres, o dos asesoras que se llaman igual) se ignora la
+// señal y decide el resto del motor.
+function addressedAgent<T extends { user_id: string; agent_name: string | null }>(
+  content: string, agents: T[],
+): T | null {
+  const zone = norm(content.slice(0, 250))
+  const matched = new Map<string, T>()
+  const firstNames = new Map<string, number>()
+  for (const a of agents) {
+    const first = norm((a.agent_name ?? '').trim().split(/\s+/)[0] ?? '')
+    if (first.length < 3) continue
+    firstNames.set(first, (firstNames.get(first) ?? 0) + 1)
+    if (new RegExp(`(^|[^a-z])${first}([^a-z]|$)`).test(zone)) matched.set(a.user_id, a)
+  }
+  if (matched.size !== 1) return null
+  const hit = [...matched.values()][0]
+  const first = norm((hit.agent_name ?? '').trim().split(/\s+/)[0] ?? '')
+  // Dos asesoras con el mismo primer nombre = ambiguo aunque solo una esté en el Map
+  if ((firstNames.get(first) ?? 0) > 1) return null
+  return hit
+}
+
 export interface IdentifiedStudent {
   id: string
   name: string
@@ -92,6 +120,8 @@ export async function identifyStudentByDocOrPhone(document: string | null, phone
 
 /**
  * Elige la agente para una conversación (regla del usuario, 2026-07-22):
+ *  0. SALUDO DIRIGIDO ("Hola Sara") → esa persona, si está en línea y el
+ *     nombre es inequívoco.
  *  1. Si el ESTUDIANTE está identificado → asesoras cuyas CATEGORÍAS de
  *     programa cubren las del estudiante (y su idioma, si se conoce):
  *       - una sola calificada → directa;
@@ -117,6 +147,17 @@ export async function autoAssign(
     type Row = { user_id: string; agent_name: string | null; languages: string[]; topics: string[]; categories: string[] | null; specialty: string | null; last_assigned_at: string | null; is_supervisor: boolean }
     const rows = (agents ?? []) as Row[]
     const agentes = rows.filter(a => !a.is_supervisor)
+
+    // 0) Saludo dirigido — la señal más explícita: si el mensaje nombra a UNA
+    // integrante en línea del equipo en el saludo, va con ella directamente
+    // (incluye a la supervisora: el estudiante la pidió por nombre).
+    if (content?.trim()) {
+      const directa = addressedAgent(content, rows)
+      if (directa) {
+        await sb.from('agent_skills').update({ last_assigned_at: new Date().toISOString() }).eq('user_id', directa.user_id)
+        return { user_id: directa.user_id, name: directa.agent_name ?? 'Agente' }
+      }
+    }
 
     let pool: Row[] = []
 
