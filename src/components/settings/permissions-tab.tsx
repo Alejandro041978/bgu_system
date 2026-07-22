@@ -46,7 +46,7 @@ const PAGE_GROUPS = [
       // Atención al Cliente
       { key: 'chat', label: 'Sofia · Chat' },
       { key: 'desk', label: 'Tickets' },
-      { key: 'inbox', label: 'Buzón WhatsApp/Correo' },
+      { key: 'inbox', label: 'Bandeja Helpdesk' },
       { key: 'inbox_metrics', label: 'Buzón · Métricas' },
       { key: 'helpdesk_skills', label: 'Helpdesk · Skills' },
       { key: 'desk_metrics', label: 'Métricas de tickets' },

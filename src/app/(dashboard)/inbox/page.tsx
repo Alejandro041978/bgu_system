@@ -6,7 +6,7 @@ export const revalidate = 0
 export default function InboxPage() {
   return (
     <>
-      <Topbar title="Buzón WhatsApp" subtitle="Servicio al Estudiante" />
+      <Topbar title="Bandeja Helpdesk" subtitle="Servicio al Estudiante" />
       <div className="flex-1 p-6 overflow-hidden">
         <div className="max-w-6xl mx-auto h-full">
           <InboxView />
