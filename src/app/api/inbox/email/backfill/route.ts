@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
   const days = Math.min(Math.max(Number(req.nextUrl.searchParams.get('days') ?? 2), 1), 30)
   const sb = db()
 
+  try {
   const ids = await listInboxMessageIds(days)
 
   // ¿Cuáles ya viven en el buzón? (la ingesta guarda message_id = id de Gmail)
@@ -90,4 +91,7 @@ export async function GET(req: NextRequest) {
     detalle: detalle.slice(0, 20),
     errors: errors.slice(0, 10),
   })
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
+  }
 }
