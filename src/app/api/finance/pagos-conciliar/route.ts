@@ -122,6 +122,11 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     rows: rows.map(p => {
       const s = p.student_id ? stuOf.get(p.student_id) : null
+      // Un reembolso es SOMBRA de su pago de origen: no se concilia solo —
+      // sigue a su origen cuando este se enlaza o se marca sin cuota.
+      const refundOf = Number(p.amount) < 0
+        ? (String(p.transaction_reference ?? '').match(/\(reembolso de (\S+)\)/)?.[1] ?? null)
+        : null
       return {
         id: p.id,
         reference: p.flywire_payment_id ?? p.transaction_reference ?? p.external_id,
@@ -131,7 +136,8 @@ export async function GET(req: NextRequest) {
         student_id: p.student_id,
         student: s ? [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' ') : null,
         document: s ? String(s.document_number ?? '') : null,
-        candidates: p.student_id ? (openByStudent.get(p.student_id) ?? []) : [],
+        refund_of: refundOf,
+        candidates: refundOf ? [] : (p.student_id ? (openByStudent.get(p.student_id) ?? []) : []),
       }
     }).sort((a, b) => (a.paid_date ?? '') < (b.paid_date ?? '') ? -1 : 1),
     sin_registrar: sinRegistrar,
@@ -233,6 +239,11 @@ export async function PATCH(req: NextRequest) {
   if (b.no_charge) {
     const { error } = await sb.from('account_payments').update({ reconciled_no_charge: true }).eq('id', pay.id)
     if (error) return NextResponse.json({ error: `¿Corrió la migración flywire_conciliar.sql? ${error.message}` }, { status: 500 })
+    // Sus reembolsos lo siguen (salen de la bandeja junto con él)
+    if (pay.flywire_payment_id) {
+      await sb.from('account_payments').update({ reconciled_no_charge: true })
+        .ilike('transaction_reference', `%(reembolso de ${pay.flywire_payment_id})%`)
+    }
     return NextResponse.json({ ok: true })
   }
 
@@ -260,6 +271,10 @@ export async function PATCH(req: NextRequest) {
     await sb.from('account_charges')
       .update({ flywire_status: 'delivered', flywire_payment_id: pay.flywire_payment_id })
       .eq('external_id', b.charge_external_id)
+    // Sus reembolsos van a la MISMA cuota (el reembolso es sombra del origen:
+    // el neto de la cuota queda correcto y ambos salen de la bandeja juntos)
+    await sb.from('account_payments').update({ charge_external_id: b.charge_external_id })
+      .ilike('transaction_reference', `%(reembolso de ${pay.flywire_payment_id})%`)
   }
   // Gate de matrícula: si la cuota enlazada era un concepto inicial, activa
   const activated = await maybeActivateOnPayment(b.charge_external_id).catch(() => null)

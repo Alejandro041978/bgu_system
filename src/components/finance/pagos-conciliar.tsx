@@ -6,7 +6,7 @@ import { Loader2, Link2, CircleSlash, CheckCircle2 } from 'lucide-react'
 interface Candidate { external_id: string; amount: number; balance?: number; due_date: string | null }
 interface Row {
   id: string; reference: string; source: string; amount: number; paid_date: string | null
-  student: string | null; document: string | null; candidates: Candidate[]
+  student: string | null; document: string | null; refund_of?: string | null; candidates: Candidate[]
 }
 interface SinRegistrar {
   reference: string; status: string; name: string; dni: string | null
@@ -267,7 +267,9 @@ export function PagosConciliar() {
                       <td className="px-3 py-2.5 text-right tabular-nums font-medium">{fmt(r.amount)}</td>
                       <td className="px-3 py-2.5 text-xs text-gray-500">{fdate(r.paid_date)}</td>
                       <td className="px-3 py-2.5">
-                        {r.candidates.length === 0 ? (
+                        {r.refund_of ? (
+                          <span className="text-xs text-gray-400">↩ sigue a su pago de origen <span className="font-mono">{r.refund_of}</span></span>
+                        ) : r.candidates.length === 0 ? (
                           <span className="text-xs text-gray-400">sin cuotas impagas</span>
                         ) : (
                           <select value={choice[r.id] ?? ''} onChange={e => setChoice(p => ({ ...p, [r.id]: e.target.value }))}
@@ -286,16 +288,22 @@ export function PagosConciliar() {
                         )}
                       </td>
                       <td className="px-3 py-2.5 text-right">
-                        <button onClick={() => act(r, { charge_external_id: choice[r.id] }, 'Pago enlazado a su cuota')}
-                          disabled={busy === r.id || !choice[r.id]}
-                          className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-[11px] px-2.5 py-1 rounded-lg mr-1.5">
-                          {busy === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />} Enlazar
-                        </button>
-                        <button onClick={() => { if (confirm('¿Marcar este pago como "sin cuota" (adelanto/pago libre)? Sale de la bandeja.')) act(r, { no_charge: true }, 'Marcado sin cuota') }}
-                          disabled={busy === r.id}
-                          className="inline-flex items-center gap-1 border border-gray-200 hover:border-gray-300 text-gray-500 text-[11px] px-2.5 py-1 rounded-lg">
-                          <CircleSlash className="w-3 h-3" /> Sin cuota
-                        </button>
+                        {r.refund_of ? (
+                          <span className="text-[11px] text-gray-400">se resuelve con su origen</span>
+                        ) : (
+                          <>
+                            <button onClick={() => act(r, { charge_external_id: choice[r.id] }, 'Pago enlazado a su cuota (y sus reembolsos, si tiene)')}
+                              disabled={busy === r.id || !choice[r.id]}
+                              className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-[11px] px-2.5 py-1 rounded-lg mr-1.5">
+                              {busy === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />} Enlazar
+                            </button>
+                            <button onClick={() => { if (confirm('¿Marcar este pago como "sin cuota" (adelanto/pago libre)? Sale de la bandeja.')) act(r, { no_charge: true }, 'Marcado sin cuota') }}
+                              disabled={busy === r.id}
+                              className="inline-flex items-center gap-1 border border-gray-200 hover:border-gray-300 text-gray-500 text-[11px] px-2.5 py-1 rounded-lg">
+                              <CircleSlash className="w-3 h-3" /> Sin cuota
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}

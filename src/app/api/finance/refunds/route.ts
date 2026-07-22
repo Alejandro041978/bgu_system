@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   const sb = db()
   const { data: orig } = await sb.from('account_payments')
-    .select('id, external_id, student_id, amount, charge_external_id, transaction_reference')
+    .select('id, external_id, student_id, amount, charge_external_id, transaction_reference, reconciled_no_charge')
     .eq('flywire_payment_id', ref).maybeSingle()
   if (!orig) return NextResponse.json({ error: `No hay ningún pago registrado con la referencia ${ref}` }, { status: 404 })
 
@@ -48,6 +48,9 @@ export async function POST(req: NextRequest) {
   const { data: stu } = await sb.from('academic_students')
     .select('first_name, last_name').eq('id', orig.student_id).maybeSingle()
 
+  // El reembolso es SOMBRA del pago de origen: hereda su cuota (si la tiene) y
+  // su marca "sin cuota"; si el origen aún no tiene destino, ambos quedan
+  // juntos en la bandeja de conciliación y se resuelven juntos.
   const { error } = await sb.from('account_payments').insert({
     external_id: crypto.randomUUID(),
     student_id: orig.student_id,
@@ -58,6 +61,7 @@ export async function POST(req: NextRequest) {
     transaction_reference: `${refundId} (reembolso de ${ref})`,
     payment_type: 6,               // convención de Activa para chargebacks
     payment_method: 'refund',
+    reconciled_no_charge: orig.reconciled_no_charge ?? false,
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
