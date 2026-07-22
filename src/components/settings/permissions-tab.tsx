@@ -45,11 +45,11 @@ const PAGE_GROUPS = [
     pages: [
       // Atención al Cliente
       { key: 'chat', label: 'Sofia · Chat' },
-      { key: 'desk', label: 'Tickets' },
+      { key: 'desk', label: 'Tickets · Histórico (Zoho)' },
       { key: 'inbox', label: 'Bandeja Helpdesk' },
       { key: 'inbox_metrics', label: 'Buzón · Métricas' },
       { key: 'helpdesk_skills', label: 'Helpdesk · Skills' },
-      { key: 'desk_metrics', label: 'Métricas de tickets' },
+      { key: 'desk_metrics', label: 'Métricas de tickets · Histórico (Zoho)' },
       // Registrar
       { key: 'registrar_formatos', label: 'Formatos de certificados' },
       { key: 'registrar_document_types', label: 'Tipos de Documento' },

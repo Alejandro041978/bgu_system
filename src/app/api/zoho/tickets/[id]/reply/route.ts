@@ -1,27 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { replyToTicket } from '@/lib/zoho/client'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { id } = await params
-  const { content } = await request.json()
-
-  if (!content?.trim()) {
-    return NextResponse.json({ error: 'Content is required' }, { status: 400 })
-  }
-
-  try {
-    const comment = await replyToTicket(id, content)
-    return NextResponse.json(comment)
-  } catch (error) {
-    console.error('Reply error:', error)
-    return NextResponse.json({ error: 'Failed to send reply' }, { status: 500 })
-  }
+// Zoho Desk fue DESCONECTADO (2026-07-22): los casos viven en la Bandeja
+// Helpdesk del ERP. Esta ruta queda como lápida para que cualquier botón
+// viejo explique la mudanza en vez de fallar en silencio.
+export async function POST() {
+  return NextResponse.json({
+    error: 'Zoho Desk está desconectado: los tickets se atienden y responden en la Bandeja Helpdesk del ERP (/inbox). Esta vista es solo archivo histórico.',
+  }, { status: 410 })
 }

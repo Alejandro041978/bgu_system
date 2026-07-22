@@ -73,11 +73,10 @@ const navigation: NavGroup[] = [
         name: 'Atención al Cliente', href: '/desk', icon: Headphones,
         children: [
           { name: 'Sofia · Chat', href: '/chat', icon: Bot, pageKey: 'chat' },
-          { name: 'Tickets', href: '/desk', icon: Headphones, pageKey: 'desk' },
+          { name: 'Tickets · Histórico', href: '/desk', icon: Headphones, pageKey: 'desk' },
           { name: 'Bandeja Helpdesk', href: '/inbox', icon: MessageSquare, pageKey: 'inbox' },
           { name: 'Buzón · Métricas', href: '/inbox/metrics', icon: BarChart3, pageKey: 'inbox_metrics' },
           { name: 'Helpdesk · Skills', href: '/helpdesk/skills', icon: UserCog, pageKey: 'helpdesk_skills' },
-          { name: 'Métricas de tickets', href: '/desk/metrics', icon: BarChart3, pageKey: 'desk_metrics' },
         ],
       },
       {
