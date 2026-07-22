@@ -54,6 +54,7 @@ const PAGE_GROUPS = [
       { key: 'registrar_formatos', label: 'Formatos de certificados' },
       { key: 'registrar_document_types', label: 'Tipos de Documento' },
       { key: 'registrar_requests', label: 'Solicitudes de Documentos' },
+      { key: 'registrar_degrees', label: 'Degrees · Hoja de Control' },
     ],
   },
   {

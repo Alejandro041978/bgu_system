@@ -20,11 +20,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const sb = db()
 
   const { data: r } = await sb.from('document_requests')
-    .select('id, status, paid, stage_index, field_values, charge_external_id, document_type_id')
+    .select('id, status, paid, stage_index, field_values, charge_external_id, document_type_id, student_id, program_id')
     .eq('id', id).maybeSingle()
   if (!r) return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 })
 
-  const { data: type } = await sb.from('document_types').select('stages').eq('id', r.document_type_id).maybeSingle()
+  const { data: type } = await sb.from('document_types').select('stages, is_final_degree').eq('id', r.document_type_id).maybeSingle()
   const stagesCount = (type?.stages ?? []).length
 
   if (action === 'pay') {
@@ -43,6 +43,27 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const status = stagesCount > 0 ? 'in_progress' : 'ready'
     const { error } = await sb.from('document_requests').update({ paid: true, status, updated_at: new Date().toISOString() }).eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Título final pagado → nace su expediente en la Hoja de Control de
+    // Degrees (código correlativo + datos de entrega precargados del perfil).
+    if (type?.is_final_degree && r.student_id) {
+      try {
+        const { data: existe } = await sb.from('degree_files')
+          .select('id').eq('student_id', r.student_id).eq('program_id', r.program_id ?? null).maybeSingle()
+        if (!existe) {
+          const { data: stu } = await sb.from('academic_students')
+            .select('first_name, last_name, second_last_name, phone_number, city, country').eq('id', r.student_id).maybeSingle()
+          const { data: last } = await sb.from('degree_files')
+            .select('doc_code').not('doc_code', 'is', null).order('doc_code', { ascending: false }).limit(1).maybeSingle()
+          await sb.from('degree_files').insert({
+            student_id: r.student_id, program_id: r.program_id ?? null, document_request_id: id,
+            doc_code: String((Number(last?.doc_code ?? 0) || 0) + 1).padStart(6, '0'),
+            receiver_name: stu ? [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' ') : null,
+            receiver_phone: stu?.phone_number ?? null, receiver_city: stu?.city ?? null, receiver_country: stu?.country ?? null,
+          })
+        }
+      } catch { /* la Hoja puede crearse a mano si esto falla */ }
+    }
     return NextResponse.json({ ok: true, status })
   }
 
