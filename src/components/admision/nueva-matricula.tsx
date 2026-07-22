@@ -51,6 +51,21 @@ export function NuevaMatricula() {
 
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; lines: string[] } | null>(null)
+  const [prereq, setPrereq] = useState<{ aplica: boolean; cumple?: boolean; mensaje?: string } | null>(null)
+
+  // Prerrequisito académico: con estudiante EXISTENTE + programa elegido,
+  // consulta si su historia en la casa cumple (Bachelor→Master, Master→Doctorado)
+  useEffect(() => {
+    setPrereq(null)
+    if (!selected || !programId) return
+    let cancelled = false
+    ;(async () => {
+      const d = await fetch(`/api/admision/matricula/prereq?student_id=${selected.id}&program_id=${programId}`)
+        .then(r => r.json()).catch(() => null)
+      if (!cancelled && d && !d.error) setPrereq(d)
+    })()
+    return () => { cancelled = true }
+  }, [selected, programId])
 
   useEffect(() => {
     fetch('/api/convocatorias').then(r => r.json()).then(d => {
@@ -84,7 +99,8 @@ export function NuevaMatricula() {
 
   const catPrograms = programs.filter(p => p.category_id === categoryId)
   const studentReady = !!selected || (creating && newStudent.first_name.trim() && newStudent.last_name.trim() && newStudent.document_number.trim())
-  const canSubmit = studentReady && programId && convId && !saving
+  const prereqBlocks = !!(prereq?.aplica && prereq.cumple === false)
+  const canSubmit = studentReady && programId && convId && !saving && !prereqBlocks
 
   async function submit() {
     if (!canSubmit) return
@@ -249,6 +265,15 @@ export function NuevaMatricula() {
           </label>
         </div>
       </div>
+
+      {/* Prerrequisito académico: Bachelor→Master / Master→Doctorado */}
+      {prereq?.aplica && prereq.mensaje && (
+        <p className={`text-sm px-4 py-3 rounded-xl border ${prereq.cumple
+          ? 'bg-green-50 border-green-100 text-green-800'
+          : 'bg-red-50 border-red-100 text-red-700'}`}>
+          {prereq.cumple ? '🎓 ' : '🚫 '}{prereq.mensaje}
+        </p>
+      )}
 
       <button onClick={submit} disabled={!canSubmit}
         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors">

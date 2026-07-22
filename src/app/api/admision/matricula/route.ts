@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateChargesForEnrollment } from '@/lib/billing'
+import { checkEnrollmentPrereq } from '@/lib/enrollment-prereq'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -141,6 +142,16 @@ export async function POST(req: NextRequest) {
   } else {
     const { data: s } = await sb.from('academic_students').select('id').eq('id', sid).maybeSingle()
     if (!s) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
+  }
+
+  // Prerrequisito académico (regla del usuario): Master exige Bachelor
+  // nuestro egresado/titulado o con ≤2 asignaturas restantes; Doctorado exige
+  // lo mismo del Master. Solo aplica a estudiantes con historia en la casa.
+  if (!created) {
+    const prereq = await checkEnrollmentPrereq(sid!, program_id)
+    if (prereq.aplica && !prereq.cumple) {
+      return NextResponse.json({ error: prereq.mensaje }, { status: 409 })
+    }
   }
 
   // Matrícula existente en el mismo programa: si vino sin convocatoria (sync
