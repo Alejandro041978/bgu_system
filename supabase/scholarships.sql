@@ -1,7 +1,9 @@
 -- Becas (2026-07-23) — Fase 2 del sistema de precios regulados.
--- Otorgamiento por matrícula (estudiante × programa) con PORCENTAJE sobre el
--- precio de lista congelado; el monto se congela al otorgar (snapshot, como
--- tarifas y comisiones). Auditoría: lista − beca = lo que debe pagar.
+-- Regla del usuario: la beca SE ALMACENA COMO PORCENTAJE (dato fijo). El
+-- monto es SIEMPRE DERIVADO: % × precio de lista vigente de la matrícula —
+-- si la base cambia (créditos consumidos → cambia el precio de lista), el
+-- monto se mueve solo; el porcentaje jamás. NO se guarda monto en tabla.
+-- Auditoría: lista − beca = lo que debe pagar.
 -- Una beca ACTIVA por matrícula; se puede revocar (queda el rastro).
 -- Ejecutar con "Run and enable RLS".
 create table if not exists scholarships (
@@ -9,8 +11,7 @@ create table if not exists scholarships (
   enrollment_id uuid not null,
   student_id uuid not null,
   program_id uuid,
-  percentage numeric not null,           -- 0 < pct <= 100
-  amount numeric,                        -- snapshot: list_price × pct al otorgar
+  percentage numeric not null,           -- 0 < pct <= 100 (el dato)
   granted_at date not null default current_date,
   granted_by text,
   note text,

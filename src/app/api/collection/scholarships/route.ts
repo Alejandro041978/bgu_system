@@ -40,22 +40,29 @@ export async function GET(req: NextRequest) {
   const { data: rows } = await sb.from('scholarships')
     .select('*, student:academic_students(first_name, last_name, second_last_name, document_number), program:academic_programs(name), enrollment:academic_student_enrollments(list_price, credit_rate)')
     .order('granted_at', { ascending: false }).order('created_at', { ascending: false })
+  // El MONTO es derivado, nunca almacenado (regla del usuario): % × precio de
+  // lista VIGENTE de la matrícula. Si la base cambia, el monto sigue solo.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const becas = ((rows ?? []) as any[]).map(r => ({
-    id: r.id, enrollment_id: r.enrollment_id,
-    student_name: [r.student?.first_name, r.student?.last_name, r.student?.second_last_name].filter(Boolean).join(' '),
-    document_number: r.student?.document_number ?? null,
-    program_name: r.program?.name ?? null,
-    percentage: Number(r.percentage), amount: r.amount != null ? Number(r.amount) : null,
-    list_price: r.enrollment?.list_price != null ? Number(r.enrollment.list_price) : null,
-    granted_at: r.granted_at, granted_by: r.granted_by, note: r.note,
-    revoked_at: r.revoked_at,
-  }))
+  const becas = ((rows ?? []) as any[]).map(r => {
+    const lista = r.enrollment?.list_price != null ? Number(r.enrollment.list_price) : null
+    const pct = Number(r.percentage)
+    return {
+      id: r.id, enrollment_id: r.enrollment_id,
+      student_name: [r.student?.first_name, r.student?.last_name, r.student?.second_last_name].filter(Boolean).join(' '),
+      document_number: r.student?.document_number ?? null,
+      program_name: r.program?.name ?? null,
+      percentage: pct,
+      amount: lista != null ? Math.round(lista * pct) / 100 : null,
+      list_price: lista,
+      granted_at: r.granted_at, granted_by: r.granted_by, note: r.note,
+      revoked_at: r.revoked_at,
+    }
+  })
   return NextResponse.json({ becas })
 }
 
 // POST { student_id, enrollment_id, percentage, note? } → otorga la beca.
-// El monto se congela: precio de lista de la matrícula × porcentaje.
+// Solo se guarda el PORCENTAJE; el monto siempre se deriva de la base vigente.
 export async function POST(req: NextRequest) {
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -76,13 +83,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Esta matrícula ya tiene una beca activa del ${activa.percentage}%. Revócala primero si corresponde reemplazarla.` }, { status: 409 })
   }
 
-  const amount = enr.list_price != null ? Math.round(Number(enr.list_price) * pct) / 100 : null
   const { error } = await sb.from('scholarships').insert({
     enrollment_id: enr.id, student_id: enr.student_id, program_id: enr.program_id,
-    percentage: pct, amount,
+    percentage: pct,
     granted_by: user.email ?? user.id, note: b?.note?.toString().trim() || null,
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // Monto informativo con la base de HOY (no se persiste)
+  const amount = enr.list_price != null ? Math.round(Number(enr.list_price) * pct) / 100 : null
   return NextResponse.json({ ok: true, amount })
 }
 
