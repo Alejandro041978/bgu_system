@@ -36,6 +36,7 @@ const MAP_SOURCES = [
   { value: 'date_short', label: 'Fecha (dd/mm/aaaa)' },
   { value: 'date_long', label: 'Fecha larga en español (9 de julio de 2026)' },
   { value: 'date_long_en', label: 'Fecha larga en inglés (July 9, 2026)' },
+  { value: 'academic_year', label: 'Año académico de la matrícula (p. ej. 2024)' },
   { value: 'completion_date', label: 'Fecha de culminación del programa (dd/mm/aaaa)' },
   { value: 'completion_date_long', label: 'Fecha de culminación larga en español' },
   { value: 'completion_date_long_en', label: 'Fecha de culminación larga en inglés' },
