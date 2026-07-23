@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Plus, Loader2, X, FileText, Download, Eye } from 'lucide-react'
 
-interface DocType { id: string; name: string; price: number; currency: string; scope_category_id: string | null; scope_category_ids: string[] | null; scope_program_ids: string[]; sample_image_url: string | null }
+interface DocType { id: string; name: string; price: number; currency: string; scope_category_id: string | null; scope_category_ids: string[] | null; scope_program_ids: string[]; sample_image_url: string | null; request_note_label: string | null }
 interface Program { id: string; name: string; category_id: string | null }
 interface ReqCheck { kind: string; ok: boolean | null; note: string }
 interface Request {
@@ -31,6 +31,7 @@ export function StudentDocuments() {
   const [programId, setProgramId] = useState('')
   const [typeId, setTypeId] = useState('')
   const [creating, setCreating] = useState(false)
+  const [note, setNote] = useState('')
   const [result, setResult] = useState<{ status: string; checks: ReqCheck[]; blocked: boolean } | null>(null)
 
   const load = useCallback(async () => {
@@ -50,12 +51,15 @@ export function StudentDocuments() {
     return true
   })
 
+  const selectedType = availableTypes.find(x => x.id === typeId)
+  const noteMissing = !!selectedType?.request_note_label && !note.trim()
+
   async function create() {
-    if (!typeId) return
+    if (!typeId || noteMissing) return
     setCreating(true); setResult(null)
     const d = await fetch('/api/student/documents', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ document_type_id: typeId, program_id: programId || null }),
+      body: JSON.stringify({ document_type_id: typeId, program_id: programId || null, request_note: note.trim() || null }),
     }).then(r => r.json())
     setCreating(false)
     if (d.error) { setResult({ status: 'rejected', checks: [{ kind: 'error', ok: false, note: d.error }], blocked: true }); return }
@@ -112,6 +116,16 @@ export function StudentDocuments() {
             )
           })()}
 
+          {/* Texto del solicitante (documentos tipo Custom Attestation) */}
+          {selectedType?.request_note_label && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{selectedType.request_note_label} <span className="text-red-500">*</span></label>
+              <textarea value={note} onChange={e => setNote(e.target.value)} rows={4}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Describe con detalle qué necesitas que diga el documento y para qué entidad lo presentarás…" />
+            </div>
+          )}
+
           {result && (
             <div className={`text-xs rounded-lg px-3 py-2 ${result.blocked ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
               <p className="font-medium">{result.blocked ? 'No se pudo procesar' : STATUS[result.status]?.label ?? result.status}</p>
@@ -120,7 +134,7 @@ export function StudentDocuments() {
             </div>
           )}
 
-          <button onClick={create} disabled={!typeId || creating} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+          <button onClick={create} disabled={!typeId || creating || noteMissing} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
             {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}Solicitar
           </button>
         </div>

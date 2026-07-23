@@ -15,11 +15,19 @@ export interface CreateRequestResult {
 // si es gratuito, sin etapas y con SimpleCert configurado.
 export async function createDocumentRequest(opts: {
   studentId: string; documentTypeId: string; programId: string | null; requestedBy: string
+  requestNote?: string | null
 }): Promise<CreateRequestResult> {
   const sb = db()
   const { data: type } = await sb.from('document_types').select('*').eq('id', opts.documentTypeId).maybeSingle()
   if (!type) return { ok: false, error: 'Tipo de documento no encontrado', code: 404 }
   if (type.active === false) return { ok: false, error: 'Este documento no está disponible', code: 400 }
+
+  // Texto del solicitante: si el tipo lo pide, es OBLIGATORIO (p. ej. Custom
+  // Attestation — qué debe decir la constancia y para qué entidad).
+  const requestNote = opts.requestNote?.toString().trim() || null
+  if (type.request_note_label && !requestNote) {
+    return { ok: false, error: `Este documento requiere que describas tu pedido: "${type.request_note_label}"`, code: 400 }
+  }
 
   const programId = opts.programId || null
 
@@ -66,6 +74,8 @@ export async function createDocumentRequest(opts: {
   const { data: reqRow, error } = await sb.from('document_requests').insert({
     student_id: opts.studentId, document_type_id: opts.documentTypeId, program_id: programId,
     status, requested_by: opts.requestedBy, charge_external_id, requirements_checked: checks,
+    // El texto viaja en field_values: visible en la cola y merge tag REQUEST_NOTE
+    field_values: requestNote ? { request_note: requestNote } : {},
   }).select('id').single()
   if (error) return { ok: false, error: error.message, code: 500 }
 

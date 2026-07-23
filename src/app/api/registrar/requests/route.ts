@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   const res = await createDocumentRequest({
     studentId: b.student_id, documentTypeId: b.document_type_id, programId: b.program_id || null,
-    requestedBy: `admin:${user.id}`,
+    requestedBy: `admin:${user.id}`, requestNote: b.request_note ?? null,
   })
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.code ?? 500 })
   return NextResponse.json({ ok: true, id: res.id, status: res.status, checks: res.checks, blocked: res.blocked, document_url: res.document_url })

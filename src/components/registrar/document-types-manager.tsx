@@ -12,7 +12,7 @@ interface Category { id: string; name: string }
 interface Program { id: string; name: string; category_id: string | null }
 interface DocType {
   id: string; name: string; description: string | null; price: number; currency: string
-  is_final_degree?: boolean; delivery_mode?: string
+  is_final_degree?: boolean; delivery_mode?: string; request_note_label?: string | null
   charge_concept: number | null; template_body: string | null; simplecert_project_id: string | null
   sample_image_url: string | null
   field_map: FieldMap[]; scope_category_id: string | null; scope_category_ids: string[] | null; scope_program_ids: string[]
@@ -55,7 +55,7 @@ const reqLabel = (k: string) => REQ_KINDS.find(r => r.value === k)?.label ?? k
 
 const blank = () => ({
   id: '' as string, name: '', description: '', price: '', currency: 'USD', charge_concept: '',
-  is_final_degree: false, delivery_mode: 'electronico',
+  is_final_degree: false, delivery_mode: 'electronico', request_note_label: '',
   template_body: '', simplecert_project_id: '', sample_image_url: '', field_map: [] as FieldMap[],
   scope_mode: 'all' as 'all' | 'category' | 'programs', scope_category_ids: [] as string[], scope_program_ids: [] as string[],
   requirements: [] as Req[], stages: [] as StageForm[], active: true,
@@ -95,6 +95,7 @@ export function DocumentTypesManager() {
     setForm({
       id: t.id, name: t.name, description: t.description ?? '', price: String(t.price ?? ''), currency: t.currency,
       is_final_degree: !!t.is_final_degree, delivery_mode: t.delivery_mode ?? 'electronico',
+      request_note_label: t.request_note_label ?? '',
       charge_concept: t.charge_concept?.toString() ?? '', template_body: t.template_body ?? '',
       simplecert_project_id: t.simplecert_project_id ?? '', sample_image_url: t.sample_image_url ?? '',
       field_map: (t.field_map ?? []).map(m => ({ tag: m.tag ?? '', source: m.source ?? 'first_name', value: m.value ?? '' })),
@@ -140,6 +141,7 @@ export function DocumentTypesManager() {
       id: form.id || undefined, name: form.name, description: form.description, price: form.price,
       currency: form.currency, charge_concept: form.charge_concept, template_body: form.template_body,
       is_final_degree: form.is_final_degree, delivery_mode: form.delivery_mode,
+      request_note_label: form.request_note_label.trim() || null,
       simplecert_project_id: form.simplecert_project_id, sample_image_url: form.sample_image_url,
       field_map: form.field_map.filter(m => m.tag.trim()).map(m => ({ tag: m.tag.trim(), source: m.source, value: m.source === 'literal' ? m.value : undefined })),
       scope_category_ids: form.scope_mode === 'category' ? form.scope_category_ids : [],
@@ -173,6 +175,18 @@ export function DocumentTypesManager() {
           <Field label="Precio"><div className="flex gap-2"><select value={form.currency} onChange={e => setF('currency', e.target.value)} className={`${inp} w-24`}><option>USD</option><option>PEN</option></select><input type="number" value={form.price} onChange={e => setF('price', e.target.value)} className={inp} placeholder="0.00" /></div></Field>
           <Field label="Descripción"><input value={form.description} onChange={e => setF('description', e.target.value)} className={inp} /></Field>
           <Field label="Concepto del cargo (estado de cuenta)"><select value={form.charge_concept} onChange={e => setF('charge_concept', e.target.value)} className={inp}><option value="">—</option>{concepts.map(c => <option key={c.type_code} value={c.type_code}>{c.abbr ?? 'T' + c.type_code} · {c.name ?? c.type_code}</option>)}</select></Field>
+        </div>
+
+        {/* Texto del solicitante (p. ej. Custom Attestation) */}
+        <div>
+          <label className="text-xs font-semibold text-gray-600">Texto del solicitante al pedir el documento</label>
+          <p className="text-[11px] text-gray-400 mb-1.5">
+            Si se llena, la solicitud mostrará un cuadro de texto OBLIGATORIO con esta pregunta (p. ej. &quot;Describe qué
+            debe decir tu constancia y para qué entidad la necesitas&quot;). Lo escrito llega a la cola de Registros y está
+            disponible como merge tag <span className="font-mono">REQUEST_NOTE</span>. Vacío = no se pide nada.
+          </p>
+          <input value={form.request_note_label} onChange={e => setF('request_note_label', e.target.value)}
+            className={inp} placeholder="Vacío = la solicitud no pide texto" />
         </div>
 
         {/* Entrega y titulación */}

@@ -44,7 +44,7 @@ export async function GET() {
 
   // Tipos activos (con alcance para filtrar en el cliente)
   const { data: types } = await sb.from('document_types')
-    .select('id, name, price, currency, active, scope_category_id, scope_category_ids, scope_program_ids, sample_image_url').eq('active', true).order('name')
+    .select('id, name, price, currency, active, scope_category_id, scope_category_ids, scope_program_ids, sample_image_url, request_note_label').eq('active', true).order('name')
 
   // Solicitudes del estudiante
   const { data: reqs } = await sb.from('document_requests')
@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
 
   const res = await createDocumentRequest({
     studentId, documentTypeId: b.document_type_id, programId: b.program_id || null, requestedBy: 'student',
+    requestNote: b.request_note ?? null,
   })
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.code ?? 500 })
   return NextResponse.json({ ok: true, id: res.id, status: res.status, checks: res.checks, blocked: res.blocked, document_url: res.document_url })

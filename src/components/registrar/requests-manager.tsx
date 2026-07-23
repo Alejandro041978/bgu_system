@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Plus, Search, Loader2, X, FileText, Trash2, ChevronDown, ChevronRight, Download, CheckCircle2, Send, Inbox, Zap, Clock, CircleSlash } from 'lucide-react'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
-interface DocType { id: string; name: string; price: number; currency: string; active: boolean; scope_category_id: string | null; scope_category_ids: string[] | null; scope_program_ids: string[] }
+interface DocType { id: string; name: string; price: number; currency: string; active: boolean; scope_category_id: string | null; scope_category_ids: string[] | null; scope_program_ids: string[]; request_note_label?: string | null }
 interface Program { id: string; name: string; category_id: string | null }
 interface ReqCheck { kind: string; ok: boolean | null; note: string }
 interface StageField { key: string; label: string }
@@ -63,6 +63,7 @@ export function RequestsManager() {
   const [programs, setPrograms] = useState<Program[]>([])
   const [programId, setProgramId] = useState('')
   const [typeId, setTypeId] = useState('')
+  const [note, setNote] = useState('')
   const [creating, setCreating] = useState(false)
   const [result, setResult] = useState<{ status: string; checks: ReqCheck[]; blocked: boolean } | null>(null)
 
@@ -88,18 +89,18 @@ export function RequestsManager() {
     if ((d.programs ?? []).length === 1) setProgramId(d.programs[0].id)
   }
   async function create() {
-    if (!student || !typeId) return
+    if (!student || !typeId || noteMissing) return
     setCreating(true); setResult(null)
     const d = await fetch('/api/registrar/requests', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student_id: student.id, document_type_id: typeId, program_id: programId || null }),
+      body: JSON.stringify({ student_id: student.id, document_type_id: typeId, program_id: programId || null, request_note: note.trim() || null }),
     }).then(r => r.json())
     setCreating(false)
     if (d.error) { setResult({ status: 'rejected', checks: [], blocked: true }); return }
     setResult({ status: d.status, checks: d.checks ?? [], blocked: d.blocked })
     load()
   }
-  function resetNew() { setOpen(false); setStudent(null); setQ(''); setTypeId(''); setProgramId(''); setResult(null) }
+  function resetNew() { setOpen(false); setStudent(null); setQ(''); setTypeId(''); setProgramId(''); setNote(''); setResult(null) }
 
   // Tipos disponibles según el alcance del documento y el programa elegido.
   const selectedProgram = programs.find(p => p.id === programId)
@@ -110,6 +111,8 @@ export function RequestsManager() {
     if (catScope.length > 0) return selectedProgram?.category_id ? catScope.includes(selectedProgram.category_id) : false
     return true
   })
+  const selectedType = availableTypes.find(x => x.id === typeId)
+  const noteMissing = !!selectedType?.request_note_label && !note.trim()
 
   const [deleting, setDeleting] = useState<string | null>(null)
   async function remove(r: Request) {
@@ -222,6 +225,15 @@ export function RequestsManager() {
             </div>
           )}
 
+          {/* Texto del solicitante (documentos tipo Custom Attestation) */}
+          {student && selectedType?.request_note_label && (
+            <label className="block">
+              <span className="block text-xs text-gray-500 mb-1">{selectedType.request_note_label} <span className="text-red-500">*</span></span>
+              <textarea value={note} onChange={e => setNote(e.target.value)} rows={4} className={inp}
+                placeholder="Describe con detalle qué debe decir el documento y para qué entidad se presentará…" />
+            </label>
+          )}
+
           {result && (
             <div className={`text-xs rounded-lg px-3 py-2 ${result.blocked ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
               <p className="font-medium">{STATUS[result.status]?.label ?? result.status}</p>
@@ -230,7 +242,7 @@ export function RequestsManager() {
           )}
 
           {student && (
-            <button onClick={create} disabled={!typeId || creating} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+            <button onClick={create} disabled={!typeId || creating || noteMissing} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
               {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}Crear solicitud
             </button>
           )}
@@ -400,6 +412,13 @@ function RequestRow({ r, expanded, onToggle, onChanged, onRemove, deleting, band
           <td></td>
           <td colSpan={6} className="px-4 py-3">
             <div className="space-y-3">
+              {/* Requerimiento del solicitante (Custom Attestation y similares) */}
+              {r.field_values.request_note && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-900">
+                  <p className="font-semibold mb-0.5">📝 Requerimiento del solicitante</p>
+                  <p className="whitespace-pre-wrap">{r.field_values.request_note}</p>
+                </div>
+              )}
               {/* Etapas: progreso */}
               {r.stages_count > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
