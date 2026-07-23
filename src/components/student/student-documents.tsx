@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Plus, Loader2, X, FileText, Download, Eye } from 'lucide-react'
 
-interface DocType { id: string; name: string; price: number; currency: string; scope_category_id: string | null; scope_program_ids: string[]; sample_image_url: string | null }
+interface DocType { id: string; name: string; price: number; currency: string; scope_category_id: string | null; scope_category_ids: string[] | null; scope_program_ids: string[]; sample_image_url: string | null }
 interface Program { id: string; name: string; category_id: string | null }
 interface ReqCheck { kind: string; ok: boolean | null; note: string }
 interface Request {
@@ -45,7 +45,8 @@ export function StudentDocuments() {
   const availableTypes = types.filter(t => {
     const progScope = t.scope_program_ids ?? []
     if (progScope.length > 0) return programId ? progScope.includes(programId) : false
-    if (t.scope_category_id) return selectedProgram ? selectedProgram.category_id === t.scope_category_id : false
+    const catScope = [...(t.scope_category_ids ?? []), ...(t.scope_category_id ? [t.scope_category_id] : [])]
+    if (catScope.length > 0) return selectedProgram?.category_id ? catScope.includes(selectedProgram.category_id) : false
     return true
   })
 

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Plus, Search, Loader2, X, FileText, Trash2, ChevronDown, ChevronRight, Download, CheckCircle2, Send, Inbox, Zap, Clock, CircleSlash } from 'lucide-react'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
-interface DocType { id: string; name: string; price: number; currency: string; active: boolean; scope_category_id: string | null; scope_program_ids: string[] }
+interface DocType { id: string; name: string; price: number; currency: string; active: boolean; scope_category_id: string | null; scope_category_ids: string[] | null; scope_program_ids: string[] }
 interface Program { id: string; name: string; category_id: string | null }
 interface ReqCheck { kind: string; ok: boolean | null; note: string }
 interface StageField { key: string; label: string }
@@ -106,7 +106,8 @@ export function RequestsManager() {
   const availableTypes = types.filter(t => {
     const progScope = t.scope_program_ids ?? []
     if (progScope.length > 0) return programId ? progScope.includes(programId) : false
-    if (t.scope_category_id) return selectedProgram ? selectedProgram.category_id === t.scope_category_id : false
+    const catScope = [...(t.scope_category_ids ?? []), ...(t.scope_category_id ? [t.scope_category_id] : [])]
+    if (catScope.length > 0) return selectedProgram?.category_id ? catScope.includes(selectedProgram.category_id) : false
     return true
   })
 

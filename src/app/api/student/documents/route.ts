@@ -44,7 +44,7 @@ export async function GET() {
 
   // Tipos activos (con alcance para filtrar en el cliente)
   const { data: types } = await sb.from('document_types')
-    .select('id, name, price, currency, active, scope_category_id, scope_program_ids, sample_image_url').eq('active', true).order('name')
+    .select('id, name, price, currency, active, scope_category_id, scope_category_ids, scope_program_ids, sample_image_url').eq('active', true).order('name')
 
   // Solicitudes del estudiante
   const { data: reqs } = await sb.from('document_requests')

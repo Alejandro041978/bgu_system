@@ -15,7 +15,7 @@ interface DocType {
   is_final_degree?: boolean; delivery_mode?: string
   charge_concept: number | null; template_body: string | null; simplecert_project_id: string | null
   sample_image_url: string | null
-  field_map: FieldMap[]; scope_category_id: string | null; scope_program_ids: string[]
+  field_map: FieldMap[]; scope_category_id: string | null; scope_category_ids: string[] | null; scope_program_ids: string[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requirements: Req[]; stages: any[]; active: boolean
 }
@@ -52,7 +52,7 @@ const blank = () => ({
   id: '' as string, name: '', description: '', price: '', currency: 'USD', charge_concept: '',
   is_final_degree: false, delivery_mode: 'electronico',
   template_body: '', simplecert_project_id: '', sample_image_url: '', field_map: [] as FieldMap[],
-  scope_mode: 'all' as 'all' | 'category' | 'programs', scope_category_id: '', scope_program_ids: [] as string[],
+  scope_mode: 'all' as 'all' | 'category' | 'programs', scope_category_ids: [] as string[], scope_program_ids: [] as string[],
   requirements: [] as Req[], stages: [] as StageForm[], active: true,
 })
 
@@ -93,8 +93,13 @@ export function DocumentTypesManager() {
       charge_concept: t.charge_concept?.toString() ?? '', template_body: t.template_body ?? '',
       simplecert_project_id: t.simplecert_project_id ?? '', sample_image_url: t.sample_image_url ?? '',
       field_map: (t.field_map ?? []).map(m => ({ tag: m.tag ?? '', source: m.source ?? 'first_name', value: m.value ?? '' })),
-      scope_mode: (t.scope_program_ids ?? []).length > 0 ? 'programs' : t.scope_category_id ? 'category' : 'all',
-      scope_category_id: t.scope_category_id ?? '', scope_program_ids: t.scope_program_ids ?? [],
+      scope_mode: (t.scope_program_ids ?? []).length > 0 ? 'programs'
+        : ((t.scope_category_ids ?? []).length > 0 || t.scope_category_id) ? 'category' : 'all',
+      // legado: la categoría única se pliega dentro del arreglo
+      scope_category_ids: (t.scope_category_ids ?? []).length > 0
+        ? (t.scope_category_ids ?? [])
+        : (t.scope_category_id ? [t.scope_category_id] : []),
+      scope_program_ids: t.scope_program_ids ?? [],
       requirements: (t.requirements ?? []).map(r => ({ kind: r.kind, description: r.description ?? '' })),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       stages: (t.stages ?? []).map((s: any) => ({
@@ -132,7 +137,9 @@ export function DocumentTypesManager() {
       is_final_degree: form.is_final_degree, delivery_mode: form.delivery_mode,
       simplecert_project_id: form.simplecert_project_id, sample_image_url: form.sample_image_url,
       field_map: form.field_map.filter(m => m.tag.trim()).map(m => ({ tag: m.tag.trim(), source: m.source, value: m.source === 'literal' ? m.value : undefined })),
-      scope_category_id: form.scope_mode === 'category' ? (form.scope_category_id || null) : null,
+      scope_category_ids: form.scope_mode === 'category' ? form.scope_category_ids : [],
+      // legado en paralelo (lectores viejos): la primera categoría del arreglo
+      scope_category_id: form.scope_mode === 'category' ? (form.scope_category_ids[0] ?? null) : null,
       scope_program_ids: form.scope_mode === 'programs' ? form.scope_program_ids : [],
       requirements: form.requirements.filter(r => r.kind), stages, active: form.active,
     }
@@ -191,15 +198,26 @@ export function DocumentTypesManager() {
           <p className="text-[11px] text-gray-400 mb-1.5">Para qué programas se puede solicitar este documento.</p>
           <select value={form.scope_mode} onChange={e => setF('scope_mode', e.target.value)} className={`${inp} sm:w-72`}>
             <option value="all">Todos los programas</option>
-            <option value="category">Solo una categoría</option>
+            <option value="category">Categorías específicas</option>
             <option value="programs">Programas específicos</option>
           </select>
 
           {form.scope_mode === 'category' && (
-            <select value={form.scope_category_id} onChange={e => setF('scope_category_id', e.target.value)} className={`${inp} sm:w-72 mt-2`}>
-              <option value="">Seleccionar categoría…</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <div className="mt-2 space-y-2">
+              <div className="border border-gray-200 rounded-lg max-h-52 overflow-auto divide-y divide-gray-50 sm:w-96">
+                {categories.map(c => {
+                  const checked = form.scope_category_ids.includes(c.id)
+                  return (
+                    <label key={c.id} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+                      <input type="checkbox" checked={checked} className="accent-blue-600"
+                        onChange={() => setF('scope_category_ids', checked ? form.scope_category_ids.filter(x => x !== c.id) : [...form.scope_category_ids, c.id])} />
+                      {c.name}
+                    </label>
+                  )
+                })}
+              </div>
+              <p className="text-[11px] text-gray-400">{form.scope_category_ids.length} categoría(s) seleccionada(s).</p>
+            </div>
           )}
 
           {form.scope_mode === 'programs' && (
@@ -370,7 +388,13 @@ export function DocumentTypesManager() {
                     <span>{(t.requirements ?? []).length} requisito(s)</span>
                     <span>{(t.stages ?? []).length} etapa(s)</span>
                     <span className={t.simplecert_project_id ? 'text-green-600' : 'text-amber-600'}>{t.simplecert_project_id ? 'SimpleCert ✓' : 'Sin SimpleCert'}</span>
-                    <span className="text-gray-500">{(t.scope_program_ids ?? []).length > 0 ? `${t.scope_program_ids.length} programa(s)` : t.scope_category_id ? (categories.find(c => c.id === t.scope_category_id)?.name ?? 'Categoría') : 'Todos los programas'}</span>
+                    <span className="text-gray-500">{(() => {
+                      if ((t.scope_program_ids ?? []).length > 0) return `${t.scope_program_ids.length} programa(s)`
+                      const cids = (t.scope_category_ids ?? []).length > 0 ? (t.scope_category_ids ?? []) : (t.scope_category_id ? [t.scope_category_id] : [])
+                      if (!cids.length) return 'Todos los programas'
+                      if (cids.length === 1) return categories.find(c => c.id === cids[0])?.name ?? 'Categoría'
+                      return `${cids.length} categorías`
+                    })()}</span>
                   </div>
                 </div>
               </div>

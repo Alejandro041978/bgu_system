@@ -39,6 +39,7 @@ function clean(b: any) {
     sample_image_url: b?.sample_image_url?.toString().trim() || null,
     field_map: Array.isArray(b?.field_map) ? b.field_map.filter((m: { tag?: string }) => m?.tag?.toString().trim()) : [],
     scope_category_id: b?.scope_category_id || null,
+    scope_category_ids: Array.isArray(b?.scope_category_ids) ? b.scope_category_ids : [],
     scope_program_ids: Array.isArray(b?.scope_program_ids) ? b.scope_program_ids : [],
     requirements: Array.isArray(b?.requirements) ? b.requirements : [],
     stages: Array.isArray(b?.stages) ? b.stages : [],

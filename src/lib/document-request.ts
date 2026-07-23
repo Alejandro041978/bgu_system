@@ -25,13 +25,16 @@ export async function createDocumentRequest(opts: {
 
   // Alcance/disponibilidad
   const progScope: string[] = Array.isArray(type.scope_program_ids) ? type.scope_program_ids : []
+  // Varias categorías (scope_category_ids); la singular legada se pliega dentro
+  const catScope: string[] = Array.isArray(type.scope_category_ids) ? [...type.scope_category_ids] : []
+  if (type.scope_category_id && !catScope.includes(type.scope_category_id)) catScope.push(type.scope_category_id)
   if (progScope.length > 0) {
     if (!programId || !progScope.includes(programId)) return { ok: false, error: 'Este documento no está disponible para el programa seleccionado', code: 400 }
-  } else if (type.scope_category_id) {
+  } else if (catScope.length > 0) {
     let catOk = false
     if (programId) {
       const { data: prog } = await sb.from('academic_programs').select('category_id').eq('id', programId).maybeSingle()
-      catOk = prog?.category_id === type.scope_category_id
+      catOk = !!prog?.category_id && catScope.includes(String(prog.category_id))
     }
     if (!catOk) return { ok: false, error: 'Este documento no está disponible para la categoría del programa seleccionado', code: 400 }
   }
