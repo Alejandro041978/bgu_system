@@ -1,17 +1,8 @@
-import { Topbar } from '@/components/layout/topbar'
-import { StudentProfile } from '@/components/academic/student-profile'
+import { redirect } from 'next/navigation'
 
-export const revalidate = 0
-
-export default function EstudiantesPage() {
-  return (
-    <>
-      <Topbar title="Ficha del Estudiante" subtitle="Académico" />
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-5xl mx-auto">
-          <StudentProfile />
-        </div>
-      </div>
-    </>
-  )
+// Ruta renombrada a inglés (universidad americana): /academic/students.
+// Este redirect conserva los marcadores y enlaces compartidos viejos.
+export default async function EstudiantesRedirect({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+  const { id } = await searchParams
+  redirect(`/academic/students${id ? `?id=${id}` : ''}`)
 }

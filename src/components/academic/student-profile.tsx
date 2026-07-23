@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Loader2, Search, Save, RotateCcw, GraduationCap, User } from 'lucide-react'
 
 interface Found { id: string; name: string; document_number: string | null; email: string | null }
@@ -40,6 +40,15 @@ export function StudentProfile() {
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
+  // Enlace directo: /academic/students?id=<uuid> aterriza en la ficha sin
+  // buscar — para compartir la ficha entre colaboradores. Al abrir un
+  // estudiante, el id se refleja en la URL (copiable tal cual).
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('id')
+    if (id) open(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function search() {
     if (query.trim().length < 2) return
     setSearching(true); setResults(null)
@@ -53,6 +62,7 @@ export function StudentProfile() {
     const d = await fetch(`/api/students/${id}`).then(r => r.json())
     setLoading(false)
     if (d.error) { setNotice({ kind: 'error', text: d.error }); return }
+    window.history.replaceState(null, '', `?id=${id}`)
     setStudent(d.student)
     setEnrollments(d.enrollments ?? [])
     setForm({
@@ -155,7 +165,7 @@ export function StudentProfile() {
                 </p>
               </div>
             </div>
-            <button onClick={() => { setStudent(null); setResults(null); setQuery('') }} className="text-xs text-gray-400 hover:text-gray-600">← Nueva búsqueda</button>
+            <button onClick={() => { setStudent(null); setResults(null); setQuery(''); window.history.replaceState(null, '', window.location.pathname) }} className="text-xs text-gray-400 hover:text-gray-600">← Nueva búsqueda</button>
           </div>
 
           {/* Datos editables */}
