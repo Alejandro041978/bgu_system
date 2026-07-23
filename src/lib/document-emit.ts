@@ -13,7 +13,7 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
   const sb = admin()
 
   const { data: r } = await sb.from('document_requests')
-    .select('id, status, paid, field_values, program_id, student_id, document_type_id, student:academic_students(first_name, last_name, second_last_name, document_number, email), type:document_types(name, price, simplecert_project_id, field_map)')
+    .select('id, status, paid, field_values, program_id, student_id, document_type_id, student:academic_students(first_name, last_name, second_last_name, document_number, email, email_alt), type:document_types(name, price, simplecert_project_id, field_map)')
     .eq('id', requestId).maybeSingle()
   if (!r) return { ok: false, error: 'Solicitud no encontrada' }
   if (r.status === 'delivered') return { ok: false, error: 'La solicitud ya fue emitida' }
@@ -65,6 +65,11 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
     } catch { /* columna aún sin migrar: los tags salen vacíos */ }
   }
 
+  // Correo del estudiante: el INSTITUCIONAL (@blackwell.pro, email_alt) cuando
+  // existe — misma regla que las cuentas Moodle. El personal solo como respaldo
+  // (DCE y quien aún no tiene el suyo).
+  const studentEmail = s.email_alt || s.email || ''
+
   // Diccionario de datos disponibles del ERP, por clave de "source".
   const sources: Record<string, string> = {
     first_name: s.first_name ?? '',
@@ -72,7 +77,7 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
     last_name_m: s.second_last_name ?? '',
     last_name: [s.last_name, s.second_last_name].filter(Boolean).join(' '),
     full_name: [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' '),
-    email: s.email ?? '',
+    email: studentEmail,
     document_number: s.document_number ?? '',
     program: programName,
     category: categoryName,
@@ -111,7 +116,7 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
     projectId: type.simplecert_project_id,
     firstName: s.first_name ?? '',
     lastName: [s.last_name, s.second_last_name].filter(Boolean).join(' '),
-    email: s.email ?? '',
+    email: studentEmail,
     fields,
   })
   if (!res.ok) return { ok: false, error: res.error }
