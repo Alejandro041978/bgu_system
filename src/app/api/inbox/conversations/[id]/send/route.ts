@@ -27,7 +27,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let twilioSid: string | null = null
   const caseTag = conv.case_number != null ? ` [Caso #${conv.case_number}]` : ''
 
-  if (conv.channel === 'email') {
+  // El canal de SALIDA lo decide el contacto disponible, no solo la etiqueta:
+  // un ticket registrado por Sofía puede venir sin teléfono (solo correo) —
+  // mandarlo a Twilio con To vacío revienta con 21910 (caso real: #73).
+  const porCorreo = conv.channel === 'email' || (!conv.customer_phone && conv.customer_email)
+  if (!porCorreo && !conv.customer_phone) {
+    return NextResponse.json({ error: 'Este caso no tiene ni teléfono ni correo de contacto: no hay por dónde responderle. Completa el contacto del cliente primero.' }, { status: 400 })
+  }
+
+  if (porCorreo) {
     // ── Envío por CORREO: Gmail NATIVO (helpdesk@, hilo real); N8N queda de
     // respaldo mientras el token no tenga gmail.send ──────────────────────────
     // Último mensaje entrante (para responder dentro del hilo de Gmail)
@@ -35,9 +43,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .select('message_id').eq('conversation_id', id).eq('direction', 'in').not('message_id', 'is', null)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
+    // Tickets sin asunto (p. ej. registrados por Sofía): correo nuevo con
+    // asunto propio en vez de un "Re:" huérfano.
     const base = conv.subject
       ? (/^re:/i.test(conv.subject) ? conv.subject : `Re: ${conv.subject}`)
-      : 'Re:'
+      : 'Atención a su solicitud — Blackwell Global University'
     // Número de caso en el asunto (para que el cliente pueda referirse a él)
     outSubject = base.replace(/\s*\[Caso #\d+\]/gi, '').trim() + caseTag
 
