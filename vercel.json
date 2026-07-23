@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/inbox-autoclose",
       "schedule": "25 * * * *"
+    },
+    {
+      "path": "/api/cron/moodle-import",
+      "schedule": "0 2,8,14,20 * * *"
     }
   ]
 }
