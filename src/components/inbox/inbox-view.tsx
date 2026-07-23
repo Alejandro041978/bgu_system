@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, Loader2, User, Hand, CheckCircle2, RotateCcw, MessageSquare, Inbox, Mail, Layers, Check, CheckCheck, AlertTriangle, Tag } from 'lucide-react'
+import { Send, Loader2, User, Hand, CheckCircle2, RotateCcw, MessageSquare, Inbox, Mail, Layers, Check, CheckCheck, AlertTriangle, Tag, Search } from 'lucide-react'
 
 // Glifo de WhatsApp (lucide no trae íconos de marca)
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -127,17 +127,35 @@ export function InboxView() {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  // Buscador de estudiante: ver TODAS las comunicaciones de un alumno
+  const [stuQ, setStuQ] = useState('')
+  const [stuHits, setStuHits] = useState<{ id: string; name: string; document: string | null }[]>([])
+  const [stuSel, setStuSel] = useState<{ id: string; name: string } | null>(null)
   const filterRef = useRef(filter)
   const langRef = useRef(lang)
   const topicRef = useRef(topic)
+  const stuRef = useRef<string | null>(null)
   const selectedRef = useRef<string | null>(null)
   useEffect(() => { filterRef.current = filter }, [filter])
   useEffect(() => { langRef.current = lang }, [lang])
   useEffect(() => { topicRef.current = topic }, [topic])
+  useEffect(() => { stuRef.current = stuSel?.id ?? null }, [stuSel])
   useEffect(() => { selectedRef.current = selected?.id ?? null }, [selected])
 
-  async function loadList(f = filterRef.current, l = langRef.current, t = topicRef.current) {
-    const res = await fetch(`/api/inbox/conversations?filter=${f}${l ? `&lang=${l}` : ''}${t ? `&topic=${t}` : ''}`)
+  useEffect(() => {
+    if (stuSel || stuQ.trim().length < 2) { setStuHits([]); return }
+    const t = setTimeout(async () => {
+      const d = await fetch(`/api/students/search?q=${encodeURIComponent(stuQ.trim())}`).then(r => r.json()).catch(() => ({ students: [] }))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setStuHits((d.students ?? []).slice(0, 8).map((s: any) => ({ id: s.id, name: s.name ?? [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' '), document: s.document_number ?? s.document ?? null })))
+    }, 300)
+    return () => clearTimeout(t)
+  }, [stuQ, stuSel])
+
+  async function loadList(f = filterRef.current, l = langRef.current, t = topicRef.current, s = stuRef.current) {
+    const res = await fetch(s
+      ? `/api/inbox/conversations?student=${s}`
+      : `/api/inbox/conversations?filter=${f}${l ? `&lang=${l}` : ''}${t ? `&topic=${t}` : ''}`)
     const data = await res.json()
     setConversations(data.conversations ?? [])
     setCounts(data.counts ?? { queue: 0, mine: 0, all: 0 })
@@ -211,6 +229,33 @@ export function InboxView() {
               {t.key === 'all' && counts.all > 0 && <span className="bg-gray-100 text-gray-600 rounded-full px-1.5 text-[10px]">{counts.all}</span>}
             </button>
           ))}
+        </div>
+        {/* Buscador de estudiante: todas sus comunicaciones (cualquier canal/estado) */}
+        <div className="px-3 py-2 border-b border-gray-50 relative">
+          {stuSel ? (
+            <div className="flex items-center gap-2 text-xs bg-blue-50 border border-blue-200 text-blue-800 rounded-lg px-2.5 py-1.5">
+              <Search className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="flex-1 truncate">Comunicaciones de <span className="font-semibold">{stuSel.name}</span></span>
+              <button onClick={() => { setStuSel(null); setStuQ(''); loadList(filterRef.current, langRef.current, topicRef.current, null) }}
+                className="text-blue-500 hover:text-blue-800 font-bold">✕</button>
+            </div>
+          ) : (
+            <>
+              <input value={stuQ} onChange={e => setStuQ(e.target.value)} placeholder="Buscar estudiante (nombre, documento, correo)…"
+                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              {stuHits.length > 0 && (
+                <div className="absolute left-3 right-3 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-56 overflow-auto">
+                  {stuHits.map(h => (
+                    <button key={h.id} onClick={() => { setStuSel({ id: h.id, name: h.name }); setStuHits([]); loadList(filterRef.current, langRef.current, topicRef.current, h.id) }}
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50">
+                      <span className="text-gray-800">{h.name}</span>
+                      {h.document && <span className="text-gray-400 ml-1.5">{h.document}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
         <div className="px-3 py-2 border-b border-gray-50 flex gap-2">
           <select value={lang} onChange={e => pickLang(e.target.value)}

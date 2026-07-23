@@ -16,15 +16,29 @@ export async function GET(req: NextRequest) {
   const filter = req.nextUrl.searchParams.get('filter') ?? 'queue'
   const lang = req.nextUrl.searchParams.get('lang')
   const topic = req.nextUrl.searchParams.get('topic')
+  const studentId = req.nextUrl.searchParams.get('student')
   const sb = db()
 
   let q = sb.from('wa_conversations').select(COLS).order('last_message_at', { ascending: false, nullsFirst: false })
-  if (filter === 'queue') q = q.eq('status', 'open').is('assigned_to', null)
-  else if (filter === 'mine') q = q.eq('status', 'open').eq('assigned_to', user.id)
-  else if (filter === 'all') q = q.eq('status', 'open')
-  else if (filter === 'closed') q = q.eq('status', 'closed')
-  if (lang) q = q.eq('language', lang)
-  if (topic) q = q.eq('topic', topic)
+  if (studentId) {
+    // TODAS las comunicaciones del estudiante (abiertas y cerradas, cualquier
+    // canal): por identidad resuelta, por sus correos o por su teléfono.
+    const { data: stu } = await sb.from('academic_students')
+      .select('email, email_alt, phone_number').eq('id', studentId).maybeSingle()
+    const ors = [`student_id.eq.${studentId}`]
+    if (stu?.email) ors.push(`customer_email.eq.${stu.email}`)
+    if (stu?.email_alt) ors.push(`customer_email.eq.${stu.email_alt}`)
+    const digits = String(stu?.phone_number ?? '').replace(/\D/g, '')
+    if (digits.length >= 9) ors.push(`customer_phone.like.*${digits.slice(-9)}`)
+    q = q.or(ors.join(','))
+  } else {
+    if (filter === 'queue') q = q.eq('status', 'open').is('assigned_to', null)
+    else if (filter === 'mine') q = q.eq('status', 'open').eq('assigned_to', user.id)
+    else if (filter === 'all') q = q.eq('status', 'open')
+    else if (filter === 'closed') q = q.eq('status', 'closed')
+    if (lang) q = q.eq('language', lang)
+    if (topic) q = q.eq('topic', topic)
+  }
   const { data, error } = await q.limit(100)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
