@@ -56,7 +56,7 @@ export function FlywireImport() {
   const [includeDups, setIncludeDups] = useState(false)
   const [excluded, setExcluded] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ inserted: number; updated: number; enriched: number; associated: number; linked: number; errors: string[] } | null>(null)
+  const [result, setResult] = useState<{ inserted: number; updated: number; enriched: number; associated: number; linked: number; activadas: number; errors: string[] } | null>(null)
 
   async function onFile(f: File) {
     setFileName(f.name); setCounts(null); setDetalle([]); setResult(null)
@@ -111,7 +111,7 @@ export function FlywireImport() {
     }).then(r => r.json())
     setLoading(false)
     if (d.error) { alert(d.error); return }
-    setResult({ inserted: d.inserted, updated: d.updated ?? 0, enriched: d.enriched ?? 0, associated: d.associated ?? 0, linked: d.linked_to_charge, errors: d.errors ?? [] })
+    setResult({ inserted: d.inserted, updated: d.updated ?? 0, enriched: d.enriched ?? 0, associated: d.associated ?? 0, linked: d.linked_to_charge, activadas: d.matriculas_activadas ?? 0, errors: d.errors ?? [] })
     preview(rows, includeDups)
   }
 
@@ -131,7 +131,7 @@ export function FlywireImport() {
 
       {result && (
         <div className={`text-sm px-4 py-3 rounded-xl ${result.errors.length ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-800'}`}>
-          <p className="font-medium">✓ {result.inserted} importados ({result.linked} enlazados a cuota) · {result.updated} actualizados · {result.enriched} enriquecidos por ZBL · {result.associated} asociados por monto/fecha.</p>
+          <p className="font-medium">✓ {result.inserted} importados ({result.linked} enlazados a cuota) · {result.updated} actualizados · {result.enriched} enriquecidos por ZBL · {result.associated} asociados por monto/fecha{result.activadas > 0 ? ` · 🎓 ${result.activadas} matrícula(s) ACTIVADA(s)` : ''}.</p>
           {result.errors.map((e, i) => <p key={i} className="text-xs">{e}</p>)}
         </div>
       )}
@@ -156,10 +156,14 @@ export function FlywireImport() {
                 className="w-4 h-4 rounded accent-amber-500" />
               Forzar importación como pagos NUEVOS en vez de asociar (solo si verificaste que el pago de Activa era otro distinto — cuenta el dinero dos veces si te equivocas)
             </label>
-            <button onClick={commit} disabled={loading || !(counts.importar - excluded.size > 0 || counts.enriquecer > 0 || counts.posible_duplicado > 0 || counts.actualizar > 0)}
+            {/* Siempre pulsable: el commit es idempotente y además corre el
+                barrido de activación de matrículas (aun con 0 pagos nuevos). */}
+            <button onClick={commit} disabled={loading}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium px-5 py-2.5 rounded-xl">
               <CheckCircle2 className="w-4 h-4" />
-              Procesar: {Math.max(0, counts.importar - excluded.size)} importar · {counts.enriquecer} enriquecer · {counts.posible_duplicado} asociar
+              {(counts.importar - excluded.size > 0 || counts.enriquecer > 0 || counts.posible_duplicado > 0)
+                ? `Procesar: ${Math.max(0, counts.importar - excluded.size)} importar · ${counts.enriquecer} enriquecer · ${counts.posible_duplicado} asociar`
+                : 'Procesar (verificar activaciones de matrícula)'}
             </button>
           </div>
 
