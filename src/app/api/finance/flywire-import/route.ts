@@ -417,8 +417,12 @@ export async function POST(req: NextRequest) {
         const { paid } = await initialsPaid(sb, e.id)
         if (!paid) continue
         const r = await activateEnrollment(e.id, 'auto:pago')
-        if (r.ok) activadas++
-        else if (r.errors?.length) errors.push(`activación ${e.id}: ${r.errors.join('; ')}`)
+        if (r.ok || r.status === 'activa') activadas++
+        // Los pasos no bloqueantes (correo, colocación) reportan su motivo:
+        // sin esto, un fallo de correo queda invisible (caso Casanova).
+        if (r.errors?.length) errors.push(`activación ${e.id}: ${r.errors.join('; ')}`)
+        if (r.correo && !r.correo.ok) errors.push(`activación ${e.id} — correo: ${r.correo.note}`)
+        if (r.colocacion && !r.colocacion.ok) errors.push(`activación ${e.id} — colocación: ${r.colocacion.note}`)
       } catch (err) { errors.push(`activación ${e.id}: ${String(err)}`) }
     }
   } catch (err) { errors.push('barrido de activación: ' + String(err)) }
