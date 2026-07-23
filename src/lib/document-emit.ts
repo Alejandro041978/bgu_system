@@ -70,17 +70,29 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
   // (DCE y quien aún no tiene el suyo).
   const studentEmail = s.email_alt || s.email || ''
 
-  // Año académico de la MATRÍCULA en el programa (la primera, si hubo varias),
-  // en formato americano de dos años: term_year 2024 → "2024-2025". Respaldo:
-  // el año de la fecha de matrícula.
+  // Año académico de la MATRÍCULA en el programa: el dato OFICIAL del sistema,
+  // no un cálculo — matrícula → convocatoria → semestre → academic_years.name
+  // ("Academic Year 2024 - 2025" → "2024-2025"). Respaldo (matrículas sin
+  // convocatoria, 4 históricas): term_year → "term_year-term_year+1".
   let academicYear = ''
   if (r.program_id && r.student_id) {
     const { data: enr } = await sb.from('academic_student_enrollments')
-      .select('term_year, enrollment_date').eq('student_id', r.student_id).eq('program_id', r.program_id)
+      .select('term_year, enrollment_date, convocatoria_id').eq('student_id', r.student_id).eq('program_id', r.program_id)
       .order('enrollment_date', { ascending: true }).limit(1).maybeSingle()
-    const y = enr?.term_year ? Number(enr.term_year)
-      : enr?.enrollment_date ? Number(String(enr.enrollment_date).slice(0, 4)) : null
-    if (y) academicYear = `${y}-${y + 1}`
+    if (enr?.convocatoria_id) {
+      const { data: conv } = await sb.from('convocatorias')
+        .select('semester:academic_semesters(year:academic_years(name))')
+        .eq('id', enr.convocatoria_id).maybeSingle()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const yearName = (conv as any)?.semester?.year?.name ?? ''
+      const m = String(yearName).match(/(\d{4})\s*-\s*(\d{4})/)
+      if (m) academicYear = `${m[1]}-${m[2]}`
+    }
+    if (!academicYear) {
+      const y = enr?.term_year ? Number(enr.term_year)
+        : enr?.enrollment_date ? Number(String(enr.enrollment_date).slice(0, 4)) : null
+      if (y) academicYear = `${y}-${y + 1}`
+    }
   }
 
   // Diccionario de datos disponibles del ERP, por clave de "source".
