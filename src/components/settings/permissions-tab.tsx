@@ -125,6 +125,7 @@ const PAGE_GROUPS = [
       { key: 'finance_conciliar', label: 'Finanzas · Pagos por Conciliar' },
       { key: 'finance_other_income', label: 'Finanzas · Otros Ingresos' },
       { key: 'finance_debt_report', label: 'Finanzas · Reporte de Deuda' },
+      { key: 'finance_credit_rates', label: 'Finanzas · Tarifas por Crédito' },
       // Cuentas (movidas de Académico)
       { key: 'academic_account', label: 'Estado de Cuenta' },
       { key: 'academic_concepts', label: 'Conceptos de Cuenta' },

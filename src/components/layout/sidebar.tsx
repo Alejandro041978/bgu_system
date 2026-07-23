@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -208,6 +208,7 @@ const navigation: NavGroup[] = [
           { name: 'Pagos por Conciliar', href: '/finance/conciliar', icon: Link2, pageKey: 'finance_conciliar' },
           { name: 'Otros Ingresos', href: '/finance/otros-ingresos', icon: Package, pageKey: 'finance_other_income' },
           { name: 'Reporte de Deuda', href: '/finance/debt-report', icon: FileWarning, pageKey: 'finance_debt_report' },
+          { name: 'Tarifas por Crédito', href: '/finance/credit-rates', icon: BadgeDollarSign, pageKey: 'finance_credit_rates' },
         ],
       },
       { name: 'Estado de Cuenta', href: '/academic/account', icon: Wallet, pageKey: 'academic_account' },

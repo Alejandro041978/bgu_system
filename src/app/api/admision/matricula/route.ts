@@ -3,6 +3,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateChargesForEnrollment } from '@/lib/billing'
 import { checkEnrollmentPrereq } from '@/lib/enrollment-prereq'
+import { snapshotCreditRate } from '@/lib/credit-rates'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -190,6 +191,10 @@ export async function POST(req: NextRequest) {
   // o manual (botón Activar) para excepciones.
   await sb.from('academic_student_enrollments')
     .update({ status: 'pendiente_pago' }).eq('id', enrollmentId).is('activated_at', null)
+
+  // Snapshot del tarifario oficial: la tarifa por crédito vigente HOY se
+  // congela con la matrícula (precios regulados: los futuros no lo alcanzan).
+  await snapshotCreditRate(sb, enrollmentId, program_id)
 
   const charges = await generateChargesForEnrollment(enrollmentId)
 
