@@ -335,7 +335,12 @@ export function Sidebar() {
         <BrandLogo className="w-8 h-8" />
         <div>
           <p className="text-sm font-semibold text-white">BGU ERP</p>
-          <p className="text-xs text-gray-400">Sistema Empresarial</p>
+          <p className="text-xs text-gray-400">
+            Sistema Empresarial
+            <span className="ml-1.5 font-mono text-[10px] text-gray-500" title="Código del deploy en producción">
+              {process.env.NEXT_PUBLIC_BUILD_SHA}
+            </span>
+          </p>
         </div>
       </div>
 
