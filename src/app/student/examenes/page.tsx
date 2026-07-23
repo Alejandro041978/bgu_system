@@ -88,6 +88,12 @@ export default function StudentExamsPage() {
           ) : (
             <div className="space-y-2">
               <p className="text-xs font-medium text-gray-600">Asignaturas que cumplen el requisito</p>
+              <p className="text-[11px] text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                Requisitos: la asignatura debe estar <span className="font-medium text-gray-500">desaprobada</span> (promedio
+                por debajo del mínimo de tu programa) y debes haber <span className="font-medium text-gray-500">rendido al
+                menos el 70%</span> de las evaluaciones que componen la nota. Solo aparecen aquí las asignaturas que ya
+                cumplen ambas condiciones.
+              </p>
               {data.eligible.map(e => (
                 <label key={e.grade_external_id}
                   className={`flex items-center gap-3 border rounded-lg px-3 py-2.5 cursor-pointer ${gradeId === e.grade_external_id ? 'border-blue-400 bg-blue-50/40' : 'border-gray-200 hover:border-gray-300'}`}>
