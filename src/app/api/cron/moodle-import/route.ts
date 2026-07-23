@@ -41,15 +41,14 @@ export async function POST(req: NextRequest) {
   const aulaIds = [...new Set(((offs ?? []) as { moodle_course_id: string }[])
     .map(o => Number(o.moodle_course_id)).filter(n => isFinite(n) && n > 0))]
 
-  // Prioridad: nunca importadas primero, luego las de importación más vieja
-  const lastSync = new Map<number, string | null>()
-  for (const id of aulaIds) {
-    const { data } = await sb.from('academic_grades')
-      .select('synced_at').eq('moodle_course_id', id)
-      .order('synced_at', { ascending: false }).limit(1).maybeSingle()
-    lastSync.set(id, data?.synced_at ?? null)
-  }
-  aulaIds.sort((a, b) => String(lastSync.get(a) ?? '').localeCompare(String(lastSync.get(b) ?? '')))
+  // Rotación justa: cada intento deja huella en moodle_aula_audit.last_import_at
+  // (con o sin cambios, aceptado o rechazado) y se procesa primero lo menos
+  // reciente. Así ninguna aula lenta acapara las corridas.
+  const { data: marks } = await sb.from('moodle_aula_audit')
+    .select('aula_id, last_import_at').in('aula_id', aulaIds)
+  const lastImport = new Map<number, string>(((marks ?? []) as { aula_id: number; last_import_at: string | null }[])
+    .filter(m => m.last_import_at).map(m => [Number(m.aula_id), String(m.last_import_at)]))
+  aulaIds.sort((a, b) => (lastImport.get(a) ?? '').localeCompare(lastImport.get(b) ?? ''))
 
   // Catálogo de estudiantes una sola vez para toda la corrida
   const byExternal = await loadStudentsByExternal(sb)
@@ -60,14 +59,15 @@ export async function POST(req: NextRequest) {
   const errores: Record<string, unknown>[] = []
   const pendientes: number[] = []
 
-  for (const id of aulaIds) {
-    if (Date.now() - started > BUDGET_MS) { pendientes.push(id); continue }
+  const marcar = async (id: number) => {
+    await sb.from('moodle_aula_audit')
+      .update({ last_import_at: new Date().toISOString() }).eq('aula_id', id)
+  }
+
+  const procesar = async (id: number) => {
     try {
       const r = await importAula(sb, id, CRON_ACTOR_UUID, { byExternal })
-      if (!r.ok) {
-        rechazadas.push({ aula: id, motivo: r.error })
-        continue
-      }
+      if (!r.ok) { rechazadas.push({ aula: id, motivo: r.error }); return }
       const s = r.summary
       inserted += s.inserted; updated += s.updated; unchanged += s.unchanged
       if (s.errors?.length) errores.push({ aula: id, errores: s.errors })
@@ -77,8 +77,23 @@ export async function POST(req: NextRequest) {
       })
     } catch (e) {
       errores.push({ aula: id, errores: [String(e)] })
+    } finally {
+      try { await marcar(id) } catch { /* la rotación tolera huecos */ }
     }
   }
+
+  // Pool de 3 trabajadores: el cuello es la latencia del WS de Moodle, no la
+  // base — tres reportes en vuelo triplican el avance sin castigar al campus.
+  let cursor = 0
+  const worker = async () => {
+    while (cursor < aulaIds.length) {
+      if (Date.now() - started > BUDGET_MS) break
+      const id = aulaIds[cursor++]
+      await procesar(id)
+    }
+  }
+  await Promise.all([worker(), worker(), worker()])
+  pendientes.push(...aulaIds.slice(cursor))
 
   // Efectos globales una sola vez si algo cambió
   let recompute: Record<string, unknown> | null = null

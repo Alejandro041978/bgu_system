@@ -40,10 +40,13 @@ export async function moodleCall(wsfunction: string, params: Record<string, any>
   const body = new URLSearchParams({ wstoken: TOKEN, moodlewsrestformat: 'json', wsfunction })
   for (const [k, v] of Object.entries(params)) append(body, v, k)
 
+  // Timeout duro: un aula con un reporte gigante o un WS colgado no puede
+  // comerse el presupuesto entero de una corrida del cron.
   const res = await fetch(`${BASE}/webservice/rest/server.php`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
+    signal: AbortSignal.timeout(90_000),
   })
   const data = await res.json().catch(() => null)
   if (data && data.exception) throw new Error(`${data.errorcode}: ${data.message}`)
