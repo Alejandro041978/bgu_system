@@ -41,6 +41,7 @@ const MAP_SOURCES = [
   { value: 'completion_date_long', label: 'Fecha de culminación larga en español' },
   { value: 'completion_date_long_en', label: 'Fecha de culminación larga en inglés' },
   { value: 'request_code', label: 'Código de solicitud' },
+  { value: 'human', label: 'Ingresada por Humano (en una etapa)' },
   { value: 'literal', label: 'Texto fijo…' },
 ]
 
@@ -108,11 +109,17 @@ export function DocumentTypesManager() {
       scope_program_ids: t.scope_program_ids ?? [],
       requirements: (t.requirements ?? []).map(r => ({ kind: r.kind, description: r.description ?? '' })),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      stages: (t.stages ?? []).map((s: any) => ({
-        name: s.name ?? '', assigneeId: s.assignee_id ?? '',
-        kind: (s.kind ?? ((s.fields ?? []).length ? 'fields' : 'vb')) as 'vb' | 'fields',
-        tagsText: (s.fields ?? []).map((f: any) => f.label ?? f.key).join(', '),
-      })),
+      stages: (t.stages ?? []).map((s: any) => {
+        // Los tags "Ingresada por Humano" no se muestran en el campo (se
+        // auto-inscriben al guardar): así no aparecen duplicados al editar.
+        const ht = new Set((t.field_map ?? []).filter(m => m.source === 'human').map(m => (m.tag ?? '').trim()))
+        return {
+          name: s.name ?? '', assigneeId: s.assignee_id ?? '',
+          kind: (s.kind ?? ((s.fields ?? []).length ? 'fields' : 'vb')) as 'vb' | 'fields',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          tagsText: (s.fields ?? []).map((f: any) => f.label ?? f.key).filter((x: string) => !ht.has(x)).join(', '),
+        }
+      }),
       active: t.active,
     })
     setEditing(true)
@@ -121,20 +128,35 @@ export function DocumentTypesManager() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const setF = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
 
+  // Tags del mapeo marcados "Ingresada por Humano": se auto-inscriben en la
+  // primera etapa de "Ingresar campos" — no hay que escribirlos dos veces.
+  const humanTags = form.field_map.filter(m => m.source === 'human' && m.tag.trim()).map(m => m.tag.trim())
+
   async function save() {
     if (!form.name.trim()) return
+    if (humanTags.length && !form.stages.some(s => s.name.trim() && s.kind === 'fields')) {
+      alert(`Marcaste ${humanTags.join(', ')} como "Ingresada por Humano" pero no hay ninguna etapa con acción "Ingresar campos". Agrega la etapa primero.`)
+      return
+    }
     setSaving(true)
+    let humanPend = [...humanTags]
     const stages = form.stages.filter(s => s.name.trim()).map(s => {
       const emp = employees.find(e => e.id === s.assigneeId)
+      // Para 'fields' el merge tag se guarda tal cual (key = label = tag, sensible a mayúsculas).
+      let fields = s.kind === 'fields'
+        ? s.tagsText.split(',').map(x => x.trim()).filter(Boolean).map(tag => ({ key: tag, label: tag }))
+        : []
+      if (s.kind === 'fields' && humanPend.length) {
+        const yaTiene = new Set(fields.map(f => f.key))
+        fields = [...fields, ...humanPend.filter(t => !yaTiene.has(t)).map(tag => ({ key: tag, label: tag }))]
+        humanPend = []
+      }
       return {
         name: s.name.trim(),
         assignee_id: s.assigneeId || null,
         assignee_name: emp?.full_name ?? null,
         kind: s.kind,
-        // Para 'fields' el merge tag se guarda tal cual (key = label = tag, sensible a mayúsculas).
-        fields: s.kind === 'fields'
-          ? s.tagsText.split(',').map(x => x.trim()).filter(Boolean).map(tag => ({ key: tag, label: tag }))
-          : [],
+        fields,
       }
     })
     const body = {
@@ -313,6 +335,11 @@ export function DocumentTypesManager() {
                     {s.kind === 'fields' && (
                       <label className="block"><span className="block text-[11px] text-gray-500 mb-0.5">Merge tags a completar (separados por coma, tal cual en la plantilla)</span>
                         <input value={s.tagsText} onChange={e => upd({ tagsText: e.target.value })} className={`${inp} font-mono`} placeholder="Ej. GPA, Grade 1, Course name 1" />
+                        {humanTags.length > 0 && i === form.stages.findIndex(x => x.kind === 'fields') && (
+                          <span className="block text-[11px] text-blue-500 mt-1">
+                            Se añaden solos al guardar: <span className="font-mono">{humanTags.join(', ')}</span> (marcados &quot;Ingresada por Humano&quot; en el mapeo).
+                          </span>
+                        )}
                       </label>
                     )}
                   </div>
