@@ -245,7 +245,10 @@ export async function PATCH(req: NextRequest) {
   return NextResponse.json({ ok: true, action: b.action, filas: (data ?? []).length })
 }
 
-// POST { courseid, term_year, term_block } → importa el acta.
+// POST { courseid } → importa el acta. El periodo NO se pide: el term era un
+// vestigio de SystemActiva y solo servía de etiqueta de presentación. Se
+// registra el año en curso (orden cronológico del acta) y el bloque queda
+// vacío; el "cuándo" real vive en las fechas de las evaluaciones.
 // La asignatura destino NO viene del cliente: la decide el vínculo exacto
 // (semester_offerings.moodle_course_id). Un aula sin vincular no se puede
 // importar — se vincula en el detalle del grupo. Se importan solo los alumnos
@@ -257,10 +260,11 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no configurado' }, { status: 400 })
 
-  const b = await req.json().catch(() => null) as { courseid?: number; term_year?: number; term_block?: string } | null
-  if (!b?.courseid || !b?.term_year || !b?.term_block?.trim()) {
-    return NextResponse.json({ error: 'Falta courseid, term_year o term_block' }, { status: 400 })
+  const b = await req.json().catch(() => null) as { courseid?: number } | null
+  if (!b?.courseid) {
+    return NextResponse.json({ error: 'Falta courseid' }, { status: 400 })
   }
+  const termYear = new Date().getFullYear()
 
   const sb = db()
   const { data: linkedOffs } = await sb.from('semester_offerings')
@@ -362,8 +366,8 @@ export async function POST(req: NextRequest) {
       course_code: destCourse.code,
       course_name: destCourse.name,
       credits: destCourse.credits ?? null,
-      term_year: b.term_year,
-      term_block: b.term_block.trim(),
+      term_year: termYear,
+      term_block: null,
       final_grade: total,
       passing_score: passing,
     })
@@ -430,8 +434,8 @@ export async function POST(req: NextRequest) {
         enrollment_id: enrOf.get(d.student_id) ?? null,
         course_code: destCourse.code,
         course_name: destCourse.name,
-        term_year: b.term_year,
-        term_block: b.term_block.trim(),
+        term_year: termYear,
+        term_block: null,
         final_grade: d.total,
         passing_score: passing,
         max_score: 100,

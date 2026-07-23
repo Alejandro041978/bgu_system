@@ -38,8 +38,6 @@ export function MoodleActasImport() {
   const [preview, setPreview] = useState<Preview | null>(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
 
-  const [termYear, setTermYear] = useState(String(new Date().getFullYear()))
-  const [termBlock, setTermBlock] = useState('')
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<ImportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -76,13 +74,13 @@ export function MoodleActasImport() {
   }
 
   async function doImport() {
-    if (!selected?.linked || !termYear || !termBlock.trim()) return
+    if (!selected?.linked) return
     const c = selected.linked.course
-    if (!confirm(`Se importará el acta del aula "${selected.shortname}" hacia ${c.code ?? ''} ${c.name} (${termYear} · ${termBlock}). ¿Continuar?`)) return
+    if (!confirm(`Se importará el acta del aula "${selected.shortname}" hacia ${c.code ?? ''} ${c.name}. ¿Continuar?`)) return
     setImporting(true); setError(null); setResult(null)
     const r = await fetch('/api/academic/moodle-actas', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseid: selected.id, term_year: Number(termYear), term_block: termBlock.trim() }),
+      body: JSON.stringify({ courseid: selected.id }),
     })
     const d = await r.json()
     setImporting(false)
@@ -239,19 +237,7 @@ export function MoodleActasImport() {
                   vínculo exacto{selected.linked.group ? ` · grupo ${selected.linked.group}` : ''}
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Año (term)</label>
-                  <input value={termYear} onChange={e => setTermYear(e.target.value)} inputMode="numeric"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs text-gray-500 mb-1">Bloque (term)</label>
-                  <input value={termBlock} onChange={e => setTermBlock(e.target.value)} placeholder="Ej. AY_25-26_SPRING_2026"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-              </div>
-              <button onClick={doImport} disabled={importing || !termBlock.trim() || preview.politica.violations.length > 0}
+              <button onClick={doImport} disabled={importing || preview.politica.violations.length > 0}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
                 {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                 Importar {preview.rellenan_pendiente + preview.nuevas + preview.actualizan} notas al expediente
