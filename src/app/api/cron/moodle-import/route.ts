@@ -23,7 +23,11 @@ const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 // más vieja (max synced_at de sus notas); si la corrida no alcanza para
 // todas, la siguiente (6 horas después) continúa donde quedó.
 // ---------------------------------------------------------------------------
-const BUDGET_MS = 240_000
+// No se ARRANCAN aulas nuevas pasados los 180s; las que están en vuelo pueden
+// usar hasta el segundo 230 (deadline de sus llamadas WS). El margen restante
+// del maxDuration=300 queda para los recálculos globales y la respuesta.
+const BUDGET_MS = 180_000
+const WS_DEADLINE_MS = 230_000
 
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('authorization')
@@ -66,7 +70,7 @@ export async function POST(req: NextRequest) {
 
   const procesar = async (id: number) => {
     try {
-      const r = await importAula(sb, id, CRON_ACTOR_UUID, { byExternal })
+      const r = await importAula(sb, id, CRON_ACTOR_UUID, { byExternal, deadlineMs: started + WS_DEADLINE_MS })
       if (!r.ok) { rechazadas.push({ aula: id, motivo: r.error }); return }
       const s = r.summary
       inserted += s.inserted; updated += s.updated; unchanged += s.unchanged

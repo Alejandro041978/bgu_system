@@ -33,20 +33,20 @@ function append(body: URLSearchParams, value: any, prefix: string) {
   }
 }
 
-/** Llama una función de Moodle WS. Lanza Error si Moodle devuelve una excepción. */
+/** Llama una función de Moodle WS. Lanza Error si Moodle devuelve una excepción.
+ * timeoutMs: los reportes de aulas grandes (500+ estudiantes) tardan minutos;
+ * el llamador decide cuánto puede esperar (default 90s para llamadas chicas). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function moodleCall(wsfunction: string, params: Record<string, any> = {}): Promise<any> {
+export async function moodleCall(wsfunction: string, params: Record<string, any> = {}, opts: { timeoutMs?: number } = {}): Promise<any> {
   if (!BASE || !TOKEN) throw new Error('Moodle no configurado (faltan MOODLE_URL / MOODLE_WS_TOKEN)')
   const body = new URLSearchParams({ wstoken: TOKEN, moodlewsrestformat: 'json', wsfunction })
   for (const [k, v] of Object.entries(params)) append(body, v, k)
 
-  // Timeout duro: un aula con un reporte gigante o un WS colgado no puede
-  // comerse el presupuesto entero de una corrida del cron.
   const res = await fetch(`${BASE}/webservice/rest/server.php`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(opts.timeoutMs ?? 90_000),
   })
   const data = await res.json().catch(() => null)
   if (data && data.exception) throw new Error(`${data.errorcode}: ${data.message}`)

@@ -66,8 +66,8 @@ export async function aulaPolicy(sb: any, courseid: number, report: any): Promis
 
 // Alumnos del aula: userid → identidad (el idnumber es nuestro external_id)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function enrolledMap(courseid: number): Promise<Map<number, { idnumber: string; fullname: string; email: string | null }>> {
-  const enrolled = await moodleCall('core_enrol_get_enrolled_users', { courseid })
+export async function enrolledMap(courseid: number, timeoutMs?: number): Promise<Map<number, { idnumber: string; fullname: string; email: string | null }>> {
+  const enrolled = await moodleCall('core_enrol_get_enrolled_users', { courseid }, { timeoutMs })
   const map = new Map<number, { idnumber: string; fullname: string; email: string | null }>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const u of (Array.isArray(enrolled) ? enrolled : []) as any[]) {
@@ -103,8 +103,15 @@ export async function loadStudentsByExternal(sb: any): Promise<Map<string, any>>
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function importAula(sb: any, courseid: number, userId: string, pre?: { byExternal?: Map<string, any> }): Promise<ImportAulaResult> {
+export async function importAula(sb: any, courseid: number, userId: string, pre?: { byExternal?: Map<string, any>; deadlineMs?: number }): Promise<ImportAulaResult> {
   const termYear = new Date().getFullYear()
+  // Presupuesto para las llamadas pesadas a Moodle (el reporte de un aula de
+  // 500+ estudiantes tarda minutos). Sin deadline (importación manual): 240s.
+  const heavyTimeout = () => {
+    const restante = pre?.deadlineMs ? pre.deadlineMs - Date.now() : 240_000
+    if (restante < 20_000) throw new Error('Sin tiempo restante en esta corrida: el aula queda para la siguiente')
+    return Math.min(restante, 240_000)
+  }
 
   const { data: linkedOffs } = await sb.from('semester_offerings')
     .select('course:academic_courses(id, code, name, credits, program_id, academic_programs(category_id))')
@@ -128,8 +135,8 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   }
 
   const [users, report] = await Promise.all([
-    enrolledMap(courseid),
-    moodleCall('gradereport_user_get_grade_items', { courseid }),
+    enrolledMap(courseid, heavyTimeout()),
+    moodleCall('gradereport_user_get_grade_items', { courseid }, { timeoutMs: heavyTimeout() }),
   ])
 
   // Compuerta de política: un aula que no cumple NO se importa.
