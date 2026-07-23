@@ -86,8 +86,24 @@ export interface ImportAulaResult {
   summary?: any
 }
 
+// Puente idnumber → estudiante, cargado una vez y reutilizable entre aulas
+// (el cron procesa decenas: cargarlo por aula era el sobrecosto evitable).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function importAula(sb: any, courseid: number, userId: string): Promise<ImportAulaResult> {
+export async function loadStudentsByExternal(sb: any): Promise<Map<string, any>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const studs: any[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data } = await sb.from('academic_students')
+      .select('id, external_id, document_number, first_name, last_name, second_last_name, email').range(from, from + 999)
+    const page = data ?? []
+    studs.push(...page)
+    if (page.length < 1000) break
+  }
+  return new Map(studs.filter(s => s.external_id).map(s => [String(s.external_id), s]))
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function importAula(sb: any, courseid: number, userId: string, pre?: { byExternal?: Map<string, any> }): Promise<ImportAulaResult> {
   const termYear = new Date().getFullYear()
 
   const { data: linkedOffs } = await sb.from('semester_offerings')
@@ -125,16 +141,7 @@ export async function importAula(sb: any, courseid: number, userId: string): Pro
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const studs: any[] = []
-  for (let from = 0; ; from += 1000) {
-    const { data } = await sb.from('academic_students')
-      .select('id, external_id, document_number, first_name, last_name, second_last_name, email').range(from, from + 999)
-    const page = data ?? []
-    studs.push(...page)
-    if (page.length < 1000) break
-  }
-  const byExternal = new Map(studs.filter(s => s.external_id).map(s => [String(s.external_id), s]))
+  const byExternal = pre?.byExternal ?? await loadStudentsByExternal(sb)
 
   // Notas existentes de los alumnos del aula, para resolver el destino de
   // cada una sin duplicar lo que ya vino de SystemActiva.

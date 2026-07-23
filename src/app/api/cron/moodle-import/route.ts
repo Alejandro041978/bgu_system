@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moodleConfigured } from '@/lib/moodle'
-import { importAula, CRON_ACTOR_UUID } from '@/lib/moodle-import'
+import { importAula, loadStudentsByExternal, CRON_ACTOR_UUID } from '@/lib/moodle-import'
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
@@ -51,6 +51,9 @@ export async function POST(req: NextRequest) {
   }
   aulaIds.sort((a, b) => String(lastSync.get(a) ?? '').localeCompare(String(lastSync.get(b) ?? '')))
 
+  // Catálogo de estudiantes una sola vez para toda la corrida
+  const byExternal = await loadStudentsByExternal(sb)
+
   let inserted = 0, updated = 0, unchanged = 0
   const importadas: Record<string, unknown>[] = []
   const rechazadas: Record<string, unknown>[] = []
@@ -60,7 +63,7 @@ export async function POST(req: NextRequest) {
   for (const id of aulaIds) {
     if (Date.now() - started > BUDGET_MS) { pendientes.push(id); continue }
     try {
-      const r = await importAula(sb, id, CRON_ACTOR_UUID)
+      const r = await importAula(sb, id, CRON_ACTOR_UUID, { byExternal })
       if (!r.ok) {
         rechazadas.push({ aula: id, motivo: r.error })
         continue
