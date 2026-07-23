@@ -27,12 +27,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let twilioSid: string | null = null
   const caseTag = conv.case_number != null ? ` [Caso #${conv.case_number}]` : ''
 
-  // El canal de SALIDA lo decide el contacto disponible, no solo la etiqueta:
-  // un ticket registrado por Sofía puede venir sin teléfono (solo correo) —
-  // mandarlo a Twilio con To vacío revienta con 21910 (caso real: #73).
-  const porCorreo = conv.channel === 'email' || (!conv.customer_phone && conv.customer_email)
+  // Regla de canales (usuario, 2026-07-23): correo se contesta por correo,
+  // whatsapp por whatsapp, y un TICKET (registrado por Sofía o, a futuro, por
+  // formulario) SIEMPRE por correo — aunque traiga teléfono: ese teléfono es
+  // el diálogo con Sofía (los humanos no acceden a ese número) y un WhatsApp
+  // frío desde el número humano exigiría plantilla de Meta.
+  const porCorreo = conv.channel === 'email' || conv.channel === 'ticket'
+  if (porCorreo && !conv.customer_email) {
+    return NextResponse.json({ error: 'Los tickets se responden por correo y este caso no tiene correo del cliente: complétalo primero en la ficha del caso.' }, { status: 400 })
+  }
   if (!porCorreo && !conv.customer_phone) {
-    return NextResponse.json({ error: 'Este caso no tiene ni teléfono ni correo de contacto: no hay por dónde responderle. Completa el contacto del cliente primero.' }, { status: 400 })
+    return NextResponse.json({ error: 'Esta conversación de WhatsApp no tiene teléfono del cliente: no hay por dónde responderle.' }, { status: 400 })
   }
 
   if (porCorreo) {
