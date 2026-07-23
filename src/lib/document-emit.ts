@@ -70,15 +70,17 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
   // (DCE y quien aún no tiene el suyo).
   const studentEmail = s.email_alt || s.email || ''
 
-  // Año académico de la MATRÍCULA en el programa (la primera, si hubo varias):
-  // term_year de la matrícula, o el año de la fecha de matrícula como respaldo.
+  // Año académico de la MATRÍCULA en el programa (la primera, si hubo varias),
+  // en formato americano de dos años: term_year 2024 → "2024-2025". Respaldo:
+  // el año de la fecha de matrícula.
   let academicYear = ''
   if (r.program_id && r.student_id) {
     const { data: enr } = await sb.from('academic_student_enrollments')
       .select('term_year, enrollment_date').eq('student_id', r.student_id).eq('program_id', r.program_id)
       .order('enrollment_date', { ascending: true }).limit(1).maybeSingle()
-    if (enr?.term_year) academicYear = String(enr.term_year)
-    else if (enr?.enrollment_date) academicYear = String(enr.enrollment_date).slice(0, 4)
+    const y = enr?.term_year ? Number(enr.term_year)
+      : enr?.enrollment_date ? Number(String(enr.enrollment_date).slice(0, 4)) : null
+    if (y) academicYear = `${y}-${y + 1}`
   }
 
   // Diccionario de datos disponibles del ERP, por clave de "source".
