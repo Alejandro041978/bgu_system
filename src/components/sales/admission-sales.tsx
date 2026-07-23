@@ -18,6 +18,7 @@ const money = (n: number) => `$${Number(n).toFixed(2)}`
 export function AdmissionSales() {
   const [convocatorias, setConvocatorias] = useState<{ id: string; name: string }[]>([])
   const [advisors, setAdvisors] = useState<Advisor[]>([])
+  const [advisorNames, setAdvisorNames] = useState<Record<string, string>>({})
   const [types, setTypes] = useState<AdmType[]>([])
   const [categories, setCategories] = useState<Cat[]>([])
   const [sales, setSales] = useState<Sale[]>([])
@@ -35,7 +36,7 @@ export function AdmissionSales() {
     setLoading(true)
     const d = await fetch(`/api/sales/admissions${c ? `?convocatoria=${c}` : ''}`).then(r => r.json())
     if (d.error) { setError(d.error); setLoading(false); return }
-    setConvocatorias(d.convocatorias ?? []); setAdvisors(d.advisors ?? [])
+    setConvocatorias(d.convocatorias ?? []); setAdvisors(d.advisors ?? []); setAdvisorNames(d.advisor_names ?? {})
     setTypes(d.types ?? []); setCategories(d.categories ?? []); setSales(d.sales ?? [])
     setLoading(false)
   }, [])
@@ -83,7 +84,7 @@ export function AdmissionSales() {
   }
 
   const typeById = useMemo(() => new Map(types.map(t => [t.id, t])), [types])
-  const advisorName = (id: string | null) => advisors.find(a => a.id === id)?.full_name ?? 'Sin asesora'
+  const advisorName = (id: string | null) => (id && advisorNames[id]) ?? advisors.find(a => a.id === id)?.full_name ?? 'Sin asesora'
 
   // ── Cuadro resumen: por asesora, cantidad × comisión de cada tipo = total ──
   const resumen = useMemo(() => {
@@ -105,7 +106,7 @@ export function AdmissionSales() {
     }
     return [...por.entries()].sort((a, b) => b[1].total - a[1].total)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sales, types, advisors])
+  }, [sales, types, advisors, advisorNames])
 
   const totalVentas = sales.length
   const totalComisiones = resumen.reduce((s, [, r]) => s + r.total, 0)

@@ -20,9 +20,14 @@ export async function GET(req: NextRequest) {
   const sb = db()
   const convocatoriaId = req.nextUrl.searchParams.get('convocatoria')
 
+  // Asesoras elegibles = SOLO colaboradores con rol "admission_agent"
+  // (regla del usuario, 2026-07-23)
+  const { data: agentRole } = await sb.from('roles').select('id').eq('name', 'admission_agent').maybeSingle()
   const [{ data: convocatorias }, { data: advisors }, { data: types }, { data: categories }] = await Promise.all([
     sb.from('convocatorias').select('id, name').order('name'),
-    sb.from('hr_employees').select('id, full_name').order('full_name'),
+    agentRole
+      ? sb.from('hr_employees').select('id, full_name').eq('role_id', agentRole.id).order('full_name')
+      : Promise.resolve({ data: [] }),
     sb.from('admission_types').select('*').order('name'),
     sb.from('academic_programs_category').select('id, name, sigla').order('name'),
   ])
@@ -56,7 +61,17 @@ export async function GET(req: NextRequest) {
     }))
   }
 
-  return NextResponse.json({ convocatorias: convocatorias ?? [], advisors: advisors ?? [], types: types ?? [], categories: categories ?? [], sales })
+  // Nombres de asesoras referenciadas en ventas aunque ya no tengan el rol
+  // (la historia no se borra): para mostrar, no para elegir.
+  const advisorNames: Record<string, string> = {}
+  for (const a of (advisors ?? []) as { id: string; full_name: string }[]) advisorNames[a.id] = a.full_name
+  const missing = [...new Set(sales.map(s => s.advisor_id).filter((id): id is string => !!id && !advisorNames[id]))]
+  if (missing.length) {
+    const { data: extra } = await sb.from('hr_employees').select('id, full_name').in('id', missing)
+    for (const a of (extra ?? []) as { id: string; full_name: string }[]) advisorNames[a.id] = a.full_name
+  }
+
+  return NextResponse.json({ convocatorias: convocatorias ?? [], advisors: advisors ?? [], advisor_names: advisorNames, types: types ?? [], categories: categories ?? [], sales })
 }
 
 // POST { enrollment_id, advisor_id?, admission_type_id? } → asigna la venta.
