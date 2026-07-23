@@ -40,7 +40,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 // Campos editables de la ficha; todo lo demás (external_id, source, moodle,
 // retiros) lo gobiernan el sync y los motores.
 const EDITABLE = ['first_name', 'last_name', 'second_last_name', 'document_type', 'document_number',
-  'email', 'email_alt', 'phone_code', 'phone_local', 'date_of_birth', 'city', 'country', 'situation'] as const
+  'email', 'email_alt', 'phone_code', 'phone_local', 'date_of_birth', 'city', 'country', 'birth_country', 'situation'] as const
 
 // PATCH → edita la ficha. Cambiar la situación la marca como manual (los
 // motores de egreso/retiro no la pisan); ?situacion_auto=1 la devuelve a auto.
@@ -72,10 +72,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (patch.first_name === null || patch.last_name === null) {
     return NextResponse.json({ error: 'Nombres y primer apellido no pueden quedar vacíos' }, { status: 400 })
   }
-  if (patch.country) {
-    patch.country = String(patch.country).toUpperCase()
-    if (!/^[A-Z]{3}$/.test(patch.country)) {
-      return NextResponse.json({ error: 'El país debe ser un código ISO de 3 letras' }, { status: 400 })
+  for (const campo of ['country', 'birth_country'] as const) {
+    if (patch[campo]) {
+      patch[campo] = String(patch[campo]).toUpperCase()
+      if (!/^[A-Z]{3}$/.test(String(patch[campo]))) {
+        return NextResponse.json({ error: 'El país debe ser un código ISO de 3 letras' }, { status: 400 })
+      }
     }
   }
   if ('document_number' in patch) {

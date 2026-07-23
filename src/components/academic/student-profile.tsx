@@ -73,7 +73,7 @@ export function StudentProfile() {
       phone_code: d.student.phone_code ?? '',
       phone_local: d.student.phone_local ?? '',
       date_of_birth: d.student.date_of_birth ? String(d.student.date_of_birth).slice(0, 10) : '',
-      city: d.student.city ?? '', country: d.student.country ?? '',
+      city: d.student.city ?? '', country: d.student.country ?? '', birth_country: d.student.birth_country ?? '',
       situation: d.student.situation ?? '',
     })
   }
@@ -200,8 +200,15 @@ export function StudentProfile() {
                   <input value={form.phone_local} onChange={e => set('phone_local', e.target.value.replace(/\D/g, ''))} placeholder="Número de teléfono" className={`${inp} flex-1`} />
                 </div>
               </label>
+              <Field label="País de nacimiento">
+                <select value={form.birth_country} onChange={e => set('birth_country', e.target.value)} className={inp}>
+                  <option value="">—</option>
+                  {PAISES.map(([code, nombre]) => <option key={code} value={code}>{nombre}</option>)}
+                  {form.birth_country && !PAISES.some(([c]) => c === form.birth_country) && <option value={form.birth_country}>{form.birth_country}</option>}
+                </select>
+              </Field>
               <Field label="Ciudad"><input value={form.city} onChange={e => set('city', e.target.value)} className={inp} /></Field>
-              <Field label="País">
+              <Field label="País de residencia">
                 <select value={form.country} onChange={e => set('country', e.target.value)} className={inp}>
                   <option value="">—</option>
                   {PAISES.map(([code, nombre]) => <option key={code} value={code}>{nombre}</option>)}

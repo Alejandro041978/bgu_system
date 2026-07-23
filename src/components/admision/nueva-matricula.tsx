@@ -9,7 +9,7 @@ interface Conv { id: string; name: string; semester: string; first_day: string |
 interface Found { id: string; name: string; document: string; email: string | null; situation: string | null; programs: string[] }
 
 const fdate = (d: string | null) => (d ? d.split('T')[0].split('-').reverse().join('/') : '—')
-const EMPTY_NEW = { first_name: '', last_name: '', second_last_name: '', document_number: '', email: '', phone_code: '', phone_local: '', city: '', country: '' }
+const EMPTY_NEW = { first_name: '', last_name: '', second_last_name: '', document_number: '', email: '', phone_code: '', phone_local: '', city: '', country: '', birth_country: '' }
 
 const CODIGOS_TEL: [string, string][] = [
   ['+51', 'Perú'], ['+52', 'México'], ['+593', 'Ecuador'], ['+57', 'Colombia'], ['+56', 'Chile'],
@@ -175,9 +175,13 @@ export function NuevaMatricula() {
                 </select>
                 <input placeholder="Número de teléfono" value={newStudent.phone_local} onChange={e => setNewStudent(p => ({ ...p, phone_local: e.target.value.replace(/\D/g, '') }))} className={`${inp} flex-1`} />
               </div>
+              <select value={newStudent.birth_country} onChange={e => setNewStudent(p => ({ ...p, birth_country: e.target.value }))} className={inp}>
+                <option value="">País de nacimiento…</option>
+                {PAISES.map(([code, nombre]) => <option key={code} value={code}>{nombre}</option>)}
+              </select>
               <input placeholder="Ciudad" value={newStudent.city} onChange={e => setNewStudent(p => ({ ...p, city: e.target.value }))} className={inp} />
               <select value={newStudent.country} onChange={e => setNewStudent(p => ({ ...p, country: e.target.value }))} className={inp}>
-                <option value="">País…</option>
+                <option value="">País de residencia…</option>
                 {PAISES.map(([code, nombre]) => <option key={code} value={code}>{nombre}</option>)}
               </select>
             </div>

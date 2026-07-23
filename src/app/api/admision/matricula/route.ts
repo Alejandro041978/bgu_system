@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   const { student_id, new_student, program_id, convocatoria_id, enrollment_date } = (body ?? {}) as {
     student_id?: string
-    new_student?: { first_name?: string; last_name?: string; second_last_name?: string; document_number?: string; email?: string; phone_code?: string; phone_local?: string; city?: string; country?: string }
+    new_student?: { first_name?: string; last_name?: string; second_last_name?: string; document_number?: string; email?: string; phone_code?: string; phone_local?: string; city?: string; country?: string; birth_country?: string }
     program_id?: string
     convocatoria_id?: string
     enrollment_date?: string
@@ -105,6 +105,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nombres, primer apellido y documento son obligatorios' }, { status: 400 })
     }
     const country = ns.country?.trim().toUpperCase() || null
+    const birthCountry = ns.birth_country?.trim().toUpperCase() || null
+    if (birthCountry && !/^[A-Z]{3}$/.test(birthCountry)) {
+      return NextResponse.json({ error: 'El país de nacimiento debe ser un código ISO de 3 letras' }, { status: 400 })
+    }
     if (country && !/^[A-Z]{3}$/.test(country)) {
       return NextResponse.json({ error: 'El país debe ser un código ISO de 3 letras (como el resto de la base: PER, MEX…)' }, { status: 400 })
     }
@@ -135,6 +139,7 @@ export async function POST(req: NextRequest) {
       phone_number: phoneCode && phoneLocal ? `${phoneCode}${phoneLocal}` : null,
       city: ns.city?.trim() || null,
       country,
+      birth_country: birthCountry,
       situation: 'activo',
       situation_source: 'auto',
     })
