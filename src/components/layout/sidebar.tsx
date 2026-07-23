@@ -219,6 +219,7 @@ const navigation: NavGroup[] = [
         name: 'Collection', href: '/academic/billing-plans', icon: Banknote,
         children: [
           { name: 'Plantillas de Facturación', href: '/academic/billing-plans', icon: Receipt, pageKey: 'academic_billing_plans' },
+          { name: 'Becas', href: '/collection/scholarships', icon: GraduationCap, pageKey: 'collection_scholarships' },
         ],
       },
       { name: 'Usuarios y permisos', href: '/settings/users', icon: Shield, pageKey: 'settings_users' },
