@@ -95,7 +95,12 @@ export async function createStudentEmail(
   // (el estudiante recupera su acceso sin pasar por helpdesk)
   const recoveryEmail = recovery?.email?.trim() || null
   const recoveryPhone = recovery?.phone && /^\+\d{8,15}$/.test(recovery.phone.trim()) ? recovery.phone.trim() : null
-  const res = await fetch('https://admin.googleapis.com/admin/directory/v1/users', {
+
+  // Los datos de recuperación son un extra: si Google los rechaza (p. ej.
+  // "Invalid recovery phone" — caso +52 1..., el viejo prefijo móvil mexicano
+  // de 11 dígitos), se reintenta SIN ellos — la cuenta se crea igual y la
+  // recuperación se configura después a mano si hace falta.
+  const insert = async (withRecovery: boolean) => fetch('https://admin.googleapis.com/admin/directory/v1/users', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -107,10 +112,16 @@ export async function createStudentEmail(
       password,
       changePasswordAtNextLogin: true,
       orgUnitPath: ORG_UNIT,
-      ...(recoveryEmail ? { recoveryEmail } : {}),
-      ...(recoveryPhone ? { recoveryPhone } : {}),
+      ...(withRecovery && recoveryEmail ? { recoveryEmail } : {}),
+      ...(withRecovery && recoveryPhone ? { recoveryPhone } : {}),
     }),
   })
+  let res = await insert(true)
+  if (!res.ok && (recoveryEmail || recoveryPhone)) {
+    const d = await res.json().catch(() => ({}))
+    if (res.status === 400 && /recovery/i.test(d.error?.message ?? '')) res = await insert(false)
+    else throw new Error(`Google users.insert ${res.status}: ${d.error?.message ?? 'error'}`)
+  }
   if (!res.ok) {
     const d = await res.json().catch(() => ({}))
     throw new Error(`Google users.insert ${res.status}: ${d.error?.message ?? 'error'}`)
