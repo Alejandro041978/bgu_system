@@ -36,12 +36,15 @@ function courseTotal(gradeitems: any[]): number | null {
   return Math.round(v * 100) / 100
 }
 
-// Política del aula (mismos criterios del Auditor), calculada EN VIVO al
-// previsualizar/importar: ponderaciones activas de primer nivel suman 100%,
-// escala del total sobre 100, aula visible. Un aula que no cumple no se puede
-// importar.
+// Política del aula (mismos criterios y misma FUENTE que el Auditor):
+//  - Pesos: suma aritmética de coeficientes de la CONFIGURACIÓN del aula
+//    (moodle_aula_audit.suma_coeficientes, sincronizada desde la BD de
+//    Moodle). El peso por estudiante del web service NO sirve de criterio:
+//    Moodle lo normaliza sobre lo rendido (siempre ~100) y no reporta nada
+//    si nadie rindió. Un aula sin auditoría de pesos no se puede importar.
+//  - Escala del total y visibilidad: en vivo por web service (confiables).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function aulaPolicy(courseid: number, report: any): Promise<{ suma_pesos: number | null; escala: number | null; visible: boolean | null; violations: string[] }> {
+async function aulaPolicy(sb: any, courseid: number, report: any): Promise<{ suma_pesos: number | null; escala: number | null; visible: boolean | null; audited_at: string | null; violations: string[] }> {
   let visible: boolean | null = null
   try {
     const cf = await moodleCall('core_course_get_courses_by_field', { field: 'id', value: String(courseid) })
@@ -49,43 +52,22 @@ async function aulaPolicy(courseid: number, report: any): Promise<{ suma_pesos: 
     if (c0) visible = c0.visible !== 0
   } catch { /* sin permiso para ver el curso */ }
 
-  const visibleByCmid = new Map<number, boolean>()
-  try {
-    const contents = await moodleCall('core_course_get_contents', { courseid })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const sec of (Array.isArray(contents) ? contents : []) as any[]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const m of (sec.modules ?? []) as any[]) visibleByCmid.set(Number(m.id), (m.visible ?? 1) !== 0)
-    }
-  } catch { /* función no habilitada: se evalúa sin filtro de visibilidad */ }
-
-  // Moodle solo calcula ponderaciones para quien tiene notas: un estudiante
-  // sin rendir devuelve weightraw vacío en todo. La política debe evaluarse
-  // sobre un estudiante CON ponderaciones, no sobre el primero de la lista.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const usergrades = (report?.usergrades ?? []) as any[]
-  const conPesos = usergrades.find(ug =>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (ug.gradeitems ?? []).some((i: any) => i.itemtype !== 'course' && i.weightraw != null))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const items = ((conPesos ?? usergrades[0])?.gradeitems ?? []) as any[]
+  const items = (report?.usergrades?.[0]?.gradeitems ?? []) as any[]
   const courseItem = items.find(i => i.itemtype === 'course')
-  const rootId = courseItem?.iteminstance ?? null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const esActivo = (i: any) => i.cmid == null || (visibleByCmid.get(Number(i.cmid)) ?? true)
-  const topLevel = items.filter(i => i.itemtype !== 'course' && i.categoryid === rootId && esActivo(i))
-  const reportan = topLevel.filter(i => i.weightraw != null)
-  const sumaPesos = topLevel.length && reportan.length
-    ? Math.round(topLevel.reduce((s, i) => s + (Number(i.weightraw) || 0), 0) * 10000) / 100
-    : null
   const escala = courseItem?.grademax != null ? Number(courseItem.grademax) : null
+
+  const { data: audit } = await sb.from('moodle_aula_audit')
+    .select('suma_coeficientes, audited_at').eq('aula_id', courseid).maybeSingle()
+  const sumaPesos = audit?.suma_coeficientes != null ? Number(audit.suma_coeficientes) : null
+  const auditedAt = audit?.audited_at ? String(audit.audited_at).slice(0, 10) : null
 
   const violations: string[] = []
   if (visible === false) violations.push('el aula está oculta (no activa)')
   if (escala != null && escala !== 100) violations.push(`la escala del total es ${escala}, no 100`)
-  if (sumaPesos == null) violations.push('los recursos activos no reportan ponderación')
-  else if (Math.abs(sumaPesos - 100) > 0.5) violations.push(`las ponderaciones activas suman ${sumaPesos}%, no 100%`)
-  return { suma_pesos: sumaPesos, escala, visible, violations }
+  if (sumaPesos == null) violations.push('el aula no tiene auditoría de ponderaciones — corre el Auditor (sincronización de coeficientes) antes de importar')
+  else if (Math.abs(sumaPesos - 100) > 0.5) violations.push(`las ponderaciones configuradas suman ${sumaPesos}%, no 100% (auditoría del ${auditedAt ?? 'sin fecha'})`)
+  return { suma_pesos: sumaPesos, escala, visible, audited_at: auditedAt, violations }
 }
 
 // Alumnos del aula: userid → identidad (el idnumber es nuestro external_id)
@@ -180,7 +162,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const politica = await aulaPolicy(courseid, report)
+  const politica = await aulaPolicy(sb, courseid, report)
 
   const matched: { document: string; name: string; total: number | null; destino: string }[] = []
   const unmatched: { fullname: string; idnumber: string }[] = []
@@ -308,7 +290,7 @@ export async function POST(req: NextRequest) {
   ])
 
   // Compuerta de política: un aula que no cumple NO se importa.
-  const politica = await aulaPolicy(b.courseid, report)
+  const politica = await aulaPolicy(sb, b.courseid, report)
   if (politica.violations.length) {
     return NextResponse.json({
       error: 'El aula no cumple la política del campus y no se puede importar: ' + politica.violations.join('; ') + '. Corrígela en Moodle y vuelve a intentar.',
