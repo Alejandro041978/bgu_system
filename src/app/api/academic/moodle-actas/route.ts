@@ -59,8 +59,16 @@ async function aulaPolicy(courseid: number, report: any): Promise<{ suma_pesos: 
     }
   } catch { /* función no habilitada: se evalúa sin filtro de visibilidad */ }
 
+  // Moodle solo calcula ponderaciones para quien tiene notas: un estudiante
+  // sin rendir devuelve weightraw vacío en todo. La política debe evaluarse
+  // sobre un estudiante CON ponderaciones, no sobre el primero de la lista.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const items = (report?.usergrades?.[0]?.gradeitems ?? []) as any[]
+  const usergrades = (report?.usergrades ?? []) as any[]
+  const conPesos = usergrades.find(ug =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (ug.gradeitems ?? []).some((i: any) => i.itemtype !== 'course' && i.weightraw != null))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const items = ((conPesos ?? usergrades[0])?.gradeitems ?? []) as any[]
   const courseItem = items.find(i => i.itemtype === 'course')
   const rootId = courseItem?.iteminstance ?? null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
