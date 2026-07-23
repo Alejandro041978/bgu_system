@@ -17,16 +17,30 @@ export async function checkRequirements(
 
   const { data: stu } = await sb.from('academic_students').select('document_number').eq('id', studentId).maybeSingle()
 
-  // Sin deuda
-  if (kinds.has('no_debt')) {
+  // Deuda: dos variantes (regla del usuario, 2026-07-23).
+  //  - no_debt: deuda TOTAL en cero, incluidas las cuotas futuras — para el
+  //    título final (recibido el título, la deuda futura rara vez se paga).
+  //  - no_overdue_debt: sin deuda VENCIDA (cuotas ya exigibles cubiertas);
+  //    puede tener cuotas futuras — para constancias y documentos ordinarios.
+  if (kinds.has('no_debt') || kinds.has('no_overdue_debt')) {
+    const hoy = new Date().toISOString().slice(0, 10)
     const [{ data: ch }, { data: py }] = await Promise.all([
-      sb.from('account_charges').select('amount').eq('student_id', studentId),
+      sb.from('account_charges').select('amount, due_date').eq('student_id', studentId),
       sb.from('account_payments').select('amount').eq('student_id', studentId),
     ])
     const charged = (ch ?? []).reduce((s: number, c: { amount: number }) => s + Number(c.amount ?? 0), 0)
+    // Exigible = vencimiento pasado o sin fecha (herencia sin due_date)
+    const exigible = (ch ?? []).reduce((s: number, c: { amount: number; due_date: string | null }) =>
+      s + ((!c.due_date || String(c.due_date).slice(0, 10) <= hoy) ? Number(c.amount ?? 0) : 0), 0)
     const paid = (py ?? []).reduce((s: number, p: { amount: number }) => s + Number(p.amount ?? 0), 0)
-    const balance = Math.round((charged - paid) * 100) / 100
-    out.push({ kind: 'no_debt', ok: balance <= 0.005, note: balance <= 0.005 ? 'Sin deuda' : `Saldo pendiente: ${balance.toFixed(2)}` })
+    if (kinds.has('no_debt')) {
+      const balance = Math.round((charged - paid) * 100) / 100
+      out.push({ kind: 'no_debt', ok: balance <= 0.005, note: balance <= 0.005 ? 'Sin deuda' : `Saldo total pendiente (incluye cuotas futuras): ${balance.toFixed(2)}` })
+    }
+    if (kinds.has('no_overdue_debt')) {
+      const vencida = Math.round((exigible - paid) * 100) / 100
+      out.push({ kind: 'no_overdue_debt', ok: vencida <= 0.005, note: vencida <= 0.005 ? 'Sin deuda vencida' : `Deuda vencida: ${vencida.toFixed(2)}` })
+    }
   }
 
   // Matriculado en el programa

@@ -42,7 +42,8 @@ const MAP_SOURCES = [
 
 const REQ_KINDS = [
   { value: 'graduated', label: 'Egresado (100% aprobado)' },
-  { value: 'no_debt', label: 'Sin deuda (saldo 0)' },
+  { value: 'no_overdue_debt', label: 'Sin deuda vencida (puede tener cuotas futuras)' },
+  { value: 'no_debt', label: 'Sin deuda total (incluye cuotas futuras — para el título final)' },
   { value: 'enrolled', label: 'Matriculado / activo' },
   { value: 'manual', label: 'Manual (lo verifica un colaborador)' },
 ]
