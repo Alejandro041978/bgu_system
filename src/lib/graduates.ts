@@ -117,12 +117,29 @@ export async function computeGraduates(sb: any): Promise<{
     }
   }
 
-  // 6) Guardar detecciones
+  // 6) Guardar detecciones. Fecha de CULMINACIÓN: solo para egresos NUEVOS —
+  //    con la importación de actas corriendo cada hora, la detección ocurre
+  //    casi al instante de que la última nota cierre la malla, así que hoy ES
+  //    la fecha real (source 'exacta'). Los egresos ya registrados conservan
+  //    su completed_at (el backfill histórico usa registros/estimaciones).
+  const prev = await readAll(sb, 'student_graduations', 'student_id, program_id')
+  const prevKeys = new Set((prev as { student_id: string; program_id: string }[])
+    .map(g => `${g.student_id}|${g.program_id}`))
+  const hoy = new Date().toISOString().slice(0, 10)
+  const nuevos = found.filter(f => !prevKeys.has(`${f.student_id}|${f.program_id}`))
+  const conocidos = found.filter(f => prevKeys.has(`${f.student_id}|${f.program_id}`))
   let inserted = 0
-  for (let i = 0; i < found.length; i += 200) {
-    const chunk = found.slice(i, i + 200)
+  for (let i = 0; i < nuevos.length; i += 200) {
+    const chunk = nuevos.slice(i, i + 200)
     await sb.from('student_graduations').upsert(
-      chunk.map(f => ({ ...f, detected_at: new Date().toISOString().slice(0, 10) })),
+      chunk.map(f => ({ ...f, detected_at: hoy, completed_at: hoy, completed_source: 'exacta' })),
+      { onConflict: 'student_id,program_id', ignoreDuplicates: false })
+    inserted += chunk.length
+  }
+  for (let i = 0; i < conocidos.length; i += 200) {
+    const chunk = conocidos.slice(i, i + 200)
+    await sb.from('student_graduations').upsert(
+      chunk.map(f => ({ ...f, detected_at: hoy })),
       { onConflict: 'student_id,program_id', ignoreDuplicates: false })
     inserted += chunk.length
   }

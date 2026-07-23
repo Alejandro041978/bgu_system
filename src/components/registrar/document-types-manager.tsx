@@ -36,6 +36,9 @@ const MAP_SOURCES = [
   { value: 'date_short', label: 'Fecha (dd/mm/aaaa)' },
   { value: 'date_long', label: 'Fecha larga en español (9 de julio de 2026)' },
   { value: 'date_long_en', label: 'Fecha larga en inglés (July 9, 2026)' },
+  { value: 'completion_date', label: 'Fecha de culminación del programa (dd/mm/aaaa)' },
+  { value: 'completion_date_long', label: 'Fecha de culminación larga en español' },
+  { value: 'completion_date_long_en', label: 'Fecha de culminación larga en inglés' },
   { value: 'request_code', label: 'Código de solicitud' },
   { value: 'literal', label: 'Texto fijo…' },
 ]

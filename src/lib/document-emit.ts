@@ -49,6 +49,22 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
   const dateLongEn = now.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
   const requestCode = String(r.id).slice(0, 8).toUpperCase()
 
+  // Fecha de CULMINACIÓN del programa (cuando aprobó toda su malla) — NO es la
+  // fecha de emisión ni la de titulación. Vive en student_graduations.
+  let compShort = '', compLong = '', compLongEn = ''
+  if (r.program_id && r.student_id) {
+    try {
+      const { data: grad } = await sb.from('student_graduations')
+        .select('completed_at').eq('student_id', r.student_id).eq('program_id', r.program_id).maybeSingle()
+      if (grad?.completed_at) {
+        const d = new Date(String(grad.completed_at).slice(0, 10) + 'T12:00:00')
+        compShort = d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        compLong = d.toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })
+        compLongEn = d.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+      }
+    } catch { /* columna aún sin migrar: los tags salen vacíos */ }
+  }
+
   // Diccionario de datos disponibles del ERP, por clave de "source".
   const sources: Record<string, string> = {
     first_name: s.first_name ?? '',
@@ -65,6 +81,9 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
     date_short: dateShort,
     date_long: dateLong,
     date_long_en: dateLongEn,
+    completion_date: compShort,
+    completion_date_long: compLong,
+    completion_date_long_en: compLongEn,
     request_code: requestCode,
   }
 
