@@ -35,6 +35,10 @@ export interface ProgramAccount {
   enrollment_id: string | null
   convocatoria_id: string | null
   program_name: string
+  // Precio oficial congelado en la matrícula (tarifario regulado):
+  // list_price = credit_rate × créditos del programa
+  credit_rate: number | null
+  list_price: number | null
   totals: Totals
   charges: ChargeRow[]
   payments: PaymentRow[]
@@ -71,7 +75,7 @@ export async function getAccountStatement(
 
   // Matrículas del estudiante (una cuenta por cada una, aunque no tenga cuotas aún)
   const { data: enrData } = await sb.from('academic_student_enrollments')
-    .select('id, convocatoria_id, academic_programs(name)')
+    .select('id, convocatoria_id, credit_rate, list_price, academic_programs(name)')
     .eq('student_id', student.id)
 
   // Conceptos editables (Installment.Type -> abreviatura + nombre)
@@ -108,15 +112,17 @@ export async function getAccountStatement(
 
   const today = new Date().toISOString().slice(0, 10)
   const groups = new Map<string, ProgramAccount>()
-  const newGroup = (enr: string | null, conv: string | null, name: string): ProgramAccount => ({
+  const newGroup = (enr: string | null, conv: string | null, name: string, rate: number | null = null, list: number | null = null): ProgramAccount => ({
     enrollment_id: enr, convocatoria_id: conv, program_name: name,
+    credit_rate: rate, list_price: list,
     totals: { charged: 0, paid: 0, discounts: 0, balance: 0, overdue: 0 }, charges: [], payments: [],
   })
 
   // Un grupo por cada matrícula (aunque no tenga cuotas)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const e of (enrData ?? []) as any[]) {
-    groups.set(e.id, newGroup(e.id, e.convocatoria_id ?? null, e.academic_programs?.name ?? 'Programa'))
+    groups.set(e.id, newGroup(e.id, e.convocatoria_id ?? null, e.academic_programs?.name ?? 'Programa',
+      e.credit_rate != null ? Number(e.credit_rate) : null, e.list_price != null ? Number(e.list_price) : null))
   }
   const ensureOrphan = () => {
     let g = groups.get('∅')

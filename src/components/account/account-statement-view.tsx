@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
-import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag } from 'lucide-react'
+import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign } from 'lucide-react'
 import { FlywirePayButton } from './flywire-pay-button'
 
 const money = (n: number) =>
@@ -122,7 +122,11 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+        {account.list_price != null && (
+          <Card icon={<BadgeDollarSign className="w-4 h-4" />} label="Precio oficial" value={money(account.list_price)} cls="text-blue-700"
+            sub={account.credit_rate ? `${Math.round(account.list_price / account.credit_rate)} cr × ${money(account.credit_rate)}` : undefined} />
+        )}
         <Card icon={<Wallet className="w-4 h-4" />} label="Facturado" value={money(totals.charged)} cls="text-gray-900" />
         <Card icon={<CheckCircle2 className="w-4 h-4" />} label="Pagado" value={money(totals.paid)} cls="text-green-600" />
         <Card icon={<Tag className="w-4 h-4" />} label="Descuentos" value={money(totals.discounts)} cls={totals.discounts > 0 ? 'text-violet-600' : 'text-gray-400'} />
@@ -294,11 +298,12 @@ function StudentHeader({ student }: { student: NonNullable<Statement['student']>
   )
 }
 
-function Card({ icon, label, value, cls }: { icon: React.ReactNode; label: string; value: string; cls: string }) {
+function Card({ icon, label, value, cls, sub }: { icon: React.ReactNode; label: string; value: string; cls: string; sub?: string }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-3.5">
       <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">{icon}{label}</div>
       <p className={`text-lg font-bold ${cls}`}>{value}</p>
+      {sub && <p className="text-[11px] text-gray-400 tabular-nums">{sub}</p>}
     </div>
   )
 }
