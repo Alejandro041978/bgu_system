@@ -1,6 +1,16 @@
+import { createHash } from 'crypto'
 import { recomputeStudentByDocument } from './graduates'
 import { advanceCarousels } from './carousel'
 import { sameCourse } from './course-match'
+
+// academic_grades.external_id es uuid: los ids legibles ("moodle:...",
+// "csv:...", "reg-...") NO caben en la columna. Toda importación deriva su
+// identidad con este hash estable: misma semilla → mismo uuid → upsert
+// idempotente.
+export function stableUuid(seed: string): string {
+  const h = createHash('sha1').update(seed).digest('hex')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`
+}
 
 // ---------------------------------------------------------------------------
 // Camino ÚNICO de escritura de notas. Toda modificación — editor manual, carga
@@ -166,10 +176,11 @@ export function resolveImportTarget(
   const own = matches.find(m => String(m.external_id) === fallbackExternalId)
     ?? matches.find(m => m.source === 'moodle' || m.source === 'csv')
   if (own) {
-    const ext = String(own.external_id)
     // shield: la fila rellenada sobre un external_id de Activa necesita seguir
-    // blindada contra N8N; las filas moodle:/csv: no (N8N nunca las toca)
-    return { action: 'update', external_id: ext, shield: !(ext.startsWith('moodle:') || ext.startsWith('csv:')), prev_value: val(own) }
+    // blindada contra N8N; las nacidas de importación (source moodle/csv) no
+    // (N8N nunca las toca). El external_id ya no dice el origen: lo dice source.
+    const shield = !(own.source === 'moodle' || own.source === 'csv')
+    return { action: 'update', external_id: String(own.external_id), shield, prev_value: val(own) }
   }
   const valued = matches.find(g => val(g) != null)
   if (valued) return { action: 'skip', external_id: String(valued.external_id), shield: false, prev_value: val(valued) }

@@ -1,16 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
-import { createHash } from 'crypto'
 import { placeStudentInEntry } from './carousel'
 import { createStudentEmail, notifyStudentEmail, googleConfigured, langFor } from './google-workspace'
 import { sameCourse } from './course-match'
-
-// UUID determinístico (formato v4) a partir de una semilla: mismo insumo →
-// mismo id → el registro de malla es idempotente aunque se re-ejecute.
-// (academic_grades.external_id es de tipo uuid.)
-function stableUuid(seed: string): string {
-  const h = createHash('sha1').update(seed).digest('hex')
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`
-}
+import { stableUuid } from './grades-write'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)

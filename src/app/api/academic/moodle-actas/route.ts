@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { moodleCall, moodleConfigured } from '@/lib/moodle'
-import { importGrades, resolveImportTarget, fetchByIn, type ImportRow } from '@/lib/grades-write'
+import { importGrades, resolveImportTarget, fetchByIn, stableUuid, type ImportRow } from '@/lib/grades-write'
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
@@ -166,11 +166,9 @@ export async function GET(req: NextRequest) {
 
   const matched: { document: string; name: string; total: number | null; destino: string }[] = []
   const unmatched: { fullname: string; idnumber: string }[] = []
-  const reportUserIds = new Set<number>()
   let yaRegistradas = 0, rellenan = 0, nuevas = 0, actualizan = 0, sinCambio = 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const ug of ((report?.usergrades ?? []) as any[])) {
-    reportUserIds.add(Number(ug.userid))
     const u = users.get(Number(ug.userid))
     const stu = u?.idnumber ? byExternal.get(u.idnumber) : null
     const total = courseTotal(ug.gradeitems)
@@ -178,7 +176,7 @@ export async function GET(req: NextRequest) {
     const doc = String(stu.document_number ?? '')
     let destino = 'en curso'
     if (total != null && linkedCourse) {
-      const r = resolveImportTarget(gradesByDoc.get(doc) ?? [], linkedCourse, `moodle:${courseid}:${ug.userid}`)
+      const r = resolveImportTarget(gradesByDoc.get(doc) ?? [], linkedCourse, stableUuid(`moodle:${courseid}:${ug.userid}`))
       if (r.action === 'skip') { destino = 'ya registrada (histórico)'; yaRegistradas++ }
       else if (r.action === 'update') {
         if (r.prev_value != null && Math.abs(Number(r.prev_value) - total) < 0.005) { destino = 'sin cambio'; sinCambio++ }
@@ -195,15 +193,17 @@ export async function GET(req: NextRequest) {
   }
   matched.sort((a, b) => a.name.localeCompare(b.name))
 
-  // Notas de esta aula ya en el ERP; y las de cuentas que YA NO aparecen en el
-  // aula (cohortes que rotaron, desmatriculados): se conservan y se reportan.
+  // Notas de esta aula ya en el ERP (marcadas con moodle_course_id al
+  // importar); y las de cuentas que YA NO aparecen en el aula (cohortes que
+  // rotaron, desmatriculados): se conservan y se reportan.
   const { data: existentes } = await sb.from('academic_grades')
     .select('external_id, locked_at, student_name, document_number, final_grade')
-    .like('external_id', `moodle:${courseid}:%`)
+    .eq('moodle_course_id', courseid)
   const yaImportadas = (existentes ?? []).length
   const cerradas = ((existentes ?? []) as { locked_at: string | null }[]).filter(g => g.locked_at).length
-  const desaparecidos = ((existentes ?? []) as { external_id: string; student_name: string | null; document_number: string | null; final_grade: number | null }[])
-    .filter(g => !reportUserIds.has(Number(g.external_id.split(':')[2])))
+  const docsEnAula = new Set(matched.map(m => m.document))
+  const desaparecidos = ((existentes ?? []) as { student_name: string | null; document_number: string | null; final_grade: number | null }[])
+    .filter(g => !docsEnAula.has(String(g.document_number ?? '')))
     .map(g => ({ name: g.student_name ?? '?', document: g.document_number ?? '', value: g.final_grade }))
 
   return NextResponse.json({
@@ -240,7 +240,7 @@ export async function PATCH(req: NextRequest) {
   const sb = db()
   const patch = b.action === 'lock' ? { locked_at: new Date().toISOString() } : { locked_at: null }
   const { data, error } = await sb.from('academic_grades')
-    .update(patch).like('external_id', `moodle:${b.courseid}:%`).select('external_id')
+    .update(patch).eq('moodle_course_id', b.courseid).select('external_id')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true, action: b.action, filas: (data ?? []).length })
 }
@@ -352,7 +352,7 @@ export async function POST(req: NextRequest) {
     const target = resolveImportTarget(
       gradesByDoc.get(String(stu.document_number ?? '')) ?? [],
       { code: destCourse.code, name: destCourse.name },
-      `moodle:${b.courseid}:${ug.userid}`,
+      stableUuid(`moodle:${b.courseid}:${ug.userid}`),
     )
     if (target.action === 'skip') { yaRegistradas++; continue }
     if (target.action === 'fill') rellenadas++
@@ -399,6 +399,23 @@ export async function POST(req: NextRequest) {
     origin: 'moodle', userId: user.id,
     reason: `Importación de acta Moodle (aula ${b.courseid}) → ${destCourse.code ?? ''} ${destCourse.name ?? ''}`,
   })
+
+  // Marca de origen: toda fila del aula (rellenada, actualizada o nueva) queda
+  // con su moodle_course_id — de esto dependen el candado de acta y la
+  // detección de desaparecidos. También backfillea importaciones previas.
+  // Dos pasadas por el trigger protect_edited_grades: descarta updates a filas
+  // blindadas (edited_at) que no muevan edited_at, así que a esas se les
+  // refresca el blindaje en el mismo update. Las selladas no se tocan.
+  const idsAula = rows.map(r => r.external_id)
+  for (let i = 0; i < idsAula.length; i += 200) {
+    const chunk = idsAula.slice(i, i + 200)
+    await sb.from('academic_grades')
+      .update({ moodle_course_id: b.courseid })
+      .in('external_id', chunk).is('edited_at', null).is('locked_at', null)
+    await sb.from('academic_grades')
+      .update({ moodle_course_id: b.courseid, edited_at: new Date().toISOString() })
+      .in('external_id', chunk).not('edited_at', 'is', null).is('locked_at', null)
+  }
 
   // Espejo del detalle hacia el Acta Detallada. Respeta el cierre de acta:
   // las filas selladas no se tocan.

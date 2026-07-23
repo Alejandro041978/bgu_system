@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { sameCourse } from '@/lib/course-match'
-import { importGrades, resolveImportTarget, fetchByIn, type ImportRow } from '@/lib/grades-write'
+import { importGrades, resolveImportTarget, fetchByIn, stableUuid, type ImportRow } from '@/lib/grades-write'
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     // ¿Ya existe esta asignatura para el alumno? skip = de Activa con nota
     // (se omite, no es error); fill = rellena la fila "en curso" y la blinda
     const target = resolveImportTarget(gradesByDoc.get(doc) ?? [],
-      { code: course.code, name: course.name }, `csv:${doc}:${course.id}:${anio}:${bloque}`)
+      { code: course.code, name: course.name }, stableUuid(`csv:${doc}:${course.id}:${anio}:${bloque}`))
     if (target.action === 'skip') {
       omitidas.push({ fila, motivo: 'Ya registrada con nota en el ERP (Activa) — se omite, no se duplica', documento: doc })
       return
