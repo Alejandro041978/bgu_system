@@ -127,6 +127,7 @@ const PAGE_GROUPS = [
       { key: 'finance_debt_report', label: 'Finanzas · Reporte de Deuda' },
       { key: 'finance_credit_rates', label: 'Finanzas · Tarifas por Crédito' },
       { key: 'admissions_sales', label: 'Admisión · Ventas y Comisiones' },
+      { key: 'admissions_documents', label: 'Admisión · Documentos de Postulación' },
       // Cuentas (movidas de Académico)
       { key: 'academic_account', label: 'Estado de Cuenta' },
       { key: 'academic_concepts', label: 'Conceptos de Cuenta' },

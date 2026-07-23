@@ -47,6 +47,7 @@ const navigation: NavGroup[] = [
           { name: 'Matrículas', href: '/admision/matriculas', icon: GraduationCap, pageKey: 'admision_matriculas' },
           { name: 'Nueva Matrícula', href: '/admision/nueva-matricula', icon: UserPlus, pageKey: 'admision_nueva_matricula' },
           { name: 'Ventas y Comisiones', href: '/admissions/sales', icon: BadgeDollarSign, pageKey: 'admissions_sales' },
+          { name: 'Documentos de Postulación', href: '/admissions/documents', icon: FileCheck, pageKey: 'admissions_documents' },
         ],
       },
       {
