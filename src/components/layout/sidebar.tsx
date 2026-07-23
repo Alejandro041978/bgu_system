@@ -215,7 +215,12 @@ const navigation: NavGroup[] = [
       },
       { name: 'Estado de Cuenta', href: '/academic/account', icon: Wallet, pageKey: 'academic_account' },
       { name: 'Conceptos de Cuenta', href: '/academic/concepts', icon: Tag, pageKey: 'academic_concepts' },
-      { name: 'Plantillas de Facturación', href: '/academic/billing-plans', icon: Receipt, pageKey: 'academic_billing_plans' },
+      {
+        name: 'Collection', href: '/academic/billing-plans', icon: Banknote,
+        children: [
+          { name: 'Plantillas de Facturación', href: '/academic/billing-plans', icon: Receipt, pageKey: 'academic_billing_plans' },
+        ],
+      },
       { name: 'Usuarios y permisos', href: '/settings/users', icon: Shield, pageKey: 'settings_users' },
     ],
   },
