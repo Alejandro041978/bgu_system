@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { verifyFlywireSignature, FLYWIRE_PAID_STATUSES } from '@/lib/flywire'
+import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 
 export const revalidate = 0
 
@@ -68,6 +69,10 @@ export async function POST(req: NextRequest) {
         transaction_reference: `Flywire ${paymentId}`,
         flywire_payment_id: paymentId,
       })
+
+      // Si este pago cubrió los conceptos iniciales, la matrícula se activa
+      // sola (correo estudiantil, acta, carrusel y Moodle).
+      try { await maybeActivateOnPayment(externalRef) } catch { /* la importación/el botón Activar recuperan */ }
     }
   } else if (status === 'reversed' && paymentId) {
     // Reverso → elimina el pago registrado de este payment_id

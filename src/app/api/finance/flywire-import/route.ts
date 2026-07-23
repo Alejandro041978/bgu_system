@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchByIn } from '@/lib/grades-write'
+import { initialsPaid, activateEnrollment } from '@/lib/enrollment-activation'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -404,5 +405,23 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, counts, inserted, excluded: excludedCount, updated, enriched, associated, linked_to_charge: linked, events_logged: eventsLogged, errors })
+  // Barrido de ACTIVACIÓN: los pagos importados pueden haber cubierto los
+  // conceptos iniciales de matrículas pendiente_pago (caso Casanova 2026-07-23:
+  // el import registraba el pago pero nadie disparaba la activación). Es
+  // autocurativo: también levanta matrículas atascadas de corridas anteriores.
+  let activadas = 0
+  try {
+    const { data: pend } = await sb.from('academic_student_enrollments').select('id').eq('status', 'pendiente_pago')
+    for (const e of (pend ?? []) as { id: string }[]) {
+      try {
+        const { paid } = await initialsPaid(sb, e.id)
+        if (!paid) continue
+        const r = await activateEnrollment(e.id, 'auto:pago')
+        if (r.ok) activadas++
+        else if (r.errors?.length) errors.push(`activación ${e.id}: ${r.errors.join('; ')}`)
+      } catch (err) { errors.push(`activación ${e.id}: ${String(err)}`) }
+    }
+  } catch (err) { errors.push('barrido de activación: ' + String(err)) }
+
+  return NextResponse.json({ ok: true, counts, inserted, excluded: excludedCount, updated, enriched, associated, linked_to_charge: linked, events_logged: eventsLogged, matriculas_activadas: activadas, errors })
 }
