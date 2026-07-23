@@ -134,10 +134,37 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     passing = cat?.passing_score ?? null
   }
 
-  const [users, report] = await Promise.all([
-    enrolledMap(courseid, heavyTimeout()),
-    moodleCall('gradereport_user_get_grade_items', { courseid }, { timeoutMs: heavyTimeout() }),
-  ])
+  const users = await enrolledMap(courseid, heavyTimeout())
+  const byExternal = pre?.byExternal ?? await loadStudentsByExternal(sb)
+
+  // El reporte completo de un aula GRANDE (500+ matriculados) tarda minutos y
+  // revienta cualquier timeout. Para esas, se pide estudiante por estudiante
+  // en paralelo (solo los que cruzan el puente idnumber→estudiante: los demás
+  // terminarían en sin_puente igual) — llamadas chicas que escalan.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let report: any
+  if (users.size > 150) {
+    const targets = [...users.entries()]
+      .filter(([, u]) => u.idnumber && byExternal.has(u.idnumber))
+      .map(([uid]) => uid)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const usergrades: any[] = []
+    let idx = 0
+    const worker = async () => {
+      while (idx < targets.length) {
+        heavyTimeout() // corta limpio si la corrida ya no tiene tiempo
+        const uid = targets[idx++]
+        try {
+          const r = await moodleCall('gradereport_user_get_grade_items', { courseid, userid: uid }, { timeoutMs: 30_000 })
+          if (r?.usergrades?.length) usergrades.push(...r.usergrades)
+        } catch { /* un usuario fallido no tumba el aula */ }
+      }
+    }
+    await Promise.all(Array.from({ length: 8 }, worker))
+    report = { usergrades }
+  } else {
+    report = await moodleCall('gradereport_user_get_grade_items', { courseid }, { timeoutMs: heavyTimeout() })
+  }
 
   // Compuerta de política: un aula que no cumple NO se importa.
   const politica = await aulaPolicy(sb, courseid, report)
@@ -147,8 +174,6 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       error: 'El aula no cumple la política del campus y no se puede importar: ' + politica.violations.join('; ') + '. Corrígela en Moodle y vuelve a intentar.',
     }
   }
-
-  const byExternal = pre?.byExternal ?? await loadStudentsByExternal(sb)
 
   // Notas existentes de los alumnos del aula, para resolver el destino de
   // cada una sin duplicar lo que ya vino de SystemActiva.
