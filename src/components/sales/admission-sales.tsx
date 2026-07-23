@@ -1,13 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2, Plus, Trash2, Settings2 } from 'lucide-react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Loader2, Plus, Trash2, Settings2, MessageSquare, Send } from 'lucide-react'
 
+interface Comment { id: string; body: string; author_name: string | null; created_at: string }
 interface Sale {
   enrollment_id: string; enrollment_date: string | null; status: string | null
   student_name: string; document_number: string | null
   program_name: string | null; category_id: string | null
   advisor_id: string | null; admission_type_id: string | null; commission_amount: number | null
+  comments: Comment[]
 }
 interface Advisor { id: string; full_name: string }
 interface AdmType { id: string; category_id: string; name: string; commission: number; active: boolean }
@@ -31,6 +33,11 @@ export function AdmissionSales() {
   const [tCat, setTCat] = useState('')
   const [tName, setTName] = useState('')
   const [tComm, setTComm] = useState('')
+
+  // Comentarios por venta
+  const [openComments, setOpenComments] = useState<string | null>(null)
+  const [commentText, setCommentText] = useState('')
+  const [sendingComment, setSendingComment] = useState(false)
 
   const load = useCallback(async (c: string) => {
     setLoading(true)
@@ -72,6 +79,25 @@ export function AdmissionSales() {
     const d = await fetch('/api/sales/admission-types', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...patch }),
     }).then(r => r.json())
+    if (d.error) { setError(d.error); return }
+    load(convId)
+  }
+
+  async function addComment(enrollmentId: string) {
+    if (!commentText.trim()) return
+    setSendingComment(true)
+    const d = await fetch('/api/sales/admission-comments', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enrollment_id: enrollmentId, body: commentText }),
+    }).then(r => r.json())
+    setSendingComment(false)
+    if (d.error) { setError(d.error); return }
+    setCommentText('')
+    load(convId)
+  }
+
+  async function removeComment(id: string) {
+    const d = await fetch(`/api/sales/admission-comments?id=${id}`, { method: 'DELETE' }).then(r => r.json())
     if (d.error) { setError(d.error); return }
     load(convId)
   }
@@ -219,13 +245,15 @@ export function AdmissionSales() {
                   <th className="px-4 py-2 text-left">Asesora</th>
                   <th className="px-4 py-2 text-left">Tipo de admisión</th>
                   <th className="px-4 py-2 text-right">Comisión</th>
+                  <th className="px-3 py-2 text-center">Notas</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {sales.map(s => {
                   const opciones = types.filter(t => t.category_id === s.category_id && (t.active || t.id === s.admission_type_id))
                   return (
-                    <tr key={s.enrollment_id} className="hover:bg-gray-50/50">
+                    <Fragment key={s.enrollment_id}>
+                    <tr className="hover:bg-gray-50/50">
                       <td className="px-4 py-2">
                         <span className="text-gray-800">{s.student_name}</span>
                         <span className="block text-[11px] text-gray-400">{s.document_number}</span>
@@ -248,11 +276,49 @@ export function AdmissionSales() {
                         {s.category_id && opciones.length === 0 && <span className="block text-[10px] text-amber-600 mt-0.5">Sin tipos para esta categoría (créalos en la configuración)</span>}
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums">{s.commission_amount != null ? money(s.commission_amount) : '—'}</td>
+                      <td className="px-3 py-2 text-center">
+                        <button onClick={() => { setOpenComments(v => v === s.enrollment_id ? null : s.enrollment_id); setCommentText('') }}
+                          className={`inline-flex items-center gap-1 text-xs rounded-lg px-2 py-1 border ${s.comments.length > 0 ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-400 hover:text-gray-600'}`}>
+                          <MessageSquare className="w-3.5 h-3.5" />{s.comments.length || ''}
+                        </button>
+                      </td>
                     </tr>
+                    {openComments === s.enrollment_id && (
+                      <tr className="bg-gray-50/60">
+                        <td colSpan={7} className="px-6 py-3">
+                          <div className="space-y-2 max-w-3xl">
+                            {s.comments.length === 0 && <p className="text-xs text-gray-400">Sin comentarios aún.</p>}
+                            {s.comments.map(c => (
+                              <div key={c.id} className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs">
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <span className="font-medium text-gray-700">{c.author_name ?? '—'}</span>
+                                  <span className="flex items-center gap-2 text-[10px] text-gray-400">
+                                    {new Date(c.created_at).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                    <button onClick={() => removeComment(c.id)} title="Borrar (solo el autor)" className="text-gray-300 hover:text-red-600"><Trash2 className="w-3 h-3" /></button>
+                                  </span>
+                                </div>
+                                <p className="text-gray-600 whitespace-pre-wrap">{c.body}</p>
+                              </div>
+                            ))}
+                            <div className="flex gap-2">
+                              <input value={commentText} onChange={e => setCommentText(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(s.enrollment_id) } }}
+                                placeholder="Escribe un comentario…"
+                                className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              <button onClick={() => addComment(s.enrollment_id)} disabled={sendingComment || !commentText.trim()}
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+                                {sendingComment ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   )
                 })}
                 {!loading && sales.length === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-xs text-gray-400">Sin matrículas en esta convocatoria.</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-xs text-gray-400">Sin matrículas en esta convocatoria.</td></tr>
                 )}
               </tbody>
             </table>

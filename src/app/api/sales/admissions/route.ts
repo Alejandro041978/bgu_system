@@ -46,6 +46,19 @@ export async function GET(req: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const a of (data ?? []) as any[]) assignments.set(a.enrollment_id, a)
     }
+    // Comentarios por venta (notas de las asesoras)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const commentsByEnr = new Map<string, any[]>()
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data } = await sb.from('admission_sale_comments')
+        .select('id, enrollment_id, body, author_name, created_at')
+        .in('enrollment_id', ids.slice(i, i + 200)).order('created_at')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const c of (data ?? []) as any[]) {
+        if (!commentsByEnr.has(c.enrollment_id)) commentsByEnr.set(c.enrollment_id, [])
+        commentsByEnr.get(c.enrollment_id)!.push(c)
+      }
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sales = (enrs ?? []).map((e: any) => ({
       enrollment_id: e.id,
@@ -58,6 +71,7 @@ export async function GET(req: NextRequest) {
       advisor_id: assignments.get(e.id)?.advisor_id ?? null,
       admission_type_id: assignments.get(e.id)?.admission_type_id ?? null,
       commission_amount: assignments.get(e.id)?.commission_amount ?? null,
+      comments: commentsByEnr.get(e.id) ?? [],
     }))
   }
 
