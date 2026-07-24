@@ -242,6 +242,9 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
                         <DiscountButton charge={c} onChanged={onChanged} />
                       )}
                       {r.first && canGenerate && (
+                        <EditChargeButton charge={c} onChanged={onChanged} />
+                      )}
+                      {r.first && canGenerate && (
                         <DeleteChargeButton charge={c} disabled={c.paid > 0.005} onChanged={onChanged} />
                       )}
                     </span>
@@ -313,113 +316,151 @@ function DeleteChargeButton({ charge, disabled, onChanged }: { charge: ChargeRow
   )
 }
 
-// Crear una cuota manual en la cuenta de la matrícula (solo admin/cobranza).
-// Vencimiento + monto (positivo) + concepto + referencia libre.
+// Modal compartido de cuota (crear/editar): vencimiento + monto (positivo) +
+// concepto + referencia. onSubmit hace el fetch (POST o PATCH) y devuelve {error?}.
 interface ChargeConcept { type_code: number; abbr: string | null; name: string | null }
-function NewChargeButton({ enrollmentId, onChanged }: { enrollmentId: string; onChanged?: () => void }) {
-  const [open, setOpen] = useState(false)
+interface ChargeFormValues { due_date: string | null; amount: number; charge_type: number; reference: string | null }
+function ChargeFormModal(
+  { mode, title, initial, onClose, onSubmit }:
+  {
+    mode: 'create' | 'edit'
+    title: string
+    initial?: { due_date?: string | null; amount?: number | null; charge_type?: number | null; reference?: string | null }
+    onClose: () => void
+    onSubmit: (v: ChargeFormValues) => Promise<{ error?: string }>
+  }
+) {
   const [concepts, setConcepts] = useState<ChargeConcept[]>([])
-  const [dueDate, setDueDate] = useState('')
-  const [amount, setAmount] = useState('')
-  const [conceptType, setConceptType] = useState('')
-  const [reference, setReference] = useState('')
+  const [dueDate, setDueDate] = useState(initial?.due_date ?? '')
+  const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : '')
+  const [conceptType, setConceptType] = useState(initial?.charge_type != null ? String(initial.charge_type) : '')
+  const [reference, setReference] = useState(initial?.reference ?? '')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!open) return
     fetch('/api/account/charges').then(r => r.json()).then(d => {
       setConcepts(d.concepts ?? [])
-      if ((d.concepts ?? []).length && !conceptType) setConceptType(String(d.concepts[0].type_code))
+      // Solo autoselecciona en creación; en edición respeta el concepto actual.
+      if (mode === 'create' && (d.concepts ?? []).length) setConceptType(prev => prev || String(d.concepts[0].type_code))
     }).catch(() => setConcepts([]))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
-
-  function reset() {
-    setDueDate(''); setAmount(''); setConceptType(''); setReference(''); setErr(null)
-  }
+  }, [])
 
   async function submit() {
     const monto = Number(amount)
     if (!Number.isFinite(monto) || monto <= 0) { setErr('El monto debe ser un número positivo'); return }
     if (!conceptType) { setErr('Selecciona un concepto'); return }
     setBusy(true); setErr(null)
-    const d = await fetch('/api/account/charges', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        enrollment_id: enrollmentId,
-        due_date: dueDate || null,
-        amount: monto,
-        charge_type: Number(conceptType),
-        reference: reference || null,
-      }),
-    }).then(r => r.json())
+    const d = await onSubmit({ due_date: dueDate || null, amount: monto, charge_type: Number(conceptType), reference: reference || null })
     setBusy(false)
     if (d.error) { setErr(d.error); return }
-    setOpen(false); reset(); onChanged?.()
+    onClose()
   }
 
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => !busy && onClose()}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4" onClick={e => e.stopPropagation()}>
+        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+          {mode === 'create' ? <FilePlus className="w-4 h-4 text-blue-600" /> : <Pencil className="w-4 h-4 text-blue-600" />} {title}
+        </h3>
+
+        <div className="space-y-3">
+          <label className="block">
+            <span className="text-xs text-gray-500">Concepto</span>
+            <select value={conceptType} onChange={e => setConceptType(e.target.value)}
+              className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100">
+              <option value="" disabled>Selecciona…</option>
+              {concepts.map(c => (
+                <option key={c.type_code} value={c.type_code}>{c.abbr ? `${c.abbr} — ${c.name ?? ''}` : (c.name ?? `Tipo ${c.type_code}`)}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="text-xs text-gray-500">Monto (USD)</span>
+            <input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)}
+              placeholder="0.00"
+              className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
+          </label>
+
+          <label className="block">
+            <span className="text-xs text-gray-500">Fecha de vencimiento</span>
+            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+              className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
+          </label>
+
+          <label className="block">
+            <span className="text-xs text-gray-500">Referencia</span>
+            <input type="text" value={reference} onChange={e => setReference(e.target.value)}
+              placeholder="Opcional"
+              className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
+          </label>
+        </div>
+
+        {err && <p className="text-xs text-red-600">{err}</p>}
+
+        <div className="flex justify-end gap-2 pt-1">
+          <button onClick={onClose} disabled={busy}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-50">
+            Cancelar
+          </button>
+          <button onClick={submit} disabled={busy}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (mode === 'create' ? <Plus className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />)}
+            {mode === 'create' ? 'Crear cuota' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Crear una cuota manual en la cuenta de la matrícula (solo admin/cobranza).
+function NewChargeButton({ enrollmentId, onChanged }: { enrollmentId: string; onChanged?: () => void }) {
+  const [open, setOpen] = useState(false)
   return (
     <>
       <button onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
         <Plus className="w-3.5 h-3.5" /> Nueva cuota
       </button>
-
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => !busy && setOpen(false)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-              <FilePlus className="w-4 h-4 text-blue-600" /> Nueva cuota
-            </h3>
+        <ChargeFormModal mode="create" title="Nueva cuota" onClose={() => setOpen(false)}
+          onSubmit={async v => {
+            const d = await fetch('/api/account/charges', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ enrollment_id: enrollmentId, ...v }),
+            }).then(r => r.json())
+            if (!d.error) onChanged?.()
+            return d
+          }} />
+      )}
+    </>
+  )
+}
 
-            <div className="space-y-3">
-              <label className="block">
-                <span className="text-xs text-gray-500">Concepto</span>
-                <select value={conceptType} onChange={e => setConceptType(e.target.value)}
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100">
-                  <option value="" disabled>Selecciona…</option>
-                  {concepts.map(c => (
-                    <option key={c.type_code} value={c.type_code}>{c.abbr ? `${c.abbr} — ${c.name ?? ''}` : (c.name ?? `Tipo ${c.type_code}`)}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="text-xs text-gray-500">Monto (USD)</span>
-                <input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
-              </label>
-
-              <label className="block">
-                <span className="text-xs text-gray-500">Fecha de vencimiento</span>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
-              </label>
-
-              <label className="block">
-                <span className="text-xs text-gray-500">Referencia</span>
-                <input type="text" value={reference} onChange={e => setReference(e.target.value)}
-                  placeholder="Opcional"
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
-              </label>
-            </div>
-
-            {err && <p className="text-xs text-red-600">{err}</p>}
-
-            <div className="flex justify-end gap-2 pt-1">
-              <button onClick={() => { setOpen(false); reset() }} disabled={busy}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-50">
-                Cancelar
-              </button>
-              <button onClick={submit} disabled={busy}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
-                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />} Crear cuota
-              </button>
-            </div>
-          </div>
-        </div>
+// Editar una cuota existente (solo admin). Lápiz en la fila de la cuota.
+function EditChargeButton({ charge, onChanged }: { charge: ChargeRow; onChanged?: () => void }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button onClick={() => setOpen(true)} title="Editar cuota"
+        className="text-gray-300 hover:text-blue-600">
+        <Pencil className="w-3.5 h-3.5" />
+      </button>
+      {open && (
+        <ChargeFormModal mode="edit" title="Editar cuota"
+          initial={{ due_date: charge.due_date, amount: charge.amount, charge_type: charge.charge_type, reference: charge.reference }}
+          onClose={() => setOpen(false)}
+          onSubmit={async v => {
+            const d = await fetch('/api/account/charges', {
+              method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ external_id: charge.external_id, ...v }),
+            }).then(r => r.json())
+            if (!d.error) onChanged?.()
+            return d
+          }} />
       )}
     </>
   )

@@ -54,6 +54,47 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, external_id: data.external_id })
 }
 
+// PATCH { external_id, due_date?, amount?, charge_type?, reference? } → edita
+// una cuota (admin). Solo toca los campos enviados. El monto, si viene, debe
+// ser positivo. El saldo se recalcula solo (amount − pagos) en el estado de cuenta.
+export async function PATCH(req: NextRequest) {
+  const auth = await createAuthClient()
+  const { data: { user } } = await auth.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const b = await req.json().catch(() => null) as {
+    external_id?: string; due_date?: string | null; amount?: number; charge_type?: number | null; reference?: string | null
+  } | null
+  if (!b?.external_id) return NextResponse.json({ error: 'Falta external_id' }, { status: 400 })
+
+  const patch: Record<string, unknown> = {}
+  if (b.amount !== undefined) {
+    const amount = Number(b.amount)
+    if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: 'El monto debe ser un número positivo' }, { status: 400 })
+    patch.amount = Math.round(amount * 100) / 100
+  }
+  if (b.due_date !== undefined) patch.due_date = b.due_date || null
+  if (b.charge_type !== undefined && b.charge_type !== null) patch.charge_type = Number(b.charge_type)
+  if (b.reference !== undefined) patch.reference = b.reference?.toString().trim() || null
+  if (Object.keys(patch).length === 0) return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
+
+  const sb = db()
+  const { data: charge } = await sb.from('account_charges').select('external_id').eq('external_id', b.external_id).maybeSingle()
+  if (!charge) return NextResponse.json({ error: 'Cuota no encontrada' }, { status: 404 })
+
+  let { error } = await sb.from('account_charges').update(patch).eq('external_id', b.external_id)
+  // Red de seguridad: si aún no se corrió account_charges_reference.sql, reintenta
+  // sin la columna reference para no bloquear la edición de los demás campos.
+  if (error && /reference/i.test(error.message) && 'reference' in patch) {
+    const { reference, ...rest } = patch
+    void reference
+    if (Object.keys(rest).length === 0) return NextResponse.json({ error: 'Falta correr account_charges_reference.sql para editar la referencia' }, { status: 400 })
+    ;({ error } = await sb.from('account_charges').update(rest).eq('external_id', b.external_id))
+  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
 // DELETE { external_id } → borra una cuota del estado de cuenta (admin).
 // Salvaguarda: una cuota con pagos enlazados NO se borra — primero hay que
 // desenlazar o reasignar sus pagos (si no, quedarían huérfanos en silencio).
