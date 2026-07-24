@@ -122,10 +122,14 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
         {account.list_price != null && (
           <Card icon={<BadgeDollarSign className="w-4 h-4" />} label="Precio oficial" value={money(account.list_price)} cls="text-blue-700"
             sub={account.credit_rate ? `${Math.round(account.list_price / account.credit_rate)} cr × ${money(account.credit_rate)}` : undefined} />
+        )}
+        {account.scholarship_pct != null && account.list_price != null && (
+          <Card icon={<GraduationCap className="w-4 h-4" />} label="Beca" value={money(Math.round(account.list_price * account.scholarship_pct) / 100)} cls="text-violet-700"
+            sub={`${account.scholarship_pct}% · neto ${money(account.list_price - Math.round(account.list_price * account.scholarship_pct) / 100)}`} />
         )}
         <Card icon={<Wallet className="w-4 h-4" />} label="Facturado" value={money(totals.charged)} cls="text-gray-900" />
         <Card icon={<CheckCircle2 className="w-4 h-4" />} label="Pagado" value={money(totals.paid)} cls="text-green-600" />

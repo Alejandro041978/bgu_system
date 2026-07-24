@@ -39,6 +39,8 @@ export interface ProgramAccount {
   // list_price = credit_rate × créditos del programa
   credit_rate: number | null
   list_price: number | null
+  // Beca activa: solo el PORCENTAJE es dato; el monto se deriva de la base
+  scholarship_pct: number | null
   totals: Totals
   charges: ChargeRow[]
   payments: PaymentRow[]
@@ -78,6 +80,16 @@ export async function getAccountStatement(
     .select('id, convocatoria_id, credit_rate, list_price, academic_programs(name)')
     .eq('student_id', student.id)
 
+  // Beca activa por matrícula (el monto SIEMPRE se deriva: % × lista vigente)
+  const scholarshipPct = new Map<string, number>()
+  try {
+    const { data: sch } = await sb.from('scholarships')
+      .select('enrollment_id, percentage').eq('student_id', student.id).is('revoked_at', null)
+    for (const s of (sch ?? []) as { enrollment_id: string; percentage: number }[]) {
+      scholarshipPct.set(String(s.enrollment_id), Number(s.percentage))
+    }
+  } catch { /* tabla aún sin migrar */ }
+
   // Conceptos editables (Installment.Type -> abreviatura + nombre)
   const { data: conceptData } = await sb.from('account_concepts').select('type_code, abbr, name').eq('kind', 'charge')
   const conceptByType = new Map<number, { abbr: string | null; name: string | null }>()
@@ -115,6 +127,7 @@ export async function getAccountStatement(
   const newGroup = (enr: string | null, conv: string | null, name: string, rate: number | null = null, list: number | null = null): ProgramAccount => ({
     enrollment_id: enr, convocatoria_id: conv, program_name: name,
     credit_rate: rate, list_price: list,
+    scholarship_pct: enr ? (scholarshipPct.get(enr) ?? null) : null,
     totals: { charged: 0, paid: 0, discounts: 0, balance: 0, overdue: 0 }, charges: [], payments: [],
   })
 
