@@ -111,10 +111,11 @@ export async function POST(req: NextRequest) {
 
   if (b.inspect) {
     return NextResponse.json({
-      inspect: true, total_rows: rows.length,
+      inspect: true, total_rows: rows.length, org,
+      cuentas_encontradas: cuentas,
       keys: firstRaw ? Object.keys(firstRaw) : [],
       sample_rows: rows.slice(0, 4),
-      raw_head: JSON.stringify(firstRaw).slice(0, 2500),
+      raw_full: firstRaw,
     })
   }
 
