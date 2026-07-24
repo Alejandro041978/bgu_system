@@ -5,7 +5,9 @@ const REDIRECT_URI = process.env.ZOHO_REDIRECT_URI ?? 'https://system.blackwell.
 
 export async function GET() {
   const params = new URLSearchParams({
-    scope: 'ZohoBooks.reports.READ,ZohoBooks.invoices.READ,ZohoBooks.expenses.READ',
+    // accountants.READ se añade (2026-07-24) para leer las transacciones por
+    // cuenta (/chartofaccounts/accounttransactions) — Operaciones Books.
+    scope: 'ZohoBooks.reports.READ,ZohoBooks.invoices.READ,ZohoBooks.expenses.READ,ZohoBooks.accountants.READ',
     client_id: process.env.ZOHO_CLIENT_ID!,
     response_type: 'code',
     redirect_uri: REDIRECT_URI,

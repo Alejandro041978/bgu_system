@@ -70,28 +70,43 @@ export async function POST(req: NextRequest) {
   const sb = db()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const authErr = (res: Response, d: any) => {
+    if (res.status === 401 || d?.code === 57) {
+      return NextResponse.json({ error: 'El token de Zoho Books no tiene el permiso para leer transacciones por cuenta. Reautoriza en /api/zoho/books/connect (ahora pide el scope accountants.READ) y reemplaza el refresh token.', needs_reauth: true }, { status: 403 })
+    }
+    return NextResponse.json({ error: `Books ${res.status}: ${JSON.stringify(d).slice(0, 300)}` }, { status: 502 })
+  }
+
+  // 1) Las cuentas objetivo → sus account_id (chart of accounts)
+  const coaRes = await fetch(`${BOOKS_BASE}/chartofaccounts?organization_id=${org}&per_page=200`,
+    { headers: { Authorization: `Zoho-oauthtoken ${token}` } })
+  const coa = await coaRes.json().catch(() => null)
+  if (!coaRes.ok || coa?.code !== 0) return authErr(coaRes, coa)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cuentas = ((coa.chartofaccounts ?? []) as any[])
+    .filter(a => CUENTAS.some(c => String(a.account_name ?? '').toLowerCase() === c.toLowerCase()))
+    .map(a => ({ id: String(a.account_id), name: String(a.account_name) }))
+  if (!cuentas.length) return NextResponse.json({ error: 'No se encontraron las cuentas objetivo en el plan de cuentas' }, { status: 404 })
+
+  // 2) Transacciones de cada cuenta
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: any[] = []
-  let page = 1
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let firstRaw: any = null
-  for (; page <= 40; page++) {
-    const url = `${BOOKS_BASE}/reports/accounttransactions?organization_id=${org}&from_date=${from}&to_date=${to}&per_page=500&page=${page}`
-    const res = await fetch(url, { headers: { Authorization: `Zoho-oauthtoken ${token}` } })
-    const d = await res.json().catch(() => null)
-    if (!res.ok || !d || d.code !== 0) {
-      return NextResponse.json({ error: `Books ${res.status}: ${JSON.stringify(d).slice(0, 300)}` }, { status: 502 })
+  for (const cta of cuentas) {
+    for (let page = 1; page <= 40; page++) {
+      const url = `${BOOKS_BASE}/chartofaccounts/accounttransactions?organization_id=${org}&account_id=${cta.id}&from_date=${from}&to_date=${to}&per_page=200&page=${page}`
+      const res = await fetch(url, { headers: { Authorization: `Zoho-oauthtoken ${token}` } })
+      const d = await res.json().catch(() => null)
+      if (!res.ok || d?.code !== 0) return authErr(res, d)
+      if (!firstRaw) firstRaw = d
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const batch = (Array.isArray(d.account_transactions) ? d.account_transactions
+        : Array.isArray(d.transactions) ? d.transactions : []) as any[]
+      // la cuenta la aporta el bucle (el reporte puede no repetirla en cada fila)
+      for (const t of batch) rows.push({ ...t, account_name: t.account_name ?? cta.name })
+      if (!d.page_context?.has_more_page) break
     }
-    if (!firstRaw) firstRaw = d
-    // Formas conocidas del reporte: array plano en account_transactions, o
-    // envuelto en {account_transactions:{...,transactions:[...]}}
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let batch: any[] = []
-    if (Array.isArray(d.account_transactions)) batch = d.account_transactions
-    else if (Array.isArray(d.account_transactions?.transactions)) batch = d.account_transactions.transactions
-    else if (Array.isArray(d.transactions)) batch = d.transactions
-    rows.push(...batch)
-    const more = d.page_context?.has_more_page
-    if (!more) break
   }
 
   if (b.inspect) {
