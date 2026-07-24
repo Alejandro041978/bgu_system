@@ -17,6 +17,20 @@ export async function isSuperadmin(userId: string): Promise<boolean> {
   return !emp?.role_id
 }
 
+/**
+ * True si el usuario logueado es un ESTUDIANTE (su correo está en
+ * academic_students). Barrera de seguridad para endpoints de gestión: un
+ * estudiante NO debe crear/editar/borrar cuotas ni tocar pagos/descuentos.
+ * OJO: isSuperadmin() da true para quien no está en hr_employees — y un
+ * estudiante tampoco lo está — por eso el gate correcto es rechazar estudiantes.
+ */
+export async function isStudentUser(user: { email?: string | null } | null): Promise<boolean> {
+  if (!user?.email) return false
+  const { data } = await admin().from('academic_students')
+    .select('id').eq('email', user.email).eq('disabled', false).maybeSingle()
+  return !!data
+}
+
 function fullName(r: { first_name?: string; last_name?: string; second_last_name?: string } | null): string {
   if (!r) return ''
   return [r.first_name, r.last_name, r.second_last_name].filter(Boolean).join(' ')

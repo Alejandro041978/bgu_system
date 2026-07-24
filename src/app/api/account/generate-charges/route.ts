@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { generateChargesForEnrollment } from '@/lib/billing'
+import { isStudentUser } from '@/lib/student-identity'
 
 export const revalidate = 0
 
-// POST { enrollment_id } → genera las cuotas de la matrícula desde su plantilla. Requiere sesión.
+// POST { enrollment_id } → genera las cuotas de la matrícula desde su plantilla. Solo staff.
 export async function POST(req: NextRequest) {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (await isStudentUser(user)) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 
   const body = await req.json().catch(() => null)
   const enrollmentId = body?.enrollment_id

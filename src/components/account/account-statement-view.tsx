@@ -206,20 +206,22 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
                       <span className="inline-flex items-center gap-1.5">
                         {p.is_discount && <Tag className="w-3 h-3" />}
                         {p.transaction_reference ?? '—'}
-                        <button
-                          onClick={async () => {
-                            const ref = prompt('Referencia del pago:', p.transaction_reference ?? '')
-                            if (ref === null) return
-                            const d = await fetch('/api/account/payments', {
-                              method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: p.id, transaction_reference: ref }),
-                            }).then(x => x.json())
-                            if (d.error) { alert(d.error); return }
-                            onChanged?.()
-                          }}
-                          title="Editar referencia" className="text-gray-300 hover:text-blue-600">
-                          <Pencil className="w-3 h-3" />
-                        </button>
+                        {canGenerate && (
+                          <button
+                            onClick={async () => {
+                              const ref = prompt('Referencia del pago:', p.transaction_reference ?? '')
+                              if (ref === null) return
+                              const d = await fetch('/api/account/payments', {
+                                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: p.id, transaction_reference: ref }),
+                              }).then(x => x.json())
+                              if (d.error) { alert(d.error); return }
+                              onChanged?.()
+                            }}
+                            title="Editar referencia" className="text-gray-300 hover:text-blue-600">
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        )}
                       </span>
                     ) : (r.first && c.reference ? c.reference : '—')}
                   </td>

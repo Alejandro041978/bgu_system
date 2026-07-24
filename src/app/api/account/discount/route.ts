@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
-import { isSuperadmin } from '@/lib/student-identity'
+import { isSuperadmin, isStudentUser } from '@/lib/student-identity'
 import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 import { maybeMarkExamPaid } from '@/lib/exam-requests'
 
@@ -20,6 +20,9 @@ export async function POST(req: NextRequest) {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  // isSuperadmin() da true para quien no está en hr_employees (incluye estudiantes):
+  // barrera explícita para que ningún estudiante llegue aquí.
+  if (await isStudentUser(user)) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   if (!(await isSuperadmin(user.id))) {
     return NextResponse.json({ error: 'Solo el superadministrador puede aplicar descuentos (el mecanismo controlado vendrá después)' }, { status: 403 })
   }

@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { isStudentUser } from '@/lib/student-identity'
 
 export const revalidate = 0
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+// Gestión de cuotas: solo staff. Un estudiante logueado NO puede crear/editar/
+// borrar cuotas (isStudentUser rechaza a quien tenga correo en academic_students).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function requireStaff(): Promise<{ user: any } | { error: NextResponse }> {
+  const auth = await createAuthClient()
+  const { data: { user } } = await auth.auth.getUser()
+  if (!user) return { error: NextResponse.json({ error: 'No autorizado' }, { status: 401 }) }
+  if (await isStudentUser(user)) return { error: NextResponse.json({ error: 'No autorizado' }, { status: 403 }) }
+  return { user }
+}
 
 // GET → conceptos de cuota disponibles (para el selector al crear una cuota).
 export async function GET() {
@@ -20,9 +32,8 @@ export async function GET() {
 // POST { enrollment_id, due_date, amount, charge_type, reference? } → crea una
 // cuota manual en la cuenta de la matrícula. Requiere sesión.
 export async function POST(req: NextRequest) {
-  const auth = await createAuthClient()
-  const { data: { user } } = await auth.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const gate = await requireStaff()
+  if ('error' in gate) return gate.error
 
   const b = await req.json().catch(() => null) as {
     enrollment_id?: string; due_date?: string | null; amount?: number; charge_type?: number | null; reference?: string | null
@@ -58,9 +69,8 @@ export async function POST(req: NextRequest) {
 // una cuota (admin). Solo toca los campos enviados. El monto, si viene, debe
 // ser positivo. El saldo se recalcula solo (amount − pagos) en el estado de cuenta.
 export async function PATCH(req: NextRequest) {
-  const auth = await createAuthClient()
-  const { data: { user } } = await auth.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const gate = await requireStaff()
+  if ('error' in gate) return gate.error
 
   const b = await req.json().catch(() => null) as {
     external_id?: string; due_date?: string | null; amount?: number; charge_type?: number | null; reference?: string | null
@@ -99,9 +109,8 @@ export async function PATCH(req: NextRequest) {
 // Salvaguarda: una cuota con pagos enlazados NO se borra — primero hay que
 // desenlazar o reasignar sus pagos (si no, quedarían huérfanos en silencio).
 export async function DELETE(req: NextRequest) {
-  const auth = await createAuthClient()
-  const { data: { user } } = await auth.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const gate = await requireStaff()
+  if ('error' in gate) return gate.error
 
   const b = await req.json().catch(() => null) as { external_id?: string } | null
   if (!b?.external_id) return NextResponse.json({ error: 'Falta external_id' }, { status: 400 })
