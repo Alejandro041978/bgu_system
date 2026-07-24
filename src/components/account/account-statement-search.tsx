@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Search, Loader2 } from 'lucide-react'
 import { AccountStatementView } from './account-statement-view'
 import type { Statement } from '@/lib/account-statement'
@@ -25,10 +25,20 @@ export function AccountStatementSearch() {
     setLoading(true)
     const d = await fetch(`/api/account/statement?student_id=${id}`).then(r => r.json())
     setStatement(d.error ? null : d); setLoading(false)
+    if (d?.student?.name) setQ(d.student.name)
   }
+
+  // Enlace directo: /academic/account?student=<id> aterriza en el estado de
+  // cuenta sin buscar (mismo patrón que la Ficha del Estudiante).
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('student')
+    if (id) { setCurrentId(id); loadStatement(id) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function selectStudent(h: StudentHit) {
     setHits([]); setQ(h.name); setStatement(null); setCurrentId(h.id)
+    window.history.replaceState(null, '', `?student=${h.id}`)
     await loadStatement(h.id)
   }
 

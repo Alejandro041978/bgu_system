@@ -43,6 +43,7 @@ const navigation: NavGroup[] = [
           { name: 'Egresados', href: '/reports/egresados', icon: GraduationCap, pageKey: 'report_graduates' },
           { name: 'Recaudación', href: '/finance/recaudacion', icon: Banknote, pageKey: 'finance_recaudacion' },
           { name: 'Reporte de Deuda', href: '/finance/debt-report', icon: FileWarning, pageKey: 'finance_debt_report' },
+          { name: 'Auditoría de Tuition', href: '/reports/tuition-audit', icon: Shield, pageKey: 'report_tuition_audit' },
         ],
       },
     ],

@@ -129,6 +129,7 @@ const PAGE_GROUPS = [
       { key: 'admissions_sales', label: 'Admisión · Ventas y Comisiones' },
       { key: 'admissions_documents', label: 'Admisión · Documentos de Postulación' },
       { key: 'collection_scholarships', label: 'Collection · Becas' },
+      { key: 'report_tuition_audit', label: 'Reportes · Auditoría de Tuition' },
       // Cuentas (movidas de Académico)
       { key: 'academic_account', label: 'Estado de Cuenta' },
       { key: 'academic_concepts', label: 'Conceptos de Cuenta' },
