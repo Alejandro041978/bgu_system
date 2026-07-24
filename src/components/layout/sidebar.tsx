@@ -215,7 +215,7 @@ const navigation: NavGroup[] = [
         name: 'Finanzas', href: '/finance', icon: DollarSign,
         children: [
           { name: 'Contabilidad', href: '/finance', icon: DollarSign, pageKey: 'finance' },
-          { name: 'Tarifas por Crédito', href: '/finance/credit-rates', icon: BadgeDollarSign, pageKey: 'finance_credit_rates' },
+          { name: 'Credit Rate', href: '/finance/credit-rates', icon: BadgeDollarSign, pageKey: 'finance_credit_rates' },
         ],
       },
       { name: 'Conceptos de Cuenta', href: '/academic/concepts', icon: Tag, pageKey: 'academic_concepts' },

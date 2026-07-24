@@ -125,7 +125,7 @@ const PAGE_GROUPS = [
       { key: 'finance_conciliar', label: 'Finanzas · Pagos por Conciliar' },
       { key: 'finance_other_income', label: 'Finanzas · Otros Ingresos' },
       { key: 'finance_debt_report', label: 'Finanzas · Reporte de Deuda' },
-      { key: 'finance_credit_rates', label: 'Finanzas · Tarifas por Crédito' },
+      { key: 'finance_credit_rates', label: 'Finanzas · Credit Rate' },
       { key: 'admissions_sales', label: 'Admisión · Ventas y Comisiones' },
       { key: 'admissions_documents', label: 'Admisión · Documentos de Postulación' },
       { key: 'collection_scholarships', label: 'Collection · Becas' },
