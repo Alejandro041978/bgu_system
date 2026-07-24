@@ -149,7 +149,6 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
               <th className="text-left px-3 py-2.5">Recibo</th>
               <th className="text-left px-3 py-2.5">Referencia</th>
               <th className="text-right px-3 py-2.5">Monto Pago</th>
-              <th className="text-right px-3 py-2.5">Pagado</th>
               <th className="text-right px-3 py-2.5">Saldo</th>
               <th className="text-center px-3 py-2.5">Estado</th>
               <th className="px-3 py-2.5"></th>
@@ -157,7 +156,7 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
           </thead>
           <tbody>
             {ledger.length === 0 ? (
-              <tr><td colSpan={11} className="text-center text-gray-400 py-6">Sin movimientos</td></tr>
+              <tr><td colSpan={10} className="text-center text-gray-400 py-6">Sin movimientos</td></tr>
             ) : ledger.map((r, i) => {
               const c = r.charge, p = r.payment
               return (
@@ -180,7 +179,6 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
                   </td>
                   <td className={`px-3 py-2.5 text-right ${p?.is_discount ? 'text-violet-600' : 'text-green-600'}`}>{p ? money(p.amount) : '—'}</td>
                   {/* Rollup de la cuota */}
-                  <td className="px-3 py-2.5 text-right text-green-600">{r.first ? (c.paid > 0 ? money(c.paid) : '—') : ''}</td>
                   <td className="px-3 py-2.5 text-right font-medium text-gray-900">{r.first ? money(c.balance) : ''}</td>
                   <td className="px-3 py-2.5 text-center">
                     {r.first && (
