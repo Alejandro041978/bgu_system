@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -108,6 +108,7 @@ const navigation: NavGroup[] = [
           { name: 'Base de Seguimiento', href: '/academic/seguimiento', icon: Activity, pageKey: 'academic_tracking' },
           { name: 'Camila · Tablero', href: '/academic/camila', icon: Gauge, pageKey: 'academic_camila' },
           { name: 'Retención', href: '/academic/retencion', icon: HeartHandshake, pageKey: 'academic_retention' },
+          { name: 'Campañas', href: '/campaigns', icon: Megaphone, pageKey: 'seguimiento_campaigns' },
           { name: 'Retiros', href: '/academic/retiros', icon: UserMinus, pageKey: 'academic_withdrawals' },
         ],
       },
