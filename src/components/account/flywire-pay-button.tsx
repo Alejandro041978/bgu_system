@@ -38,7 +38,16 @@ export function FlywirePayButton(
     })
     if (firstName) params.set('student_first_name', firstName)
     if (rest.length) params.set('student_last_name', rest.join(' '))
-    window.open(`${BASE}?${params.toString()}`, '_blank', 'noopener,noreferrer')
+
+    // Ventana popup LIMPIA y centrada: al pasar dimensiones, el navegador la
+    // abre como popup (sin pestañas, marcadores ni extensiones). La barra de la
+    // URL no se puede ocultar (los navegadores la fuerzan por seguridad) — y
+    // aquí ayuda: el estudiante ve payment.flywire.com y confía en la pasarela.
+    const w = 460, h = 780
+    const left = Math.max(0, (window.screen.availWidth - w) / 2)
+    const top = Math.max(0, (window.screen.availHeight - h) / 2)
+    const feats = `popup=yes,width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,status=no,resizable=yes,scrollbars=yes,noopener,noreferrer`
+    window.open(`${BASE}?${params.toString()}`, 'flywire_pay', feats)
   }
 
   return (
