@@ -13,6 +13,7 @@ export interface ChargeRow {
   charge_type: number | null
   concept_abbr: string
   concept_name: string
+  reference: string | null
   convocatoria: string | null
   status: 'pagada' | 'parcial' | 'vencida' | 'pendiente'
 }
@@ -126,14 +127,23 @@ export async function getAccountStatement(
   const conceptName = (t: number | null) => (t == null ? '—' : conceptByType.get(t)?.name || `Tipo ${t}`)
 
   // Cuotas y pagos
-  const [{ data: chData }, { data: pyData }] = await Promise.all([
+  const [chRes, { data: pyData }] = await Promise.all([
     sb.from('account_charges')
-      .select('id, external_id, enrollment_id, amount, due_date, charge_type, convocatorias(name)')
+      .select('id, external_id, enrollment_id, amount, due_date, charge_type, reference, convocatorias(name)')
       .eq('student_id', student.id),
     sb.from('account_payments')
       .select('id, amount, paid_date, receipt_number, transaction_reference, payment_type, charge_external_id, series_code')
       .eq('student_id', student.id),
   ])
+  // Defensa: si aún no se corrió account_charges_reference.sql, reintentar sin
+  // la columna nueva (para no romper toda la página por una columna faltante).
+  let chData = chRes.data
+  if (chRes.error) {
+    const retry = await sb.from('account_charges')
+      .select('id, external_id, enrollment_id, amount, due_date, charge_type, convocatorias(name)')
+      .eq('student_id', student.id)
+    chData = retry.data
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chargesRaw = (chData ?? []) as any[]
@@ -190,6 +200,7 @@ export async function getAccountStatement(
       id: c.id, external_id: c.external_id, amount, paid: r2(paid), balance,
       due_date: c.due_date, charge_type: c.charge_type,
       concept_abbr: conceptAbbr(c.charge_type), concept_name: conceptName(c.charge_type),
+      reference: c.reference ?? null,
       convocatoria: c.convocatorias?.name ?? null, status,
     })
     g.totals.charged += amount

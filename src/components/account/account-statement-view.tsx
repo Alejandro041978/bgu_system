@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
-import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil } from 'lucide-react'
+import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil, Plus } from 'lucide-react'
 import { FlywirePayButton } from './flywire-pay-button'
 
 const money = (n: number) =>
@@ -159,6 +159,12 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
         <Card icon={<AlertTriangle className="w-4 h-4" />} label="Vencido" value={money(totals.overdue)} cls={totals.overdue > 0 ? 'text-red-600' : 'text-gray-400'} />
       </div>
 
+      {canGenerate && account.enrollment_id && (
+        <div className="flex justify-end">
+          <NewChargeButton enrollmentId={account.enrollment_id} onChanged={onChanged} />
+        </div>
+      )}
+
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <table className="w-full text-sm whitespace-nowrap">
           <thead>
@@ -215,7 +221,7 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
                           <Pencil className="w-3 h-3" />
                         </button>
                       </span>
-                    ) : '—'}
+                    ) : (r.first && c.reference ? c.reference : '—')}
                   </td>
                   <td className={`px-3 py-2.5 text-right ${p?.is_discount ? 'text-violet-600' : 'text-green-600'}`}>{p ? money(p.amount) : '—'}</td>
                   {/* Rollup de la cuota */}
@@ -304,6 +310,118 @@ function DeleteChargeButton({ charge, disabled, onChanged }: { charge: ChargeRow
       className="text-gray-300 hover:text-red-500 disabled:hover:text-gray-200 disabled:opacity-40">
       {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
     </button>
+  )
+}
+
+// Crear una cuota manual en la cuenta de la matrícula (solo admin/cobranza).
+// Vencimiento + monto (positivo) + concepto + referencia libre.
+interface ChargeConcept { type_code: number; abbr: string | null; name: string | null }
+function NewChargeButton({ enrollmentId, onChanged }: { enrollmentId: string; onChanged?: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [concepts, setConcepts] = useState<ChargeConcept[]>([])
+  const [dueDate, setDueDate] = useState('')
+  const [amount, setAmount] = useState('')
+  const [conceptType, setConceptType] = useState('')
+  const [reference, setReference] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/account/charges').then(r => r.json()).then(d => {
+      setConcepts(d.concepts ?? [])
+      if ((d.concepts ?? []).length && !conceptType) setConceptType(String(d.concepts[0].type_code))
+    }).catch(() => setConcepts([]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  function reset() {
+    setDueDate(''); setAmount(''); setConceptType(''); setReference(''); setErr(null)
+  }
+
+  async function submit() {
+    const monto = Number(amount)
+    if (!Number.isFinite(monto) || monto <= 0) { setErr('El monto debe ser un número positivo'); return }
+    if (!conceptType) { setErr('Selecciona un concepto'); return }
+    setBusy(true); setErr(null)
+    const d = await fetch('/api/account/charges', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        enrollment_id: enrollmentId,
+        due_date: dueDate || null,
+        amount: monto,
+        charge_type: Number(conceptType),
+        reference: reference || null,
+      }),
+    }).then(r => r.json())
+    setBusy(false)
+    if (d.error) { setErr(d.error); return }
+    setOpen(false); reset(); onChanged?.()
+  }
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
+        <Plus className="w-3.5 h-3.5" /> Nueva cuota
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => !busy && setOpen(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+              <FilePlus className="w-4 h-4 text-blue-600" /> Nueva cuota
+            </h3>
+
+            <div className="space-y-3">
+              <label className="block">
+                <span className="text-xs text-gray-500">Concepto</span>
+                <select value={conceptType} onChange={e => setConceptType(e.target.value)}
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100">
+                  <option value="" disabled>Selecciona…</option>
+                  {concepts.map(c => (
+                    <option key={c.type_code} value={c.type_code}>{c.abbr ? `${c.abbr} — ${c.name ?? ''}` : (c.name ?? `Tipo ${c.type_code}`)}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-xs text-gray-500">Monto (USD)</span>
+                <input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
+              </label>
+
+              <label className="block">
+                <span className="text-xs text-gray-500">Fecha de vencimiento</span>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
+              </label>
+
+              <label className="block">
+                <span className="text-xs text-gray-500">Referencia</span>
+                <input type="text" value={reference} onChange={e => setReference(e.target.value)}
+                  placeholder="Opcional"
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
+              </label>
+            </div>
+
+            {err && <p className="text-xs text-red-600">{err}</p>}
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => { setOpen(false); reset() }} disabled={busy}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-50">
+                Cancelar
+              </button>
+              <button onClick={submit} disabled={busy}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />} Crear cuota
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
