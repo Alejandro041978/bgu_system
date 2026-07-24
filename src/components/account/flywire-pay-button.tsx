@@ -40,14 +40,19 @@ export function FlywirePayButton(
     const id = `fw-${chargeExternalId}`
     btnRef.current.id = id
     const [firstName, ...rest] = (studentName ?? '').trim().split(/\s+/)
+    // Config ALINEADA con el portal hospedado (el "link directo" que sí
+    // funciona): NO se envía callback_url. Flywire valida la URL de
+    // notificación contra la allowlist del portal ZBL; una URL no registrada
+    // hace que la sesión se rechace con "Se ha producido un error" (respuesta
+    // 200 pero error de negocio). Las notificaciones usan la URL configurada
+    // en el portal; la conciliación operativa la hace el import de Flywire.
+    // callback_id viaja para poder mapear el pago si el webhook se reactiva.
     const config = {
       env: ENV,
       recipient: RECIPIENT,
       locale: 'es',
       amount: Math.round(amount * 100), // menor unidad de la moneda (USD → centavos)
       callback_id: chargeExternalId,
-      callback_url: `${window.location.origin}/api/flywire/webhook`,
-      return_url: window.location.href,
       provider: 'embed2.0',
       sender_first_name: firstName || undefined,
       sender_last_name: rest.join(' ') || undefined,
