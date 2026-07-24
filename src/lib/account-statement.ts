@@ -41,6 +41,9 @@ export interface ProgramAccount {
   list_price: number | null
   // Beca activa: solo el PORCENTAJE es dato; el monto se deriva de la base
   scholarship_pct: number | null
+  // Créditos convalidados/validados en el programa (Transfer Credit Savings =
+  // créditos × tarifa por crédito de la matrícula)
+  transfer_credits: number | null
   totals: Totals
   charges: ChargeRow[]
   payments: PaymentRow[]
@@ -77,7 +80,7 @@ export async function getAccountStatement(
 
   // Matrículas del estudiante (una cuenta por cada una, aunque no tenga cuotas aún)
   const { data: enrData } = await sb.from('academic_student_enrollments')
-    .select('id, convocatoria_id, credit_rate, list_price, academic_programs(name)')
+    .select('id, convocatoria_id, program_id, credit_rate, list_price, academic_programs(name)')
     .eq('student_id', student.id)
 
   // Beca activa por matrícula (el monto SIEMPRE se deriva: % × lista vigente)
@@ -89,6 +92,30 @@ export async function getAccountStatement(
       scholarshipPct.set(String(s.enrollment_id), Number(s.percentage))
     }
   } catch { /* tabla aún sin migrar */ }
+
+  // Créditos convalidados/validados por programa (Transfer Credit Savings)
+  const transferCreditsByProgram = new Map<string, number>()
+  {
+    const { data: tcs } = await sb.from('transfer_credits')
+      .select('id, dest_program_id').eq('student_id', student.id)
+    const tcIds = (tcs ?? []).map((t: { id: string }) => t.id)
+    if (tcIds.length) {
+      const { data: items } = await sb.from('transfer_credit_items')
+        .select('transfer_credit_id, dest_course_id').in('transfer_credit_id', tcIds)
+      const courseIds = [...new Set((items ?? []).map((i: { dest_course_id: string | null }) => i.dest_course_id).filter(Boolean))] as string[]
+      const creditsByCourse = new Map<string, number>()
+      for (let i = 0; i < courseIds.length; i += 200) {
+        const { data: cs } = await sb.from('academic_courses').select('id, credits').in('id', courseIds.slice(i, i + 200))
+        for (const c of (cs ?? []) as { id: string; credits: number | null }[]) creditsByCourse.set(c.id, Number(c.credits ?? 0))
+      }
+      const progOfTc = new Map((tcs ?? []).map((t: { id: string; dest_program_id: string | null }) => [t.id, t.dest_program_id]))
+      for (const it of (items ?? []) as { transfer_credit_id: string; dest_course_id: string | null }[]) {
+        const prog = progOfTc.get(it.transfer_credit_id)
+        if (!prog || !it.dest_course_id) continue
+        transferCreditsByProgram.set(String(prog), (transferCreditsByProgram.get(String(prog)) ?? 0) + (creditsByCourse.get(it.dest_course_id) ?? 0))
+      }
+    }
+  }
 
   // Conceptos editables (Installment.Type -> abreviatura + nombre)
   const { data: conceptData } = await sb.from('account_concepts').select('type_code, abbr, name').eq('kind', 'charge')
@@ -124,18 +151,21 @@ export async function getAccountStatement(
 
   const today = new Date().toISOString().slice(0, 10)
   const groups = new Map<string, ProgramAccount>()
-  const newGroup = (enr: string | null, conv: string | null, name: string, rate: number | null = null, list: number | null = null): ProgramAccount => ({
+  const newGroup = (enr: string | null, conv: string | null, name: string, rate: number | null = null, list: number | null = null, tcCredits: number | null = null): ProgramAccount => ({
     enrollment_id: enr, convocatoria_id: conv, program_name: name,
     credit_rate: rate, list_price: list,
     scholarship_pct: enr ? (scholarshipPct.get(enr) ?? null) : null,
+    transfer_credits: tcCredits,
     totals: { charged: 0, paid: 0, discounts: 0, balance: 0, overdue: 0 }, charges: [], payments: [],
   })
 
   // Un grupo por cada matrícula (aunque no tenga cuotas)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const e of (enrData ?? []) as any[]) {
+    const tc = e.program_id ? (transferCreditsByProgram.get(String(e.program_id)) ?? null) : null
     groups.set(e.id, newGroup(e.id, e.convocatoria_id ?? null, e.academic_programs?.name ?? 'Programa',
-      e.credit_rate != null ? Number(e.credit_rate) : null, e.list_price != null ? Number(e.list_price) : null))
+      e.credit_rate != null ? Number(e.credit_rate) : null, e.list_price != null ? Number(e.list_price) : null,
+      tc && tc > 0 ? tc : null))
   }
   const ensureOrphan = () => {
     let g = groups.get('∅')
