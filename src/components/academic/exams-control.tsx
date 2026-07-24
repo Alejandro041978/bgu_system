@@ -30,9 +30,10 @@ export function ExamsControl() {
   const load = useCallback(() => {
     fetch(`/api/academic/exams${filter ? `?status=${filter}` : ''}`)
       .then(r => r.json()).then(d => {
-        if (d.error) setNotice({ kind: 'error', text: d.error })
+        if (d.error) { setNotice({ kind: 'error', text: d.error }); setRows([]) }
         else { setRows(d.rows ?? []); setCounts(d.counts ?? {}) }
       })
+      .catch(e => { setNotice({ kind: 'error', text: String(e) }); setRows([]) })
   }, [filter])
   useEffect(() => { load() }, [load])
 

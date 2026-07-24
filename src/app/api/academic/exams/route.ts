@@ -20,20 +20,44 @@ export async function GET(req: NextRequest) {
   const sb = db()
   const status = req.nextUrl.searchParams.get('status')
 
-  let q = sb.from('exam_requests')
-    .select('*, exam_types(name, price), student:academic_students(first_name, last_name, second_last_name, document_number, email, email_alt)')
-    .order('requested_at', { ascending: false }).limit(500)
+  // Sin joins embebidos: exam_requests no tiene FKs declaradas y PostgREST
+  // rechaza los embeds (la pagina quedaba en spinner infinito). Lecturas
+  // planas + lookups por lote.
+  let q = sb.from('exam_requests').select('*').order('requested_at', { ascending: false }).limit(500)
   if (status) q = q.eq('status', status)
   const { data, error } = await q
   if (error) return NextResponse.json({ error: 'Falta correr supabase/exam_requests.sql: ' + error.message }, { status: 400 })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = ((data ?? []) as any[]).map(r => ({
-    ...r,
-    student_name: [r.student?.first_name, r.student?.last_name, r.student?.second_last_name].filter(Boolean).join(' '),
-    document: r.student?.document_number ? String(r.student.document_number) : '',
-    student_email: r.student?.email_alt ?? r.student?.email ?? null,
-  }))
+  const base = (data ?? []) as any[]
+  const stuIds = [...new Set(base.map(r => String(r.student_id)).filter(x => x && x !== 'null'))]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const stuById = new Map<string, any>()
+  for (let i = 0; i < stuIds.length; i += 200) {
+    const { data: s } = await sb.from('academic_students')
+      .select('id, first_name, last_name, second_last_name, document_number, email, email_alt').in('id', stuIds.slice(i, i + 200))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const x of (s ?? []) as any[]) stuById.set(String(x.id), x)
+  }
+  const typeIds = [...new Set(base.map(r => String(r.exam_type_id)).filter(x => x && x !== 'null'))]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const typeById = new Map<string, any>()
+  if (typeIds.length) {
+    const { data: t } = await sb.from('exam_types').select('id, name, price').in('id', typeIds)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const x of (t ?? []) as any[]) typeById.set(String(x.id), x)
+  }
+
+  const rows = base.map(r => {
+    const stu = stuById.get(String(r.student_id))
+    return {
+      ...r,
+      exam_types: typeById.get(String(r.exam_type_id)) ?? null,
+      student_name: [stu?.first_name, stu?.last_name, stu?.second_last_name].filter(Boolean).join(' '),
+      document: stu?.document_number ? String(stu.document_number) : '',
+      student_email: stu?.email_alt ?? stu?.email ?? null,
+    }
+  })
   const counts = { pendiente_pago: 0, pendiente_evaluacion: 0, evaluado: 0, anulado: 0 } as Record<string, number>
   for (const r of rows) counts[r.status] = (counts[r.status] ?? 0) + 1
   return NextResponse.json({ rows, counts })
