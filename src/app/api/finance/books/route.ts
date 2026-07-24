@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createAuthClient } from '@/lib/supabase/server'
 
 const BOOKS_BASE = 'https://www.zohoapis.com/books/v3'
 const ORG_ID = process.env.ZOHO_BOOKS_ORG_ID ?? process.env.ZOHO_ORGANIZATION_ID!
@@ -60,6 +61,12 @@ function dateRange(monthsBack: number) {
 }
 
 export async function GET() {
+  // Datos financieros reales: SOLO con sesión (estuvo público hasta
+  // 2026-07-23 y se cerró al detectarlo en la verificación de conexión).
+  const authClient = await createAuthClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
   // Check if Books token is configured
   const refreshToken = await getBooksRefreshToken()
   if (!refreshToken) {
