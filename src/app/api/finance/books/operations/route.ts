@@ -95,15 +95,19 @@ export async function POST(req: NextRequest) {
   let firstRaw: any = null
   for (const cta of cuentas) {
     for (let page = 1; page <= 40; page++) {
-      const url = `${BOOKS_BASE}/chartofaccounts/accounttransactions?organization_id=${org}&account_id=${cta.id}&from_date=${from}&to_date=${to}&per_page=200&page=${page}`
+      // OJO: `/chartofaccounts/accounttransactions` devuelve solo un RESUMEN por
+      // tipo (buckets {entity_type,count}); el que trae las filas planas es
+      // `/chartofaccounts/transactions` (clave `transactions`).
+      const url = `${BOOKS_BASE}/chartofaccounts/transactions?organization_id=${org}&account_id=${cta.id}&from_date=${from}&to_date=${to}&per_page=200&page=${page}`
       const res = await fetch(url, { headers: { Authorization: `Zoho-oauthtoken ${token}` } })
       const d = await res.json().catch(() => null)
       if (!res.ok || d?.code !== 0) return authErr(res, d)
       if (!firstRaw) firstRaw = d
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const batch = (Array.isArray(d.account_transactions) ? d.account_transactions
-        : Array.isArray(d.transactions) ? d.transactions : []) as any[]
-      // la cuenta la aporta el bucle (el reporte puede no repetirla en cada fila)
+      const batch = (Array.isArray(d.transactions) ? d.transactions
+        : Array.isArray(d.transaction_list) ? d.transaction_list
+        : Array.isArray(d.account_transactions) ? d.account_transactions : []) as any[]
+      // la cuenta la aporta el bucle (el reporte no la repite en cada fila)
       for (const t of batch) rows.push({ ...t, account_name: t.account_name ?? cta.name })
       if (!d.page_context?.has_more_page) break
     }
@@ -111,31 +115,36 @@ export async function POST(req: NextRequest) {
 
   if (b.inspect) {
     return NextResponse.json({
-      inspect: true, total_rows: rows.length, org,
+      inspect: true, total_rows: rows.length,
       cuentas_encontradas: cuentas,
       keys: firstRaw ? Object.keys(firstRaw) : [],
       sample_rows: rows.slice(0, 4),
-      raw_full: firstRaw,
     })
   }
 
   // Filtrar a las 3 cuentas y upsert idempotente
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const num = (v: any): number | null => (v === '' || v == null) ? null : (Number.isFinite(Number(v)) ? Number(v) : null)
   const objetivo = rows.filter(r => CUENTAS.some(c => String(r.account_name ?? r.account ?? '').toLowerCase() === c.toLowerCase()))
   let upserted = 0
   const batchRows = objetivo.map(r => {
-    const key = String(r.transaction_id ?? r.entity_id ?? '') ||
-      createHash('sha1').update([r.account_name ?? r.account, r.transaction_date ?? r.date, r.transaction_type, r.reference_number, r.contact_name ?? r.customer_name, r.debit_amount ?? r.debit, r.credit_amount ?? r.credit, r.description].join('|')).digest('hex')
+    // `categorized_transaction_id` es único por línea; `transaction_id` puede
+    // repetirse si una transacción toca la cuenta en varias líneas.
+    const key = String(r.categorized_transaction_id ?? r.transaction_id ?? r.entity_id ?? '') ||
+      createHash('sha1').update([r.account_name ?? r.account, r.transaction_date ?? r.date, r.transaction_type, r.reference_number ?? r.entry_number, r.payee ?? r.contact_name ?? r.customer_name, r.debit_amount ?? r.debit, r.credit_amount ?? r.credit, r.description].join('|')).digest('hex')
+    const debit = num(r.debit_amount ?? r.debit)
+    const credit = num(r.credit_amount ?? r.credit)
     return {
       zoho_key: key,
       account_name: String(r.account_name ?? r.account ?? ''),
       txn_date: (r.transaction_date ?? r.date ?? null) || null,
-      txn_type: r.transaction_type ?? r.transaction_type_formatted ?? null,
-      reference: r.reference_number ?? r.transaction_number ?? null,
-      contact_name: r.contact_name ?? r.customer_name ?? null,
+      txn_type: r.transaction_type_formatted ?? r.transaction_type ?? null,
+      reference: r.reference_number || r.entry_number || r.transaction_number || null,
+      contact_name: r.payee ?? r.contact_name ?? r.customer_name ?? null,
       description: r.description ?? null,
-      debit: r.debit_amount != null ? Number(r.debit_amount) : (r.debit != null ? Number(r.debit) : null),
-      credit: r.credit_amount != null ? Number(r.credit_amount) : (r.credit != null ? Number(r.credit) : null),
-      amount: r.amount != null ? Number(r.amount) : null,
+      debit,
+      credit,
+      amount: num(r.amount) ?? debit ?? credit,
       raw: r,
       synced_at: new Date().toISOString(),
     }
