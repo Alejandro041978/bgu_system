@@ -6,12 +6,12 @@ import { Loader2, Plus, Search, GraduationCap, Undo2 } from 'lucide-react'
 interface Beca {
   id: string; enrollment_id: string
   student_name: string; document_number: string | null; program_name: string | null
-  percentage: number; amount: number | null; list_price: number | null
+  percentage: number; amount: number | null; list_price: number | null; transfer_savings: number
   granted_at: string; granted_by: string | null; note: string | null
   revoked_at: string | null
 }
 interface Hit { id: string; name: string; document: string | null }
-interface Enr { id: string; program_name: string; list_price: number | null; has_active: boolean }
+interface Enr { id: string; program_name: string; list_price: number | null; transfer_savings: number; has_active: boolean }
 
 const money = (n: number) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
@@ -61,10 +61,12 @@ export function Scholarships() {
     setOpen(false); setStudent(null); setQ(''); setEnrollments([]); setEnrId(''); setPct(''); setNote('')
   }
 
+  // Regla: el ahorro TC se resta PRIMERO; beca = (lista − ahorro) × %
   const selectedEnr = enrollments.find(e => e.id === enrId)
   const pctNum = Number(pct)
-  const preview = selectedEnr?.list_price != null && pctNum > 0 && pctNum <= 100
-    ? Math.round(selectedEnr.list_price * pctNum) / 100 : null
+  const becaBase = selectedEnr?.list_price != null ? Math.max(0, selectedEnr.list_price - (selectedEnr.transfer_savings ?? 0)) : null
+  const preview = becaBase != null && pctNum > 0 && pctNum <= 100
+    ? Math.round(becaBase * pctNum) / 100 : null
 
   async function grant() {
     if (!student || !enrId || !(pctNum > 0 && pctNum <= 100)) return
@@ -149,7 +151,8 @@ export function Scholarships() {
               </label>
               {preview != null && (
                 <p className="sm:col-span-3 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 tabular-nums">
-                  Beca: {money(preview)} ({pctNum}% de {money(selectedEnr!.list_price!)}) → neto a pagar {money(selectedEnr!.list_price! - preview)}. La fecha de otorgamiento se registra automáticamente (hoy).
+                  Beca: {money(preview)} ({pctNum}% de {money(becaBase!)}{(selectedEnr!.transfer_savings ?? 0) > 0 ? ` = lista ${money(selectedEnr!.list_price!)} − ahorro TC ${money(selectedEnr!.transfer_savings)}` : ''}) →
+                  Total Tuition {money(becaBase! - preview)}. La fecha de otorgamiento se registra automáticamente (hoy).
                 </p>
               )}
               {selectedEnr && selectedEnr.list_price == null && (
@@ -172,8 +175,9 @@ export function Scholarships() {
                 <th className="px-4 py-2 text-left">Programa</th>
                 <th className="px-4 py-2 text-right">%</th>
                 <th className="px-4 py-2 text-right">Precio lista</th>
+                <th className="px-4 py-2 text-right">Ahorro TC</th>
                 <th className="px-4 py-2 text-right">Monto beca</th>
-                <th className="px-4 py-2 text-right">Neto</th>
+                <th className="px-4 py-2 text-right">Total Tuition</th>
                 <th className="px-4 py-2 text-left">Otorgada</th>
                 <th className="px-4 py-2"></th>
               </tr>
@@ -188,8 +192,9 @@ export function Scholarships() {
                   <td className="px-4 py-2 text-xs text-gray-600">{b.program_name}</td>
                   <td className="px-4 py-2 text-right tabular-nums font-semibold text-violet-700">{b.percentage}%</td>
                   <td className="px-4 py-2 text-right tabular-nums text-gray-500">{b.list_price != null ? money(b.list_price) : '—'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-teal-700">{b.transfer_savings > 0 ? money(b.transfer_savings) : '—'}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-violet-700">{b.amount != null ? money(b.amount) : '—'}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">{b.list_price != null && b.amount != null ? money(b.list_price - b.amount) : '—'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{b.list_price != null && b.amount != null ? money(Math.max(0, b.list_price - b.transfer_savings - b.amount)) : '—'}</td>
                   <td className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">
                     {b.granted_at}{b.revoked_at && <span className="block text-red-500">revocada {String(b.revoked_at).slice(0, 10)}</span>}
                     {b.note && <span className="block text-gray-400 max-w-48 truncate" title={b.note}>{b.note}</span>}
@@ -202,7 +207,7 @@ export function Scholarships() {
                 </tr>
               ))}
               {!loading && becas.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-xs text-gray-400">Aún no hay becas otorgadas.</td></tr>
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-xs text-gray-400">Aún no hay becas otorgadas.</td></tr>
               )}
             </tbody>
           </table>

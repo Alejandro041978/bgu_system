@@ -122,21 +122,34 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
 
   return (
     <div className="space-y-5">
-      {/* Fila 1: precios oficiales y beneficios (lo que la regulación evidencia) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {account.list_price != null && (
-          <Card icon={<BadgeDollarSign className="w-4 h-4" />} label="Precio oficial" value={money(account.list_price)} cls="text-blue-700"
-            sub={account.credit_rate ? `${Math.round(account.list_price / account.credit_rate)} cr × ${money(account.credit_rate)}` : undefined} />
-        )}
-        {account.scholarship_pct != null && account.list_price != null && (
-          <Card icon={<GraduationCap className="w-4 h-4" />} label="Beca" value={money(Math.round(account.list_price * account.scholarship_pct) / 100)} cls="text-violet-700"
-            sub={`${account.scholarship_pct}% · neto ${money(account.list_price - Math.round(account.list_price * account.scholarship_pct) / 100)}`} />
-        )}
-        {account.transfer_credits != null && account.credit_rate != null && (
-          <Card icon={<FileCheck className="w-4 h-4" />} label="Transfer Credit Savings" value={money(Math.round(account.transfer_credits * account.credit_rate * 100) / 100)} cls="text-teal-700"
-            sub={`${account.transfer_credits} cr convalidados × ${money(account.credit_rate)}`} />
-        )}
-      </div>
+      {/* Fila 1: precios oficiales y beneficios (regla del usuario 2026-07-23):
+          ahorro TC se resta PRIMERO; la beca se calcula sobre (lista − ahorro);
+          Total Tuition = lista − ahorro − beca. */}
+      {(() => {
+        const lista = account.list_price
+        if (lista == null) return null
+        const ahorro = account.transfer_credits != null && account.credit_rate != null
+          ? Math.round(account.transfer_credits * account.credit_rate * 100) / 100 : 0
+        const becaBase = Math.max(0, lista - ahorro)
+        const beca = account.scholarship_pct != null ? Math.round(becaBase * account.scholarship_pct) / 100 : 0
+        const totalTuition = Math.round((lista - ahorro - beca) * 100) / 100
+        return (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Card icon={<BadgeDollarSign className="w-4 h-4" />} label="Precio oficial" value={money(lista)} cls="text-blue-700"
+              sub={account.credit_rate ? `${Math.round(lista / account.credit_rate)} cr × ${money(account.credit_rate)}` : undefined} />
+            {ahorro > 0 && (
+              <Card icon={<FileCheck className="w-4 h-4" />} label="Transfer Credit Savings" value={money(ahorro)} cls="text-teal-700"
+                sub={`${account.transfer_credits} cr convalidados × ${money(account.credit_rate!)}`} />
+            )}
+            {account.scholarship_pct != null && (
+              <Card icon={<GraduationCap className="w-4 h-4" />} label="Beca" value={money(beca)} cls="text-violet-700"
+                sub={`${account.scholarship_pct}% de ${money(becaBase)}`} />
+            )}
+            <Card icon={<Wallet className="w-4 h-4" />} label="Total Tuition" value={money(totalTuition)} cls="text-gray-900"
+              sub="precio oficial − ahorro − beca" />
+          </div>
+        )
+      })()}
       {/* Fila 2: movimiento de la cuenta */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <Card icon={<Wallet className="w-4 h-4" />} label="Facturado" value={money(totals.charged)} cls="text-gray-900" />
