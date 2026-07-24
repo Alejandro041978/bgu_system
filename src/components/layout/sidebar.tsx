@@ -25,6 +25,15 @@ const navigation: NavGroup[] = [
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, pageKey: 'dashboard' },
       {
+        name: 'Estudiante', href: '/academic/students', icon: UserCog,
+        children: [
+          { name: 'Ficha del Estudiante', href: '/academic/students', icon: UserCog, pageKey: 'academic_student_profile' },
+          { name: 'Acta Personal', href: '/academic/acta', icon: FileText, pageKey: 'academic_acta' },
+          { name: 'Acta Detallada', href: '/academic/acta-detalle', icon: FileText, pageKey: 'academic_acta_detail' },
+          { name: 'Estado de Cuenta', href: '/academic/account', icon: Wallet, pageKey: 'academic_account' },
+        ],
+      },
+      {
         name: 'Reportes', href: '/reports/estado-estudiantes', icon: BarChart3,
         children: [
           { name: 'Estado de estudiantes', href: '/reports/estado-estudiantes', icon: Users, pageKey: 'report_student_status' },
@@ -93,7 +102,6 @@ const navigation: NavGroup[] = [
       {
         name: 'Seguimiento estudiantil', href: '/academic/seguimiento', icon: Activity,
         children: [
-          { name: 'Ficha del Estudiante', href: '/academic/students', icon: UserCog, pageKey: 'academic_student_profile' },
           { name: 'Base de Seguimiento', href: '/academic/seguimiento', icon: Activity, pageKey: 'academic_tracking' },
           { name: 'Camila · Tablero', href: '/academic/camila', icon: Gauge, pageKey: 'academic_camila' },
           { name: 'Retención', href: '/academic/retencion', icon: HeartHandshake, pageKey: 'academic_retention' },
@@ -117,8 +125,6 @@ const navigation: NavGroup[] = [
         name: 'Calificaciones', href: '/academic/grades', icon: Award, pageKey: 'academic_grades',
         children: [
           { name: 'Notas', href: '/academic/grades', icon: Award, pageKey: 'academic_grades' },
-          { name: 'Acta Personal', href: '/academic/acta', icon: FileText, pageKey: 'academic_acta' },
-          { name: 'Acta Detallada', href: '/academic/acta-detalle', icon: FileText, pageKey: 'academic_acta_detail' },
           { name: 'Acta de Asignatura', href: '/academic/acta-asignatura', icon: BookOpen, pageKey: 'academic_acta_course' },
           { name: 'Actas de Moodle', href: '/academic/moodle-actas', icon: Download, pageKey: 'academic_moodle_actas' },
           { name: 'Cargar Notas (CSV)', href: '/academic/grades-import', icon: Upload, pageKey: 'academic_grades_import' },
@@ -213,7 +219,6 @@ const navigation: NavGroup[] = [
           { name: 'Tarifas por Crédito', href: '/finance/credit-rates', icon: BadgeDollarSign, pageKey: 'finance_credit_rates' },
         ],
       },
-      { name: 'Estado de Cuenta', href: '/academic/account', icon: Wallet, pageKey: 'academic_account' },
       { name: 'Conceptos de Cuenta', href: '/academic/concepts', icon: Tag, pageKey: 'academic_concepts' },
       {
         name: 'Collection', href: '/academic/billing-plans', icon: Banknote,
