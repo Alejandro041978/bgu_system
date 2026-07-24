@@ -1,0 +1,147 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { createHash } from 'crypto'
+
+export const revalidate = 0
+export const maxDuration = 300
+
+const BOOKS_BASE = 'https://www.zohoapis.com/books/v3'
+const CUENTAS = ['Returns and Allowances', 'Corporate Sales', 'Individual Sales']
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+// Sesión de usuario O Bearer CRON_SECRET (para sincronizaciones automatizadas)
+async function authorized(req: NextRequest): Promise<{ ok: boolean; who: string }> {
+  if (req.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`) return { ok: true, who: 'cron' }
+  const auth = await createAuthClient()
+  const { data: { user } } = await auth.auth.getUser()
+  return user ? { ok: true, who: user.email ?? user.id } : { ok: false, who: '' }
+}
+
+async function booksToken(): Promise<string> {
+  const sb = db()
+  const { data } = await sb.from('app_settings').select('value').eq('key', 'zoho_books_refresh_token').single()
+  const refreshToken = data?.value ?? process.env.ZOHO_BOOKS_REFRESH_TOKEN
+  if (!refreshToken) throw new Error('Sin refresh token de Books')
+  const res = await fetch('https://accounts.zoho.com/oauth/v2/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      refresh_token: refreshToken,
+      client_id: process.env.ZOHO_CLIENT_ID!,
+      client_secret: process.env.ZOHO_CLIENT_SECRET!,
+      grant_type: 'refresh_token',
+    }),
+  })
+  const d = await res.json() as { access_token?: string; error?: string }
+  if (!d.access_token) throw new Error('Token Books: ' + (d.error ?? 'sin access_token'))
+  return d.access_token
+}
+
+// GET → operaciones almacenadas (filtros: account, status)
+export async function GET(req: NextRequest) {
+  const a = await authorized(req)
+  if (!a.ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const sb = db()
+  const account = req.nextUrl.searchParams.get('account')
+  const status = req.nextUrl.searchParams.get('status')
+  let q = sb.from('books_operations').select('*').order('txn_date', { ascending: false }).limit(2000)
+  if (account) q = q.eq('account_name', account)
+  if (status) q = q.eq('gestion_status', status)
+  const { data, error } = await q
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ operations: data ?? [], cuentas: CUENTAS })
+}
+
+// POST { from_date?, to_date?, inspect? } → sincroniza desde Zoho Books
+// (reporte Account Transactions filtrado a las 3 cuentas). inspect=true
+// devuelve la respuesta cruda (primer tramo) para calibrar el parser.
+export async function POST(req: NextRequest) {
+  const a = await authorized(req)
+  if (!a.ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const b = await req.json().catch(() => ({})) as { from_date?: string; to_date?: string; inspect?: boolean }
+  const from = b.from_date ?? `${new Date().getFullYear()}-01-01`
+  const to = b.to_date ?? new Date().toISOString().slice(0, 10)
+
+  const token = await booksToken()
+  const org = process.env.ZOHO_BOOKS_ORG_ID ?? process.env.ZOHO_ORGANIZATION_ID!
+  const sb = db()
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows: any[] = []
+  let page = 1
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let firstRaw: any = null
+  for (; page <= 40; page++) {
+    const url = `${BOOKS_BASE}/reports/accounttransactions?organization_id=${org}&from_date=${from}&to_date=${to}&per_page=500&page=${page}`
+    const res = await fetch(url, { headers: { Authorization: `Zoho-oauthtoken ${token}` } })
+    const d = await res.json().catch(() => null)
+    if (!res.ok || !d || d.code !== 0) {
+      return NextResponse.json({ error: `Books ${res.status}: ${JSON.stringify(d).slice(0, 300)}` }, { status: 502 })
+    }
+    if (!firstRaw) firstRaw = d
+    // Formas conocidas del reporte: array plano en account_transactions, o
+    // envuelto en {account_transactions:{...,transactions:[...]}}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let batch: any[] = []
+    if (Array.isArray(d.account_transactions)) batch = d.account_transactions
+    else if (Array.isArray(d.account_transactions?.transactions)) batch = d.account_transactions.transactions
+    else if (Array.isArray(d.transactions)) batch = d.transactions
+    rows.push(...batch)
+    const more = d.page_context?.has_more_page
+    if (!more) break
+  }
+
+  if (b.inspect) {
+    return NextResponse.json({
+      inspect: true, total_rows: rows.length,
+      keys: firstRaw ? Object.keys(firstRaw) : [],
+      sample_rows: rows.slice(0, 4),
+      raw_head: JSON.stringify(firstRaw).slice(0, 2500),
+    })
+  }
+
+  // Filtrar a las 3 cuentas y upsert idempotente
+  const objetivo = rows.filter(r => CUENTAS.some(c => String(r.account_name ?? r.account ?? '').toLowerCase() === c.toLowerCase()))
+  let upserted = 0
+  const batchRows = objetivo.map(r => {
+    const key = String(r.transaction_id ?? r.entity_id ?? '') ||
+      createHash('sha1').update([r.account_name ?? r.account, r.transaction_date ?? r.date, r.transaction_type, r.reference_number, r.contact_name ?? r.customer_name, r.debit_amount ?? r.debit, r.credit_amount ?? r.credit, r.description].join('|')).digest('hex')
+    return {
+      zoho_key: key,
+      account_name: String(r.account_name ?? r.account ?? ''),
+      txn_date: (r.transaction_date ?? r.date ?? null) || null,
+      txn_type: r.transaction_type ?? r.transaction_type_formatted ?? null,
+      reference: r.reference_number ?? r.transaction_number ?? null,
+      contact_name: r.contact_name ?? r.customer_name ?? null,
+      description: r.description ?? null,
+      debit: r.debit_amount != null ? Number(r.debit_amount) : (r.debit != null ? Number(r.debit) : null),
+      credit: r.credit_amount != null ? Number(r.credit_amount) : (r.credit != null ? Number(r.credit) : null),
+      amount: r.amount != null ? Number(r.amount) : null,
+      raw: r,
+      synced_at: new Date().toISOString(),
+    }
+  })
+  for (let i = 0; i < batchRows.length; i += 200) {
+    const { error } = await sb.from('books_operations').upsert(batchRows.slice(i, i + 200), { onConflict: 'zoho_key' })
+    if (error) return NextResponse.json({ error: 'upsert: ' + error.message, upserted }, { status: 500 })
+    upserted += Math.min(200, batchRows.length - i)
+  }
+  return NextResponse.json({ ok: true, periodo: { from, to }, filas_reporte: rows.length, objetivo: objetivo.length, upserted })
+}
+
+// PATCH { id, gestion_status?, gestion_note? } → gestión de la operación
+export async function PATCH(req: NextRequest) {
+  const a = await authorized(req)
+  if (!a.ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const b = await req.json().catch(() => null)
+  if (!b?.id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
+  const patch: Record<string, unknown> = { gestion_by: a.who, gestion_at: new Date().toISOString() }
+  if (b.gestion_status) patch.gestion_status = b.gestion_status
+  if (b.gestion_note !== undefined) patch.gestion_note = b.gestion_note?.toString().trim() || null
+  const { error } = await db().from('books_operations').update(patch).eq('id', b.id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}

@@ -131,6 +131,7 @@ const PAGE_GROUPS = [
       { key: 'collection_scholarships', label: 'Collection · Becas' },
       { key: 'report_tuition_audit', label: 'Reportes · Auditoría de Tuition' },
       { key: 'seguimiento_campaigns', label: 'Seguimiento · Campañas' },
+      { key: 'finance_books_operations', label: 'Finanzas · Operaciones Books' },
       // Cuentas (movidas de Académico)
       { key: 'academic_account', label: 'Estado de Cuenta' },
       { key: 'academic_concepts', label: 'Conceptos de Cuenta' },
