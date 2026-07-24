@@ -27,22 +27,42 @@ export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get('status')
   const group = req.nextUrl.searchParams.get('group')
 
-  let q = sb.from('degree_files')
-    .select('*, student:academic_students(first_name, last_name, second_last_name, document_number, email, email_alt, phone_number, city, country), program:academic_programs(name)')
-    .order('doc_code', { ascending: true }).limit(1000)
+  // Sin joins embebidos: degree_files no tiene FKs declaradas y PostgREST los
+  // rechaza. Lecturas planas + lookups por lote.
+  let q = sb.from('degree_files').select('*').order('doc_code', { ascending: true }).limit(1000)
   if (status) q = q.eq('status', status)
   if (group) q = q.eq('tramite_group', group)
   const { data, error } = await q
   if (error) return NextResponse.json({ error: 'Falta correr supabase/degree_files.sql: ' + error.message }, { status: 400 })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = ((data ?? []) as any[]).map(r => ({
-    ...r,
-    student_name: [r.student?.first_name, r.student?.last_name, r.student?.second_last_name].filter(Boolean).join(' '),
-    document: r.student?.document_number ? String(r.student.document_number) : '',
-    student_email: r.student?.email_alt ?? r.student?.email ?? null,
-    program_name: r.program?.name ?? null,
-  }))
+  const base = (data ?? []) as any[]
+  const stuIds = [...new Set(base.map(r => String(r.student_id)).filter(x => x && x !== 'null'))]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const stuById = new Map<string, any>()
+  for (let i = 0; i < stuIds.length; i += 200) {
+    const { data: s } = await sb.from('academic_students')
+      .select('id, first_name, last_name, second_last_name, document_number, email, email_alt, phone_number, city, country').in('id', stuIds.slice(i, i + 200))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const x of (s ?? []) as any[]) stuById.set(String(x.id), x)
+  }
+  const progIds = [...new Set(base.map(r => String(r.program_id)).filter(x => x && x !== 'null'))]
+  const progName = new Map<string, string>()
+  for (let i = 0; i < progIds.length; i += 200) {
+    const { data: p } = await sb.from('academic_programs').select('id, name').in('id', progIds.slice(i, i + 200))
+    for (const x of (p ?? []) as { id: string; name: string }[]) progName.set(String(x.id), x.name)
+  }
+
+  const rows = base.map(r => {
+    const s = stuById.get(String(r.student_id))
+    return {
+      ...r, student: s ?? null,
+      student_name: [s?.first_name, s?.last_name, s?.second_last_name].filter(Boolean).join(' '),
+      document: s?.document_number ? String(s.document_number) : '',
+      student_email: s?.email_alt ?? s?.email ?? null,
+      program_name: progName.get(String(r.program_id)) ?? null,
+    }
+  })
   const groups = [...new Set(rows.map(r => r.tramite_group).filter(Boolean))].sort()
   return NextResponse.json({ rows, groups })
 }
@@ -99,9 +119,7 @@ export async function PATCH(req: NextRequest) {
   if (!b?.id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
 
   const sb = db()
-  const { data: r } = await sb.from('degree_files')
-    .select('*, student:academic_students(first_name, email, email_alt), program:academic_programs(name)')
-    .eq('id', b.id).maybeSingle()
+  const { data: r } = await sb.from('degree_files').select('*').eq('id', b.id).maybeSingle()
   if (!r) return NextResponse.json({ error: 'Expediente no encontrado' }, { status: 404 })
   const now = new Date().toISOString()
   const who = user.email ?? user.id
@@ -128,15 +146,21 @@ export async function PATCH(req: NextRequest) {
   // Envío digital al graduado: correo con el link firmado de los escaneos
   if (b.action === 'send_digital') {
     if (!r.scans_url) return NextResponse.json({ error: 'Primero sube los escaneos' }, { status: 400 })
-    const to = r.student?.email_alt ?? r.student?.email
+    // Lookups planos (degree_files no tiene FKs para embed)
+    const { data: stu } = await sb.from('academic_students')
+      .select('first_name, email, email_alt').eq('id', r.student_id).maybeSingle()
+    const to = stu?.email_alt ?? stu?.email
     if (!to) return NextResponse.json({ error: 'El estudiante no tiene correo' }, { status: 400 })
     if (!gmailHelpdeskConfigured()) return NextResponse.json({ error: 'Gmail de helpdesk sin configurar' }, { status: 503 })
+    const { data: prog } = r.program_id
+      ? await sb.from('academic_programs').select('name').eq('id', r.program_id).maybeSingle()
+      : { data: null }
     const { data: signed } = await sb.storage.from('degree-files').createSignedUrl(r.scans_url, 60 * 60 * 24 * 7)
     if (!signed?.signedUrl) return NextResponse.json({ error: 'No se pudo firmar el enlace de los escaneos' }, { status: 500 })
     await sendGmailReply({
       to,
-      subject: `Tus documentos de titulación en digital — ${r.program?.name ?? 'Blackwell Global University'}`,
-      text: `Hola ${r.student?.first_name ?? ''},\n\n¡Felicitaciones! Te compartimos la versión digital de tus documentos de titulación (expediente ${r.doc_code}).\n\nDescárgalos aquí (enlace válido por 7 días):\n${signed.signedUrl}\n\nLos documentos físicos siguen su proceso de envío; te avisaremos con el número de guía.\n\nRegistrar's Office · Blackwell Global University`,
+      subject: `Tus documentos de titulación en digital — ${prog?.name ?? 'Blackwell Global University'}`,
+      text: `Hola ${stu?.first_name ?? ''},\n\n¡Felicitaciones! Te compartimos la versión digital de tus documentos de titulación (expediente ${r.doc_code}).\n\nDescárgalos aquí (enlace válido por 7 días):\n${signed.signedUrl}\n\nLos documentos físicos siguen su proceso de envío; te avisaremos con el número de guía.\n\nRegistrar's Office · Blackwell Global University`,
     })
     patch.digital_sent_at = now
     patch.digital_sent_by = who
