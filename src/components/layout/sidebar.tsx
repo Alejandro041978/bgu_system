@@ -227,7 +227,6 @@ const navigation: NavGroup[] = [
           { name: 'Becas', href: '/collection/scholarships', icon: GraduationCap, pageKey: 'collection_scholarships' },
         ],
       },
-      { name: 'Usuarios y permisos', href: '/settings/users', icon: Shield, pageKey: 'settings_users' },
     ],
   },
 ]
@@ -242,6 +241,7 @@ export function Sidebar() {
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   // Sub-item expansion within a group (keyed by node href)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [settingOpen, setSettingOpen] = useState(false)
 
   // ¿El nodo (o algún descendiente) es visible según permisos?
   function hasVisibleLeaf(node: NavNode): boolean {
@@ -417,13 +417,34 @@ export function Sidebar() {
             Ver portal estudiantil
           </Link>
         )}
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+        <button
+          onClick={() => setSettingOpen(v => !v)}
+          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
         >
           <Settings className="w-4 h-4" />
-          Configuración
-        </Link>
+          Setting
+          {settingOpen ? <ChevronDown className="w-3.5 h-3.5 ml-auto" /> : <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+        </button>
+        {settingOpen && (
+          <div className="ml-5 space-y-0.5">
+            <Link
+              href="/settings"
+              className="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              General
+            </Link>
+            {canView('settings_users') && (
+              <Link
+                href="/settings/users"
+                className="flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                Usuarios y permisos
+              </Link>
+            )}
+          </div>
+        )}
         <Link
           href="/update-password"
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
