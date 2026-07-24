@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
-import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck } from 'lucide-react'
+import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil } from 'lucide-react'
 import { FlywirePayButton } from './flywire-pay-button'
 
 const money = (n: number) =>
@@ -165,11 +165,11 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
             <tr className="border-b border-gray-100 text-[11px] text-gray-400 uppercase tracking-wide">
               <th className="text-left px-3 py-2.5">Vencimiento</th>
               <th className="text-left px-3 py-2.5">Concepto</th>
-              <th className="text-right px-3 py-2.5">Monto Cuota</th>
+              <th className="text-right px-3 py-2.5">Cuota</th>
               <th className="text-left px-3 py-2.5">Fecha Pago</th>
               <th className="text-left px-3 py-2.5">Recibo</th>
               <th className="text-left px-3 py-2.5">Referencia</th>
-              <th className="text-right px-3 py-2.5">Monto Pago</th>
+              <th className="text-right px-3 py-2.5">Pago</th>
               <th className="text-right px-3 py-2.5">Saldo</th>
               <th className="text-center px-3 py-2.5">Estado</th>
               <th className="px-3 py-2.5"></th>
@@ -196,7 +196,26 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
                   <td className="px-3 py-2.5 text-gray-700">{p ? fdate(p.paid_date) : '—'}</td>
                   <td className="px-3 py-2.5 text-gray-500">{p?.receipt_number ?? '—'}</td>
                   <td className={`px-3 py-2.5 text-xs ${p?.is_discount ? 'text-violet-600 font-medium' : 'text-gray-500'}`}>
-                    {p?.is_discount ? <span className="inline-flex items-center gap-1"><Tag className="w-3 h-3" />{p.transaction_reference}</span> : (p?.transaction_reference ?? '—')}
+                    {p ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        {p.is_discount && <Tag className="w-3 h-3" />}
+                        {p.transaction_reference ?? '—'}
+                        <button
+                          onClick={async () => {
+                            const ref = prompt('Referencia del pago:', p.transaction_reference ?? '')
+                            if (ref === null) return
+                            const d = await fetch('/api/account/payments', {
+                              method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: p.id, transaction_reference: ref }),
+                            }).then(x => x.json())
+                            if (d.error) { alert(d.error); return }
+                            onChanged?.()
+                          }}
+                          title="Editar referencia" className="text-gray-300 hover:text-blue-600">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ) : '—'}
                   </td>
                   <td className={`px-3 py-2.5 text-right ${p?.is_discount ? 'text-violet-600' : 'text-green-600'}`}>{p ? money(p.amount) : '—'}</td>
                   {/* Rollup de la cuota */}
