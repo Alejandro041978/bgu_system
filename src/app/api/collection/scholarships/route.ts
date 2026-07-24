@@ -79,26 +79,54 @@ export async function GET(req: NextRequest) {
       }
     }) })
   }
-  const { data: rows } = await sb.from('scholarships')
-    .select('*, student:academic_students(first_name, last_name, second_last_name, document_number), program:academic_programs(name), enrollment:academic_student_enrollments(list_price, credit_rate)')
-    .order('granted_at', { ascending: false }).order('created_at', { ascending: false })
+  // Sin joins embebidos: scholarships no tiene FKs declaradas y PostgREST los
+  // rechazaría (la página salía vacía). Lecturas planas + lookups por lote.
+  const rows = await fetchAll(sb, 'scholarships', '*')
+  rows.sort((a, b) => String(b.granted_at).localeCompare(String(a.granted_at)) || String(b.created_at).localeCompare(String(a.created_at)))
+
+  const stuIds = [...new Set(rows.map(r => String(r.student_id)))]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const stuById = new Map<string, any>()
+  for (let i = 0; i < stuIds.length; i += 200) {
+    const { data } = await sb.from('academic_students')
+      .select('id, first_name, last_name, second_last_name, document_number').in('id', stuIds.slice(i, i + 200))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const s of (data ?? []) as any[]) stuById.set(String(s.id), s)
+  }
+  const progIds = [...new Set(rows.map(r => String(r.program_id)).filter(x => x !== 'null'))]
+  const progName = new Map<string, string>()
+  for (let i = 0; i < progIds.length; i += 200) {
+    const { data } = await sb.from('academic_programs').select('id, name').in('id', progIds.slice(i, i + 200))
+    for (const p of (data ?? []) as { id: string; name: string }[]) progName.set(String(p.id), p.name)
+  }
+  const enrIds = [...new Set(rows.map(r => String(r.enrollment_id)))]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const enrById = new Map<string, any>()
+  for (let i = 0; i < enrIds.length; i += 200) {
+    const { data } = await sb.from('academic_student_enrollments')
+      .select('id, list_price, credit_rate').in('id', enrIds.slice(i, i + 200))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const e of (data ?? []) as any[]) enrById.set(String(e.id), e)
+  }
   // El MONTO es derivado, nunca almacenado (regla del usuario): el ahorro por
   // Transfer Credit se resta PRIMERO y la beca es % × (lista − ahorro).
   // Total Tuition = lista − ahorro − beca.
   const tcMap = await transferCreditsMap(sb)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const becas = ((rows ?? []) as any[]).map(r => {
-    const lista = r.enrollment?.list_price != null ? Number(r.enrollment.list_price) : null
-    const rate = r.enrollment?.credit_rate != null ? Number(r.enrollment.credit_rate) : null
+  const becas = (rows as any[]).map(r => {
+    const enr = enrById.get(String(r.enrollment_id))
+    const stu = stuById.get(String(r.student_id))
+    const lista = enr?.list_price != null ? Number(enr.list_price) : null
+    const rate = enr?.credit_rate != null ? Number(enr.credit_rate) : null
     const pct = Number(r.percentage)
     const cr = tcMap.get(`${r.student_id}|${r.program_id}`) ?? 0
     const savings = rate != null ? Math.round(cr * rate * 100) / 100 : 0
     const amount = lista != null ? Math.round(Math.max(0, lista - savings) * pct) / 100 : null
     return {
       id: r.id, enrollment_id: r.enrollment_id,
-      student_name: [r.student?.first_name, r.student?.last_name, r.student?.second_last_name].filter(Boolean).join(' '),
-      document_number: r.student?.document_number ?? null,
-      program_name: r.program?.name ?? null,
+      student_name: [stu?.first_name, stu?.last_name, stu?.second_last_name].filter(Boolean).join(' '),
+      document_number: stu?.document_number ?? null,
+      program_name: progName.get(String(r.program_id)) ?? null,
       percentage: pct,
       transfer_savings: savings,
       amount,
