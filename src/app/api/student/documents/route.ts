@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { getEffectiveStudent } from '@/lib/student-identity'
-import { createDocumentRequest } from '@/lib/document-request'
+import { createDocumentRequest, previewDocumentRequest } from '@/lib/document-request'
 
 export const revalidate = 0
 
@@ -73,6 +73,13 @@ export async function POST(req: NextRequest) {
 
   const b = await req.json().catch(() => null)
   if (!b?.document_type_id) return NextResponse.json({ error: 'Falta el tipo de documento' }, { status: 400 })
+
+  // Preview: valida requisitos y devuelve costo, SIN crear la solicitud ni el cargo.
+  if (b.preview) {
+    const pr = await previewDocumentRequest({ studentId, documentTypeId: b.document_type_id, programId: b.program_id || null })
+    if (!pr.ok) return NextResponse.json({ error: pr.error }, { status: pr.code ?? 500 })
+    return NextResponse.json({ preview: true, checks: pr.checks, blocked: pr.blocked, price: pr.price, currency: pr.currency, requiresNote: pr.requiresNote })
+  }
 
   const res = await createDocumentRequest({
     studentId, documentTypeId: b.document_type_id, programId: b.program_id || null, requestedBy: 'student',

@@ -10,6 +10,41 @@ export interface CreateRequestResult {
   document_url?: string | null; error?: string; code?: number
 }
 
+export interface PreviewRequestResult {
+  ok: boolean; error?: string; code?: number
+  checks?: ReqCheck[]; blocked?: boolean; price?: number; currency?: string; requiresNote?: boolean
+}
+
+// Valida alcance y requisitos SIN crear nada (para mostrarlos al estudiante
+// antes de solicitar). No inserta cargos ni solicitudes.
+export async function previewDocumentRequest(opts: {
+  studentId: string; documentTypeId: string; programId: string | null
+}): Promise<PreviewRequestResult> {
+  const sb = db()
+  const { data: type } = await sb.from('document_types').select('*').eq('id', opts.documentTypeId).maybeSingle()
+  if (!type) return { ok: false, error: 'Tipo de documento no encontrado', code: 404 }
+  if (type.active === false) return { ok: false, error: 'Este documento no está disponible', code: 400 }
+
+  const programId = opts.programId || null
+  const progScope: string[] = Array.isArray(type.scope_program_ids) ? type.scope_program_ids : []
+  const catScope: string[] = Array.isArray(type.scope_category_ids) ? [...type.scope_category_ids] : []
+  if (type.scope_category_id && !catScope.includes(type.scope_category_id)) catScope.push(type.scope_category_id)
+  if (progScope.length > 0) {
+    if (!programId || !progScope.includes(programId)) return { ok: false, error: 'Este documento no está disponible para el programa seleccionado', code: 400 }
+  } else if (catScope.length > 0) {
+    let catOk = false
+    if (programId) {
+      const { data: prog } = await sb.from('academic_programs').select('category_id').eq('id', programId).maybeSingle()
+      catOk = !!prog?.category_id && catScope.includes(String(prog.category_id))
+    }
+    if (!catOk) return { ok: false, error: 'Este documento no está disponible para la categoría del programa seleccionado', code: 400 }
+  }
+
+  const checks = await checkRequirements(opts.studentId, programId, type.requirements ?? [])
+  const blocked = hasBlockingFailure(checks)
+  return { ok: true, checks, blocked, price: Number(type.price) || 0, currency: type.currency ?? 'USD', requiresNote: !!type.request_note_label }
+}
+
 // Crea una solicitud de documento (usada por el portal admin y el estudiantil):
 // valida alcance, verifica requisitos, crea el cargo si tiene costo, y auto-emite
 // si es gratuito, sin etapas y con SimpleCert configurado.

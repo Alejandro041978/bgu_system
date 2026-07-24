@@ -33,6 +33,10 @@ export function StudentDocuments() {
   const [creating, setCreating] = useState(false)
   const [note, setNote] = useState('')
   const [result, setResult] = useState<{ status: string; checks: ReqCheck[]; blocked: boolean } | null>(null)
+  // Preview de requisitos/costo al seleccionar el documento (sin crear nada)
+  const [preview, setPreview] = useState<{ checks: ReqCheck[]; blocked: boolean; price: number; currency: string } | null>(null)
+  const [previewing, setPreviewing] = useState(false)
+  const [confirming, setConfirming] = useState(false)
 
   const load = useCallback(async () => {
     const d = await fetch('/api/student/documents').then(r => r.json())
@@ -54,6 +58,36 @@ export function StudentDocuments() {
   const selectedType = availableTypes.find(x => x.id === typeId)
   const noteMissing = !!selectedType?.request_note_label && !note.trim()
 
+  // Al elegir documento (o cambiar programa/nota): verifica requisitos y costo
+  // sin crear la solicitud, para mostrar el estado y habilitar/deshabilitar el botón.
+  useEffect(() => {
+    setPreview(null); setConfirming(false); setResult(null)
+    if (!typeId) return
+    let cancelled = false
+    setPreviewing(true)
+    fetch('/api/student/documents', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preview: true, document_type_id: typeId, program_id: programId || null }),
+    }).then(r => r.json()).then(d => {
+      if (cancelled) return
+      if (d.error) setPreview({ checks: [{ kind: 'error', ok: false, note: d.error }], blocked: true, price: 0, currency: 'USD' })
+      else setPreview({ checks: d.checks ?? [], blocked: !!d.blocked, price: Number(d.price) || 0, currency: d.currency ?? 'USD' })
+    }).catch(() => { if (!cancelled) setPreview(null) })
+      .finally(() => { if (!cancelled) setPreviewing(false) })
+    return () => { cancelled = true }
+  }, [typeId, programId])
+
+  // Botón habilitado solo si: hay documento, la nota (si aplica) está completa,
+  // el preview cargó y NO está bloqueado por requisitos.
+  const canSubmit = !!typeId && !noteMissing && !previewing && !!preview && !preview.blocked
+
+  function onSolicitarClick() {
+    if (!canSubmit || creating) return
+    // Con costo: pide confirmación (se cargará una cuota). Gratuito: directo.
+    if ((preview?.price ?? 0) > 0) setConfirming(true)
+    else create()
+  }
+
   async function create() {
     if (!typeId || noteMissing) return
     setCreating(true); setResult(null)
@@ -61,7 +95,7 @@ export function StudentDocuments() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ document_type_id: typeId, program_id: programId || null, request_note: note.trim() || null }),
     }).then(r => r.json())
-    setCreating(false)
+    setCreating(false); setConfirming(false)
     if (d.error) { setResult({ status: 'rejected', checks: [{ kind: 'error', ok: false, note: d.error }], blocked: true }); return }
     setResult({ status: d.status, checks: d.checks ?? [], blocked: d.blocked })
     load()
@@ -126,6 +160,42 @@ export function StudentDocuments() {
             </div>
           )}
 
+          {/* Requisitos y costo del documento seleccionado (antes de solicitar) */}
+          {previewing && <p className="text-xs text-gray-400">Verificando requisitos…</p>}
+          {preview && !result && (
+            <div className={`text-xs rounded-lg px-3 py-2 space-y-0.5 border ${preview.blocked ? 'bg-red-50 border-red-100 text-red-700' : 'bg-gray-50 border-gray-100 text-gray-600'}`}>
+              <p className="font-medium text-gray-700">Requisitos</p>
+              {preview.checks.length === 0
+                ? <p>Sin requisitos especiales para este documento.</p>
+                : preview.checks.map((c, i) => (
+                    <div key={i} className={c.ok === true ? 'text-green-700' : c.ok === false ? 'text-red-700' : 'text-gray-500'}>
+                      {c.ok === true ? '✓' : c.ok === false ? '✗' : '○'} {c.note}
+                    </div>
+                  ))}
+              {preview.blocked
+                ? <p className="font-medium text-red-700 pt-1">No cumples los requisitos para solicitar este documento.</p>
+                : preview.price > 0
+                  ? <p className="pt-1">Costo: <strong>{preview.currency} {preview.price.toFixed(2)}</strong> — se cargará una cuota al solicitar.</p>
+                  : <p className="pt-1">Documento gratuito.</p>}
+            </div>
+          )}
+
+          {/* Advertencia + confirmación: se generará una cuota por pagar */}
+          {confirming && preview && !result && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 space-y-2">
+              <p className="font-medium">⚠️ Se generará una cuota por pagar</p>
+              <p>Al solicitar este documento se cargará una cuota de <strong>{preview.currency} {preview.price.toFixed(2)}</strong> en tu estado de cuenta. El documento se emite una vez que la pagues. ¿Deseas continuar?</p>
+              <div className="flex gap-2 pt-0.5">
+                <button onClick={create} disabled={creating}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+                  {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}Confirmar solicitud
+                </button>
+                <button onClick={() => setConfirming(false)} disabled={creating}
+                  className="px-3 py-1.5 font-medium rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-50">Cancelar</button>
+              </div>
+            </div>
+          )}
+
           {result && (
             <div className={`text-xs rounded-lg px-3 py-2 ${result.blocked ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
               <p className="font-medium">{result.blocked ? 'No se pudo procesar' : STATUS[result.status]?.label ?? result.status}</p>
@@ -134,9 +204,11 @@ export function StudentDocuments() {
             </div>
           )}
 
-          <button onClick={create} disabled={!typeId || creating || noteMissing} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
-            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}Solicitar
-          </button>
+          {!confirming && !result && (
+            <button onClick={onSolicitarClick} disabled={!canSubmit || creating} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}Solicitar
+            </button>
+          )}
         </div>
       )}
 
