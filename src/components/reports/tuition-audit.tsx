@@ -8,6 +8,7 @@ interface Row {
   student_id: string; student_name: string; document_number: string | null
   program_name: string | null; sigla: string | null
   list_price: number; transfer_savings: number; scholarship_pct: number | null; beca: number
+  bonus_pct: number | null; bonus: number
   expected_tuition: number; billed_tuition: number; diff: number
 }
 
@@ -63,6 +64,7 @@ export function TuitionAudit() {
                 <th className="px-4 py-2 text-right">Lista</th>
                 <th className="px-4 py-2 text-right">Ahorro TC</th>
                 <th className="px-4 py-2 text-right">Beca</th>
+                <th className="px-4 py-2 text-right">Bonus</th>
                 <th className="px-4 py-2 text-right">Tuition esperado</th>
                 <th className="px-4 py-2 text-right">Tuition facturado</th>
                 <th className="px-4 py-2 text-right">Desviación</th>
@@ -80,6 +82,7 @@ export function TuitionAudit() {
                   <td className="px-4 py-2 text-right tabular-nums text-gray-500">{money(r.list_price)}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-teal-700">{r.transfer_savings > 0 ? money(r.transfer_savings) : '—'}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-violet-700">{r.beca > 0 ? `${money(r.beca)} (${r.scholarship_pct}%)` : '—'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-emerald-700">{r.bonus > 0 ? `${money(r.bonus)} (${r.bonus_pct}%)` : '—'}</td>
                   <td className="px-4 py-2 text-right tabular-nums font-medium">{money(r.expected_tuition)}</td>
                   <td className="px-4 py-2 text-right tabular-nums">{money(r.billed_tuition)}</td>
                   <td className={`px-4 py-2 text-right tabular-nums font-semibold ${r.diff > 0 ? 'text-amber-600' : 'text-red-600'}`}>
@@ -94,15 +97,15 @@ export function TuitionAudit() {
                 </tr>
               ))}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={9} className="px-4 py-10 text-center text-xs text-gray-400">
-                  🎉 Sin desviaciones: el Tuition facturado de todas las matrículas auditadas coincide con lista − ahorro − beca.
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-xs text-gray-400">
+                  🎉 Sin desviaciones: el Tuition facturado de todas las matrículas auditadas coincide con lista − ahorro − beca − bonus.
                 </td></tr>
               )}
             </tbody>
           </table>
         </div>
         <p className="px-4 py-2 text-[11px] text-gray-400 border-t border-gray-100">
-          Tuition esperado = precio oficial − Transfer Credit Savings − beca. Se compara contra la suma de cuotas
+          Tuition esperado = precio oficial − Transfer Credit Savings − beca − bonus (el bono se aplica sobre lo que resta tras la beca). Se compara contra la suma de cuotas
           de concepto Tuition. Tolerancia ±$0.50. Solo se auditan matrículas con precio de lista congelado.
           Desviación positiva = se facturó de más; negativa = de menos.
         </p>

@@ -34,13 +34,15 @@ export async function GET(req: NextRequest) {
   const sb = db()
   const categoryFilter = req.nextUrl.searchParams.get('category')
 
-  const [cats, progs, enrs, students, concepts, scholarships, tcs, tcItems] = await Promise.all([
+  const [cats, progs, enrs, students, concepts, scholarships, bonuses, tcs, tcItems] = await Promise.all([
     fetchAll(sb, 'academic_programs_category', 'id, name, sigla'),
     fetchAll(sb, 'academic_programs', 'id, name, category_id'),
     fetchAll(sb, 'academic_student_enrollments', 'id, student_id, program_id, list_price, credit_rate'),
     fetchAll(sb, 'academic_students', 'id, first_name, last_name, second_last_name, document_number'),
     fetchAll(sb, 'account_concepts', 'type_code, abbr, name'),
     fetchAll(sb, 'scholarships', 'enrollment_id, percentage, revoked_at'),
+    // El bono puede no existir aún (tabla sin migrar): no romper la auditoría.
+    fetchAll(sb, 'bonuses', 'enrollment_id, percentage').catch(() => []),
     fetchAll(sb, 'transfer_credits', 'id, student_id, dest_program_id'),
     fetchAll(sb, 'transfer_credit_items', 'transfer_credit_id, dest_course_id'),
   ])
@@ -76,6 +78,8 @@ export async function GET(req: NextRequest) {
 
   const pctByEnr = new Map<string, number>()
   for (const s of scholarships) if (!s.revoked_at) pctByEnr.set(String(s.enrollment_id), Number(s.percentage))
+  const bonusPctByEnr = new Map<string, number>()
+  for (const b of bonuses) bonusPctByEnr.set(String(b.enrollment_id), Number(b.percentage))
 
   const stuById = new Map(students.map(s => [String(s.id), s]))
   const progById = new Map(progs.map(p => [String(p.id), p]))
@@ -95,7 +99,11 @@ export async function GET(req: NextRequest) {
     const savings = e.credit_rate != null ? r2(cr * Number(e.credit_rate)) : 0
     const pct = pctByEnr.get(String(e.id)) ?? 0
     const beca = r2(Math.max(0, lista - savings) * pct / 100)
-    const esperado = r2(lista - savings - beca)
+    // El bono se aplica sobre lo que resta DESPUÉS de la beca
+    const afterBeca = r2(lista - savings - beca)
+    const bonusPct = bonusPctByEnr.get(String(e.id)) ?? 0
+    const bonus = r2(afterBeca * bonusPct / 100)
+    const esperado = r2(afterBeca - bonus)
     const facturado = r2(tuitionByEnr.get(String(e.id)) ?? 0)
     const diff = r2(facturado - esperado)
     if (Math.abs(diff) <= 0.5) continue
@@ -109,6 +117,7 @@ export async function GET(req: NextRequest) {
       category_id: prog?.category_id ?? null,
       sigla: catById.get(String(prog?.category_id))?.sigla ?? null,
       list_price: lista, transfer_savings: savings, scholarship_pct: pct || null, beca,
+      bonus_pct: bonusPct || null, bonus,
       expected_tuition: esperado, billed_tuition: facturado, diff,
     })
   }
