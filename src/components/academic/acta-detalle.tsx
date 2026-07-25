@@ -70,7 +70,7 @@ export function ActaDetalle() {
   async function editGrade(d: Detail) {
     const cur = d.retake_grade ?? d.final_grade
     const v = prompt(
-      `Nota final de "${d.course_name ?? ''}" (importada de SystemActiva).\n\nEscribe la nueva nota, o déjalo VACÍO para borrarla (así podrás retirar la asignatura en Registro Curricular):`,
+      `Nota final de "${d.course_name ?? ''}" (importada de SystemActiva).\n\nEscribe la nueva nota final, o déjalo VACÍO para borrar TODAS las notas del curso (final + parciales) y poder retirarlo en Registro Curricular:`,
       cur != null ? String(cur) : '')
     if (v === null) return
     const final_grade = v.trim() === '' ? null : Number(v.trim())

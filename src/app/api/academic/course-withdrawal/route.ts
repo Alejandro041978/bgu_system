@@ -52,14 +52,25 @@ export async function GET(req: NextRequest) {
     .select('external_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id')
     .eq('document_number', student.document_number).neq('source', 'convalidacion').neq('source', 'validacion')
 
+  // Parciales del Acta Detallada (misma inscripción por external_id): una
+  // asignatura con evaluaciones con valor TAMBIÉN tiene notas (no solo la final).
+  const { data: dets } = await sb.from('academic_grade_details')
+    .select('external_id, grades, process_grades, makeup_grade').eq('student_id', studentId)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hasSlot = (arr: any) => Array.isArray(arr) && arr.some((s: any) => s && s.val != null)
+  const partialsByExt = new Map<string, boolean>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const d of (dets ?? []) as any[]) partialsByExt.set(String(d.external_id), hasSlot(d.grades) || hasSlot(d.process_grades) || d.makeup_grade != null)
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = ((grades ?? []) as any[]).filter(belongs).map(g => {
     const st = gradeStatus(g, categoryPassing)
+    const has_grade = st.has_grade || (partialsByExt.get(String(g.external_id)) ?? false)
     return {
       external_id: g.external_id, course_code: g.course_code, course_name: g.course_name,
       credits: g.credits != null ? Number(g.credits) : null,
       term: [g.term_year, g.term_block].filter(Boolean).join(' · '),
-      ...st, withdrawn: !!g.withdrawn_at,
+      status: st.status, grade: st.grade, has_grade, withdrawn: !!g.withdrawn_at,
       // Solo se editan/borran notas importadas de SystemActiva (no las de Moodle)
       editable: g.source === 'systemactiva' && !g.moodle_course_id,
       final_grade: g.final_grade, retake_grade: g.retake_grade,
@@ -109,8 +120,13 @@ export async function PATCH(req: NextRequest) {
   const patch = { final_grade: fg, retake_grade: null, edited_at: new Date().toISOString(), edited_by: user.id }
   const { error } = await sb.from('academic_grades').update(patch).eq('external_id', b.external_id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  // Reflejar en el Acta Detallada (misma inscripción por external_id)
-  await sb.from('academic_grade_details').update({ final_grade: fg, retake_grade: null }).eq('external_id', b.external_id).then(() => null, () => null)
+  // Reflejar en el Acta Detallada (misma inscripción por external_id). Al BORRAR
+  // (fg=null) se limpia TODO el curso — final, recuperación, subsanación, puntos
+  // extra y las evaluaciones parciales — para que no queden notas colgando.
+  const detailPatch = fg === null
+    ? { final_grade: null, retake_grade: null, makeup_grade: null, extra_points: null, grades: [], process_grades: [] }
+    : { final_grade: fg, retake_grade: null }
+  await sb.from('academic_grade_details').update(detailPatch).eq('external_id', b.external_id).then(() => null, () => null)
 
   return NextResponse.json({ ok: true, final_grade: fg, cleared: fg === null })
 }
@@ -129,9 +145,17 @@ export async function POST(req: NextRequest) {
   if (!g) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
   if (g.source === 'convalidacion' || g.source === 'validacion') return NextResponse.json({ error: 'Una convalidación/validación no se retira aquí' }, { status: 400 })
   if (g.withdrawn_at) return NextResponse.json({ error: 'Esta asignatura ya está retirada' }, { status: 409 })
-  // Compuerta: solo si NO hay calificaciones
+  // Compuerta: solo si NO hay calificaciones — ni final/recuperación...
   if (g.final_grade != null || g.retake_grade != null) {
-    return NextResponse.json({ error: 'No se puede retirar: la asignatura ya tiene calificaciones' }, { status: 409 })
+    return NextResponse.json({ error: 'No se puede retirar: la asignatura ya tiene calificaciones. Bórralas con "Editar nota" (vacío) primero.' }, { status: 409 })
+  }
+  // ...ni parciales con valor en el Acta Detallada (evaluaciones, subsanación).
+  const { data: det } = await sb.from('academic_grade_details')
+    .select('grades, process_grades, makeup_grade').eq('external_id', b.external_id).maybeSingle()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hasSlot = (arr: any) => Array.isArray(arr) && arr.some((s: any) => s && s.val != null)
+  if (det && (hasSlot(det.grades) || hasSlot(det.process_grades) || det.makeup_grade != null)) {
+    return NextResponse.json({ error: 'No se puede retirar: la asignatura tiene evaluaciones/parciales con nota. Bórralas con "Editar nota" (vacío) primero.' }, { status: 409 })
   }
   // La inscripción debe ser del estudiante indicado
   const { data: stu } = await sb.from('academic_students').select('document_number').eq('id', b.student_id).maybeSingle()

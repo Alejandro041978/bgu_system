@@ -71,7 +71,7 @@ export function CurricularRecord() {
     if (!student) return
     const cur = r.retake_grade ?? r.final_grade
     const v = prompt(
-      `Nota de "${r.course_name}" (importada de SystemActiva).\n\nEscribe la nueva nota, o déjalo VACÍO para borrarla y poder retirar la asignatura:`,
+      `Nota de "${r.course_name}" (importada de SystemActiva).\n\nEscribe la nueva nota final, o déjalo VACÍO para borrar TODAS las notas del curso (final + parciales) y poder retirarlo:`,
       cur != null ? String(cur) : '')
     if (v === null) return
     const final_grade = v.trim() === '' ? null : Number(v.trim())
