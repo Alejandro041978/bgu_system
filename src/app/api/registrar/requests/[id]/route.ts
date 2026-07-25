@@ -27,44 +27,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { data: type } = await sb.from('document_types').select('stages, is_final_degree').eq('id', r.document_type_id).maybeSingle()
   const stagesCount = (type?.stages ?? []).length
 
+  // El pago NO se registra manualmente: llega solo por importación de Flywire
+  // (pagos-conciliar → maybeMarkDocumentPaid avanza la solicitud automáticamente).
   if (action === 'pay') {
-    if (r.paid) return NextResponse.json({ error: 'Ya está pagada' }, { status: 400 })
-    // Registra el pago del cargo asociado (si existe) para reflejarlo en el estado de cuenta.
-    if (r.charge_external_id) {
-      const { data: ch } = await sb.from('account_charges').select('amount, student_id').eq('external_id', r.charge_external_id).maybeSingle()
-      if (ch) {
-        await sb.from('account_payments').insert({
-          external_id: crypto.randomUUID(), charge_external_id: r.charge_external_id,
-          student_id: ch.student_id, amount: ch.amount, paid_date: new Date().toISOString().slice(0, 10),
-          transaction_reference: `Solicitud ${String(id).slice(0, 8).toUpperCase()}`,
-        })
-      }
-    }
-    const status = stagesCount > 0 ? 'in_progress' : 'ready'
-    const { error } = await sb.from('document_requests').update({ paid: true, status, updated_at: new Date().toISOString() }).eq('id', id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-    // Título final pagado → nace su expediente en la Hoja de Control de
-    // Degrees (código correlativo + datos de entrega precargados del perfil).
-    if (type?.is_final_degree && r.student_id) {
-      try {
-        const { data: existe } = await sb.from('degree_files')
-          .select('id').eq('student_id', r.student_id).eq('program_id', r.program_id ?? null).maybeSingle()
-        if (!existe) {
-          const { data: stu } = await sb.from('academic_students')
-            .select('first_name, last_name, second_last_name, phone_number, city, country').eq('id', r.student_id).maybeSingle()
-          const { data: last } = await sb.from('degree_files')
-            .select('doc_code').not('doc_code', 'is', null).order('doc_code', { ascending: false }).limit(1).maybeSingle()
-          await sb.from('degree_files').insert({
-            student_id: r.student_id, program_id: r.program_id ?? null, document_request_id: id,
-            doc_code: String((Number(last?.doc_code ?? 0) || 0) + 1).padStart(6, '0'),
-            receiver_name: stu ? [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' ') : null,
-            receiver_phone: stu?.phone_number ?? null, receiver_city: stu?.city ?? null, receiver_country: stu?.country ?? null,
-          })
-        }
-      } catch { /* la Hoja puede crearse a mano si esto falla */ }
-    }
-    return NextResponse.json({ ok: true, status })
+    return NextResponse.json({ error: 'El pago no se registra manualmente: se concilia al importar Flywire' }, { status: 400 })
   }
 
   if (action === 'stage') {

@@ -32,7 +32,7 @@ const ACTIONABLE = ['payment', 'in_progress', 'ready']
 
 // ¿Qué acción exacta espera de la ejecutiva?
 function accionDe(r: Request): string {
-  if (r.status === 'payment') return 'Registrar pago'
+  if (r.status === 'payment') return 'Esperando pago'
   if (r.status === 'ready') return 'Emitir documento'
   if (r.status === 'in_progress') {
     const s = r.stages?.[r.stage_index]
@@ -430,11 +430,13 @@ function RequestRow({ r, expanded, onToggle, onChanged, onRemove, deleting, band
                 </div>
               )}
 
-              {/* Acción según estado */}
+              {/* Acción según estado. El pago NO se registra manualmente: llega
+                  solo por la importación de Flywire y avanza la solicitud sola. */}
               {r.status === 'payment' && (
-                <button onClick={() => act('pay')} disabled={busy === 'pay'} className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white">
-                  {busy === 'pay' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}Registrar pago ({r.currency} {Number(r.price).toFixed(2)})
-                </button>
+                <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <Clock className="w-3.5 h-3.5" />
+                  Esperando el pago de {r.currency} {Number(r.price).toFixed(2)} — se registra automáticamente al importar Flywire (no se registra a mano).
+                </div>
               )}
 
               {r.status === 'in_progress' && currentStage && (

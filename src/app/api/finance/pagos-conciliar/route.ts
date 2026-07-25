@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 import { maybeMarkExamPaid } from '@/lib/exam-requests'
+import { maybeMarkDocumentPaid } from '@/lib/document-request'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchByIn } from '@/lib/grades-write'
@@ -257,6 +258,8 @@ export async function PATCH(req: NextRequest) {
       activated = await maybeActivateOnPayment(chargeExt).catch(() => null)
       // Gate de exámenes: si era el cargo de un examen, pasa a la Hoja de Control
       await maybeMarkExamPaid(chargeExt).catch(() => null)
+      // Gate de documentos: si era el cargo de una solicitud, la marca pagada y avanza
+      await maybeMarkDocumentPaid(chargeExt).catch(() => null)
     }
     return NextResponse.json({ ok: true, linked: !!chargeExt, activated: activated?.ok ?? false })
   }
@@ -312,5 +315,7 @@ export async function PATCH(req: NextRequest) {
   const activated = await maybeActivateOnPayment(b.charge_external_id).catch(() => null)
   // Gate de exámenes: si era el cargo de un examen, pasa a la Hoja de Control
   await maybeMarkExamPaid(b.charge_external_id).catch(() => null)
+  // Gate de documentos: si era el cargo de una solicitud, la marca pagada y avanza
+  await maybeMarkDocumentPaid(b.charge_external_id).catch(() => null)
   return NextResponse.json({ ok: true, activated: activated?.ok ?? false })
 }

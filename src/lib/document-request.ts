@@ -10,6 +10,50 @@ export interface CreateRequestResult {
   document_url?: string | null; error?: string; code?: number
 }
 
+// Gatillo de pago: si la cuota saldada pertenece a una solicitud de documento
+// en estado 'payment', la marca pagada y avanza su estado (in_progress con
+// etapas, o ready). Los pagos SOLO llegan por importación de Flywire — nunca
+// manualmente; por eso este gatillo NO inserta el pago (ya existe).
+export async function maybeMarkDocumentPaid(chargeExternalId: string): Promise<boolean> {
+  const sb = db()
+  const { data: r } = await sb.from('document_requests')
+    .select('id, charge_external_id, document_type_id, student_id, program_id')
+    .eq('charge_external_id', chargeExternalId).eq('status', 'payment').maybeSingle()
+  if (!r) return false
+
+  // ¿Cuota saldada?
+  const { data: charge } = await sb.from('account_charges').select('amount').eq('external_id', chargeExternalId).maybeSingle()
+  const { data: pays } = await sb.from('account_payments').select('amount').eq('charge_external_id', chargeExternalId)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pagado = ((pays ?? []) as any[]).reduce((s, p) => s + Number(p.amount ?? 0), 0)
+  if (pagado < Number(charge?.amount ?? 0) - 0.01) return false
+
+  const { data: type } = await sb.from('document_types').select('stages, is_final_degree').eq('id', r.document_type_id).maybeSingle()
+  const status = (type?.stages ?? []).length > 0 ? 'in_progress' : 'ready'
+  await sb.from('document_requests').update({ paid: true, status, updated_at: new Date().toISOString() }).eq('id', r.id)
+
+  // Título final pagado → nace su expediente en la Hoja de Control de Degrees.
+  if (type?.is_final_degree && r.student_id) {
+    try {
+      const { data: existe } = await sb.from('degree_files')
+        .select('id').eq('student_id', r.student_id).eq('program_id', r.program_id ?? null).maybeSingle()
+      if (!existe) {
+        const { data: stu } = await sb.from('academic_students')
+          .select('first_name, last_name, second_last_name, phone_number, city, country').eq('id', r.student_id).maybeSingle()
+        const { data: last } = await sb.from('degree_files')
+          .select('doc_code').not('doc_code', 'is', null).order('doc_code', { ascending: false }).limit(1).maybeSingle()
+        await sb.from('degree_files').insert({
+          student_id: r.student_id, program_id: r.program_id ?? null, document_request_id: r.id,
+          doc_code: String((Number(last?.doc_code ?? 0) || 0) + 1).padStart(6, '0'),
+          receiver_name: stu ? [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' ') : null,
+          receiver_phone: stu?.phone_number ?? null, receiver_city: stu?.city ?? null, receiver_country: stu?.country ?? null,
+        })
+      }
+    } catch { /* la Hoja puede crearse a mano si esto falla */ }
+  }
+  return true
+}
+
 export interface PreviewRequestResult {
   ok: boolean; error?: string; code?: number
   checks?: ReqCheck[]; blocked?: boolean; price?: number; currency?: string; requiresNote?: boolean

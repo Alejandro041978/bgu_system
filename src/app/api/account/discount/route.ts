@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { isSuperadmin, isStudentUser } from '@/lib/student-identity'
 import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 import { maybeMarkExamPaid } from '@/lib/exam-requests'
+import { maybeMarkDocumentPaid } from '@/lib/document-request'
 
 export const revalidate = 0
 
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
   // (activación de matrícula por concepto inicial, examen a la Hoja de Control)
   await maybeActivateOnPayment(b.charge_external_id).catch(() => null)
   await maybeMarkExamPaid(b.charge_external_id).catch(() => null)
+  await maybeMarkDocumentPaid(b.charge_external_id).catch(() => null)
 
   return NextResponse.json({ ok: true, code, amount, saldo_restante: Math.round((saldo - amount) * 100) / 100 })
 }
