@@ -230,7 +230,7 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
                             <Pencil className="w-3 h-3" />
                           </button>
                         )}
-                        {canGenerate && (
+                        {canGenerate && p.deletable && (
                           <button
                             onClick={async () => {
                               if (!confirm(`¿Borrar este pago de ${money(p.amount)} (${p.transaction_reference ?? 'sin referencia'})? Se usa para quitar pagos heredados de SystemActiva. Esta acción no se puede deshacer.`)) return

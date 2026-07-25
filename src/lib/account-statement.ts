@@ -27,6 +27,9 @@ export interface PaymentRow {
   transaction_reference: string | null
   payment_type: number | null
   is_discount: boolean
+  // Solo los pagos legacy de SystemActiva (sin confirmación Flywire ni Books)
+  // se pueden borrar para reemplazarlos por el camino correcto.
+  deletable: boolean
 }
 
 export interface Totals { charged: number; paid: number; discounts: number; balance: number; overdue: number }
@@ -144,7 +147,7 @@ export async function getAccountStatement(
       .select('id, external_id, enrollment_id, amount, due_date, charge_type, reference, convocatorias(name)')
       .eq('student_id', student.id),
     sb.from('account_payments')
-      .select('id, amount, paid_date, receipt_number, transaction_reference, payment_type, charge_external_id, series_code')
+      .select('id, amount, paid_date, receipt_number, transaction_reference, payment_type, charge_external_id, series_code, flywire_payment_id')
       .eq('student_id', student.id),
   ])
   // Defensa: si aún no se corrió account_charges_reference.sql, reintentar sin
@@ -227,10 +230,13 @@ export async function getAccountStatement(
     const g = groupFor(enr)
     const amount = Number(p.amount ?? 0)
     const esDescuento = p.series_code === 'DESCUENTO'
+    // Borrable = legacy SystemActiva sin respaldo: no FLYWIRE/BOOKS, sin
+    // flywire_payment_id (no confirmado por Flywire) y no es un descuento.
+    const deletable = !esDescuento && p.series_code !== 'FLYWIRE' && p.series_code !== 'BOOKS' && !p.flywire_payment_id
     g.payments.push({
       id: p.id, charge_external_id: p.charge_external_id ?? null, amount, paid_date: p.paid_date,
       receipt_number: p.receipt_number, transaction_reference: p.transaction_reference, payment_type: p.payment_type,
-      is_discount: esDescuento,
+      is_discount: esDescuento, deletable,
     })
     if (esDescuento) g.totals.discounts += amount
     else g.totals.paid += amount

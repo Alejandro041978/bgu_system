@@ -36,6 +36,14 @@ export async function DELETE(req: NextRequest) {
   if (!b?.id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
   const sb = db()
 
+  // Solo se borran pagos LEGACY de SystemActiva (sin respaldo). Un pago
+  // confirmado por Flywire o creado por Books NO se borra desde aquí.
+  const { data: pay } = await sb.from('account_payments').select('series_code, flywire_payment_id').eq('id', b.id).maybeSingle()
+  if (!pay) return NextResponse.json({ error: 'Pago no encontrado' }, { status: 404 })
+  if (pay.series_code === 'FLYWIRE' || pay.series_code === 'BOOKS' || pay.flywire_payment_id) {
+    return NextResponse.json({ error: 'Este pago está respaldado por Flywire o Books: no se puede borrar (solo los heredados de SystemActiva)' }, { status: 409 })
+  }
+
   // Si este pago fue una asociación de Books, libera la operación de Books
   const { data: op } = await sb.from('books_operations').select('id').eq('associated_payment_id', b.id).maybeSingle()
   if (op) {
