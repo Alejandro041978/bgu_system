@@ -10,7 +10,7 @@ interface Op {
   gestion_status: string; gestion_note: string | null; gestion_by: string | null
 }
 interface Disb { id: string; disbursement_id: string; disbursement_date: string | null; amount: number; currency: string | null; matched_operation_id: string | null }
-interface DisbRow { disbursement_id: string; date: string | null; amount: number; currency: string | null }
+interface DisbRow { disbursement_id: string; date: string | null; amount: number; currency: string | null; count: number | null }
 interface Preview { total: number; matched: number; unmatched: number; sample: { disbursement_id: string; date: string | null; amount: number; cruza: boolean }[]; cols: string }
 
 const money = (n: number | null) => n == null ? '—' : `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
@@ -28,14 +28,23 @@ function parseCsv(text: string): string[][] {
   })
 }
 const num = (s: string) => Number(String(s ?? '').replace(/[^\d.-]/g, '')) || 0
+// DD/MM/YYYY → YYYY-MM-DD (el reporte de Flywire viene en formato peruano)
+function toIso(s: string): string | null {
+  const raw = String(s ?? '').trim()
+  const m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+  return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : (raw || null)
+}
 // Detección flexible de columnas del reporte de desembolsos de Flywire
+// (incluye los encabezados en español: fecha, codigo, cantidad, monto).
 function detectCols(header: string[]) {
   const find = (cands: string[]) => header.findIndex(h => cands.some(c => h.toLowerCase().includes(c)))
   return {
-    id: find(['disbursement id', 'payout id', 'settlement id', 'disbursement', 'payout', 'settlement', 'reference', 'id']),
-    date: find(['disbursement date', 'payout date', 'value date', 'settlement date', 'date', 'fecha']),
-    amount: find(['disbursement amount', 'net amount', 'payout amount', 'amount', 'importe', 'total', 'net']),
+    id: find(['disbursement id', 'payout id', 'settlement id', 'disbursement', 'payout', 'settlement', 'codigo', 'código', 'code', 'reference', 'id']),
+    date: find(['disbursement date', 'payout date', 'value date', 'settlement date', 'fecha', 'date']),
+    amount: find(['disbursement amount', 'net amount', 'payout amount', 'monto', 'importe', 'amount', 'total', 'net']),
     currency: find(['currency', 'moneda']),
+    count: find(['cantidad', 'count', 'payments', 'transfers']),
   }
 }
 
@@ -101,8 +110,9 @@ export function BooksOperations() {
     const c = detectCols(header)
     if (c.amount < 0 || c.id < 0) { setError(`No pude detectar las columnas (id / monto). Encabezados: ${header.join(' | ')}`); return }
     const drows: DisbRow[] = rows.slice(1).map(r => ({
-      disbursement_id: r[c.id] ?? '', date: c.date >= 0 ? (r[c.date] || null) : null,
+      disbursement_id: r[c.id] ?? '', date: c.date >= 0 ? toIso(r[c.date]) : null,
       amount: num(r[c.amount]), currency: c.currency >= 0 ? (r[c.currency] || null) : null,
+      count: c.count >= 0 ? (num(r[c.count]) || null) : null,
     })).filter(r => r.disbursement_id && r.amount)
     setParsed(drows)
     // Preview (sin escribir)
