@@ -163,10 +163,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'La inscripción no pertenece a ese estudiante' }, { status: 400 })
   }
 
-  // Marcar retirada
+  // Marcar retirada. OJO: el trigger protect_edited_grades rechaza cualquier
+  // update de una fila con edited_at si el update NO cambia edited_at (para que
+  // el sync no pise correcciones). Como al borrar la nota se escribió edited_at,
+  // hay que bumpearlo aquí también, si no el withdrawn_at se bloquea en silencio.
+  const now = new Date().toISOString()
   const { error: wErr } = await sb.from('academic_grades')
-    .update({ withdrawn_at: new Date().toISOString(), withdrawn_by: user.email ?? user.id }).eq('external_id', b.external_id)
+    .update({ withdrawn_at: now, withdrawn_by: user.email ?? user.id, edited_at: now, edited_by: user.id }).eq('external_id', b.external_id)
   if (wErr) return NextResponse.json({ error: 'Falta correr course_withdrawal.sql: ' + wErr.message }, { status: 400 })
+  // Verifica que realmente se marcó (por si el trigger u otra regla lo bloqueó)
+  const { data: check } = await sb.from('academic_grades').select('withdrawn_at').eq('external_id', b.external_id).maybeSingle()
+  if (!check?.withdrawn_at) return NextResponse.json({ error: 'No se pudo marcar el retiro (regla de protección). Reporta este caso.' }, { status: 409 })
 
   // Recalcular Total Tuition: bajar list_price por tarifa × créditos
   const { data: enr } = await sb.from('academic_student_enrollments')
