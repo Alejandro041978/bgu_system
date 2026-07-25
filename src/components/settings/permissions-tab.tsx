@@ -123,6 +123,7 @@ const PAGE_GROUPS = [
       { key: 'finance_recaudacion', label: 'Finanzas · Recaudación' },
       { key: 'finance_flywire_import', label: 'Finanzas · Cargar Pagos Flywire' },
       { key: 'finance_conciliar', label: 'Finanzas · Pagos por Conciliar' },
+      { key: 'finance_reconciliation', label: 'Finanzas · Auditor de Conciliación' },
       { key: 'finance_other_income', label: 'Finanzas · Otros Ingresos' },
       { key: 'finance_debt_report', label: 'Finanzas · Reporte de Deuda' },
       { key: 'finance_credit_rates', label: 'Finanzas · Credit Rate' },
