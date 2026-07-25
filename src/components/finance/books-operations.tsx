@@ -241,6 +241,7 @@ export function BooksOperations() {
           <select value={status} onChange={e => setStatus(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
             <option value="">Todos</option>
             <option value="pendiente">Pendiente</option>
+            <option value="asociada">Asociada (a cuota)</option>
             <option value="conciliada">Conciliada (desembolso)</option>
             <option value="gestionada">Gestionada</option>
           </select>
