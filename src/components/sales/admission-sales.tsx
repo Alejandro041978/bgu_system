@@ -17,25 +17,24 @@ interface Cat { id: string; name: string; sigla: string | null }
 
 const money = (n: number) => `$${Number(n).toFixed(2)}`
 
-// El nombre de la convocatoria es "Categoría · AY XX-XX TERM AAAA · Lx".
-// De ahí se derivan los selectores de categoría y año académico.
-function parseConvName(name: string): { category: string; academicYear: string } {
-  const segs = name.split('·').map(s => s.trim()).filter(Boolean)
-  const category = segs[0] ?? '—'
-  const academicYear = name.match(/AY\s*\d{2}-\d{2}/i)?.[0].replace(/\s+/g, ' ').toUpperCase() ?? (segs[1] ?? '—')
-  return { category, academicYear }
+// La categoría sale del FK real (product_category_id); del nombre SOLO se
+// deriva el año académico (el token "AY XX-XX", tolerante a espacios y guiones).
+function parseAY(name: string): string {
+  const m = name.match(/AY\s*\d{2}\s*-\s*\d{2}/i)
+  if (!m) return '—'
+  return m[0].toUpperCase().replace(/\s+/g, ' ').replace(/ ?- ?/, '-')
 }
 // Etiqueta corta para el desplegable de convocatoria (categoría y año ya están
 // elegidos arriba): deja el término y el nivel — p. ej. "SUMMER 2023 · L1".
 function convShortLabel(name: string): string {
   const segs = name.split('·').map(s => s.trim()).filter(Boolean)
-  const mid = (segs[1] ?? '').replace(/AY\s*\d{2}-\d{2}\s*/i, '').trim()
+  const mid = (segs[1] ?? '').replace(/AY\s*\d{2}\s*-\s*\d{2}\s*/i, '').trim()
   const tail = segs.slice(2).join(' · ')
   return [mid, tail].filter(Boolean).join(' · ') || name
 }
 
 export function AdmissionSales() {
-  const [convocatorias, setConvocatorias] = useState<{ id: string; name: string }[]>([])
+  const [convocatorias, setConvocatorias] = useState<{ id: string; name: string; product_category_id: string | null }[]>([])
   const [advisors, setAdvisors] = useState<Advisor[]>([])
   const [advisorNames, setAdvisorNames] = useState<Record<string, string>>({})
   const [types, setTypes] = useState<AdmType[]>([])
@@ -129,11 +128,15 @@ export function AdmissionSales() {
     load(convId)
   }
 
-  // Convocatorias parseadas + opciones en cascada
-  const parsedConvs = useMemo(() => convocatorias.map(c => ({ ...c, ...parseConvName(c.name) })), [convocatorias])
-  const catOptions = useMemo(() => [...new Set(parsedConvs.map(p => p.category))].sort(), [parsedConvs])
-  const yearOptions = useMemo(() => [...new Set(parsedConvs.filter(p => p.category === selCat).map(p => p.academicYear))].sort(), [parsedConvs, selCat])
-  const convOptions = useMemo(() => parsedConvs.filter(p => p.category === selCat && p.academicYear === selYear), [parsedConvs, selCat, selYear])
+  // Convocatorias con año parseado; categoría = FK real (product_category_id).
+  const parsedConvs = useMemo(() => convocatorias.map(c => ({ ...c, academicYear: parseAY(c.name) })), [convocatorias])
+  // Categorías reales que efectivamente tienen convocatorias
+  const catOptions = useMemo(() => {
+    const withConv = new Set(parsedConvs.map(p => p.product_category_id).filter(Boolean))
+    return categories.filter(c => withConv.has(c.id))
+  }, [categories, parsedConvs])
+  const yearOptions = useMemo(() => [...new Set(parsedConvs.filter(p => p.product_category_id === selCat).map(p => p.academicYear))].sort(), [parsedConvs, selCat])
+  const convOptions = useMemo(() => parsedConvs.filter(p => p.product_category_id === selCat && p.academicYear === selYear), [parsedConvs, selCat, selYear])
 
   const typeById = useMemo(() => new Map(types.map(t => [t.id, t])), [types])
   const advisorName = (id: string | null) => (id && advisorNames[id]) ?? advisors.find(a => a.id === id)?.full_name ?? 'Sin asesora'
@@ -173,7 +176,7 @@ export function AdmissionSales() {
         <select value={selCat} onChange={e => { setSelCat(e.target.value); setSelYear(''); setConvId('') }}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Seleccionar categoría…</option>
-          {catOptions.map(c => <option key={c} value={c}>{c}</option>)}
+          {catOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
 
         <label className="text-sm text-gray-600">Año académico</label>
