@@ -26,13 +26,21 @@ export async function GET(req: NextRequest) {
     sb.from('academic_students').select('document_number').eq('id', studentId).maybeSingle(),
   ])
 
-  // Excluir asignaturas RETIRADAS (comparten external_id con academic_grades).
-  // Defensa: si aún no se corrió course_withdrawal.sql, no filtra.
+  // De academic_grades (misma inscripción por external_id): estado de retiro y
+  // si la nota es editable (solo SystemActiva, no Moodle). Defensa: si faltan
+  // columnas (migración sin correr), no filtra ni marca.
   const withdrawn = new Set<string>()
+  const editableByExt = new Map<string, boolean>()
   if (stu?.document_number) {
-    const r = await sb.from('academic_grades').select('external_id')
-      .eq('document_number', stu.document_number).not('withdrawn_at', 'is', null)
-    for (const w of (r.data ?? []) as { external_id: string }[]) withdrawn.add(String(w.external_id))
+    const r = await sb.from('academic_grades').select('external_id, withdrawn_at, source, moodle_course_id')
+      .eq('document_number', stu.document_number)
+    if (!r.error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const w of (r.data ?? []) as any[]) {
+        if (w.withdrawn_at) withdrawn.add(String(w.external_id))
+        editableByExt.set(String(w.external_id), w.source === 'systemactiva' && !w.moodle_course_id)
+      }
+    }
   }
 
   const progByEnr = new Map<string, string>()
@@ -43,6 +51,7 @@ export async function GET(req: NextRequest) {
   const rows = ((details ?? []) as any[]).filter(d => !withdrawn.has(String(d.external_id))).map(d => ({
     ...d,
     program_name: d.enrollment_id ? (progByEnr.get(d.enrollment_id) ?? 'Sin programa') : 'Sin programa',
+    editable: editableByExt.get(String(d.external_id)) ?? false,
   }))
 
   return NextResponse.json({ details: rows })

@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Loader2, ChevronRight, ChevronDown } from 'lucide-react'
+import { Search, Loader2, ChevronRight, ChevronDown, Pencil } from 'lucide-react'
 
 interface Slot { n: number; desc: string; pct: number | null; val: number | null }
 interface Detail {
-  id: string; program_name: string
+  id: string; external_id: string; editable: boolean; program_name: string
   course_code: string | null; course_name: string | null
   term_year: number | null; term_block: string | null
   final_grade: number | null; retake_grade: number | null; makeup_grade: number | null
@@ -58,6 +58,29 @@ export function ActaDetalle() {
     setStudent(h); setHits([]); setQ(h.name); setLoading(true); setOpen(new Set())
     const d = await fetch(`/api/academic/grade-details?student_id=${h.id}`).then(r => r.json())
     setDetails(d.details ?? []); setLoading(false)
+  }
+
+  async function reload() {
+    if (!student) return
+    const d = await fetch(`/api/academic/grade-details?student_id=${student.id}`).then(r => r.json())
+    setDetails(d.details ?? [])
+  }
+
+  // Editar/borrar la nota FINAL de una asignatura de SystemActiva (vacío = borrar).
+  async function editGrade(d: Detail) {
+    const cur = d.retake_grade ?? d.final_grade
+    const v = prompt(
+      `Nota final de "${d.course_name ?? ''}" (importada de SystemActiva).\n\nEscribe la nueva nota, o déjalo VACÍO para borrarla (así podrás retirar la asignatura en Registro Curricular):`,
+      cur != null ? String(cur) : '')
+    if (v === null) return
+    const final_grade = v.trim() === '' ? null : Number(v.trim())
+    if (final_grade !== null && !(final_grade >= 0)) { alert('Nota inválida'); return }
+    const res = await fetch('/api/academic/course-withdrawal', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ external_id: d.external_id, final_grade }),
+    }).then(r => r.json())
+    if (res.error) { alert(res.error); return }
+    reload()
   }
 
   function toggle(id: string) {
@@ -124,7 +147,7 @@ export function ActaDetalle() {
                         <span className="text-sm font-semibold text-gray-900 w-12 text-right">{g(val)}</span>
                         {st && <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${st.cls}`}>{st.label}</span>}
                       </button>
-                      {isOpen && <DetailPanel d={d} />}
+                      {isOpen && <DetailPanel d={d} onEdit={() => editGrade(d)} />}
                     </div>
                   )
                 })}
@@ -164,7 +187,7 @@ function SlotTable({ title, slots }: { title: string; slots: Slot[] }) {
   )
 }
 
-function DetailPanel({ d }: { d: Detail }) {
+function DetailPanel({ d, onEdit }: { d: Detail; onEdit: () => void }) {
   // Lista unificada: ya no se distingue entre notas principales y de proceso
   // (las integraciones nuevas escriben todo en una sola lista; la separación
   // era herencia de SystemActiva). Se oculta el marcador "Total" vacío que
@@ -175,6 +198,15 @@ function DetailPanel({ d }: { d: Detail }) {
   ].map((s, i) => ({ ...s, n: i + 1 }))
   return (
     <div className="px-4 pb-4 pt-1 bg-gray-50/50 space-y-3">
+      {d.editable && (
+        <div className="flex justify-end">
+          <button onClick={onEdit}
+            className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+            title="Nota importada de SystemActiva: edítala o bórrala (vacío) para poder retirar la asignatura">
+            <Pencil className="w-3.5 h-3.5" />Editar nota final
+          </button>
+        </div>
+      )}
       <SlotTable title="Evaluaciones" slots={evaluaciones} />
       <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600 pt-1">
         <span>Final <span className="text-gray-400">(SystemActiva)</span>: <b>{g(d.final_grade)}</b></span>
