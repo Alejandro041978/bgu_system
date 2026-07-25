@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, User, Loader2, FileText, LogOut } from 'lucide-react'
+import { Search, User, Loader2, FileText, LogOut, Pencil } from 'lucide-react'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 interface Program { id: string; name: string }
-interface Row { external_id: string; course_code: string | null; course_name: string; credits: number | null; term: string; status: string; grade: number | null; has_grade: boolean; withdrawn: boolean }
+interface Row { external_id: string; course_code: string | null; course_name: string; credits: number | null; term: string; status: string; grade: number | null; has_grade: boolean; withdrawn: boolean; editable: boolean; final_grade: number | null; retake_grade: number | null }
 interface Data { program: string; enrollment: { id: string; list_price: number | null; credit_rate: number | null } | null; creditos_activos: number; rows: Row[] }
 
 const money = (n: number) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -64,6 +64,26 @@ export function CurricularRecord() {
     setBusy(null)
     if (d.error) { setNotice({ kind: 'error', text: d.error }); return }
     setNotice({ kind: 'ok', text: `Retirada "${r.course_name}"${d.delta ? ` · Total Tuition ↓ ${money(d.delta)} → nuevo precio ${money(d.new_list_price)}` : ''}. Recuerda ajustar las cuotas.` })
+    load(student.id, programId)
+  }
+
+  async function editGrade(r: Row) {
+    if (!student) return
+    const cur = r.retake_grade ?? r.final_grade
+    const v = prompt(
+      `Nota de "${r.course_name}" (importada de SystemActiva).\n\nEscribe la nueva nota, o déjalo VACÍO para borrarla y poder retirar la asignatura:`,
+      cur != null ? String(cur) : '')
+    if (v === null) return
+    const final_grade = v.trim() === '' ? null : Number(v.trim())
+    if (final_grade !== null && !(final_grade >= 0)) { setNotice({ kind: 'error', text: 'Nota inválida' }); return }
+    setBusy(r.external_id); setNotice(null)
+    const d = await fetch('/api/academic/course-withdrawal', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ external_id: r.external_id, final_grade }),
+    }).then(x => x.json())
+    setBusy(null)
+    if (d.error) { setNotice({ kind: 'error', text: d.error }); return }
+    setNotice({ kind: 'ok', text: d.cleared ? `Nota de "${r.course_name}" borrada. Ya puedes retirarla.` : `Nota de "${r.course_name}" actualizada a ${d.final_grade}.` })
     load(student.id, programId)
   }
 
@@ -150,12 +170,20 @@ export function CurricularRecord() {
                       <td className="px-3 py-2.5 text-center">{r.grade != null ? <span className={`font-semibold ${r.status === 'desaprobado' ? 'text-red-600' : 'text-gray-800'}`}>{r.grade}</span> : <span className="text-gray-300">—</span>}</td>
                       <td className="px-3 py-2.5"><span className={`text-xs font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span></td>
                       <td className="px-3 py-2.5 text-right">
-                        {r.has_grade ? (
-                          <span className="text-[11px] text-gray-300" title="Tiene calificaciones: no se puede retirar">no retirable</span>
+                        {busy === r.external_id ? <Loader2 className="w-3.5 h-3.5 animate-spin inline text-gray-400" /> : r.has_grade ? (
+                          r.editable ? (
+                            <button onClick={() => editGrade(r)}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+                              title="Nota de SystemActiva: edítala o bórrala para poder retirar">
+                              <Pencil className="w-3.5 h-3.5" />Editar nota
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-gray-300" title="Nota sincronizada de Moodle: no editable aquí">no retirable</span>
+                          )
                         ) : (
-                          <button onClick={() => withdraw(r)} disabled={busy === r.external_id}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800 disabled:opacity-40">
-                            {busy === r.external_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}Retirar
+                          <button onClick={() => withdraw(r)}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800">
+                            <LogOut className="w-3.5 h-3.5" />Retirar
                           </button>
                         )}
                       </td>

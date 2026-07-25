@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     malla.some(c => (c.code && g.course_code && String(c.code) === String(g.course_code)) || sameCourse(g.course_name, c.name))
 
   const { data: grades } = await sb.from('academic_grades')
-    .select('external_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source')
+    .select('external_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id')
     .eq('document_number', student.document_number).neq('source', 'convalidacion').neq('source', 'validacion')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,6 +60,9 @@ export async function GET(req: NextRequest) {
       credits: g.credits != null ? Number(g.credits) : null,
       term: [g.term_year, g.term_block].filter(Boolean).join(' · '),
       ...st, withdrawn: !!g.withdrawn_at,
+      // Solo se editan/borran notas importadas de SystemActiva (no las de Moodle)
+      editable: g.source === 'systemactiva' && !g.moodle_course_id,
+      final_grade: g.final_grade, retake_grade: g.retake_grade,
     }
   }).sort((a, b) => String(a.course_name).localeCompare(String(b.course_name)))
 
@@ -75,6 +78,41 @@ export async function GET(req: NextRequest) {
     creditos_activos: creditosActivos,
     rows,
   })
+}
+
+// PATCH { external_id, final_grade } → edita/borra la nota (final_grade null = borrar).
+// SOLO notas importadas de SystemActiva (source='systemactiva', sin moodle_course_id):
+// las de Moodle no se tocan aquí. Escribe edited_at para que el sync no la pise
+// y actualiza ambas tablas (academic_grades + academic_grade_details) por external_id.
+export async function PATCH(req: NextRequest) {
+  const user = await requireUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const b = await req.json().catch(() => null) as { external_id?: string; final_grade?: number | null } | null
+  if (!b?.external_id) return NextResponse.json({ error: 'Falta external_id' }, { status: 400 })
+
+  const sb = db()
+  const { data: g } = await sb.from('academic_grades')
+    .select('external_id, source, moodle_course_id, withdrawn_at').eq('external_id', b.external_id).maybeSingle()
+  if (!g) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
+  if (g.source !== 'systemactiva' || g.moodle_course_id) {
+    return NextResponse.json({ error: 'Solo se pueden editar notas importadas de SystemActiva (las de Moodle no se editan aquí)' }, { status: 403 })
+  }
+
+  // Validar la nota (vacío/null = borrar)
+  let fg: number | null = null
+  if (b.final_grade !== null && b.final_grade !== undefined && String(b.final_grade) !== '') {
+    const n = Number(b.final_grade)
+    if (!Number.isFinite(n) || n < 0) return NextResponse.json({ error: 'Nota inválida' }, { status: 400 })
+    fg = n
+  }
+
+  const patch = { final_grade: fg, retake_grade: null, edited_at: new Date().toISOString(), edited_by: user.id }
+  const { error } = await sb.from('academic_grades').update(patch).eq('external_id', b.external_id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // Reflejar en el Acta Detallada (misma inscripción por external_id)
+  await sb.from('academic_grade_details').update({ final_grade: fg, retake_grade: null }).eq('external_id', b.external_id).then(() => null, () => null)
+
+  return NextResponse.json({ ok: true, final_grade: fg, cleared: fg === null })
 }
 
 // POST { external_id, student_id, program_id } → retira la asignatura (sin notas)
