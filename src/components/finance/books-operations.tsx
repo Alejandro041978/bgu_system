@@ -12,7 +12,7 @@ interface Op {
 interface Sug { operation_id: string; date: string | null; amount: number; diff: number }
 interface Disb { id: string; disbursement_id: string; disbursement_date: string | null; amount: number; currency: string | null; matched_operation_id: string | null; suggestion?: Sug | null }
 interface DisbRow { disbursement_id: string; date: string | null; amount: number; currency: string | null; count: number | null }
-interface Preview { total: number; matched: number; unmatched: number; sample: { disbursement_id: string; date: string | null; amount: number; cruza: boolean }[]; cols: string }
+interface Preview { total: number; already: number; matched: number; unmatched: number; sample: { disbursement_id: string; date: string | null; amount: number; estado: string }[]; cols: string }
 
 const money = (n: number | null) => n == null ? '—' : `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
 
@@ -200,12 +200,13 @@ export function BooksOperations() {
           <p className="text-xs text-gray-500">Columnas detectadas: <span className="font-mono">{preview.cols}</span></p>
           <div className="flex flex-wrap gap-3 text-sm">
             <span className="px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 tabular-nums">{preview.total} desembolso(s)</span>
-            <span className="px-3 py-1.5 rounded-lg bg-green-50 border border-green-200 text-green-700 tabular-nums">{preview.matched} cruzan con Books</span>
+            {preview.already > 0 && <span className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 tabular-nums">{preview.already} ya conciliados</span>}
+            <span className="px-3 py-1.5 rounded-lg bg-green-50 border border-green-200 text-green-700 tabular-nums">{preview.matched} cruzan (nuevos)</span>
             <span className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 tabular-nums">{preview.unmatched} sin cruce</span>
           </div>
           <div className="text-xs text-gray-500">
             {preview.sample.map((s, i) => (
-              <div key={i} className="flex gap-3"><span className="font-mono w-40 truncate">{s.disbursement_id}</span><span className="w-24">{s.date ?? '—'}</span><span className="w-24 text-right tabular-nums">{money(s.amount)}</span><span className={s.cruza ? 'text-green-600' : 'text-amber-600'}>{s.cruza ? '✓ cruza' : 'sin cruce'}</span></div>
+              <div key={i} className="flex gap-3"><span className="font-mono w-40 truncate">{s.disbursement_id}</span><span className="w-24">{s.date ?? '—'}</span><span className="w-24 text-right tabular-nums">{money(s.amount)}</span><span className={s.estado === 'sin cruce' ? 'text-amber-600' : s.estado === 'ya conciliado' ? 'text-blue-600' : 'text-green-600'}>{s.estado}</span></div>
             ))}
           </div>
           <p className="text-[11px] text-gray-400">Si las columnas detectadas están mal, no confirmes y avísame el encabezado del CSV.</p>

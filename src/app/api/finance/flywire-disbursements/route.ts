@@ -108,25 +108,36 @@ export async function POST(req: NextRequest) {
     .filter(o => !o.flywire_disbursement_id && /clientes\s*varios/i.test(String(o.contact_name ?? '')))
     .map(o => ({ ...o, val: o.credit != null ? Number(o.credit) : Number(o.amount ?? 0) }))
 
-  // Cruce voraz por monto exacto + fecha cercana (±7 días); 1 a 1.
+  // Estado previo: desembolsos ya importados y su cruce (para no re-cruzar ni
+  // reportar como "sin cruce" lo que ya estaba conciliado).
+  const { data: existing } = await sb.from('flywire_disbursements')
+    .select('disbursement_id, matched_operation_id').in('disbursement_id', rows.map(r => String(r.disbursement_id)))
+  const prevMatch = new Map<string, string | null>((existing ?? []).map((e: { disbursement_id: string; matched_operation_id: string | null }) => [String(e.disbursement_id), e.matched_operation_id]))
+
+  // Cruce voraz por monto exacto + fecha cercana (±7 días); 1 a 1. Los ya
+  // conciliados conservan su cruce y no compiten por operaciones.
   const usedOps = new Set<string>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const plan: { row: any; op: any | null }[] = []
+  const plan: { row: any; op: { id: string } | null; already: boolean }[] = []
   for (const r of [...rows].sort((a, b) => String(a.date).localeCompare(String(b.date)))) {
+    const prev = prevMatch.get(String(r.disbursement_id))
+    if (prev) { plan.push({ row: r, op: { id: prev }, already: true }); continue }
     const amt = Number(r.amount)
     const cands = ops.filter(o => !usedOps.has(o.id) && Math.abs(o.val - amt) < 0.01 && dayDiff(o.txn_date, r.date ?? null) <= 7)
       .sort((a, b) => dayDiff(a.txn_date, r.date ?? null) - dayDiff(b.txn_date, r.date ?? null))
     const op = cands[0] ?? null
     if (op) usedOps.add(op.id)
-    plan.push({ row: r, op })
+    plan.push({ row: r, op, already: false })
   }
-  const matched = plan.filter(p => p.op).length
+  const already = plan.filter(p => p.already).length
+  const nuevos = plan.filter(p => p.op && !p.already).length
+  const sinCruce = plan.filter(p => !p.op).length
 
   // PREVIEW: no escribe nada
   if (!b?.commit) {
     return NextResponse.json({
-      preview: true, total: rows.length, matched, unmatched: rows.length - matched,
-      sample: plan.slice(0, 6).map(p => ({ disbursement_id: p.row.disbursement_id, date: p.row.date, amount: Number(p.row.amount), cruza: !!p.op })),
+      preview: true, total: rows.length, already, matched: nuevos, unmatched: sinCruce,
+      sample: plan.slice(0, 6).map(p => ({ disbursement_id: p.row.disbursement_id, date: p.row.date, amount: Number(p.row.amount), estado: p.already ? 'ya conciliado' : p.op ? 'cruza (nuevo)' : 'sin cruce' })),
     })
   }
 
@@ -147,9 +158,10 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: 'Falta correr flywire_disbursements.sql: ' + error.message, imported }, { status: 400 })
     imported += Math.min(200, disbRows.length - i)
   }
-  // Marcar las operaciones de Books cruzadas como conciliadas
+  // Marcar como conciliadas SOLO las operaciones cruzadas NUEVAS (las ya
+  // conciliadas antes ya tienen su enlace).
   for (const p of plan) {
-    if (!p.op) continue
+    if (!p.op || p.already) continue
     await sb.from('books_operations').update({
       flywire_disbursement_id: String(p.row.disbursement_id),
       gestion_status: 'conciliada',
@@ -158,5 +170,5 @@ export async function POST(req: NextRequest) {
     }).eq('id', p.op.id)
   }
 
-  return NextResponse.json({ ok: true, imported, matched, unmatched: rows.length - matched })
+  return NextResponse.json({ ok: true, imported, already, matched: nuevos, unmatched: sinCruce })
 }
