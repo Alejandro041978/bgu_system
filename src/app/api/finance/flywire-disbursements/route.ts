@@ -38,9 +38,9 @@ export async function GET() {
   const disb = await fetchAll(sb, 'flywire_disbursements', '*').catch(() => [])
   disb.sort((a, b) => String(b.disbursement_date).localeCompare(String(a.disbursement_date)))
 
-  // Depósitos de Flywire aún sin cruzar (candidatos para sugerir)
-  const ops = (await fetchAll(sb, 'books_operations', 'id, txn_date, reference, credit, amount, flywire_disbursement_id'))
-    .filter(o => !o.flywire_disbursement_id && (/payout|flywire/i.test(String(o.reference ?? '')) || false))
+  // Depósitos de Flywire aún sin cruzar (candidatos para sugerir): contacto "Clientes Varios"
+  const ops = (await fetchAll(sb, 'books_operations', 'id, txn_date, contact_name, credit, amount, flywire_disbursement_id'))
+    .filter(o => !o.flywire_disbursement_id && /clientes\s*varios/i.test(String(o.contact_name ?? '')))
     .map(o => ({ id: o.id, date: o.txn_date as string | null, val: o.credit != null ? Number(o.credit) : Number(o.amount ?? 0) }))
 
   const withSug = disb.map(d => {
@@ -100,12 +100,12 @@ export async function POST(req: NextRequest) {
 
   const sb = db()
 
-  // Operaciones de Books que son SETTLEMENTS de Flywire aún sin cruzar. OJO: en
-  // Books estos abonos vienen bajo varios txn_type (Deposit, "Sales without
-  // invoices"...) pero SIEMPRE con referencia PAYOUTS o Flywire — ese es el
-  // marcador, no el tipo (un filtro por txn_type=Deposit perdía los antiguos).
-  const ops = (await fetchAll(sb, 'books_operations', 'id, txn_date, txn_type, reference, credit, amount, flywire_disbursement_id'))
-    .filter(o => !o.flywire_disbursement_id && (/payout|flywire/i.test(String(o.reference ?? '')) || /deposit|dep[oó]sito/i.test(String(o.txn_type ?? ''))))
+  // Operaciones de Books que son SETTLEMENTS de Flywire aún sin cruzar. El
+  // marcador confiable es el CONTACTO "Clientes Varios" (el abono agregado):
+  // ni el txn_type ni la referencia son consistentes entre años (PAYOUTS, Flywire
+  // o un número según la época). Las ventas directas tienen contacto con nombre.
+  const ops = (await fetchAll(sb, 'books_operations', 'id, txn_date, contact_name, credit, amount, flywire_disbursement_id'))
+    .filter(o => !o.flywire_disbursement_id && /clientes\s*varios/i.test(String(o.contact_name ?? '')))
     .map(o => ({ ...o, val: o.credit != null ? Number(o.credit) : Number(o.amount ?? 0) }))
 
   // Cruce voraz por monto exacto + fecha cercana (±7 días); 1 a 1.
