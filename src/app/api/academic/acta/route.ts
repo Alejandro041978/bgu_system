@@ -35,10 +35,16 @@ export async function GET(req: NextRequest) {
     .select('id, code, name, credits').eq('program_id', programId).order('code')
 
   // Notas reales del estudiante (excluye filas de convalidación y validación)
-  const { data: grades } = document
-    ? await sb.from('academic_grades').select('course_code, course_name, final_grade, retake_grade, passing_score')
-        .eq('document_number', document).neq('source', 'convalidacion').neq('source', 'validacion')
-    : { data: [] }
+  // Excluye retiradas (withdrawn_at). Defensa: si aún no se corrió
+  // course_withdrawal.sql, reintenta sin ese filtro para no romper el acta.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let grades: any[] | null = []
+  if (document) {
+    const base = () => sb.from('academic_grades').select('course_code, course_name, final_grade, retake_grade, passing_score')
+      .eq('document_number', document).neq('source', 'convalidacion').neq('source', 'validacion')
+    const r = await base().is('withdrawn_at', null)
+    grades = r.error ? (await base()).data : r.data
+  }
 
   // Convalidaciones/validaciones del estudiante para este programa (dest_course_id → { nota, tipo })
   const { data: tcs } = await sb.from('transfer_credits').select('id, kind').eq('student_id', studentId).eq('dest_program_id', programId)
