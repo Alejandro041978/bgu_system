@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
-import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil, Plus } from 'lucide-react'
+import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil, Plus, Gift } from 'lucide-react'
 import { FlywirePayButton } from './flywire-pay-button'
 
 const money = (n: number) =>
@@ -132,21 +132,29 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
           ? Math.round(account.transfer_credits * account.credit_rate * 100) / 100 : 0
         const becaBase = Math.max(0, lista - ahorro)
         const beca = account.scholarship_pct != null ? Math.round(becaBase * account.scholarship_pct) / 100 : 0
-        const totalTuition = Math.round((lista - ahorro - beca) * 100) / 100
+        // El bono se aplica sobre lo que resta DESPUÉS de la beca
+        const afterBeca = Math.round((lista - ahorro - beca) * 100) / 100
+        const bonus = account.bonus_pct != null ? Math.round(afterBeca * account.bonus_pct) / 100 : 0
+        const totalTuition = Math.round((afterBeca - bonus) * 100) / 100
+        const subTotal = ['precio oficial', ahorro > 0 ? 'ahorro' : null, 'beca', account.bonus_pct != null ? 'bonus' : null].filter(Boolean).join(' − ')
         return (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Card icon={<BadgeDollarSign className="w-4 h-4" />} label="Precio oficial" value={money(lista)} cls="text-blue-700"
-              sub={account.credit_rate ? `${Math.round(lista / account.credit_rate)} cr × ${money(account.credit_rate)}` : undefined} />
+          <div className="flex flex-wrap gap-3">
+            <div className="flex-1 min-w-[160px]"><Card icon={<BadgeDollarSign className="w-4 h-4" />} label="Precio oficial" value={money(lista)} cls="text-blue-700"
+              sub={account.credit_rate ? `${Math.round(lista / account.credit_rate)} cr × ${money(account.credit_rate)}` : undefined} /></div>
             {ahorro > 0 && (
-              <Card icon={<FileCheck className="w-4 h-4" />} label="Transfer Credit Savings" value={money(ahorro)} cls="text-teal-700"
-                sub={`${account.transfer_credits} cr convalidados × ${money(account.credit_rate!)}`} />
+              <div className="flex-1 min-w-[160px]"><Card icon={<FileCheck className="w-4 h-4" />} label="Transfer Credit Savings" value={money(ahorro)} cls="text-teal-700"
+                sub={`${account.transfer_credits} cr convalidados × ${money(account.credit_rate!)}`} /></div>
             )}
             {account.scholarship_pct != null && (
-              <Card icon={<GraduationCap className="w-4 h-4" />} label="Beca" value={money(beca)} cls="text-violet-700"
-                sub={`${account.scholarship_pct}% de ${money(becaBase)}`} />
+              <div className="flex-1 min-w-[160px]"><Card icon={<GraduationCap className="w-4 h-4" />} label="Beca" value={money(beca)} cls="text-violet-700"
+                sub={`${account.scholarship_pct}% de ${money(becaBase)}`} /></div>
             )}
-            <Card icon={<Wallet className="w-4 h-4" />} label="Total Tuition" value={money(totalTuition)} cls="text-gray-900"
-              sub="precio oficial − ahorro − beca" />
+            {account.bonus_pct != null && (
+              <div className="flex-1 min-w-[160px]"><Card icon={<Gift className="w-4 h-4" />} label="Bonus" value={money(bonus)} cls="text-emerald-700"
+                sub={`${account.bonus_pct}% de ${money(afterBeca)} (tras beca)`} /></div>
+            )}
+            <div className="flex-1 min-w-[160px]"><Card icon={<Wallet className="w-4 h-4" />} label="Total Tuition" value={money(totalTuition)} cls="text-gray-900"
+              sub={subTotal} /></div>
           </div>
         )
       })()}

@@ -42,6 +42,8 @@ export interface ProgramAccount {
   list_price: number | null
   // Beca activa: solo el PORCENTAJE es dato; el monto se deriva de la base
   scholarship_pct: number | null
+  // Bono activo (%): se aplica sobre lo que resta DESPUÉS de la beca
+  bonus_pct: number | null
   // Créditos convalidados/validados en el programa (Transfer Credit Savings =
   // créditos × tarifa por crédito de la matrícula)
   transfer_credits: number | null
@@ -91,6 +93,16 @@ export async function getAccountStatement(
       .select('enrollment_id, percentage').eq('student_id', student.id).is('revoked_at', null)
     for (const s of (sch ?? []) as { enrollment_id: string; percentage: number }[]) {
       scholarshipPct.set(String(s.enrollment_id), Number(s.percentage))
+    }
+  } catch { /* tabla aún sin migrar */ }
+
+  // Bono activo por matrícula (se aplica sobre lo que resta tras la beca)
+  const bonusPct = new Map<string, number>()
+  try {
+    const { data: bon } = await sb.from('bonuses')
+      .select('enrollment_id, percentage').eq('student_id', student.id)
+    for (const b of (bon ?? []) as { enrollment_id: string; percentage: number }[]) {
+      bonusPct.set(String(b.enrollment_id), Number(b.percentage))
     }
   } catch { /* tabla aún sin migrar */ }
 
@@ -165,6 +177,7 @@ export async function getAccountStatement(
     enrollment_id: enr, convocatoria_id: conv, program_name: name,
     credit_rate: rate, list_price: list,
     scholarship_pct: enr ? (scholarshipPct.get(enr) ?? null) : null,
+    bonus_pct: enr ? (bonusPct.get(enr) ?? null) : null,
     transfer_credits: tcCredits,
     totals: { charged: 0, paid: 0, discounts: 0, balance: 0, overdue: 0 }, charges: [], payments: [],
   })

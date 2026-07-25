@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Headphones, DollarSign, Users, BarChart3,
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
-  GraduationCap, CalendarDays, BookOpen, ClipboardList, Target,
+  GraduationCap, CalendarDays, BookOpen, ClipboardList, Target, Gift,
   TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -226,6 +226,7 @@ const navigation: NavGroup[] = [
         children: [
           { name: 'Plantillas de Facturación', href: '/academic/billing-plans', icon: Receipt, pageKey: 'academic_billing_plans' },
           { name: 'Becas', href: '/collection/scholarships', icon: GraduationCap, pageKey: 'collection_scholarships' },
+          { name: 'Bonos', href: '/collection/bonuses', icon: Gift, pageKey: 'collection_bonuses' },
           { name: 'Cargar Pagos Flywire', href: '/finance/flywire', icon: Upload, pageKey: 'finance_flywire_import' },
           { name: 'Pagos por Conciliar', href: '/finance/conciliar', icon: Link2, pageKey: 'finance_conciliar' },
           { name: 'Otros Ingresos', href: '/finance/otros-ingresos', icon: Package, pageKey: 'finance_other_income' },

@@ -130,6 +130,7 @@ const PAGE_GROUPS = [
       { key: 'admissions_commissions', label: 'Admisión · Comisiones' },
       { key: 'admissions_documents', label: 'Admisión · Documentos de Postulación' },
       { key: 'collection_scholarships', label: 'Collection · Becas' },
+      { key: 'collection_bonuses', label: 'Collection · Bonos' },
       { key: 'report_tuition_audit', label: 'Reportes · Auditoría de Tuition' },
       { key: 'seguimiento_campaigns', label: 'Seguimiento · Campañas' },
       { key: 'finance_books_operations', label: 'Finanzas · Operaciones Books' },
