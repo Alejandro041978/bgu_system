@@ -75,6 +75,7 @@ export function BooksOperations() {
   const [aHits, setAHits] = useState<Hit[]>([])
   const [aStudent, setAStudent] = useState<Hit | null>(null)
   const [cuotas, setCuotas] = useState<Cuota[]>([])
+  const [alloc, setAlloc] = useState<Record<string, string>>({})  // charge_external_id → monto
   const [associating, setAssociating] = useState(false)
 
   const load = useCallback(async (a: string, s: string) => {
@@ -147,20 +148,50 @@ export function BooksOperations() {
   }, [aq, aStudent, assocOp])
 
   async function pickAStudent(h: Hit) {
-    setAStudent(h); setAq(h.name); setAHits([])
+    setAStudent(h); setAq(h.name); setAHits([]); setAlloc({})
     const d = await fetch(`/api/finance/books/associate?student=${h.id}`).then(r => r.json())
     setCuotas(d.cuotas ?? [])
   }
-  async function doAssociate(charge_external_id: string) {
+  // Marca/desmarca una cuota para el reparto; al marcar, sugiere el saldo (o lo que
+  // reste del ingreso, lo que sea menor) para no pasarse.
+  function toggleCuota(c: Cuota) {
+    setAlloc(prev => {
+      const next = { ...prev }
+      if (next[c.external_id] != null) { delete next[c.external_id]; return next }
+      const asignado = Object.values(prev).reduce((s, v) => s + (Number(v) || 0), 0)
+      const restante = Math.max(0, (assocOp?.credit ?? 0) - asignado)
+      const base = c.balance > 0 ? c.balance : c.amount
+      const sugerido = Math.min(base, restante || base)
+      next[c.external_id] = (Math.round(sugerido * 100) / 100).toString()
+      return next
+    })
+  }
+  const asignadoTotal = Math.round(Object.values(alloc).reduce((s, v) => s + (Number(v) || 0), 0) * 100) / 100
+  async function doAssociate() {
     if (!assocOp) return
+    const allocations = Object.entries(alloc)
+      .map(([charge_external_id, v]) => ({ charge_external_id, amount: Number(v) }))
+      .filter(a => a.amount > 0)
+    if (!allocations.length) { setError('Selecciona al menos una cuota y un monto'); return }
     setAssociating(true); setError(null)
     const d = await fetch('/api/finance/books/associate', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ operation_id: assocOp.id, charge_external_id }),
+      body: JSON.stringify({ operation_id: assocOp.id, allocations }),
     }).then(r => r.json())
     setAssociating(false)
     if (d.error) { setError(d.error); return }
-    setAssocOp(null); setAStudent(null); setAq(''); setCuotas([])
+    setAssocOp(null); setAStudent(null); setAq(''); setCuotas([]); setAlloc({})
+    load(account, status)
+  }
+  // Desasocia una operación ya conciliada (borra sus pagos Books) para rehacerla.
+  async function desasociar(op: Op) {
+    if (!confirm(`¿Desasociar el ingreso de Books (${money(op.credit)})? Se borrarán los pagos BOOKS que creó y la operación volverá a "pendiente".`)) return
+    setError(null)
+    const d = await fetch('/api/finance/books/associate', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ operation_id: op.id }),
+    }).then(r => r.json())
+    if (d.error) { setError(d.error); return }
     load(account, status)
   }
 
@@ -189,6 +220,7 @@ export function BooksOperations() {
 
   const STATUS_CLS: Record<string, string> = {
     gestionada: 'bg-green-50 border-green-200 text-green-700',
+    asociada: 'bg-emerald-50 border-emerald-200 text-emerald-700',
     conciliada: 'bg-blue-50 border-blue-200 text-blue-700',
     pendiente: 'bg-amber-50 border-amber-200 text-amber-700',
   }
@@ -296,8 +328,12 @@ export function BooksOperations() {
                       {o.gestion_status}
                     </button>
                     {o.gestion_status === 'pendiente' && (o.credit ?? 0) > 0 && (
-                      <button onClick={() => { setAssocOp(o); setAq(''); setAHits([]); setAStudent(null); setCuotas([]) }}
-                        className="block mt-1 text-[10px] text-blue-600 hover:underline">→ asociar a cuota</button>
+                      <button onClick={() => { setAssocOp(o); setAq(''); setAHits([]); setAStudent(null); setCuotas([]); setAlloc({}) }}
+                        className="block mt-1 text-[10px] text-blue-600 hover:underline">→ asociar a cuota(s)</button>
+                    )}
+                    {o.gestion_status === 'asociada' && (
+                      <button onClick={() => desasociar(o)}
+                        className="block mt-1 text-[10px] text-red-500 hover:underline">✕ desasociar</button>
                     )}
                   </td>
                   <td className="px-3 py-2 text-xs text-gray-500">
@@ -399,34 +435,55 @@ export function BooksOperations() {
                 <div className="border border-gray-100 rounded-lg overflow-hidden max-h-72 overflow-y-auto">
                   <table className="w-full text-sm">
                     <thead className="sticky top-0"><tr className="bg-gray-50 text-gray-500 text-[10.5px] uppercase">
+                      <th className="px-3 py-2 w-8"></th>
                       <th className="px-3 py-2 text-left">Programa</th><th className="px-3 py-2 text-left">Concepto</th><th className="px-3 py-2 text-left">Vence</th>
-                      <th className="px-3 py-2 text-right">Cuota</th><th className="px-3 py-2 text-right">Saldo</th><th className="px-3 py-2"></th>
+                      <th className="px-3 py-2 text-right">Cuota</th><th className="px-3 py-2 text-right">Saldo</th><th className="px-3 py-2 text-right">Asignar</th>
                     </tr></thead>
                     <tbody className="divide-y divide-gray-50">
                       {cuotas.map(c => {
+                        const sel = alloc[c.external_id] != null
                         const calza = Math.abs(c.balance - (assocOp.credit ?? 0)) < 0.01
                         return (
-                          <tr key={c.external_id} className={calza ? 'bg-green-50/40' : ''}>
+                          <tr key={c.external_id} className={sel ? 'bg-blue-50/50' : calza ? 'bg-green-50/40' : ''}>
+                            <td className="px-3 py-1.5 text-center">
+                              <input type="checkbox" checked={sel} onChange={() => toggleCuota(c)} className="accent-blue-600" />
+                            </td>
                             <td className="px-3 py-1.5 text-xs text-gray-500 max-w-40 truncate" title={c.program_name}>{c.program_name}</td>
                             <td className="px-3 py-1.5 text-xs" title={c.concept_name}>{c.concept}</td>
                             <td className="px-3 py-1.5 text-xs text-gray-500">{c.due_date ?? '—'}</td>
                             <td className="px-3 py-1.5 text-right tabular-nums text-xs">{money(c.amount)}</td>
                             <td className={`px-3 py-1.5 text-right tabular-nums text-xs ${c.balance > 0.005 ? 'text-gray-900 font-medium' : 'text-green-600'}`}>{money(c.balance)}</td>
                             <td className="px-3 py-1.5 text-right">
-                              <button onClick={() => { if (confirm(`¿Asociar el ingreso de Books (${money(assocOp.credit)}) como PAGO de la cuota ${c.concept} (${money(c.amount)}, saldo ${money(c.balance)})? Se creará un pago serie BOOKS.`)) doAssociate(c.external_id) }}
-                                disabled={associating}
-                                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-40">
-                                {associating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}Asociar
-                              </button>
+                              {sel ? (
+                                <input type="number" min={0} step="0.01" value={alloc[c.external_id]}
+                                  onChange={e => setAlloc(prev => ({ ...prev, [c.external_id]: e.target.value }))}
+                                  className="w-24 text-right text-xs border border-blue-200 rounded px-2 py-1 tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                              ) : <span className="text-gray-300 text-xs">—</span>}
                             </td>
                           </tr>
                         )
                       })}
-                      {cuotas.length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-xs text-gray-400">Este estudiante no tiene cuotas.</td></tr>}
+                      {cuotas.length === 0 && <tr><td colSpan={7} className="px-3 py-6 text-center text-xs text-gray-400">Este estudiante no tiene cuotas.</td></tr>}
                     </tbody>
                   </table>
                 </div>
-                <p className="text-[11px] text-gray-400">La fila en verde es la cuota cuyo saldo calza con el monto del ingreso. El pago se crea con serie BOOKS y la referencia del ingreso.</p>
+                <div className="flex items-center justify-between pt-1">
+                  <p className="text-[11px] text-gray-400 max-w-sm">Marca una o varias cuotas y reparte el ingreso (p. ej. enrollment + tuition en un mismo depósito). Se crea un pago serie BOOKS por cuota, sin unificarlas.</p>
+                  <div className="text-right">
+                    <p className={`text-xs tabular-nums ${asignadoTotal > (assocOp.credit ?? 0) + 0.01 ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                      Asignado: <b>{money(asignadoTotal)}</b> / {money(assocOp.credit)}
+                      {asignadoTotal > (assocOp.credit ?? 0) + 0.01 && <span className="ml-1">· supera el ingreso</span>}
+                      {asignadoTotal < (assocOp.credit ?? 0) - 0.01 && asignadoTotal > 0 && <span className="ml-1 text-amber-600">· sobra {money((assocOp.credit ?? 0) - asignadoTotal)}</span>}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <button onClick={doAssociate}
+                    disabled={associating || asignadoTotal <= 0 || asignadoTotal > (assocOp.credit ?? 0) + 0.01}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 disabled:opacity-40">
+                    {associating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}Asociar como pago(s) Books
+                  </button>
+                </div>
               </>
             )}
           </div>
