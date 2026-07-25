@@ -143,9 +143,12 @@ const PAGE_GROUPS = [
   },
 ]
 
+type Member = { id: string; full_name: string | null; email: string | null; position: string | null }
+
 export function PermissionsTab({ roles }: { roles: Role[] }) {
   const [selectedRoleId, setSelectedRoleId] = useState(roles[0]?.id ?? '')
   const [perms, setPerms] = useState<PermMap>({})
+  const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -164,6 +167,13 @@ export function PermissionsTab({ roles }: { roles: Role[] }) {
   }, [selectedRoleId])
 
   useEffect(() => { loadPerms() }, [loadPerms])
+
+  // Colaboradores que tienen el rol seleccionado (panel lateral)
+  useEffect(() => {
+    if (!selectedRoleId) { setMembers([]); return }
+    fetch(`/api/settings/role-members?role_id=${selectedRoleId}`)
+      .then(r => r.json()).then(d => setMembers(d.employees ?? [])).catch(() => setMembers([]))
+  }, [selectedRoleId])
 
   function toggle(pageKey: string, field: 'can_view' | 'can_edit') {
     setPerms(prev => {
@@ -222,6 +232,8 @@ export function PermissionsTab({ roles }: { roles: Role[] }) {
         </button>
       </div>
 
+      <div className="flex gap-4 items-start">
+        <div className="flex-1 min-w-0">
       {loading ? (
         <p className="text-center text-gray-500 py-10 text-sm">Cargando...</p>
       ) : (
@@ -272,6 +284,34 @@ export function PermissionsTab({ roles }: { roles: Role[] }) {
           </table>
         </div>
       )}
+        </div>
+
+        {/* Panel lateral: colaboradores con el rol seleccionado */}
+        <aside className="w-60 shrink-0">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 sticky top-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Colaboradores con este rol
+            </p>
+            {members.length === 0 ? (
+              <p className="text-xs text-gray-500">Ningún colaborador tiene este rol.</p>
+            ) : (
+              <ul className="space-y-2">
+                {members.map(m => (
+                  <li key={m.id} className="text-sm">
+                    <span className="text-gray-200">{m.full_name ?? '—'}</span>
+                    {(m.position || m.email) && (
+                      <span className="block text-[11px] text-gray-500 truncate">{m.position || m.email}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 pt-3 border-t border-gray-800 text-[11px] text-gray-500">
+              {members.length} colaborador(es)
+            </p>
+          </div>
+        </aside>
+      </div>
     </div>
   )
 }
