@@ -29,17 +29,61 @@ const dayDiff = (a: string | null, b: string | null) => {
   return Math.abs((new Date(a).getTime() - new Date(b).getTime()) / 86400000)
 }
 
-// GET → desembolsos importados (con su estado de cruce) + resumen
+// GET → desembolsos importados (con su estado de cruce) + resumen. A los que NO
+// cruzaron exacto se les adjunta una SUGERENCIA: el depósito de Books más
+// cercano en fecha (±3 días) con la diferencia (comisión) — para asociar a mano.
 export async function GET() {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const disb = await fetchAll(sb, 'flywire_disbursements', '*').catch(() => [])
   disb.sort((a, b) => String(b.disbursement_date).localeCompare(String(a.disbursement_date)))
+
+  // Depósitos de Flywire aún sin cruzar (candidatos para sugerir)
+  const ops = (await fetchAll(sb, 'books_operations', 'id, txn_date, reference, credit, amount, flywire_disbursement_id'))
+    .filter(o => !o.flywire_disbursement_id && (/payout|flywire/i.test(String(o.reference ?? '')) || false))
+    .map(o => ({ id: o.id, date: o.txn_date as string | null, val: o.credit != null ? Number(o.credit) : Number(o.amount ?? 0) }))
+
+  const withSug = disb.map(d => {
+    if (d.matched_operation_id) return d
+    const cands = ops.filter(o => dayDiff(o.date, d.disbursement_date) <= 3)
+      .sort((a, b) => Math.abs(a.val - Number(d.amount)) - Math.abs(b.val - Number(d.amount)))
+    const s = cands[0]
+    return { ...d, suggestion: s ? { operation_id: s.id, date: s.date, amount: s.val, diff: Math.round((Number(d.amount) - s.val) * 100) / 100 } : null }
+  })
+
   const matched = disb.filter(d => d.matched_operation_id).length
   return NextResponse.json({
-    disbursements: disb,
+    disbursements: withSug,
     stats: { total: disb.length, matched, unmatched: disb.length - matched },
   })
+}
+
+// PATCH { disbursement_id, operation_id } → asocia MANUALMENTE un desembolso a
+// una operación de Books (para los casos con comisión donde el monto no calza
+// exacto). Registra la diferencia en la nota.
+export async function PATCH(req: NextRequest) {
+  const user = await requireUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const b = await req.json().catch(() => null) as { disbursement_id?: string; operation_id?: string } | null
+  if (!b?.disbursement_id || !b?.operation_id) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
+  const sb = db()
+
+  const { data: d } = await sb.from('flywire_disbursements').select('disbursement_id, disbursement_date, amount').eq('disbursement_id', b.disbursement_id).maybeSingle()
+  if (!d) return NextResponse.json({ error: 'Desembolso no encontrado' }, { status: 404 })
+  const { data: op } = await sb.from('books_operations').select('id, credit, amount, flywire_disbursement_id').eq('id', b.operation_id).maybeSingle()
+  if (!op) return NextResponse.json({ error: 'Operación de Books no encontrada' }, { status: 404 })
+  if (op.flywire_disbursement_id) return NextResponse.json({ error: 'Esa operación ya está conciliada con otro desembolso' }, { status: 409 })
+
+  const val = op.credit != null ? Number(op.credit) : Number(op.amount ?? 0)
+  const diff = Math.round((Number(d.amount) - val) * 100) / 100
+  const now = new Date().toISOString()
+  await sb.from('books_operations').update({
+    flywire_disbursement_id: d.disbursement_id, gestion_status: 'conciliada',
+    gestion_note: `Desembolso Flywire ${d.disbursement_id}${d.disbursement_date ? ` (${d.disbursement_date})` : ''}${diff ? ` · comisión ${diff.toFixed(2)}` : ''} · asociado manual`,
+    gestion_by: user.email ?? user.id, gestion_at: now,
+  }).eq('id', op.id)
+  await sb.from('flywire_disbursements').update({ matched_operation_id: op.id }).eq('disbursement_id', d.disbursement_id)
+  return NextResponse.json({ ok: true, diff })
 }
 
 // POST { rows: [{ disbursement_id, date, amount, currency }], commit? } →

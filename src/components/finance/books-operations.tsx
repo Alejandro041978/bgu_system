@@ -9,7 +9,8 @@ interface Op {
   debit: number | null; credit: number | null; amount: number | null
   gestion_status: string; gestion_note: string | null; gestion_by: string | null
 }
-interface Disb { id: string; disbursement_id: string; disbursement_date: string | null; amount: number; currency: string | null; matched_operation_id: string | null }
+interface Sug { operation_id: string; date: string | null; amount: number; diff: number }
+interface Disb { id: string; disbursement_id: string; disbursement_date: string | null; amount: number; currency: string | null; matched_operation_id: string | null; suggestion?: Sug | null }
 interface DisbRow { disbursement_id: string; date: string | null; amount: number; currency: string | null; count: number | null }
 interface Preview { total: number; matched: number; unmatched: number; sample: { disbursement_id: string; date: string | null; amount: number; cruza: boolean }[]; cols: string }
 
@@ -122,6 +123,15 @@ export function BooksOperations() {
     }).then(r => r.json())
     if (d.error) { setError(d.error); return }
     setPreview({ ...d, cols })
+  }
+
+  async function associate(disbursement_id: string, operation_id: string) {
+    const d = await fetch('/api/finance/flywire-disbursements', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disbursement_id, operation_id }),
+    }).then(r => r.json())
+    if (d.error) { setError(d.error); return }
+    load(account, status); loadDisb()
   }
 
   async function confirmImport() {
@@ -276,7 +286,8 @@ export function BooksOperations() {
                 <th className="px-4 py-2 text-left">Desembolso (Flywire)</th>
                 <th className="px-4 py-2 text-left">Fecha</th>
                 <th className="px-4 py-2 text-right">Monto</th>
-                <th className="px-4 py-2 text-left">Moneda</th>
+                <th className="px-4 py-2 text-left">Sugerencia en Books (por fecha)</th>
+                <th className="px-4 py-2 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -285,7 +296,21 @@ export function BooksOperations() {
                   <td className="px-4 py-2 font-mono text-xs text-gray-700">{d.disbursement_id}</td>
                   <td className="px-4 py-2 text-xs text-gray-500">{d.disbursement_date ?? '—'}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-green-700">{money(d.amount)}</td>
-                  <td className="px-4 py-2 text-xs text-gray-500">{d.currency ?? '—'}</td>
+                  <td className="px-4 py-2 text-xs">
+                    {d.suggestion ? (
+                      <span className="text-gray-600">Books {d.suggestion.date} · <span className="tabular-nums">{money(d.suggestion.amount)}</span>
+                        {d.suggestion.diff !== 0 && <span className={`ml-1 ${Math.abs(d.suggestion.diff) <= 150 ? 'text-amber-600' : 'text-red-600'}`}>· dif {money(d.suggestion.diff)}</span>}
+                      </span>
+                    ) : <span className="text-gray-300">sin candidato cercano</span>}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    {d.suggestion && (
+                      <button onClick={() => { if (confirm(`¿Asociar el desembolso ${d.disbursement_id} (${money(d.amount)}) con el depósito de Books del ${d.suggestion!.date} (${money(d.suggestion!.amount)})? Diferencia ${money(d.suggestion!.diff)} (comisión).`)) associate(d.disbursement_id, d.suggestion!.operation_id) }}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
+                        <Link2 className="w-3.5 h-3.5" />Asociar
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
