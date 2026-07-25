@@ -230,6 +230,21 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
                             <Pencil className="w-3 h-3" />
                           </button>
                         )}
+                        {canGenerate && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`¿Borrar este pago de ${money(p.amount)} (${p.transaction_reference ?? 'sin referencia'})? Se usa para quitar pagos heredados de SystemActiva. Esta acción no se puede deshacer.`)) return
+                              const d = await fetch('/api/account/payments', {
+                                method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: p.id }),
+                              }).then(x => x.json())
+                              if (d.error) { alert(d.error); return }
+                              onChanged?.()
+                            }}
+                            title="Borrar pago (p. ej. heredado de SystemActiva)" className="text-gray-300 hover:text-red-600">
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
                       </span>
                     ) : (r.first && c.reference ? c.reference : '—')}
                   </td>

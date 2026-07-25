@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Loader2, RefreshCw, Pencil, CheckCircle2, Upload, Link2 } from 'lucide-react'
+import { Loader2, RefreshCw, Pencil, CheckCircle2, Upload, Link2, Search, UserPlus, X } from 'lucide-react'
 
 interface Op {
   id: string; account_name: string; txn_date: string | null; txn_type: string | null
@@ -9,6 +9,8 @@ interface Op {
   debit: number | null; credit: number | null; amount: number | null
   gestion_status: string; gestion_note: string | null; gestion_by: string | null
 }
+interface Hit { id: string; name: string; document_number: string | null }
+interface Cuota { external_id: string; program_name: string; concept: string; concept_name: string; amount: number; balance: number; due_date: string | null; status: string }
 interface Sug { operation_id: string; date: string | null; amount: number; diff: number }
 interface Disb { id: string; disbursement_id: string; disbursement_date: string | null; amount: number; currency: string | null; matched_operation_id: string | null; suggestion?: Sug | null }
 interface DisbRow { disbursement_id: string; date: string | null; amount: number; currency: string | null; count: number | null }
@@ -67,6 +69,14 @@ export function BooksOperations() {
   const [importing, setImporting] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  // Asociar ingreso de Books → cuota de estudiante (crea pago serie BOOKS)
+  const [assocOp, setAssocOp] = useState<Op | null>(null)
+  const [aq, setAq] = useState('')
+  const [aHits, setAHits] = useState<Hit[]>([])
+  const [aStudent, setAStudent] = useState<Hit | null>(null)
+  const [cuotas, setCuotas] = useState<Cuota[]>([])
+  const [associating, setAssociating] = useState(false)
+
   const load = useCallback(async (a: string, s: string) => {
     setLoading(true)
     const d = await fetch(`/api/finance/books/operations?${a ? `account=${encodeURIComponent(a)}&` : ''}${s ? `status=${s}` : ''}`).then(r => r.json())
@@ -123,6 +133,35 @@ export function BooksOperations() {
     }).then(r => r.json())
     if (d.error) { setError(d.error); return }
     setPreview({ ...d, cols })
+  }
+
+  // --- Asociación a cuota de estudiante ---
+  useEffect(() => {
+    if (!assocOp || aStudent || aq.trim().length < 2) { setAHits([]); return }
+    const t = setTimeout(async () => {
+      const d = await fetch(`/api/students/search?q=${encodeURIComponent(aq.trim())}`).then(r => r.json()).catch(() => ({ students: [] }))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setAHits((d.students ?? []).slice(0, 8).map((s: any) => ({ id: s.id, name: s.name ?? [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' '), document_number: s.document_number ?? null })))
+    }, 300)
+    return () => clearTimeout(t)
+  }, [aq, aStudent, assocOp])
+
+  async function pickAStudent(h: Hit) {
+    setAStudent(h); setAq(h.name); setAHits([])
+    const d = await fetch(`/api/finance/books/associate?student=${h.id}`).then(r => r.json())
+    setCuotas(d.cuotas ?? [])
+  }
+  async function doAssociate(charge_external_id: string) {
+    if (!assocOp) return
+    setAssociating(true); setError(null)
+    const d = await fetch('/api/finance/books/associate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ operation_id: assocOp.id, charge_external_id }),
+    }).then(r => r.json())
+    setAssociating(false)
+    if (d.error) { setError(d.error); return }
+    setAssocOp(null); setAStudent(null); setAq(''); setCuotas([])
+    load(account, status)
   }
 
   async function associate(disbursement_id: string, operation_id: string) {
@@ -256,6 +295,10 @@ export function BooksOperations() {
                       {o.gestion_status !== 'pendiente' && <CheckCircle2 className="w-3 h-3" />}
                       {o.gestion_status}
                     </button>
+                    {o.gestion_status === 'pendiente' && (o.credit ?? 0) > 0 && (
+                      <button onClick={() => { setAssocOp(o); setAq(''); setAHits([]); setAStudent(null); setCuotas([]) }}
+                        className="block mt-1 text-[10px] text-blue-600 hover:underline">→ asociar a cuota</button>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-xs text-gray-500">
                     <span className="inline-flex items-center gap-1.5 max-w-56">
@@ -316,6 +359,77 @@ export function BooksOperations() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Modal: asociar un ingreso de Books a una cuota de estudiante */}
+      {assocOp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => !associating && setAssocOp(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5"><UserPlus className="w-4 h-4 text-blue-600" />Asociar ingreso de Books a una cuota</h3>
+              <button onClick={() => setAssocOp(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+              <b className="text-gray-700">{money(assocOp.credit)}</b> · {assocOp.txn_date} · {assocOp.account_name} · {assocOp.contact_name ?? '—'} · ref {assocOp.reference ?? '—'}
+            </div>
+
+            {!aStudent ? (
+              <div className="relative">
+                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
+                  <Search className="w-4 h-4 text-gray-400" />
+                  <input value={aq} onChange={e => setAq(e.target.value)} placeholder="Buscar estudiante (nombre o documento)…" className="flex-1 text-sm focus:outline-none" autoFocus />
+                </div>
+                {aHits.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-56 overflow-auto">
+                    {aHits.map(h => (
+                      <button key={h.id} onClick={() => pickAStudent(h)} className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50">
+                        {h.name} {h.document_number && <span className="text-gray-400 text-xs ml-1">{h.document_number}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-700 flex items-center gap-2">
+                  {aStudent.name} <span className="text-xs text-gray-400">{aStudent.document_number}</span>
+                  <button onClick={() => { setAStudent(null); setCuotas([]); setAq('') }} className="text-xs text-blue-600 hover:underline">cambiar</button>
+                </p>
+                <div className="border border-gray-100 rounded-lg overflow-hidden max-h-72 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0"><tr className="bg-gray-50 text-gray-500 text-[10.5px] uppercase">
+                      <th className="px-3 py-2 text-left">Programa</th><th className="px-3 py-2 text-left">Concepto</th><th className="px-3 py-2 text-left">Vence</th>
+                      <th className="px-3 py-2 text-right">Cuota</th><th className="px-3 py-2 text-right">Saldo</th><th className="px-3 py-2"></th>
+                    </tr></thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {cuotas.map(c => {
+                        const calza = Math.abs(c.balance - (assocOp.credit ?? 0)) < 0.01
+                        return (
+                          <tr key={c.external_id} className={calza ? 'bg-green-50/40' : ''}>
+                            <td className="px-3 py-1.5 text-xs text-gray-500 max-w-40 truncate" title={c.program_name}>{c.program_name}</td>
+                            <td className="px-3 py-1.5 text-xs" title={c.concept_name}>{c.concept}</td>
+                            <td className="px-3 py-1.5 text-xs text-gray-500">{c.due_date ?? '—'}</td>
+                            <td className="px-3 py-1.5 text-right tabular-nums text-xs">{money(c.amount)}</td>
+                            <td className={`px-3 py-1.5 text-right tabular-nums text-xs ${c.balance > 0.005 ? 'text-gray-900 font-medium' : 'text-green-600'}`}>{money(c.balance)}</td>
+                            <td className="px-3 py-1.5 text-right">
+                              <button onClick={() => { if (confirm(`¿Asociar el ingreso de Books (${money(assocOp.credit)}) como PAGO de la cuota ${c.concept} (${money(c.amount)}, saldo ${money(c.balance)})? Se creará un pago serie BOOKS.`)) doAssociate(c.external_id) }}
+                                disabled={associating}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-40">
+                                {associating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}Asociar
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                      {cuotas.length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-xs text-gray-400">Este estudiante no tiene cuotas.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-[11px] text-gray-400">La fila en verde es la cuota cuyo saldo calza con el monto del ingreso. El pago se crea con serie BOOKS y la referencia del ingreso.</p>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
