@@ -56,9 +56,12 @@ export async function POST(req: NextRequest) {
 
   const sb = db()
 
-  // Operaciones de Books que son DEPÓSITOS aún sin desembolso cruzado
+  // Operaciones de Books que son SETTLEMENTS de Flywire aún sin cruzar. OJO: en
+  // Books estos abonos vienen bajo varios txn_type (Deposit, "Sales without
+  // invoices"...) pero SIEMPRE con referencia PAYOUTS o Flywire — ese es el
+  // marcador, no el tipo (un filtro por txn_type=Deposit perdía los antiguos).
   const ops = (await fetchAll(sb, 'books_operations', 'id, txn_date, txn_type, reference, credit, amount, flywire_disbursement_id'))
-    .filter(o => !o.flywire_disbursement_id && /deposit|dep[oó]sito/i.test(String(o.txn_type ?? '')))
+    .filter(o => !o.flywire_disbursement_id && (/payout|flywire/i.test(String(o.reference ?? '')) || /deposit|dep[oó]sito/i.test(String(o.txn_type ?? ''))))
     .map(o => ({ ...o, val: o.credit != null ? Number(o.credit) : Number(o.amount ?? 0) }))
 
   // Cruce voraz por monto exacto + fecha cercana (±7 días); 1 a 1.
