@@ -49,8 +49,28 @@ async function transferCreditsMap(sb: any): Promise<Map<string, number>> {
   return map
 }
 
-// GET → becas otorgadas (activas y revocadas) con estudiante/programa/lista
-// GET ?student=<id> → matrículas del estudiante (para el selector de programa)
+// Detalle de una beca (fila) → estudiante/programa/lista/ahorro/monto derivado.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapBeca(r: any, stu: any, progName: Map<string, string>, enr: any, tcMap: Map<string, number>) {
+  const lista = enr?.list_price != null ? Number(enr.list_price) : null
+  const rate = enr?.credit_rate != null ? Number(enr.credit_rate) : null
+  const pct = Number(r.percentage)
+  const cr = tcMap.get(`${r.student_id}|${r.program_id}`) ?? 0
+  const savings = rate != null ? Math.round(cr * rate * 100) / 100 : 0
+  const amount = lista != null ? Math.round(Math.max(0, lista - savings) * pct) / 100 : null
+  return {
+    id: r.id, enrollment_id: r.enrollment_id,
+    student_name: [stu?.first_name, stu?.last_name, stu?.second_last_name].filter(Boolean).join(' '),
+    document_number: stu?.document_number ?? null,
+    program_name: progName.get(String(r.program_id)) ?? null,
+    percentage: pct, transfer_savings: savings, amount, list_price: lista,
+    granted_at: r.granted_at, granted_by: r.granted_by, note: r.note, revoked_at: r.revoked_at,
+  }
+}
+
+// GET → RESUMEN por programa (cantidad + monto becado), NO todas las becas
+//        (la lista completa colgaba el navegador con miles de filas).
+// GET ?student=<id> → matrículas del estudiante (selector) + SUS becas
 export async function GET(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
@@ -68,31 +88,34 @@ export async function GET(req: NextRequest) {
     }
     const tcMap = await transferCreditsMap(sb)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return NextResponse.json({ enrollments: ((enrs ?? []) as any[]).map(e => {
+    const enrollments = ((enrs ?? []) as any[]).map(e => {
       const cr = tcMap.get(`${studentId}|${e.program_id}`) ?? 0
       const savings = e.credit_rate != null ? Math.round(cr * Number(e.credit_rate) * 100) / 100 : 0
       return {
         id: e.id, program_name: e.program?.name ?? 'Programa',
         list_price: e.list_price != null ? Number(e.list_price) : null,
-        transfer_savings: savings,
-        has_active: conBeca.has(e.id),
+        transfer_savings: savings, has_active: conBeca.has(e.id),
       }
-    }) })
-  }
-  // Sin joins embebidos: scholarships no tiene FKs declaradas y PostgREST los
-  // rechazaría (la página salía vacía). Lecturas planas + lookups por lote.
-  const rows = await fetchAll(sb, 'scholarships', '*')
-  rows.sort((a, b) => String(b.granted_at).localeCompare(String(a.granted_at)) || String(b.created_at).localeCompare(String(a.created_at)))
-
-  const stuIds = [...new Set(rows.map(r => String(r.student_id)))]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const stuById = new Map<string, any>()
-  for (let i = 0; i < stuIds.length; i += 200) {
-    const { data } = await sb.from('academic_students')
-      .select('id, first_name, last_name, second_last_name, document_number').in('id', stuIds.slice(i, i + 200))
+    })
+    // Becas del estudiante (activas y revocadas)
+    const { data: becaRows } = await sb.from('scholarships').select('*').eq('student_id', studentId)
+    const { data: stu } = await sb.from('academic_students')
+      .select('id, first_name, last_name, second_last_name, document_number').eq('id', studentId).maybeSingle()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const s of (data ?? []) as any[]) stuById.set(String(s.id), s)
+    const enrById = new Map<string, any>(((enrs ?? []) as any[]).map(e => [String(e.id), e]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const progName = new Map<string, string>(((enrs ?? []) as any[]).map(e => [String(e.program_id), e.program?.name ?? 'Programa']))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const becas = ((becaRows ?? []) as any[])
+      .sort((a, b) => String(b.granted_at).localeCompare(String(a.granted_at)))
+      .map(r => mapBeca(r, stu, progName, enrById.get(String(r.enrollment_id)), tcMap))
+    return NextResponse.json({ enrollments, becas })
   }
+
+  // RESUMEN por programa (solo becas ACTIVAS). Se calcula el monto server-side
+  // y se agrega — el cliente recibe ~pocas filas, no miles.
+  const rows = (await fetchAll(sb, 'scholarships', 'id, student_id, program_id, enrollment_id, percentage, revoked_at'))
+    .filter(r => !r.revoked_at)
   const progIds = [...new Set(rows.map(r => String(r.program_id)).filter(x => x !== 'null'))]
   const progName = new Map<string, string>()
   for (let i = 0; i < progIds.length; i += 200) {
@@ -108,34 +131,27 @@ export async function GET(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const e of (data ?? []) as any[]) enrById.set(String(e.id), e)
   }
-  // El MONTO es derivado, nunca almacenado (regla del usuario): el ahorro por
-  // Transfer Credit se resta PRIMERO y la beca es % × (lista − ahorro).
-  // Total Tuition = lista − ahorro − beca.
   const tcMap = await transferCreditsMap(sb)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const becas = (rows as any[]).map(r => {
+
+  const byProg = new Map<string, { program_name: string; count: number; total_amount: number; sin_monto: number }>()
+  let total_count = 0, total_amount = 0
+  for (const r of rows) {
     const enr = enrById.get(String(r.enrollment_id))
-    const stu = stuById.get(String(r.student_id))
     const lista = enr?.list_price != null ? Number(enr.list_price) : null
     const rate = enr?.credit_rate != null ? Number(enr.credit_rate) : null
-    const pct = Number(r.percentage)
     const cr = tcMap.get(`${r.student_id}|${r.program_id}`) ?? 0
     const savings = rate != null ? Math.round(cr * rate * 100) / 100 : 0
-    const amount = lista != null ? Math.round(Math.max(0, lista - savings) * pct) / 100 : null
-    return {
-      id: r.id, enrollment_id: r.enrollment_id,
-      student_name: [stu?.first_name, stu?.last_name, stu?.second_last_name].filter(Boolean).join(' '),
-      document_number: stu?.document_number ?? null,
-      program_name: progName.get(String(r.program_id)) ?? null,
-      percentage: pct,
-      transfer_savings: savings,
-      amount,
-      list_price: lista,
-      granted_at: r.granted_at, granted_by: r.granted_by, note: r.note,
-      revoked_at: r.revoked_at,
-    }
-  })
-  return NextResponse.json({ becas })
+    const amount = lista != null ? Math.round(Math.max(0, lista - savings) * Number(r.percentage)) / 100 : null
+    const key = String(r.program_id)
+    const g = byProg.get(key) ?? { program_name: progName.get(key) ?? '—', count: 0, total_amount: 0, sin_monto: 0 }
+    g.count++
+    if (amount != null) g.total_amount += amount; else g.sin_monto++
+    byProg.set(key, g)
+    total_count++
+    total_amount += amount ?? 0
+  }
+  const summary = [...byProg.values()].sort((a, b) => b.total_amount - a.total_amount)
+  return NextResponse.json({ summary, total_count, total_amount: Math.round(total_amount * 100) / 100 })
 }
 
 // POST { student_id, enrollment_id, percentage, note? } → otorga la beca.
