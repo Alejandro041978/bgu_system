@@ -11,10 +11,16 @@ interface Row {
 }
 
 export function AdmissionDocuments() {
-  const [convocatorias, setConvocatorias] = useState<{ id: string; name: string }[]>([])
   const [types, setTypes] = useState<DocType[]>([])
   const [students, setStudents] = useState<Row[]>([])
   const [convId, setConvId] = useState('')
+  // Cascade categoría → año → convocatoria (mismo patrón que "Estudiantes por
+  // Convocatoria": endpoint /api/convocatorias con datos reales, no parseo).
+  const [cats, setCats] = useState<{ id: string; name: string }[]>([])
+  const [years, setYears] = useState<{ id: string; name: string }[]>([])
+  const [convs, setConvs] = useState<{ id: string; name: string; semester: string }[]>([])
+  const [categoryId, setCategoryId] = useState('')
+  const [yearId, setYearId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState<string | null>(null)  // `${enr}|${type}`
@@ -25,10 +31,30 @@ export function AdmissionDocuments() {
     setLoading(true)
     const d = await fetch(`/api/sales/admission-docs${c ? `?convocatoria=${c}` : ''}`).then(r => r.json())
     if (d.error) { setError(d.error); setLoading(false); return }
-    setConvocatorias(d.convocatorias ?? []); setTypes((d.types ?? []).filter((t: DocType) => t.active))
+    setTypes((d.types ?? []).filter((t: DocType) => t.active))
     setStudents(d.students ?? []); setLoading(false)
   }, [])
   useEffect(() => { load(convId) }, [convId, load])
+
+  // Catálogos de la cascada (categorías + años reales)
+  useEffect(() => {
+    fetch('/api/convocatorias').then(r => r.json()).then(d => {
+      setCats(d.categories ?? []); setYears(d.years ?? [])
+    })
+  }, [])
+
+  // Convocatorias de la categoría en el año elegido (semestres → convocatorias)
+  useEffect(() => {
+    setConvs([]); setConvId('')
+    if (!categoryId || !yearId) return
+    fetch(`/api/convocatorias?category_id=${categoryId}&year_id=${yearId}`)
+      .then(r => r.json()).then(d => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const flat = (d.semesters ?? []).flatMap((s: any) =>
+          (s.convocatorias ?? []).map((c: { id: string; name: string }) => ({ id: c.id, name: c.name, semester: s.name })))
+        setConvs(flat)
+      })
+  }, [categoryId, yearId])
 
   function pickFile(enrollmentId: string, docTypeId: string) {
     pendingRef.current = { enrollmentId, docTypeId }
@@ -75,12 +101,27 @@ export function AdmissionDocuments() {
       {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex justify-between"><span>{error}</span><button onClick={() => setError(null)}>✕</button></div>}
 
       <div className="flex items-center gap-3 flex-wrap">
-        <label className="text-sm text-gray-600">Convocatoria</label>
-        <select value={convId} onChange={e => setConvId(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white max-w-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">Seleccionar convocatoria…</option>
-          {convocatorias.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        <label className="text-sm text-gray-600">Categoría</label>
+        <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Seleccionar categoría…</option>
+          {cats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+
+        <label className="text-sm text-gray-600">Año académico</label>
+        <select value={yearId} onChange={e => setYearId(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Seleccionar año…</option>
+          {years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
+        </select>
+
+        <label className="text-sm text-gray-600">Convocatoria</label>
+        <select value={convId} onChange={e => setConvId(e.target.value)} disabled={!convs.length}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white max-w-md disabled:bg-gray-50 disabled:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">{categoryId && yearId ? (convs.length ? 'Seleccionar convocatoria…' : 'Sin convocatorias en este año') : 'Elige categoría y año'}</option>
+          {convs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+
         {loading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
         {convId && !loading && (
           <span className="ml-auto text-xs text-gray-500">{students.length} postulante(s) · {completos} con expediente completo</span>
