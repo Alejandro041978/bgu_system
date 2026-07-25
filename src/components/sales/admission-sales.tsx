@@ -17,33 +17,20 @@ interface Cat { id: string; name: string; sigla: string | null }
 
 const money = (n: number) => `$${Number(n).toFixed(2)}`
 
-// La categoría sale del FK real (product_category_id); del nombre SOLO se
-// deriva el año académico (el token "AY XX-XX", tolerante a espacios y guiones).
-function parseAY(name: string): string {
-  const m = name.match(/AY\s*\d{2}\s*-\s*\d{2}/i)
-  if (!m) return '—'
-  return m[0].toUpperCase().replace(/\s+/g, ' ').replace(/ ?- ?/, '-')
-}
-// Etiqueta corta para el desplegable de convocatoria (categoría y año ya están
-// elegidos arriba): deja el término y el nivel — p. ej. "SUMMER 2023 · L1".
-function convShortLabel(name: string): string {
-  const segs = name.split('·').map(s => s.trim()).filter(Boolean)
-  const mid = (segs[1] ?? '').replace(/AY\s*\d{2}\s*-\s*\d{2}\s*/i, '').trim()
-  const tail = segs.slice(2).join(' · ')
-  return [mid, tail].filter(Boolean).join(' · ') || name
-}
-
 export function AdmissionSales() {
-  const [convocatorias, setConvocatorias] = useState<{ id: string; name: string; product_category_id: string | null }[]>([])
   const [advisors, setAdvisors] = useState<Advisor[]>([])
   const [advisorNames, setAdvisorNames] = useState<Record<string, string>>({})
   const [types, setTypes] = useState<AdmType[]>([])
   const [categories, setCategories] = useState<Cat[]>([])
   const [sales, setSales] = useState<Sale[]>([])
   const [convId, setConvId] = useState('')
-  // Selectores en cascada: categoría → año académico → convocatoria
-  const [selCat, setSelCat] = useState('')
-  const [selYear, setSelYear] = useState('')
+  // Cascade categoría → año → convocatoria (mismo patrón que "Estudiantes por
+  // Convocatoria": endpoint /api/convocatorias con datos reales, no parseo).
+  const [cats, setCats] = useState<{ id: string; name: string }[]>([])
+  const [years, setYears] = useState<{ id: string; name: string }[]>([])
+  const [convs, setConvs] = useState<{ id: string; name: string; semester: string }[]>([])
+  const [categoryId, setCategoryId] = useState('')
+  const [yearId, setYearId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showConfig, setShowConfig] = useState(false)
@@ -62,11 +49,31 @@ export function AdmissionSales() {
     setLoading(true)
     const d = await fetch(`/api/sales/admissions${c ? `?convocatoria=${c}` : ''}`).then(r => r.json())
     if (d.error) { setError(d.error); setLoading(false); return }
-    setConvocatorias(d.convocatorias ?? []); setAdvisors(d.advisors ?? []); setAdvisorNames(d.advisor_names ?? {})
+    setAdvisors(d.advisors ?? []); setAdvisorNames(d.advisor_names ?? {})
     setTypes(d.types ?? []); setCategories(d.categories ?? []); setSales(d.sales ?? [])
     setLoading(false)
   }, [])
   useEffect(() => { load(convId) }, [convId, load])
+
+  // Catálogos de la cascada (categorías + años reales)
+  useEffect(() => {
+    fetch('/api/convocatorias').then(r => r.json()).then(d => {
+      setCats(d.categories ?? []); setYears(d.years ?? [])
+    })
+  }, [])
+
+  // Convocatorias de la categoría en el año elegido (semestres → convocatorias)
+  useEffect(() => {
+    setConvs([]); setConvId('')
+    if (!categoryId || !yearId) return
+    fetch(`/api/convocatorias?category_id=${categoryId}&year_id=${yearId}`)
+      .then(r => r.json()).then(d => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const flat = (d.semesters ?? []).flatMap((s: any) =>
+          (s.convocatorias ?? []).map((c: { id: string; name: string }) => ({ id: c.id, name: c.name, semester: s.name })))
+        setConvs(flat)
+      })
+  }, [categoryId, yearId])
 
   async function assign(enrollmentId: string, patch: { advisor_id?: string | null; admission_type_id?: string | null }) {
     const s = sales.find(x => x.enrollment_id === enrollmentId)
@@ -128,16 +135,6 @@ export function AdmissionSales() {
     load(convId)
   }
 
-  // Convocatorias con año parseado; categoría = FK real (product_category_id).
-  const parsedConvs = useMemo(() => convocatorias.map(c => ({ ...c, academicYear: parseAY(c.name) })), [convocatorias])
-  // Categorías reales que efectivamente tienen convocatorias
-  const catOptions = useMemo(() => {
-    const withConv = new Set(parsedConvs.map(p => p.product_category_id).filter(Boolean))
-    return categories.filter(c => withConv.has(c.id))
-  }, [categories, parsedConvs])
-  const yearOptions = useMemo(() => [...new Set(parsedConvs.filter(p => p.product_category_id === selCat).map(p => p.academicYear))].sort(), [parsedConvs, selCat])
-  const convOptions = useMemo(() => parsedConvs.filter(p => p.product_category_id === selCat && p.academicYear === selYear), [parsedConvs, selCat, selYear])
-
   const typeById = useMemo(() => new Map(types.map(t => [t.id, t])), [types])
   const advisorName = (id: string | null) => (id && advisorNames[id]) ?? advisors.find(a => a.id === id)?.full_name ?? 'Sin asesora'
 
@@ -173,24 +170,24 @@ export function AdmissionSales() {
       {/* Filtro en cascada (categoría → año académico → convocatoria) + config */}
       <div className="flex items-center gap-3 flex-wrap">
         <label className="text-sm text-gray-600">Categoría</label>
-        <select value={selCat} onChange={e => { setSelCat(e.target.value); setSelYear(''); setConvId('') }}
+        <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Seleccionar categoría…</option>
-          {catOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {cats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
 
         <label className="text-sm text-gray-600">Año académico</label>
-        <select value={selYear} onChange={e => { setSelYear(e.target.value); setConvId('') }} disabled={!selCat}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white disabled:bg-gray-50 disabled:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">{selCat ? 'Seleccionar año…' : '—'}</option>
-          {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+        <select value={yearId} onChange={e => setYearId(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Seleccionar año…</option>
+          {years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
         </select>
 
         <label className="text-sm text-gray-600">Convocatoria</label>
-        <select value={convId} onChange={e => setConvId(e.target.value)} disabled={!selYear}
+        <select value={convId} onChange={e => setConvId(e.target.value)} disabled={!convs.length}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white max-w-md disabled:bg-gray-50 disabled:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">{selYear ? 'Seleccionar convocatoria…' : '—'}</option>
-          {convOptions.map(c => <option key={c.id} value={c.id}>{convShortLabel(c.name)}</option>)}
+          <option value="">{categoryId && yearId ? (convs.length ? 'Seleccionar convocatoria…' : 'Sin convocatorias en este año') : 'Elige categoría y año'}</option>
+          {convs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
 
         {loading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}

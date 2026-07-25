@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   // (regla del usuario, 2026-07-23)
   const { data: agentRole } = await sb.from('roles').select('id').eq('name', 'admission_agent').maybeSingle()
   const [{ data: convocatorias }, { data: advisors }, { data: types }, { data: categories }] = await Promise.all([
-    sb.from('convocatorias').select('id, name, product_category_id').order('name'),
+    sb.from('convocatorias').select('id, name').order('name'),
     agentRole
       ? sb.from('hr_employees').select('id, full_name').eq('role_id', agentRole.id).order('full_name')
       : Promise.resolve({ data: [] }),
