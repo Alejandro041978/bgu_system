@@ -11,7 +11,7 @@ interface Op {
 }
 interface Hit { id: string; name: string; document_number: string | null }
 interface Cuota { external_id: string; program_name: string; concept: string; concept_name: string; amount: number; balance: number; due_date: string | null; status: string }
-interface Sug { operation_id: string; date: string | null; amount: number; diff: number }
+interface Sug { operation_id: string; date: string | null; amount: number; diff: number; by?: 'ref' | 'fecha' }
 interface Disb { id: string; disbursement_id: string; disbursement_date: string | null; amount: number; currency: string | null; matched_operation_id: string | null; suggestion?: Sug | null }
 interface DisbRow { disbursement_id: string; date: string | null; amount: number; currency: string | null; count: number | null }
 interface Preview { total: number; already: number; matched: number; unmatched: number; sample: { disbursement_id: string; date: string | null; amount: number; estado: string }[]; cols: string }
@@ -379,14 +379,16 @@ export function BooksOperations() {
                   <td className="px-4 py-2 text-right tabular-nums text-green-700">{money(d.amount)}</td>
                   <td className="px-4 py-2 text-xs">
                     {d.suggestion ? (
-                      <span className="text-gray-600">Books {d.suggestion.date} · <span className="tabular-nums">{money(d.suggestion.amount)}</span>
-                        {d.suggestion.diff !== 0 && <span className={`ml-1 ${Math.abs(d.suggestion.diff) <= 150 ? 'text-amber-600' : 'text-red-600'}`}>· dif {money(d.suggestion.diff)}</span>}
+                      <span className="text-gray-600">
+                        {d.suggestion.by === 'ref' && <span className="mr-1 inline-flex items-center rounded bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-medium">ref exacta</span>}
+                        Books {d.suggestion.date} · <span className="tabular-nums">{money(d.suggestion.amount)}</span>
+                        {d.suggestion.diff !== 0 && <span className={`ml-1 ${d.suggestion.by === 'ref' ? 'text-gray-400' : Math.abs(d.suggestion.diff) <= 150 ? 'text-amber-600' : 'text-red-600'}`}>· {d.suggestion.by === 'ref' ? 'fracc.' : 'dif'} {money(d.suggestion.diff)}</span>}
                       </span>
                     ) : <span className="text-gray-300">sin candidato cercano</span>}
                   </td>
                   <td className="px-4 py-2 text-right">
                     {d.suggestion && (
-                      <button onClick={() => { if (confirm(`¿Asociar el desembolso ${d.disbursement_id} (${money(d.amount)}) con el depósito de Books del ${d.suggestion!.date} (${money(d.suggestion!.amount)})? Diferencia ${money(d.suggestion!.diff)} (comisión).`)) associate(d.disbursement_id, d.suggestion!.operation_id) }}
+                      <button onClick={() => { if (confirm(d.suggestion!.by === 'ref' ? `¿Asociar el desembolso ${d.disbursement_id} (${money(d.amount)}) con el depósito de Books del ${d.suggestion!.date}? Coinciden por REFERENCIA (el depósito cita el ID del desembolso). El monto en Books (${money(d.suggestion!.amount)}) puede diferir porque contabilidad lo fraccionó.` : `¿Asociar el desembolso ${d.disbursement_id} (${money(d.amount)}) con el depósito de Books del ${d.suggestion!.date} (${money(d.suggestion!.amount)})? Diferencia ${money(d.suggestion!.diff)} (comisión).`)) associate(d.disbursement_id, d.suggestion!.operation_id) }}
                         className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
                         <Link2 className="w-3.5 h-3.5" />Asociar
                       </button>

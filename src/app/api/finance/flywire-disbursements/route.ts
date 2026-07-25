@@ -28,6 +28,9 @@ const dayDiff = (a: string | null, b: string | null) => {
   if (!a || !b) return 999
   return Math.abs((new Date(a).getTime() - new Date(b).getTime()) / 86400000)
 }
+// Normaliza para comparar referencias con IDs de desembolso: mayúsculas y solo
+// alfanumérico, así "ZBL2023-10-18" == "ZBL 2023 10 18" == "zbl20231018".
+const normRef = (s: string | null | undefined) => String(s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '')
 
 // GET → desembolsos importados (con su estado de cruce) + resumen. A los que NO
 // cruzaron exacto se les adjunta una SUGERENCIA: el depósito de Books más
@@ -39,16 +42,22 @@ export async function GET() {
   disb.sort((a, b) => String(b.disbursement_date).localeCompare(String(a.disbursement_date)))
 
   // Depósitos de Flywire aún sin cruzar (candidatos para sugerir): contacto "Clientes Varios"
-  const ops = (await fetchAll(sb, 'books_operations', 'id, txn_date, contact_name, credit, amount, flywire_disbursement_id'))
+  const ops = (await fetchAll(sb, 'books_operations', 'id, txn_date, contact_name, credit, amount, reference, flywire_disbursement_id'))
     .filter(o => !o.flywire_disbursement_id && /clientes\s*varios/i.test(String(o.contact_name ?? '')))
-    .map(o => ({ id: o.id, date: o.txn_date as string | null, val: o.credit != null ? Number(o.credit) : Number(o.amount ?? 0) }))
+    .map(o => ({ id: o.id, date: o.txn_date as string | null, val: o.credit != null ? Number(o.credit) : Number(o.amount ?? 0), ref: normRef(o.reference) }))
 
   const withSug = disb.map(d => {
     if (d.matched_operation_id) return d
+    // 1) Por REFERENCIA: el depósito de Books cita el ID del desembolso (señal
+    //    conclusiva, el ID es único) — no exige cercanía de fecha ni monto.
+    const did = normRef(d.disbursement_id)
+    const byRef = did.length >= 5 ? ops.find(o => o.ref.includes(did)) : null
+    if (byRef) return { ...d, suggestion: { operation_id: byRef.id, date: byRef.date, amount: byRef.val, diff: Math.round((Number(d.amount) - byRef.val) * 100) / 100, by: 'ref' as const } }
+    // 2) Por fecha cercana (±3 días), el más parecido en monto.
     const cands = ops.filter(o => dayDiff(o.date, d.disbursement_date) <= 3)
       .sort((a, b) => Math.abs(a.val - Number(d.amount)) - Math.abs(b.val - Number(d.amount)))
     const s = cands[0]
-    return { ...d, suggestion: s ? { operation_id: s.id, date: s.date, amount: s.val, diff: Math.round((Number(d.amount) - s.val) * 100) / 100 } : null }
+    return { ...d, suggestion: s ? { operation_id: s.id, date: s.date, amount: s.val, diff: Math.round((Number(d.amount) - s.val) * 100) / 100, by: 'fecha' as const } : null }
   })
 
   const matched = disb.filter(d => d.matched_operation_id).length
@@ -104,9 +113,9 @@ export async function POST(req: NextRequest) {
   // marcador confiable es el CONTACTO "Clientes Varios" (el abono agregado):
   // ni el txn_type ni la referencia son consistentes entre años (PAYOUTS, Flywire
   // o un número según la época). Las ventas directas tienen contacto con nombre.
-  const ops = (await fetchAll(sb, 'books_operations', 'id, txn_date, contact_name, credit, amount, flywire_disbursement_id'))
+  const ops = (await fetchAll(sb, 'books_operations', 'id, txn_date, contact_name, credit, amount, reference, flywire_disbursement_id'))
     .filter(o => !o.flywire_disbursement_id && /clientes\s*varios/i.test(String(o.contact_name ?? '')))
-    .map(o => ({ ...o, val: o.credit != null ? Number(o.credit) : Number(o.amount ?? 0) }))
+    .map(o => ({ ...o, val: o.credit != null ? Number(o.credit) : Number(o.amount ?? 0), nref: normRef(o.reference) }))
 
   // Estado previo: desembolsos ya importados y su cruce (para no re-cruzar ni
   // reportar como "sin cruce" lo que ya estaba conciliado).
@@ -123,9 +132,17 @@ export async function POST(req: NextRequest) {
     const prev = prevMatch.get(String(r.disbursement_id))
     if (prev) { plan.push({ row: r, op: { id: prev }, already: true }); continue }
     const amt = Number(r.amount)
-    const cands = ops.filter(o => !usedOps.has(o.id) && Math.abs(o.val - amt) < 0.01 && dayDiff(o.txn_date, r.date ?? null) <= 7)
-      .sort((a, b) => dayDiff(a.txn_date, r.date ?? null) - dayDiff(b.txn_date, r.date ?? null))
-    const op = cands[0] ?? null
+    // 1) Por REFERENCIA: el depósito de Books cita el ID del desembolso. Señal
+    //    conclusiva (el ID es único) — no exige ventana de fecha ni monto, porque
+    //    contabilidad a veces fraccionó el desembolso en varias líneas.
+    const did = normRef(r.disbursement_id)
+    let op: { id: string } | null = did.length >= 5 ? (ops.find(o => !usedOps.has(o.id) && o.nref.includes(did)) ?? null) : null
+    // 2) Fallback: monto exacto + fecha cercana (±7 días), el más cercano en fecha.
+    if (!op) {
+      const cands = ops.filter(o => !usedOps.has(o.id) && Math.abs(o.val - amt) < 0.01 && dayDiff(o.txn_date, r.date ?? null) <= 7)
+        .sort((a, b) => dayDiff(a.txn_date, r.date ?? null) - dayDiff(b.txn_date, r.date ?? null))
+      op = cands[0] ?? null
+    }
     if (op) usedOps.add(op.id)
     plan.push({ row: r, op, already: false })
   }
