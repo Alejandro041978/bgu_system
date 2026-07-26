@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { usePermissions } from '@/hooks/use-permissions'
 import { BrandLogo } from '@/components/brand-logo'
-import { RoleAudit } from '@/components/layout/role-audit'
+import { CollaboratorAudit } from '@/components/layout/collaborator-audit'
 
 type NavNode = { name: string; href: string; icon: React.ElementType; pageKey?: string; children?: NavNode[] }
 type NavGroup = { label: string; items: NavNode[] }
@@ -425,7 +425,7 @@ export function Sidebar() {
             Ver portal estudiantil
           </Link>
         )}
-        <RoleAudit />
+        <CollaboratorAudit />
         <button
           onClick={() => setSettingOpen(v => !v)}
           className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"

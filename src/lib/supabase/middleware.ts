@@ -53,6 +53,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Auditoría "ver como colaborador": SOLO LECTURA. Mientras un superadmin real
+  // tiene la suplantación activa (cookie imp_user), se bloquea toda escritura
+  // (métodos no-GET) en /api, salvo el endpoint para salir de la vista.
+  if (user && isApiRoute && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+    const impUser = request.cookies.get('imp_user')?.value
+    if (impUser && pathname !== '/api/staff/impersonate-user') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = adminClient() as any
+      const { data: realEmp } = await sb.from('hr_employees').select('role_id').eq('user_id', user.id).maybeSingle()
+      if (!realEmp?.role_id) {
+        return NextResponse.json({ error: 'Auditoría (ver como colaborador): sesión de solo lectura' }, { status: 403 })
+      }
+    }
+  }
+
   // Enforce role permissions for authenticated users on app routes
   if (user && !isApiRoute && !isAuthRoute && !isPublicRoute) {
     const admin = adminClient()
@@ -95,12 +110,16 @@ export async function updateSession(request: NextRequest) {
       return supabaseResponse
     }
 
-    // Auditoría: un superadmin (sin role_id) puede "ver como rol" (cookie
-    // imp_role) y queda restringido a los permisos de ese rol. Un colaborador
-    // normal no puede impersonar (su role_id manda).
-    const isSuper = !emp?.role_id
-    const impRoleId = request.cookies.get('imp_role')?.value || null
-    const effectiveRoleId = isSuper && impRoleId ? impRoleId : emp?.role_id
+    // Auditoría "ver como colaborador": un superadmin real (sin role_id) con la
+    // cookie imp_user queda restringido a los permisos del ROL de ese colaborador.
+    // Un colaborador normal no puede suplantar (su role_id manda).
+    const realIsSuper = !emp?.role_id
+    const impUser = request.cookies.get('imp_user')?.value || null
+    let effectiveRoleId = emp?.role_id
+    if (realIsSuper && impUser) {
+      const { data: impEmp } = await sb.from('hr_employees').select('role_id').eq('user_id', impUser).maybeSingle()
+      effectiveRoleId = impEmp?.role_id ?? null
+    }
 
     // Staff: enforce role permissions per page
     const pageKey = pageKeyForPath(pathname)
