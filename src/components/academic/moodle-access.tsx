@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, ShieldOff, ShieldCheck, Search, Clock, AlertTriangle } from 'lucide-react'
+import { Loader2, ShieldOff, ShieldCheck, Search, Clock, AlertTriangle, Plug } from 'lucide-react'
 
 interface Row {
   student_id: string; name: string; document: string | null; email: string | null
@@ -19,6 +19,7 @@ export function MoodleAccess() {
   const [configured, setConfigured] = useState(true)
   const [loading, setLoading] = useState(true)
   const [applying, setApplying] = useState(false)
+  const [testing, setTesting] = useState(false)
   const [granting, setGranting] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
@@ -39,6 +40,16 @@ export function MoodleAccess() {
   }, [rows, q])
 
   const pending = (summary?.a_suspender ?? 0) + (summary?.a_reactivar ?? 0)
+
+  async function test() {
+    setTesting(true); setError(null); setOk(null)
+    const d = await fetch('/api/academic/moodle-access', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'test' }),
+    }).then(r => r.json())
+    setTesting(false)
+    if (d.ok) setOk(d.message ?? 'Conexión OK.')
+    else setError(d.error ?? 'La prueba falló.')
+  }
 
   async function apply() {
     if (!confirm(`¿Aplicar cambios en Moodle? Se suspenderán ${summary?.a_suspender ?? 0} cuenta(s) y se reactivarán ${summary?.a_reactivar ?? 0}.`)) return
@@ -97,6 +108,11 @@ export function MoodleAccess() {
           <Search className="w-4 h-4 text-gray-400" />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar estudiante…" className="flex-1 text-sm focus:outline-none" />
         </div>
+        <button onClick={test} disabled={testing || !configured}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40">
+          {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
+          Probar conexión
+        </button>
         <button onClick={apply} disabled={applying || pending === 0 || !configured}
           className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white">
           {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldOff className="w-4 h-4" />}

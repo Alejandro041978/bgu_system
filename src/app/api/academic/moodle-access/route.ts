@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isStudentUser } from '@/lib/student-identity'
-import { moodleConfigured } from '@/lib/moodle'
+import { moodleConfigured, getUserByEmail, getUserByIdnumber, setUserSuspended } from '@/lib/moodle'
 import { planAccess, applyAccess, unsuspendStudent } from '@/lib/moodle-access'
 
 export const revalidate = 0
@@ -47,6 +47,28 @@ export async function POST(req: NextRequest) {
   const b = await req.json().catch(() => null) as { action?: string; student_id?: string; days?: number; note?: string; id?: string } | null
   if (!b?.action) return NextResponse.json({ error: 'Falta action' }, { status: 400 })
   const sb = db()
+
+  // Prueba INOFENSIVA: reaplica el mismo `suspended` actual de un estudiante real
+  // → confirma que core_user_update_users está habilitada, sin cambiar nada.
+  if (b.action === 'test') {
+    if (!moodleConfigured()) return NextResponse.json({ ok: false, error: 'Moodle no está configurado (MOODLE_URL / MOODLE_WS_TOKEN)' })
+    const { data: s } = await sb.from('academic_students')
+      .select('id, external_id, email, first_name, last_name').not('email', 'is', null).limit(1).maybeSingle()
+    if (!s) return NextResponse.json({ ok: false, error: 'No hay estudiante para probar' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let u: any = null
+    if (s.external_id) u = await getUserByIdnumber(String(s.external_id)).catch(() => null)
+    if (!u && s.email) u = await getUserByEmail(String(s.email).toLowerCase()).catch(() => null)
+    if (!u?.id) return NextResponse.json({ ok: false, error: 'El estudiante de prueba no existe en Moodle — prueba con otro o revisa el token.' })
+    const cur = Number(u.suspended) === 1
+    try {
+      await setUserSuspended(Number(u.id), cur) // no-op: mismo valor
+      const nm = [s.first_name, s.last_name].filter(Boolean).join(' ')
+      return NextResponse.json({ ok: true, message: `OK — core_user_update_users respondió. Prueba con ${nm} (suspended=${cur}, sin cambios).` })
+    } catch (e) {
+      return NextResponse.json({ ok: false, error: String(e) })
+    }
+  }
 
   if (b.action === 'apply') {
     if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no está configurado (MOODLE_URL / MOODLE_WS_TOKEN)' }, { status: 400 })
