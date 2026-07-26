@@ -94,23 +94,14 @@ export default async function MatriculasPage({
     const sid = convToSem.get(cid)
     return sid ? (semInfo.get(sid)?.name ?? null) : null
   }
-  // Etiqueta corta de la convocatoria: el último segmento tras quitar el
-  // semestre (y así también la categoría), p. ej.
-  //   "Master Program · AY 24-25 SPRING 2025 · L3" → "L3"
-  //   "Fase 1" → "Fase 1"   ·   "Intake M2" → "Intake M2"
-  const convLabel = (full: string, sem: string | null): string => {
-    if (!sem) return full
-    const rest = full.split('·').map(s => s.trim()).filter(s => s && s.toLowerCase() !== sem.toLowerCase())
-    return rest.length ? rest[rest.length - 1] : full
-  }
   const rows = (programs ?? []).map(p => {
     const agg = progAgg.get(p.id)
     const convs = agg
       ? [...agg.convs.entries()]
           .map(([cid, n]) => {
             if (cid === '∅') return { sem: null as string | null, label: 'Sin convocatoria', count: n }
-            const sem = semNameForConv(cid)
-            return { sem, label: convLabel(convName.get(cid) ?? '—', sem), count: n }
+            // Formato pedido: "Semestre · <nombre completo de la convocatoria>"
+            return { sem: semNameForConv(cid), label: convName.get(cid) ?? '—', count: n }
           })
           .sort((a, b) => b.count - a.count)   // un solo orden: descendente por matriculados
       : []
