@@ -1,5 +1,4 @@
 import { Sidebar } from '@/components/layout/sidebar'
-import { RoleImpersonateBar } from '@/components/layout/role-impersonate-bar'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
@@ -19,7 +18,6 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <RoleImpersonateBar />
         {children}
       </main>
     </div>
