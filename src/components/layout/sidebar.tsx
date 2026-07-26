@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Headphones, DollarSign, Users, BarChart3,
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
-  GraduationCap, CalendarDays, BookOpen, ClipboardList, Target, Gift, ShieldCheck,
+  GraduationCap, CalendarDays, BookOpen, ClipboardList, Target, Gift, ShieldCheck, ShieldOff,
   TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -233,6 +233,7 @@ const navigation: NavGroup[] = [
           { name: 'Pagos por Conciliar', href: '/finance/conciliar', icon: Link2, pageKey: 'finance_conciliar' },
           { name: 'Auditor de Conciliación', href: '/finance/reconciliation', icon: ShieldCheck, pageKey: 'finance_reconciliation' },
           { name: 'Otros Ingresos', href: '/finance/otros-ingresos', icon: Package, pageKey: 'finance_other_income' },
+          { name: 'Acceso a Moodle', href: '/academic/moodle-access', icon: ShieldOff, pageKey: 'moodle_access' },
         ],
       },
     ],

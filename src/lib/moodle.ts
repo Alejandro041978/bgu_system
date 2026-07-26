@@ -122,3 +122,23 @@ export async function unenrolUsersBulk(enrolments: { userid: number; courseid: n
 export async function unenrolUser(courseid: number, userid: number): Promise<void> {
   await moodleCall('enrol_manual_unenrol_users', { enrolments: [{ userid, courseid }] })
 }
+
+// Suspende o reactiva la cuenta Moodle. Suspendida = no puede iniciar sesión.
+// Requiere que el token tenga habilitada la función core_user_update_users.
+export async function setUserSuspended(userid: number, suspended: boolean): Promise<void> {
+  await moodleCall('core_user_update_users', { users: [{ id: userid, suspended: suspended ? 1 : 0 }] })
+}
+
+// Resuelve el id de Moodle por la llave FIABLE (idnumber = external_id) y, si no,
+// por correo. Devuelve null si la cuenta no existe en Moodle.
+export async function resolveMoodleUserId(idnumber: string | null, email: string | null): Promise<number | null> {
+  if (idnumber) {
+    const u = await getUserByIdnumber(idnumber).catch(() => null)
+    if (u?.id) return Number(u.id)
+  }
+  if (email) {
+    const u = await getUserByEmail(email.trim().toLowerCase()).catch(() => null)
+    if (u?.id) return Number(u.id)
+  }
+  return null
+}
