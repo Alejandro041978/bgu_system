@@ -95,13 +95,20 @@ export async function updateSession(request: NextRequest) {
       return supabaseResponse
     }
 
+    // Auditoría: un superadmin (sin role_id) puede "ver como rol" (cookie
+    // imp_role) y queda restringido a los permisos de ese rol. Un colaborador
+    // normal no puede impersonar (su role_id manda).
+    const isSuper = !emp?.role_id
+    const impRoleId = request.cookies.get('imp_role')?.value || null
+    const effectiveRoleId = isSuper && impRoleId ? impRoleId : emp?.role_id
+
     // Staff: enforce role permissions per page
     const pageKey = pageKeyForPath(pathname)
-    if (pageKey && emp?.role_id) {
+    if (pageKey && effectiveRoleId) {
       const { data: perm } = await sb
         .from('role_permissions')
         .select('can_view')
-        .eq('role_id', emp.role_id)
+        .eq('role_id', effectiveRoleId)
         .eq('page_key', pageKey)
         .maybeSingle()
 
