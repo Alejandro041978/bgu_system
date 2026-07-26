@@ -89,23 +89,30 @@ export default async function MatriculasPage({
     p.convs.set(cid, (p.convs.get(cid) ?? 0) + 1)
   }
 
-  // Semestre de una convocatoria (para prefijar y poder ubicar los intakes)
+  // Semestre de una convocatoria (siempre desde la BD, no del texto del nombre)
   const semNameForConv = (cid: string): string | null => {
     const sid = convToSem.get(cid)
     return sid ? (semInfo.get(sid)?.name ?? null) : null
+  }
+  // Etiqueta corta de la convocatoria: el último segmento tras quitar el
+  // semestre (y así también la categoría), p. ej.
+  //   "Master Program · AY 24-25 SPRING 2025 · L3" → "L3"
+  //   "Fase 1" → "Fase 1"   ·   "Intake M2" → "Intake M2"
+  const convLabel = (full: string, sem: string | null): string => {
+    if (!sem) return full
+    const rest = full.split('·').map(s => s.trim()).filter(s => s && s.toLowerCase() !== sem.toLowerCase())
+    return rest.length ? rest[rest.length - 1] : full
   }
   const rows = (programs ?? []).map(p => {
     const agg = progAgg.get(p.id)
     const convs = agg
       ? [...agg.convs.entries()]
           .map(([cid, n]) => {
-            const conv = cid === '∅' ? 'Sin convocatoria' : (convName.get(cid) ?? '—')
-            const sem = cid === '∅' ? null : semNameForConv(cid)
-            // Solo prefijar si el nombre no incluye ya el semestre (evita duplicar)
-            const prefix = sem && !conv.toLowerCase().includes(sem.toLowerCase()) ? sem : null
-            return { conv, sem: prefix, count: n }
+            if (cid === '∅') return { sem: null as string | null, label: 'Sin convocatoria', count: n }
+            const sem = semNameForConv(cid)
+            return { sem, label: convLabel(convName.get(cid) ?? '—', sem), count: n }
           })
-          .sort((a, b) => (a.sem ?? '').localeCompare(b.sem ?? '') || b.count - a.count)
+          .sort((a, b) => b.count - a.count)   // un solo orden: descendente por matriculados
       : []
     return { ...p, count: agg?.count ?? 0, convs }
   })
@@ -195,7 +202,7 @@ export default async function MatriculasPage({
                         return (
                           <tr key={program.id + '-' + j} className="border-t border-gray-50">
                             <td className="pl-10 pr-5 py-2 text-gray-600 text-[13px]">
-                              ↳ {cv.sem && <span className="text-indigo-500 font-medium">{cv.sem} · </span>}{cv.conv}
+                              ↳ {cv.sem && <span className="text-indigo-500 font-medium">{cv.sem} · </span>}{cv.label}
                             </td>
                             <td className="px-5 py-2"></td>
                             <td className="px-5 py-2 text-right">
