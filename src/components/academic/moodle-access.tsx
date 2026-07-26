@@ -5,10 +5,10 @@ import { Loader2, ShieldOff, ShieldCheck, Search, Clock, AlertTriangle, Plug, Li
 
 interface Row {
   student_id: string; name: string; document: string | null; email: string | null
-  overdue: number; has_exception: boolean; exception_expires: string | null
+  overdue: number; has_exception: boolean; exception_expires: string | null; no_account: boolean
   currently_suspended: boolean; desired_suspended: boolean; action: 'suspend' | 'unsuspend' | 'none'
 }
-interface Summary { total: number; a_suspender: number; a_reactivar: number; con_excepcion: number; suspendidos: number }
+interface Summary { total: number; a_suspender: number; a_reactivar: number; con_excepcion: number; suspendidos: number; sin_cuenta: number }
 interface LinkRow { student_id: string; name: string; email: string | null; status: 'vinculado' | 'candidato' | 'ambiguo' | 'sin_cuenta'; moodle_user_id?: number | null; moodle_email?: string | null; matches?: number }
 interface Diag { name_search: boolean; rows: LinkRow[]; summary: { vinculados: number; candidatos: number; ambiguos: number; sin_cuenta: number } }
 
@@ -119,7 +119,7 @@ export function MoodleAccess() {
           ['En deuda vencida', summary?.total ?? 0, 'text-gray-900'],
           ['A suspender', summary?.a_suspender ?? 0, 'text-red-600'],
           ['A reactivar', summary?.a_reactivar ?? 0, 'text-green-600'],
-          ['Con excepción vigente', summary?.con_excepcion ?? 0, 'text-indigo-600'],
+          ['Sin cuenta Moodle', summary?.sin_cuenta ?? 0, 'text-gray-400'],
         ].map(([l, n, c]) => (
           <div key={l as string} className="bg-white border border-gray-200 rounded-xl p-3.5">
             <p className={`text-2xl font-bold tabular-nums ${c}`}>{n as number}</p>
@@ -214,7 +214,9 @@ export function MoodleAccess() {
                   </td>
                   <td className={`px-4 py-2 text-right tabular-nums font-medium ${r.overdue > 0 ? 'text-red-600' : 'text-gray-400'}`}>{money(r.overdue)}</td>
                   <td className="px-4 py-2">
-                    {r.currently_suspended
+                    {r.no_account
+                      ? <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">Sin cuenta</span>
+                      : r.currently_suspended
                       ? <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200"><ShieldOff className="w-3 h-3" />Suspendido</span>
                       : <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200"><ShieldCheck className="w-3 h-3" />Activo</span>}
                   </td>

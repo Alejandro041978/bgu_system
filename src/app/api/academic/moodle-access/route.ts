@@ -33,6 +33,7 @@ export async function GET() {
       a_reactivar: rows.filter(r => r.action === 'unsuspend').length,
       con_excepcion: rows.filter(r => r.has_exception).length,
       suspendidos: rows.filter(r => r.currently_suspended).length,
+      sin_cuenta: rows.filter(r => r.no_account).length,
     },
   })
 }

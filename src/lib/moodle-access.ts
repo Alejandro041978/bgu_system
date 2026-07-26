@@ -11,6 +11,7 @@ export interface AccessRow {
   email_alt: string | null
   external_id: string | null
   moodle_user_id: number | null
+  no_account: boolean
   overdue: number
   has_exception: boolean
   exception_expires: string | null
@@ -72,7 +73,7 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
   const info = new Map<string, any>()
   for (let i = 0; i < idArr.length; i += 300) {
     const { data } = await sb.from('academic_students')
-      .select('id, first_name, last_name, second_last_name, document_number, email, email_alt, external_id, moodle_user_id, moodle_suspended')
+      .select('id, first_name, last_name, second_last_name, document_number, email, email_alt, external_id, moodle_user_id, moodle_suspended, moodle_no_account')
       .in('id', idArr.slice(i, i + 300))
     for (const s of data ?? []) info.set(s.id, s)
   }
@@ -82,13 +83,15 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
     const s = info.get(id); if (!s) continue
     const overdue = over.get(id) ?? 0
     const hasExc = exc.has(id)
-    const desired = overdue > 0.005 && !hasExc
+    const noAccount = !!s.moodle_no_account
+    // Sin cuenta Moodle = no hay acceso que restringir → nunca 'suspend'
+    const desired = overdue > 0.005 && !hasExc && !noAccount
     const cur = !!s.moodle_suspended
     const action: AccessRow['action'] = desired && !cur ? 'suspend' : (!desired && cur ? 'unsuspend' : 'none')
     rows.push({
       student_id: id, name: [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' '),
       document: s.document_number, email: s.email, email_alt: s.email_alt ?? null,
-      external_id: s.external_id, moodle_user_id: s.moodle_user_id ?? null,
+      external_id: s.external_id, moodle_user_id: s.moodle_user_id ?? null, no_account: noAccount,
       overdue: Math.round(overdue * 100) / 100, has_exception: hasExc, exception_expires: exc.get(id) ?? null,
       currently_suspended: cur, desired_suspended: desired, action,
     })
@@ -193,16 +196,18 @@ export async function diagnoseLinks(sb: SB): Promise<{ rows: LinkResult[]; name_
     const name = [s.first_name, s.last_name].filter(Boolean).join(' ')
     const uid = await resolveMoodleUserId(s.external_id, s.email_alt, s.email).catch(() => null)
     if (uid) {
-      await sb.from('academic_students').update({ moodle_user_id: uid }).eq('id', s.id)
+      await sb.from('academic_students').update({ moodle_user_id: uid, moodle_no_account: false }).eq('id', s.id)
       rows.push({ student_id: s.id, name, email: s.email, status: 'vinculado', moodle_user_id: uid })
       continue
     }
     if (nameSearch && s.first_name && s.last_name) {
       const found = await findMoodleUsersByName(s.first_name, s.last_name)
       if (found === null) { nameSearch = false }
-      else if (found.length === 1) { rows.push({ student_id: s.id, name, email: s.email, status: 'candidato', moodle_user_id: found[0].id, moodle_email: found[0].email }); continue }
-      else if (found.length > 1) { rows.push({ student_id: s.id, name, email: s.email, status: 'ambiguo', matches: found.length }); continue }
+      else if (found.length === 1) { await sb.from('academic_students').update({ moodle_no_account: false }).eq('id', s.id); rows.push({ student_id: s.id, name, email: s.email, status: 'candidato', moodle_user_id: found[0].id, moodle_email: found[0].email }); continue }
+      else if (found.length > 1) { await sb.from('academic_students').update({ moodle_no_account: false }).eq('id', s.id); rows.push({ student_id: s.id, name, email: s.email, status: 'ambiguo', matches: found.length }); continue }
     }
+    // Confirmado sin cuenta (ni por llave ni por nombre) → se excluye del plan
+    await sb.from('academic_students').update({ moodle_no_account: true }).eq('id', s.id)
     rows.push({ student_id: s.id, name, email: s.email, status: 'sin_cuenta' })
   }
   return { rows, name_search: nameSearch }
@@ -210,7 +215,7 @@ export async function diagnoseLinks(sb: SB): Promise<{ rows: LinkResult[]; name_
 
 // Confirma un candidato: cachea el moodle_user_id elegido a mano.
 export async function linkStudent(sb: SB, studentId: string, moodleUserId: number): Promise<void> {
-  await sb.from('academic_students').update({ moodle_user_id: moodleUserId }).eq('id', studentId)
+  await sb.from('academic_students').update({ moodle_user_id: moodleUserId, moodle_no_account: false }).eq('id', studentId)
 }
 
 // Tras registrar pagos: reactiva a los estudiantes que estaban SUSPENDIDOS y ya
