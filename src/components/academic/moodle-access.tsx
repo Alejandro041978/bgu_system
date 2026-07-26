@@ -128,11 +128,12 @@ export function MoodleAccess() {
       {ok && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex justify-between"><span>{ok}</span><button onClick={() => setOk(null)}>✕</button></div>}
 
       {/* Resumen */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
           ['En deuda vencida', summary?.total ?? 0, 'text-gray-900'],
           ['A suspender', summary?.a_suspender ?? 0, 'text-red-600'],
           ['A reactivar', summary?.a_reactivar ?? 0, 'text-green-600'],
+          ['Exceptuados', summary?.con_excepcion ?? 0, 'text-indigo-600'],
           ['Sin cuenta Moodle', summary?.sin_cuenta ?? 0, 'text-gray-400'],
         ].map(([l, n, c]) => (
           <div key={l as string} className="bg-white border border-gray-200 rounded-xl p-3.5">
