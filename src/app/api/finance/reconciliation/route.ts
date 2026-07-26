@@ -48,9 +48,15 @@ export async function GET() {
 
   const flySet = new Set(pays.map(p => p.flywire_payment_id).filter(Boolean))
   const activa = pays.filter(p => p.series_code !== 'FLYWIRE')
+  // Un pago tiene RESPALDO de importación si su serie es FLYWIRE/BOOKS/DESCUENTO
+  // o si una importación de Flywire lo enriqueció (flywire_payment_id). El resto
+  // son LEGACY de SystemActiva: hay que migrarlos a Books o Flywire.
+  const BACKED = new Set(['FLYWIRE', 'BOOKS', 'DESCUENTO'])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isLegacy = (p: any) => !BACKED.has(p.series_code) && !p.flywire_payment_id
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const disc: any[] = [], orphan: any[] = [], unconf: any[] = []
+  const disc: any[] = [], orphan: any[] = [], legacy: any[] = []
   let coincide = 0
   for (const p of activa) {
     const rz = zbl(p.transaction_reference)
@@ -60,20 +66,27 @@ export async function GET() {
     }
     if (rz && !p.flywire_payment_id && !flySet.has(rz))
       orphan.push({ nombre: nm(p.student_id), doc: doc(p.student_id), ref: rz, cruda: p.transaction_reference, monto: Number(p.amount), fecha: p.paid_date })
-    if (!p.flywire_payment_id)
-      unconf.push({ nombre: nm(p.student_id), doc: doc(p.student_id), ref: rz ?? '', cruda: p.transaction_reference ?? '', monto: Number(p.amount), fecha: p.paid_date, cuota: p.charge_external_id ? 'sí' : 'no' })
+    if (isLegacy(p))
+      legacy.push({
+        student_id: p.student_id, nombre: nm(p.student_id), doc: doc(p.student_id),
+        ref: rz ?? '', cruda: p.transaction_reference ?? '', monto: Number(p.amount), fecha: p.paid_date,
+        cuota: p.charge_external_id ? 'sí' : 'no', candidato: rz ? 'flywire' : 'books',
+      })
   }
   disc.sort((a, b) => b.monto - a.monto)
   orphan.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)))
-  unconf.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
+  legacy.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
 
   const stats = {
     total: pays.length,
     activa: activa.length,
     enriquecidos: activa.filter(p => p.flywire_payment_id).length,
-    sin_tocar: activa.filter(p => !p.flywire_payment_id).length,
     flywire_nuevos: pays.length - activa.length,
-    coincide, disc: disc.length, orphan: orphan.length, unconf: unconf.length,
+    coincide, disc: disc.length, orphan: orphan.length,
+    legacy: legacy.length,
+    legacy_flywire: legacy.filter(l => l.candidato === 'flywire').length,
+    legacy_books: legacy.filter(l => l.candidato === 'books').length,
+    legacy_sum: Math.round(legacy.reduce((s, l) => s + l.monto, 0) * 100) / 100,
   }
-  return NextResponse.json({ stats, disc, orphan, unconf })
+  return NextResponse.json({ stats, disc, orphan, legacy })
 }

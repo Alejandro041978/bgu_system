@@ -5,9 +5,9 @@ import { Loader2, Search, ShieldCheck, ShieldAlert, HelpCircle } from 'lucide-re
 
 interface Disc { nombre: string; doc: string; ref: string; fly: string; cruda: string; monto: number; fecha: string }
 interface Orphan { nombre: string; doc: string; ref: string; cruda: string; monto: number; fecha: string }
-interface Unconf { nombre: string; doc: string; ref: string; cruda: string; monto: number; fecha: string; cuota: string }
-interface Stats { total: number; activa: number; enriquecidos: number; sin_tocar: number; flywire_nuevos: number; coincide: number; disc: number; orphan: number; unconf: number }
-interface Data { stats: Stats; disc: Disc[]; orphan: Orphan[]; unconf: Unconf[] }
+interface Legacy { student_id: string; nombre: string; doc: string; ref: string; cruda: string; monto: number; fecha: string; cuota: string; candidato: 'flywire' | 'books' }
+interface Stats { total: number; activa: number; enriquecidos: number; flywire_nuevos: number; coincide: number; disc: number; orphan: number; legacy: number; legacy_flywire: number; legacy_books: number; legacy_sum: number }
+interface Data { stats: Stats; disc: Disc[]; orphan: Orphan[]; legacy: Legacy[] }
 
 const money = (n: number) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const fdate = (d: string) => (d ? String(d).split('-').reverse().join('/') : '—')
@@ -30,7 +30,7 @@ export function PaymentReconciliation() {
   const match = (s: string) => !t || s.toLowerCase().includes(t)
   const disc = useMemo(() => (data?.disc ?? []).filter(r => match(`${r.nombre} ${r.doc} ${r.ref} ${r.fly} ${r.cruda}`)), [data, t])
   const orphan = useMemo(() => (data?.orphan ?? []).filter(r => match(`${r.nombre} ${r.doc} ${r.ref} ${r.cruda}`)), [data, t])
-  const unconf = useMemo(() => (data?.unconf ?? []).filter(r => match(`${r.nombre} ${r.doc} ${r.ref} ${r.cruda}`)), [data, t])
+  const legacy = useMemo(() => (data?.legacy ?? []).filter(r => match(`${r.nombre} ${r.doc} ${r.ref} ${r.cruda}`)), [data, t])
 
   if (loading) return <div className="py-16 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /><p className="text-xs text-gray-400 mt-2">Analizando {`>`}15,000 pagos…</p></div>
   if (error) return <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>
@@ -48,21 +48,33 @@ export function PaymentReconciliation() {
         </div>
         <p className="text-sm text-gray-500 max-w-lg">
           De las filas con ZBL en ambos lados, <b className="text-gray-800">{num(s.coincide)}</b> coinciden y <b className="text-gray-800">{s.disc}</b> discrepan.
-          Aparte, <b className="text-gray-800">{s.orphan}</b> ZBL de SystemActiva no existen en ninguna importación de Flywire, y <b className="text-gray-800">{num(s.unconf)}</b> pagos nunca fueron tocados por Flywire.
+          Aparte, <b className="text-gray-800">{s.orphan}</b> ZBL de SystemActiva no existen en ninguna importación de Flywire.
+        </p>
+      </div>
+
+      {/* Objetivo de migración: pagos legacy sin respaldo de importación */}
+      <div className="bg-white border border-blue-200 rounded-xl p-5 flex flex-wrap items-center gap-6">
+        <div>
+          <p className={`text-4xl font-bold tabular-nums ${s.legacy === 0 ? 'text-green-600' : 'text-blue-600'}`}>{num(s.legacy)}</p>
+          <p className="text-xs text-gray-500 mt-1">pagos legacy por migrar · <b className="text-gray-700">{money(s.legacy_sum)}</b></p>
+        </div>
+        <p className="text-sm text-gray-500 max-w-lg">
+          Pagos que aún <b className="text-gray-800">no tienen respaldo de importación</b> (ni serie FLYWIRE/BOOKS, ni <span className="font-mono">flywire_payment_id</span>).
+          De ellos, <b className="text-emerald-700">{num(s.legacy_flywire)}</b> traen un ZBL (candidatos a <b>Flywire</b>) y <b className="text-indigo-700">{num(s.legacy_books)}</b> no (candidatos a <b>Books</b> o revisión manual).
         </p>
       </div>
 
       {/* Indicadores */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          ['Pagos totales', s.total, ''],
-          ['De SystemActiva', s.activa, 'series nulo'],
-          ['Confirmados por Flywire', s.enriquecidos, 'ZBL cruzó'],
-          ['Sin confirmar', s.sin_tocar, 'nunca tocados'],
-          ['Creados por Flywire', s.flywire_nuevos, 'series FLYWIRE'],
+          ['Pagos totales', num(s.total), ''],
+          ['Confirmados por Flywire', num(s.enriquecidos), 'ZBL enriqueció'],
+          ['Creados por Flywire', num(s.flywire_nuevos), 'series FLYWIRE'],
+          ['Legacy → Flywire', num(s.legacy_flywire), 'traen ZBL'],
+          ['Legacy → Books', num(s.legacy_books), 'sin ZBL'],
         ].map(([l, n, sub]) => (
           <div key={l as string} className="bg-white border border-gray-200 rounded-xl p-3.5">
-            <p className="text-xl font-bold tabular-nums text-gray-900">{num(n as number)}</p>
+            <p className="text-xl font-bold tabular-nums text-gray-900">{n}</p>
             <p className="text-[11px] text-gray-500 mt-0.5"><b className="text-gray-700">{l}</b>{sub ? ` · ${sub}` : ''}</p>
           </div>
         ))}
@@ -74,7 +86,7 @@ export function PaymentReconciliation() {
           <Search className="w-4 h-4 text-gray-400" />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nombre, documento o código ZBL…"
             className="flex-1 text-sm focus:outline-none" />
-          {t && <span className="text-[11px] text-gray-400 whitespace-nowrap">{disc.length + orphan.length + unconf.length} coincidencia(s)</span>}
+          {t && <span className="text-[11px] text-gray-400 whitespace-nowrap">{disc.length + orphan.length + legacy.length} coincidencia(s)</span>}
         </div>
       </div>
 
@@ -121,19 +133,27 @@ export function PaymentReconciliation() {
         )}
       </Section>
 
-      {/* Sin confirmar */}
-      <Section icon={<ShieldCheck className="w-4 h-4 text-blue-500" />} rail="bg-blue-500" count={unconf.length}
-        title="Pagos de SystemActiva sin confirmar por Flywire" desc="Pagos heredados que ninguna importación de Flywire enriqueció (sin flywire_payment_id).">
-        {unconf.length === 0 ? <Empty text="Ninguno." /> : (
+      {/* Legacy: pendientes de migrar a Books o Flywire */}
+      <Section icon={<ShieldCheck className="w-4 h-4 text-blue-500" />} rail="bg-blue-500" count={legacy.length}
+        title="Pagos legacy de SystemActiva (pendientes de migrar)" desc="Sin respaldo de importación: hay que reemplazarlos por un pago con base en Flywire (ZBL) o Books. El enlace abre el estado de cuenta del estudiante.">
+        {legacy.length === 0 ? <Empty text="Ninguno. Todos los pagos tienen respaldo de importación. 🎉" /> : (
           <div className="max-h-[560px] overflow-y-auto">
             <table className="w-full text-sm">
-              <thead className="sticky top-0"><HeadRow cols={['Estudiante', 'ZBL', 'Referencia cruda', 'Monto', 'Fecha', 'Cuota']} right={[3]} /></thead>
+              <thead className="sticky top-0"><HeadRow cols={['Estudiante', 'Candidato', 'ZBL', 'Referencia cruda', 'Monto', 'Fecha', 'Cuota']} right={[4]} /></thead>
               <tbody className="divide-y divide-gray-100">
-                {unconf.map((r, i) => (
+                {legacy.map((r, i) => (
                   <tr key={i} className="hover:bg-gray-50/50">
-                    <Who r={r} />
+                    <td className="px-3 py-2">
+                      <a href={`/academic/account?student=${r.student_id}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{r.nombre}</a>
+                      <span className="block text-[11px] text-gray-400 font-mono">{r.doc}</span>
+                    </td>
+                    <td className="px-3 py-2">
+                      {r.candidato === 'flywire'
+                        ? <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">Flywire</span>
+                        : <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium">Books</span>}
+                    </td>
                     <td className="px-3 py-2 font-mono text-xs text-gray-700">{r.ref || '—'}</td>
-                    <td className="px-3 py-2 font-mono text-[11px] text-gray-400">{r.cruda || '—'}</td>
+                    <td className="px-3 py-2 font-mono text-[11px] text-gray-400 max-w-56 truncate" title={r.cruda}>{r.cruda || '—'}</td>
                     <td className="px-3 py-2 text-right tabular-nums font-mono">{money(r.monto)}</td>
                     <td className="px-3 py-2 text-gray-500 whitespace-nowrap tabular-nums">{fdate(r.fecha)}</td>
                     <td className="px-3 py-2"><span className="text-[11px] px-2 py-0.5 rounded border border-gray-200 text-gray-500">{r.cuota === 'sí' ? 'enlazada' : 'sin cuota'}</span></td>
@@ -146,7 +166,7 @@ export function PaymentReconciliation() {
       </Section>
 
       <p className="text-[11px] text-gray-400">
-        Método: ZBL = patrón <span className="font-mono">/ZBL\d+/</span> de <span className="font-mono">transaction_reference</span> (Activa) contra <span className="font-mono">flywire_payment_id</span> (Flywire). {num(s.total)} pagos analizados en cada carga.
+        Legacy = pagos sin serie FLYWIRE/BOOKS/DESCUENTO y sin <span className="font-mono">flywire_payment_id</span>. Candidato «Flywire» si la referencia trae un <span className="font-mono">/ZBL\d+/</span>, «Books» si no. {num(s.total)} pagos analizados.
       </p>
     </div>
   )
