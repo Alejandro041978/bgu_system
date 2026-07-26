@@ -34,6 +34,13 @@ export async function GET(req: NextRequest) {
   const sb = db()
   const categoryFilter = req.nextUrl.searchParams.get('category')
 
+  // Modo liviano: solo las categorías para poblar el selector, sin correr la
+  // auditoría pesada. La página lo usa al cargar; la auditoría se dispara aparte.
+  if (req.nextUrl.searchParams.get('meta')) {
+    const cats = await fetchAll(sb, 'academic_programs_category', 'id, name, sigla')
+    return NextResponse.json({ categories: cats })
+  }
+
   const [cats, progs, enrs, students, concepts, scholarships, bonuses, tcs, tcItems] = await Promise.all([
     fetchAll(sb, 'academic_programs_category', 'id, name, sigla'),
     fetchAll(sb, 'academic_programs', 'id, name, category_id'),

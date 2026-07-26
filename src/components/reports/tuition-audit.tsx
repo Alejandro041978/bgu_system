@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState } from 'react'
-import { Loader2, ExternalLink, ShieldCheck, ShieldAlert } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Loader2, ExternalLink, ShieldCheck, ShieldAlert, Search } from 'lucide-react'
 
 interface Row {
   student_id: string; student_name: string; document_number: string | null
@@ -20,18 +20,26 @@ export function TuitionAudit() {
   const [auditadas, setAuditadas] = useState(0)
   const [coinciden, setCoinciden] = useState(0)
   const [cat, setCat] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [hasRun, setHasRun] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async (c: string) => {
-    setLoading(true)
-    const d = await fetch(`/api/reports/tuition-audit${c ? `?category=${c}` : ''}`).then(r => r.json())
-    if (d.error) { setError(d.error); setLoading(false); return }
-    setCategories(d.categories ?? []); setRows(d.mismatches ?? [])
-    setAuditadas(d.auditadas ?? 0); setCoinciden(d.coinciden ?? 0)
-    setLoading(false)
+  // Al cargar: solo trae las categorías (liviano). La auditoría NO se ejecuta
+  // hasta que el usuario pulse "Consultar".
+  useEffect(() => {
+    fetch('/api/reports/tuition-audit?meta=1').then(r => r.json())
+      .then(d => { if (d.error) setError(d.error); else setCategories(d.categories ?? []) })
+      .catch(() => setError('No se pudieron cargar las categorías'))
   }, [])
-  useEffect(() => { load(cat) }, [cat, load])
+
+  async function run() {
+    setLoading(true); setError(null)
+    const d = await fetch(`/api/reports/tuition-audit${cat ? `?category=${cat}` : ''}`).then(r => r.json())
+    if (d.error) { setError(d.error); setLoading(false); return }
+    setRows(d.mismatches ?? [])
+    setAuditadas(d.auditadas ?? 0); setCoinciden(d.coinciden ?? 0)
+    setHasRun(true); setLoading(false)
+  }
 
   return (
     <div className="space-y-5">
@@ -39,13 +47,17 @@ export function TuitionAudit() {
 
       <div className="flex items-center gap-3 flex-wrap">
         <label className="text-sm text-gray-600">Categoría</label>
-        <select value={cat} onChange={e => setCat(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select value={cat} onChange={e => setCat(e.target.value)} disabled={loading}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
           <option value="">Todas las categorías</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        {loading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
-        {!loading && (
+        <button onClick={run} disabled={loading}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+          {loading ? 'Consultando…' : 'Consultar'}
+        </button>
+        {hasRun && !loading && (
           <div className="ml-auto flex items-center gap-4 text-xs">
             <span className="flex items-center gap-1.5 text-green-600"><ShieldCheck className="w-4 h-4" />{coinciden} coinciden</span>
             <span className={`flex items-center gap-1.5 ${rows.length ? 'text-red-600' : 'text-gray-400'}`}><ShieldAlert className="w-4 h-4" />{rows.length} con desviación</span>
@@ -96,7 +108,17 @@ export function TuitionAudit() {
                   </td>
                 </tr>
               ))}
-              {!loading && rows.length === 0 && (
+              {!hasRun && !loading && (
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-xs text-gray-400">
+                  Elige una categoría (o «Todas») y pulsa <b className="text-gray-500">Consultar</b> para ejecutar la auditoría.
+                </td></tr>
+              )}
+              {loading && (
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-xs text-gray-400">
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-500 mx-auto" /> Auditando…
+                </td></tr>
+              )}
+              {hasRun && !loading && rows.length === 0 && (
                 <tr><td colSpan={10} className="px-4 py-10 text-center text-xs text-gray-400">
                   🎉 Sin desviaciones: el Tuition facturado de todas las matrículas auditadas coincide con lista − ahorro − beca − bonus.
                 </td></tr>
