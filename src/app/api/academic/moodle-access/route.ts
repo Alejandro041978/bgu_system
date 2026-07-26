@@ -105,7 +105,8 @@ export async function POST(req: NextRequest) {
     if (!b.student_id || !(days > 0)) return NextResponse.json({ error: 'Falta estudiante o días' }, { status: 400 })
     const expires = new Date(Date.now() + days * 86400000).toISOString()
     const { error } = await sb.from('moodle_access_exceptions').insert({
-      student_id: b.student_id, granted_by: user.email ?? user.id, expires_at: expires, days, note: b.note?.trim() || null,
+      student_id: b.student_id, granted_by: user.email ?? user.id, expires_at: expires, days,
+      note: b.note?.trim() || null, source: 'asesor', justification: b.note?.trim() || null,
     })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     // Reactiva de inmediato si estaba suspendido (la gracia surte efecto ya)

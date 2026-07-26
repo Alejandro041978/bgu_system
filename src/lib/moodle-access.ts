@@ -3,6 +3,9 @@ import { setUserSuspended, resolveMoodleUserId, moodleConfigured, findMoodleUser
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any
 
+// Tope de excepciones de autoservicio (portal del estudiante) por semestre.
+export const SELF_SERVICE_MAX_PER_SEMESTER = 2
+
 export interface AccessRow {
   student_id: string
   name: string
@@ -14,7 +17,10 @@ export interface AccessRow {
   no_account: boolean
   overdue: number
   has_exception: boolean
+  exception_id: string | null
   exception_expires: string | null
+  exception_source: string | null
+  exception_justification: string | null
   currently_suspended: boolean
   desired_suspended: boolean
   action: 'suspend' | 'unsuspend' | 'none'
@@ -47,16 +53,45 @@ export async function overdueByStudent(sb: SB): Promise<Map<string, number>> {
   return over
 }
 
-// student_id → fin de la excepción vigente (la más lejana), si existe.
-export async function activeExceptionMap(sb: SB): Promise<Map<string, string>> {
+export interface ActiveException { id: string; expires_at: string; source: string; justification: string | null }
+
+// student_id → excepción vigente (la más lejana), con su id, origen y justificación.
+export async function activeExceptionMap(sb: SB): Promise<Map<string, ActiveException>> {
   const now = new Date().toISOString()
-  const { data } = await sb.from('moodle_access_exceptions').select('student_id, expires_at').gt('expires_at', now)
-  const m = new Map<string, string>()
+  // 'source'/'justification' son opcionales (migración): tolerante si no existen.
+  let data: { id: string; student_id: string; expires_at: string; source?: string; justification?: string | null }[] | null = null
+  try {
+    ({ data } = await sb.from('moodle_access_exceptions').select('id, student_id, expires_at, source, justification').gt('expires_at', now))
+  } catch {
+    ({ data } = await sb.from('moodle_access_exceptions').select('id, student_id, expires_at').gt('expires_at', now))
+  }
+  const m = new Map<string, ActiveException>()
   for (const e of data ?? []) {
     const prev = m.get(e.student_id)
-    if (!prev || e.expires_at > prev) m.set(e.student_id, e.expires_at)
+    if (!prev || e.expires_at > prev.expires_at) m.set(e.student_id, { id: e.id, expires_at: e.expires_at, source: e.source ?? 'asesor', justification: e.justification ?? null })
   }
   return m
+}
+
+// Semestre académico vigente (el que contiene hoy), si existe.
+export async function currentSemesterRange(sb: SB): Promise<{ start: string; end: string } | null> {
+  const today = new Date().toISOString().slice(0, 10)
+  const { data } = await sb.from('academic_semesters')
+    .select('start_date, end_date').lte('start_date', today).gte('end_date', today)
+    .order('start_date', { ascending: false }).limit(1).maybeSingle()
+  return data?.start_date && data?.end_date ? { start: data.start_date, end: data.end_date } : null
+}
+
+// Nº de excepciones de AUTOSERVICIO aceptadas del estudiante en el semestre vigente
+// (fallback: últimos 120 días si no hay semestre que contenga hoy).
+export async function selfServiceUsedThisSemester(sb: SB, studentId: string): Promise<number> {
+  const sem = await currentSemesterRange(sb)
+  const from = sem ? sem.start : new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
+  let q = sb.from('moodle_exception_requests').select('id', { count: 'exact', head: true })
+    .eq('student_id', studentId).eq('decision', 'aceptada').gte('created_at', from)
+  if (sem) q = q.lte('created_at', sem.end + 'T23:59:59')
+  const { count } = await q
+  return count ?? 0
 }
 
 // Plan de acceso: qué estudiantes deberían quedar suspendidos (vencido>0 y sin
@@ -89,7 +124,8 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
   for (const id of idArr) {
     const s = info.get(id); if (!s) continue
     const overdue = over.get(id) ?? 0
-    const hasExc = exc.has(id)
+    const ex = exc.get(id)
+    const hasExc = !!ex
     const noAccount = noAccountSet.has(id)
     const cur = !!s.moodle_suspended
     // Campus externo (aliados): NO usan nuestro Moodle → fuera de la restricción.
@@ -103,7 +139,8 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
       student_id: id, name: [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' '),
       document: s.document_number, email: s.email, email_alt: s.email_alt ?? null,
       external_id: s.external_id, moodle_user_id: s.moodle_user_id ?? null, no_account: noAccount,
-      overdue: Math.round(overdue * 100) / 100, has_exception: hasExc, exception_expires: exc.get(id) ?? null,
+      overdue: Math.round(overdue * 100) / 100, has_exception: hasExc, exception_id: ex?.id ?? null,
+      exception_expires: ex?.expires_at ?? null, exception_source: ex?.source ?? null, exception_justification: ex?.justification ?? null,
       currently_suspended: cur, desired_suspended: desired, action,
     })
   }

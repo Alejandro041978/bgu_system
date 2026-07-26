@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, ShieldOff, ShieldCheck, Search, Clock, AlertTriangle, Plug, Link2 } from 'lucide-react'
+import { Loader2, ShieldOff, ShieldCheck, Search, Clock, AlertTriangle, Plug, Link2, CalendarClock } from 'lucide-react'
 
 interface Row {
   student_id: string; name: string; document: string | null; email: string | null
-  overdue: number; has_exception: boolean; exception_expires: string | null; no_account: boolean
+  overdue: number; has_exception: boolean; exception_id: string | null; exception_expires: string | null
+  exception_source: string | null; exception_justification: string | null; no_account: boolean
   currently_suspended: boolean; desired_suspended: boolean; action: 'suspend' | 'unsuspend' | 'none'
 }
 interface Summary { total: number; a_suspender: number; a_reactivar: number; con_excepcion: number; suspendidos: number; sin_cuenta: number }
@@ -45,6 +46,8 @@ export function MoodleAccess() {
   }, [rows, q])
 
   const pending = (summary?.a_suspender ?? 0) + (summary?.a_reactivar ?? 0)
+  const restringidos = filtered.filter(r => !r.has_exception)
+  const exceptuados = filtered.filter(r => r.has_exception)
 
   async function test() {
     setTesting(true); setError(null); setOk(null)
@@ -88,6 +91,17 @@ export function MoodleAccess() {
     setOk(`Aplicado: ${d.suspended} suspendida(s), ${d.unsuspended} reactivada(s).${d.errors?.length ? ` ${d.errors.length} con error.` : ''}`)
     if (d.errors?.length) setError(d.errors.join(' · '))
     load()
+  }
+
+  async function revoke(r: Row) {
+    if (!r.exception_id) return
+    if (!confirm(`¿Revocar la excepción de ${r.name}? Si sigue en deuda, volverá a "Restringidos" y podrá suspenderse.`)) return
+    setError(null); setOk(null)
+    const d = await fetch('/api/academic/moodle-access', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'revoke', id: r.exception_id }),
+    }).then(r => r.json())
+    if (d.error) { setError(d.error); return }
+    setOk(`Excepción de ${r.name} revocada.`); load()
   }
 
   async function grant(r: Row, days: number) {
@@ -193,25 +207,26 @@ export function MoodleAccess() {
         </div>
       )}
 
-      {/* Tabla */}
+      {/* RESTRINGIDOS: en deuda, sin excepción vigente */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="px-4 py-2.5 bg-red-50/60 border-b border-red-100 flex items-center gap-2">
+          <ShieldOff className="w-4 h-4 text-red-500" />
+          <p className="text-sm font-semibold text-gray-800">Restringidos <span className="text-gray-400 font-normal">({restringidos.length})</span></p>
+          <p className="text-xs text-gray-500">En deuda vencida y sin excepción. Puedes otorgar una excepción directamente (como asesor).</p>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="bg-gray-50 text-gray-500 text-[10.5px] uppercase">
               <th className="px-4 py-2 text-left">Estudiante</th>
               <th className="px-4 py-2 text-right">Vencido</th>
               <th className="px-4 py-2 text-left">Moodle</th>
-              <th className="px-4 py-2 text-left">Excepción</th>
               <th className="px-4 py-2 text-left">Acción propuesta</th>
               <th className="px-4 py-2 text-right">Otorgar excepción</th>
             </tr></thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map(r => (
+              {restringidos.map(r => (
                 <tr key={r.student_id} className="hover:bg-gray-50/50">
-                  <td className="px-4 py-2">
-                    <span className="text-gray-800">{r.name}</span>
-                    <span className="block text-[11px] text-gray-400 font-mono">{r.document ?? r.email}</span>
-                  </td>
+                  <td className="px-4 py-2"><span className="text-gray-800">{r.name}</span><span className="block text-[11px] text-gray-400 font-mono">{r.document ?? r.email}</span></td>
                   <td className={`px-4 py-2 text-right tabular-nums font-medium ${r.overdue > 0 ? 'text-red-600' : 'text-gray-400'}`}>{money(r.overdue)}</td>
                   <td className="px-4 py-2">
                     {r.no_account
@@ -219,11 +234,6 @@ export function MoodleAccess() {
                       : r.currently_suspended
                       ? <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200"><ShieldOff className="w-3 h-3" />Suspendido</span>
                       : <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200"><ShieldCheck className="w-3 h-3" />Activo</span>}
-                  </td>
-                  <td className="px-4 py-2 text-xs">
-                    {r.has_exception
-                      ? <span className="inline-flex items-center gap-1 text-indigo-700"><Clock className="w-3 h-3" />hasta {fdate(r.exception_expires)}</span>
-                      : <span className="text-gray-300">—</span>}
                   </td>
                   <td className="px-4 py-2 text-xs">
                     {r.action === 'suspend' && <span className="text-red-600 font-medium">Suspender</span>}
@@ -240,16 +250,58 @@ export function MoodleAccess() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-xs text-gray-400">
-                  {rows.length === 0 ? '🎉 Ningún estudiante con deuda vencida ni cuentas suspendidas.' : 'Sin coincidencias con el filtro.'}
+              {restringidos.length === 0 && (
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-xs text-gray-400">
+                  {rows.length === 0 ? '🎉 Ningún estudiante con deuda vencida ni cuentas suspendidas.' : 'Ninguno restringido con el filtro.'}
                 </td></tr>
               )}
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* EXCEPTUADOS: en deuda pero con excepción vigente */}
+      <div className="bg-white border border-indigo-200 rounded-xl overflow-hidden">
+        <div className="px-4 py-2.5 bg-indigo-50/70 border-b border-indigo-100 flex items-center gap-2">
+          <CalendarClock className="w-4 h-4 text-indigo-500" />
+          <p className="text-sm font-semibold text-gray-800">Exceptuados <span className="text-gray-400 font-normal">({exceptuados.length})</span></p>
+          <p className="text-xs text-gray-500">Con gracia vigente. El origen distingue quién la pidió: por un asesor o el propio estudiante (autoservicio).</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-gray-50 text-gray-500 text-[10.5px] uppercase">
+              <th className="px-4 py-2 text-left">Estudiante</th>
+              <th className="px-4 py-2 text-right">Vencido</th>
+              <th className="px-4 py-2 text-left">Origen</th>
+              <th className="px-4 py-2 text-left">Justificación</th>
+              <th className="px-4 py-2 text-left">Compromiso</th>
+              <th className="px-4 py-2 text-right"></th>
+            </tr></thead>
+            <tbody className="divide-y divide-gray-100">
+              {exceptuados.map(r => (
+                <tr key={r.student_id} className="hover:bg-gray-50/50">
+                  <td className="px-4 py-2"><span className="text-gray-800">{r.name}</span><span className="block text-[11px] text-gray-400 font-mono">{r.document ?? r.email}</span></td>
+                  <td className="px-4 py-2 text-right tabular-nums text-red-600 font-medium">{money(r.overdue)}</td>
+                  <td className="px-4 py-2">
+                    {r.exception_source === 'estudiante'
+                      ? <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Estudiante</span>
+                      : <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Asesor</span>}
+                  </td>
+                  <td className="px-4 py-2 text-xs text-gray-600 max-w-72"><span className="line-clamp-2" title={r.exception_justification ?? ''}>{r.exception_justification ?? '—'}</span></td>
+                  <td className="px-4 py-2 text-xs text-indigo-700 whitespace-nowrap"><Clock className="w-3 h-3 inline mr-1" />paga antes del {fdate(r.exception_expires)}</td>
+                  <td className="px-4 py-2 text-right">
+                    <button onClick={() => revoke(r)} className="text-xs font-medium text-red-500 hover:text-red-700">Revocar</button>
+                  </td>
+                </tr>
+              ))}
+              {exceptuados.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-xs text-gray-400">Ningún estudiante con excepción vigente.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
         <p className="px-4 py-2 text-[11px] text-gray-400 border-t border-gray-100">
-          Se suspende la cuenta Moodle de quien tenga <b>vencido</b> ({'>'} $0) y no tenga excepción vigente. Al pagar (queda sin vencido) o al otorgar excepción, se reactiva. &quot;Aplicar cambios&quot; ejecuta las suspensiones/reactivaciones pendientes en Moodle.
+          Se suspende Moodle a quien tenga <b>vencido</b> ({'>'} $0) sin excepción vigente. Al pagar o al otorgar/pedir excepción, se reactiva. La excepción vence en su fecha de compromiso y, si sigue en deuda, vuelve a Restringidos.
         </p>
       </div>
     </div>
