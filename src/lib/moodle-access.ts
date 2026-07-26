@@ -8,7 +8,9 @@ export interface AccessRow {
   name: string
   document: string | null
   email: string | null
+  email_alt: string | null
   external_id: string | null
+  moodle_user_id: number | null
   overdue: number
   has_exception: boolean
   exception_expires: string | null
@@ -70,7 +72,7 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
   const info = new Map<string, any>()
   for (let i = 0; i < idArr.length; i += 300) {
     const { data } = await sb.from('academic_students')
-      .select('id, first_name, last_name, second_last_name, document_number, email, external_id, moodle_suspended')
+      .select('id, first_name, last_name, second_last_name, document_number, email, email_alt, external_id, moodle_user_id, moodle_suspended')
       .in('id', idArr.slice(i, i + 300))
     for (const s of data ?? []) info.set(s.id, s)
   }
@@ -85,7 +87,8 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
     const action: AccessRow['action'] = desired && !cur ? 'suspend' : (!desired && cur ? 'unsuspend' : 'none')
     rows.push({
       student_id: id, name: [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' '),
-      document: s.document_number, email: s.email, external_id: s.external_id,
+      document: s.document_number, email: s.email, email_alt: s.email_alt ?? null,
+      external_id: s.external_id, moodle_user_id: s.moodle_user_id ?? null,
       overdue: Math.round(overdue * 100) / 100, has_exception: hasExc, exception_expires: exc.get(id) ?? null,
       currently_suspended: cur, desired_suspended: desired, action,
     })
@@ -100,7 +103,7 @@ export async function applyAccess(sb: SB, rows: AccessRow[]): Promise<{ suspende
   const errors: string[] = []; let suspended = 0, unsuspended = 0
   for (const r of rows.filter(x => x.action !== 'none')) {
     try {
-      const uid = await resolveMoodleUserId(r.external_id, r.email)
+      const uid = r.moodle_user_id ?? await resolveMoodleUserId(r.external_id, r.email_alt, r.email)
       if (!uid) { errors.push(`${r.name}: sin cuenta en Moodle`); continue }
       const suspend = r.action === 'suspend'
       await setUserSuspended(uid, suspend)
@@ -117,9 +120,9 @@ export async function applyAccess(sb: SB, rows: AccessRow[]): Promise<{ suspende
 // registrar pago). No falla si no tiene cuenta.
 export async function unsuspendStudent(sb: SB, studentId: string): Promise<void> {
   const { data: s } = await sb.from('academic_students')
-    .select('external_id, email, moodle_suspended').eq('id', studentId).maybeSingle()
+    .select('external_id, email, email_alt, moodle_user_id, moodle_suspended').eq('id', studentId).maybeSingle()
   if (!s?.moodle_suspended) return
-  const uid = await resolveMoodleUserId(s.external_id, s.email).catch(() => null)
+  const uid = s.moodle_user_id ?? await resolveMoodleUserId(s.external_id, s.email_alt, s.email).catch(() => null)
   if (uid) await setUserSuspended(uid, false).catch(() => null)
   await sb.from('academic_students').update({ moodle_suspended: false, moodle_suspended_at: null }).eq('id', studentId)
 }
@@ -146,7 +149,7 @@ export async function overdueForStudent(sb: SB, studentId: string): Promise<numb
 export async function refreshStudentAccess(sb: SB, studentId: string): Promise<void> {
   if (!moodleConfigured()) return
   const { data: s } = await sb.from('academic_students')
-    .select('external_id, email, moodle_suspended').eq('id', studentId).maybeSingle()
+    .select('external_id, email, email_alt, moodle_user_id, moodle_suspended').eq('id', studentId).maybeSingle()
   if (!s) return
   const now = new Date().toISOString()
   const { data: exc } = await sb.from('moodle_access_exceptions').select('id').eq('student_id', studentId).gt('expires_at', now).limit(1)
@@ -154,7 +157,7 @@ export async function refreshStudentAccess(sb: SB, studentId: string): Promise<v
   const overdue = hasExc ? 0 : await overdueForStudent(sb, studentId)
   const desired = overdue > 0.005 && !hasExc
   if (desired === !!s.moodle_suspended) return
-  const uid = await resolveMoodleUserId(s.external_id, s.email).catch(() => null)
+  const uid = s.moodle_user_id ?? await resolveMoodleUserId(s.external_id, s.email_alt, s.email).catch(() => null)
   if (uid) await setUserSuspended(uid, desired).catch(() => null)
   await sb.from('academic_students').update({ moodle_suspended: desired, moodle_suspended_at: desired ? now : null }).eq('id', studentId)
 }

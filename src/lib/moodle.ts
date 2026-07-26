@@ -129,15 +129,17 @@ export async function setUserSuspended(userid: number, suspended: boolean): Prom
   await moodleCall('core_user_update_users', { users: [{ id: userid, suspended: suspended ? 1 : 0 }] })
 }
 
-// Resuelve el id de Moodle por la llave FIABLE (idnumber = external_id) y, si no,
-// por correo. Devuelve null si la cuenta no existe en Moodle.
-export async function resolveMoodleUserId(idnumber: string | null, email: string | null): Promise<number | null> {
-  if (idnumber) {
+// Resuelve el id de Moodle: primero por idnumber (= external_id, llave de los
+// importados de SystemActiva) y luego por cada correo dado (institucional primero,
+// personal después — los nativos tienen external_id UUID y viven con el @blackwell.pro).
+export async function resolveMoodleUserId(idnumber: string | null, ...emails: (string | null | undefined)[]): Promise<number | null> {
+  if (idnumber && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(idnumber)) { // un UUID no es idnumber de Moodle
     const u = await getUserByIdnumber(idnumber).catch(() => null)
     if (u?.id) return Number(u.id)
   }
-  if (email) {
-    const u = await getUserByEmail(email.trim().toLowerCase()).catch(() => null)
+  for (const e of emails) {
+    if (!e) continue
+    const u = await getUserByEmail(e.trim().toLowerCase()).catch(() => null)
     if (u?.id) return Number(u.id)
   }
   return null
