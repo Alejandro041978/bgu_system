@@ -46,6 +46,7 @@ const navigation: NavGroup[] = [
           { name: 'Recaudación', href: '/finance/recaudacion', icon: Banknote, pageKey: 'finance_recaudacion' },
           { name: 'Reporte de Deuda', href: '/finance/debt-report', icon: FileWarning, pageKey: 'finance_debt_report' },
           { name: 'Auditoría de Tuition', href: '/reports/tuition-audit', icon: Shield, pageKey: 'report_tuition_audit' },
+          { name: 'Matrículas', href: '/admision/matriculas', icon: GraduationCap, pageKey: 'admision_matriculas' },
         ],
       },
     ],
@@ -58,7 +59,6 @@ const navigation: NavGroup[] = [
         children: [
           { name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' },
           { name: 'Convenios', href: '/convenios', icon: Handshake, pageKey: 'convenios' },
-          { name: 'Matrículas', href: '/admision/matriculas', icon: GraduationCap, pageKey: 'admision_matriculas' },
           { name: 'Nueva Matrícula', href: '/admision/nueva-matricula', icon: UserPlus, pageKey: 'admision_nueva_matricula' },
           { name: 'Ventas de Admisión', href: '/admissions/sales', icon: BadgeDollarSign, pageKey: 'admissions_sales' },
           { name: 'Comisiones', href: '/admissions/commissions', icon: BadgeDollarSign, pageKey: 'admissions_commissions' },

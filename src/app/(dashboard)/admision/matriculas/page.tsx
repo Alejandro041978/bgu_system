@@ -89,12 +89,23 @@ export default async function MatriculasPage({
     p.convs.set(cid, (p.convs.get(cid) ?? 0) + 1)
   }
 
+  // Semestre de una convocatoria (para prefijar y poder ubicar los intakes)
+  const semNameForConv = (cid: string): string | null => {
+    const sid = convToSem.get(cid)
+    return sid ? (semInfo.get(sid)?.name ?? null) : null
+  }
   const rows = (programs ?? []).map(p => {
     const agg = progAgg.get(p.id)
     const convs = agg
       ? [...agg.convs.entries()]
-          .map(([cid, n]) => ({ name: cid === '∅' ? 'Sin convocatoria' : (convName.get(cid) ?? '—'), count: n }))
-          .sort((a, b) => b.count - a.count)
+          .map(([cid, n]) => {
+            const conv = cid === '∅' ? 'Sin convocatoria' : (convName.get(cid) ?? '—')
+            const sem = cid === '∅' ? null : semNameForConv(cid)
+            // Solo prefijar si el nombre no incluye ya el semestre (evita duplicar)
+            const prefix = sem && !conv.toLowerCase().includes(sem.toLowerCase()) ? sem : null
+            return { conv, sem: prefix, count: n }
+          })
+          .sort((a, b) => (a.sem ?? '').localeCompare(b.sem ?? '') || b.count - a.count)
       : []
     return { ...p, count: agg?.count ?? 0, convs }
   })
@@ -183,7 +194,9 @@ export default async function MatriculasPage({
                         const cpct = total > 0 ? ((cv.count / total) * 100).toFixed(1) : '0.0'
                         return (
                           <tr key={program.id + '-' + j} className="border-t border-gray-50">
-                            <td className="pl-10 pr-5 py-2 text-gray-600 text-[13px]">↳ {cv.name}</td>
+                            <td className="pl-10 pr-5 py-2 text-gray-600 text-[13px]">
+                              ↳ {cv.sem && <span className="text-indigo-500 font-medium">{cv.sem} · </span>}{cv.conv}
+                            </td>
                             <td className="px-5 py-2"></td>
                             <td className="px-5 py-2 text-right">
                               <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium text-xs">
