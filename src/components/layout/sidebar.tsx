@@ -60,7 +60,7 @@ const navigation: NavGroup[] = [
           { name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' },
           { name: 'Convenios', href: '/convenios', icon: Handshake, pageKey: 'convenios' },
           { name: 'Nueva Matrícula', href: '/admision/nueva-matricula', icon: UserPlus, pageKey: 'admision_nueva_matricula' },
-          { name: 'Ventas de Admisión', href: '/admissions/sales', icon: BadgeDollarSign, pageKey: 'admissions_sales' },
+          { name: 'Ventas por Convocatoria', href: '/admissions/sales', icon: BadgeDollarSign, pageKey: 'admissions_sales' },
           { name: 'Comisiones', href: '/admissions/commissions', icon: BadgeDollarSign, pageKey: 'admissions_commissions' },
           { name: 'Documentos de Postulación', href: '/admissions/documents', icon: FileCheck, pageKey: 'admissions_documents' },
         ],

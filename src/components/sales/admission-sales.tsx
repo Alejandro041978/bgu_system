@@ -15,6 +15,8 @@ interface Advisor { id: string; full_name: string }
 interface AdmType { id: string; category_id: string; name: string; commission: number; active: boolean }
 
 const money = (n: number) => `$${Number(n).toFixed(2)}`
+// Fecha de cierre de inscripciones en DD/MM/YYYY (sin desfase de zona horaria)
+const fcierre = (d: string | null) => d ? String(d).slice(0, 10).split('-').reverse().join('/') : null
 
 export function AdmissionSales() {
   const [advisors, setAdvisors] = useState<Advisor[]>([])
@@ -26,7 +28,7 @@ export function AdmissionSales() {
   // Convocatoria": endpoint /api/convocatorias con datos reales, no parseo).
   const [cats, setCats] = useState<{ id: string; name: string }[]>([])
   const [years, setYears] = useState<{ id: string; name: string }[]>([])
-  const [convs, setConvs] = useState<{ id: string; name: string; semester: string }[]>([])
+  const [convs, setConvs] = useState<{ id: string; name: string; semester: string; deadline: string | null }[]>([])
   const [categoryId, setCategoryId] = useState('')
   const [yearId, setYearId] = useState('')
   const [loading, setLoading] = useState(true)
@@ -62,7 +64,7 @@ export function AdmissionSales() {
       .then(r => r.json()).then(d => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const flat = (d.semesters ?? []).flatMap((s: any) =>
-          (s.convocatorias ?? []).map((c: { id: string; name: string }) => ({ id: c.id, name: c.name, semester: s.name })))
+          (s.convocatorias ?? []).map((c: { id: string; name: string; deadline_date: string | null }) => ({ id: c.id, name: c.name, semester: s.name, deadline: c.deadline_date ?? null })))
         setConvs(flat)
       })
   }, [categoryId, yearId])
@@ -153,7 +155,7 @@ export function AdmissionSales() {
         <select value={convId} onChange={e => setConvId(e.target.value)} disabled={!convs.length}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white max-w-md disabled:bg-gray-50 disabled:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">{categoryId && yearId ? (convs.length ? 'Seleccionar convocatoria…' : 'Sin convocatorias en este año') : 'Elige categoría y año'}</option>
-          {convs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {convs.map(c => <option key={c.id} value={c.id}>{c.name}{fcierre(c.deadline) ? ` (cierre ${fcierre(c.deadline)})` : ''}</option>)}
         </select>
 
         {loading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
