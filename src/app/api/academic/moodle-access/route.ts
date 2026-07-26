@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isStudentUser } from '@/lib/student-identity'
 import { moodleConfigured, getUserByEmail, getUserByIdnumber, setUserSuspended } from '@/lib/moodle'
-import { planAccess, applyAccess, unsuspendStudent } from '@/lib/moodle-access'
+import { planAccess, applyAccess, unsuspendStudent, diagnoseLinks, linkStudent } from '@/lib/moodle-access'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -44,9 +44,29 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const g = await requireStaff(); if ('error' in g) return g.error
   const user = g.user
-  const b = await req.json().catch(() => null) as { action?: string; student_id?: string; days?: number; note?: string; id?: string } | null
+  const b = await req.json().catch(() => null) as { action?: string; student_id?: string; days?: number; note?: string; id?: string; moodle_user_id?: number } | null
   if (!b?.action) return NextResponse.json({ error: 'Falta action' }, { status: 400 })
   const sb = db()
+
+  if (b.action === 'diagnose') {
+    if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no está configurado' }, { status: 400 })
+    const { rows, name_search } = await diagnoseLinks(sb)
+    return NextResponse.json({
+      ok: true, name_search, rows,
+      summary: {
+        vinculados: rows.filter(r => r.status === 'vinculado').length,
+        candidatos: rows.filter(r => r.status === 'candidato').length,
+        ambiguos: rows.filter(r => r.status === 'ambiguo').length,
+        sin_cuenta: rows.filter(r => r.status === 'sin_cuenta').length,
+      },
+    })
+  }
+
+  if (b.action === 'link') {
+    if (!b.student_id || !(Number(b.moodle_user_id) > 0)) return NextResponse.json({ error: 'Falta estudiante o moodle_user_id' }, { status: 400 })
+    await linkStudent(sb, b.student_id, Number(b.moodle_user_id))
+    return NextResponse.json({ ok: true })
+  }
 
   // Prueba INOFENSIVA: reaplica el mismo `suspended` actual de un estudiante real
   // → confirma que core_user_update_users está habilitada, sin cambiar nada.

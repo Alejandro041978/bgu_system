@@ -73,6 +73,20 @@ export async function getUserByIdnumber(idnumber: string): Promise<{ id: number 
   return Array.isArray(users) && users.length ? users[0] : null
 }
 
+// Búsqueda LAXA por nombre (para localizar cuentas sin llave fiable). Requiere
+// que el token tenga core_user_get_users; si no, devuelve null (no disponible).
+export async function findMoodleUsersByName(firstname: string, lastname: string): Promise<{ id: number; email: string; suspended: number }[] | null> {
+  try {
+    const res = await moodleCall('core_user_get_users', {
+      criteria: [{ key: 'firstname', value: firstname }, { key: 'lastname', value: lastname }],
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (res?.users ?? []).map((u: any) => ({ id: Number(u.id), email: u.email, suspended: Number(u.suspended) }))
+  } catch {
+    return null
+  }
+}
+
 export async function getCourseByCode(code: string): Promise<{ id: number } | null> {
   const res = await moodleCall('core_course_get_courses_by_field', { field: MOODLE_COURSE_MATCH_FIELD, value: code })
   const courses = res?.courses

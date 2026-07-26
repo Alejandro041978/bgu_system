@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, ShieldOff, ShieldCheck, Search, Clock, AlertTriangle, Plug } from 'lucide-react'
+import { Loader2, ShieldOff, ShieldCheck, Search, Clock, AlertTriangle, Plug, Link2 } from 'lucide-react'
 
 interface Row {
   student_id: string; name: string; document: string | null; email: string | null
@@ -9,6 +9,8 @@ interface Row {
   currently_suspended: boolean; desired_suspended: boolean; action: 'suspend' | 'unsuspend' | 'none'
 }
 interface Summary { total: number; a_suspender: number; a_reactivar: number; con_excepcion: number; suspendidos: number }
+interface LinkRow { student_id: string; name: string; email: string | null; status: 'vinculado' | 'candidato' | 'ambiguo' | 'sin_cuenta'; moodle_user_id?: number | null; moodle_email?: string | null; matches?: number }
+interface Diag { name_search: boolean; rows: LinkRow[]; summary: { vinculados: number; candidatos: number; ambiguos: number; sin_cuenta: number } }
 
 const money = (n: number) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const fdate = (d: string | null) => d ? new Date(d).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
@@ -20,6 +22,9 @@ export function MoodleAccess() {
   const [loading, setLoading] = useState(true)
   const [applying, setApplying] = useState(false)
   const [testing, setTesting] = useState(false)
+  const [diagnosing, setDiagnosing] = useState(false)
+  const [diag, setDiag] = useState<Diag | null>(null)
+  const [linkingId, setLinkingId] = useState<string | null>(null)
   const [granting, setGranting] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
@@ -49,6 +54,27 @@ export function MoodleAccess() {
     setTesting(false)
     if (d.ok) setOk(d.message ?? 'Conexión OK.')
     else setError(d.error ?? 'La prueba falló.')
+  }
+
+  async function diagnose() {
+    setDiagnosing(true); setError(null); setOk(null); setDiag(null)
+    const d = await fetch('/api/academic/moodle-access', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'diagnose' }),
+    }).then(r => r.json())
+    setDiagnosing(false)
+    if (d.error) { setError(d.error); return }
+    setDiag(d)
+    load() // los "vinculados" ya cachearon su moodle_user_id → Aplicar ya podrá suspenderlos
+  }
+  async function linkOne(row: LinkRow) {
+    if (!row.moodle_user_id) return
+    setLinkingId(row.student_id)
+    const d = await fetch('/api/academic/moodle-access', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'link', student_id: row.student_id, moodle_user_id: row.moodle_user_id }),
+    }).then(r => r.json())
+    setLinkingId(null)
+    if (d.error) { setError(d.error); return }
+    setDiag(prev => prev ? { ...prev, rows: prev.rows.map(r => r.student_id === row.student_id ? { ...r, status: 'vinculado' } : r) } : prev)
   }
 
   async function apply() {
@@ -113,12 +139,59 @@ export function MoodleAccess() {
           {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
           Probar conexión
         </button>
+        <button onClick={diagnose} disabled={diagnosing || !configured}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+          title="Localiza en Moodle las cuentas de los estudiantes en deuda que no pudieron suspenderse y las vincula">
+          {diagnosing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+          Diagnosticar Moodle
+        </button>
         <button onClick={apply} disabled={applying || pending === 0 || !configured}
           className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white">
           {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldOff className="w-4 h-4" />}
           Aplicar cambios{pending > 0 ? ` (${pending})` : ''}
         </button>
       </div>
+
+      {/* Resultado del diagnóstico de vinculación */}
+      {diag && (
+        <div className="bg-white border border-indigo-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-2.5 bg-indigo-50 border-b border-indigo-100 text-sm text-indigo-900">
+            <b>Diagnóstico Moodle:</b> {diag.summary.vinculados} vinculado(s) automáticamente,
+            {' '}{diag.summary.candidatos} candidato(s) por nombre, {diag.summary.ambiguos} ambiguo(s),
+            {' '}{diag.summary.sin_cuenta} sin cuenta localizable.
+            {!diag.name_search && <span className="ml-1 text-amber-700">La búsqueda por nombre no está disponible en el token (habilita <span className="font-mono text-xs">core_user_get_users</span> para ampliarla).</span>}
+            {diag.summary.vinculados > 0 && <span className="ml-1 text-green-700">Los vinculados ya se pueden suspender con &quot;Aplicar&quot;.</span>}
+          </div>
+          {diag.rows.some(r => r.status === 'candidato' || r.status === 'ambiguo' || r.status === 'sin_cuenta') && (
+            <div className="max-h-72 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0"><tr className="bg-gray-50 text-gray-500 text-[10.5px] uppercase">
+                  <th className="px-4 py-2 text-left">Estudiante</th><th className="px-4 py-2 text-left">Resultado</th><th className="px-4 py-2 text-left">Cuenta Moodle</th><th className="px-4 py-2 text-right"></th>
+                </tr></thead>
+                <tbody className="divide-y divide-gray-100">
+                  {diag.rows.filter(r => r.status !== 'vinculado').map(r => (
+                    <tr key={r.student_id} className="hover:bg-gray-50/50">
+                      <td className="px-4 py-2"><span className="text-gray-800">{r.name}</span><span className="block text-[11px] text-gray-400">{r.email}</span></td>
+                      <td className="px-4 py-2 text-xs">
+                        {r.status === 'candidato' && <span className="text-indigo-700">Candidato por nombre</span>}
+                        {r.status === 'ambiguo' && <span className="text-amber-700">{r.matches} coincidencias por nombre</span>}
+                        {r.status === 'sin_cuenta' && <span className="text-gray-400">Sin cuenta localizable</span>}
+                      </td>
+                      <td className="px-4 py-2 text-xs text-gray-600">{r.moodle_email ?? '—'}</td>
+                      <td className="px-4 py-2 text-right">
+                        {r.status === 'candidato' && (
+                          linkingId === r.student_id ? <Loader2 className="w-4 h-4 animate-spin inline text-indigo-500" /> :
+                          <button onClick={() => linkOne(r)} className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"><Link2 className="w-3 h-3" />Vincular</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tabla */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">

@@ -1,4 +1,4 @@
-import { setUserSuspended, resolveMoodleUserId, moodleConfigured } from './moodle'
+import { setUserSuspended, resolveMoodleUserId, moodleConfigured, findMoodleUsersByName } from './moodle'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any
@@ -160,6 +160,57 @@ export async function refreshStudentAccess(sb: SB, studentId: string): Promise<v
   const uid = s.moodle_user_id ?? await resolveMoodleUserId(s.external_id, s.email_alt, s.email).catch(() => null)
   if (uid) await setUserSuspended(uid, desired).catch(() => null)
   await sb.from('academic_students').update({ moodle_suspended: desired, moodle_suspended_at: desired ? now : null }).eq('id', studentId)
+}
+
+export interface LinkResult {
+  student_id: string; name: string; email: string | null
+  status: 'vinculado' | 'candidato' | 'ambiguo' | 'sin_cuenta'
+  moodle_user_id?: number | null; moodle_email?: string | null; matches?: number
+}
+
+// Diagnóstico de vinculación: para los estudiantes en deuda AÚN sin suspender y
+// sin moodle_user_id cacheado, intenta localizar su cuenta Moodle.
+//  - Llave fiable (idnumber/institucional/personal) → cachea moodle_user_id (vinculado).
+//  - Búsqueda por nombre → candidato (1 match) / ambiguo (varios), para revisar a mano.
+//  - Nada → sin_cuenta.
+export async function diagnoseLinks(sb: SB): Promise<{ rows: LinkResult[]; name_search: boolean }> {
+  const over = await overdueByStudent(sb)
+  const ids = [...over.keys()]
+  if (!ids.length) return { rows: [], name_search: true }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const info = new Map<string, any>()
+  for (let i = 0; i < ids.length; i += 300) {
+    const { data } = await sb.from('academic_students')
+      .select('id, first_name, last_name, email, email_alt, external_id, moodle_user_id, moodle_suspended')
+      .in('id', ids.slice(i, i + 300))
+    for (const s of data ?? []) info.set(s.id, s)
+  }
+  const targets = ids.map(id => info.get(id)).filter(s => s && !s.moodle_user_id && !s.moodle_suspended)
+
+  const rows: LinkResult[] = []
+  let nameSearch = true
+  for (const s of targets) {
+    const name = [s.first_name, s.last_name].filter(Boolean).join(' ')
+    const uid = await resolveMoodleUserId(s.external_id, s.email_alt, s.email).catch(() => null)
+    if (uid) {
+      await sb.from('academic_students').update({ moodle_user_id: uid }).eq('id', s.id)
+      rows.push({ student_id: s.id, name, email: s.email, status: 'vinculado', moodle_user_id: uid })
+      continue
+    }
+    if (nameSearch && s.first_name && s.last_name) {
+      const found = await findMoodleUsersByName(s.first_name, s.last_name)
+      if (found === null) { nameSearch = false }
+      else if (found.length === 1) { rows.push({ student_id: s.id, name, email: s.email, status: 'candidato', moodle_user_id: found[0].id, moodle_email: found[0].email }); continue }
+      else if (found.length > 1) { rows.push({ student_id: s.id, name, email: s.email, status: 'ambiguo', matches: found.length }); continue }
+    }
+    rows.push({ student_id: s.id, name, email: s.email, status: 'sin_cuenta' })
+  }
+  return { rows, name_search: nameSearch }
+}
+
+// Confirma un candidato: cachea el moodle_user_id elegido a mano.
+export async function linkStudent(sb: SB, studentId: string, moodleUserId: number): Promise<void> {
+  await sb.from('academic_students').update({ moodle_user_id: moodleUserId }).eq('id', studentId)
 }
 
 // Tras registrar pagos: reactiva a los estudiantes que estaban SUSPENDIDOS y ya
