@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { verifyFlywireSignature, FLYWIRE_PAID_STATUSES } from '@/lib/flywire'
 import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
+import { refreshStudentAccess } from '@/lib/moodle-access'
 
 export const revalidate = 0
 
@@ -73,10 +74,14 @@ export async function POST(req: NextRequest) {
       // Si este pago cubrió los conceptos iniciales, la matrícula se activa
       // sola (correo estudiantil, acta, carrusel y Moodle).
       try { await maybeActivateOnPayment(externalRef) } catch { /* la importación/el botón Activar recuperan */ }
+      // Reactiva Moodle si el pago dejó al estudiante sin vencido
+      if (charge.student_id) { try { await refreshStudentAccess(sb, charge.student_id) } catch { /* best-effort */ } }
     }
   } else if (status === 'reversed' && paymentId) {
     // Reverso → elimina el pago registrado de este payment_id
     await sb.from('account_payments').delete().eq('flywire_payment_id', paymentId)
+    // El reverso puede DEJAR al estudiante en deuda → reconciliar (puede suspender)
+    if (charge.student_id) { try { await refreshStudentAccess(sb, charge.student_id) } catch { /* best-effort */ } }
   }
 
   return NextResponse.json({ ok: true })

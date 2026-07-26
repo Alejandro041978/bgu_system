@@ -55,6 +55,10 @@
     {
       "path": "/api/cron/moodle-import",
       "schedule": "35 * * * *"
+    },
+    {
+      "path": "/api/cron/moodle-access",
+      "schedule": "0 6 * * *"
     }
   ]
 }

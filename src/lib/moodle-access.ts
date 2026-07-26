@@ -1,4 +1,4 @@
-import { setUserSuspended, resolveMoodleUserId } from './moodle'
+import { setUserSuspended, resolveMoodleUserId, moodleConfigured } from './moodle'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any
@@ -122,4 +122,52 @@ export async function unsuspendStudent(sb: SB, studentId: string): Promise<void>
   const uid = await resolveMoodleUserId(s.external_id, s.email).catch(() => null)
   if (uid) await setUserSuspended(uid, false).catch(() => null)
   await sb.from('academic_students').update({ moodle_suspended: false, moodle_suspended_at: null }).eq('id', studentId)
+}
+
+// Vencido de UN estudiante (consulta ligera, para reconciliar tras un pago).
+export async function overdueForStudent(sb: SB, studentId: string): Promise<number> {
+  const today = new Date().toISOString().slice(0, 10)
+  const { data: charges } = await sb.from('account_charges')
+    .select('external_id, amount, due_date').eq('student_id', studentId).not('due_date', 'is', null).lte('due_date', today)
+  if (!charges?.length) return 0
+  const extIds = charges.map((c: { external_id: string }) => c.external_id)
+  const paid = new Map<string, number>()
+  for (let i = 0; i < extIds.length; i += 300) {
+    const { data } = await sb.from('account_payments').select('charge_external_id, amount').in('charge_external_id', extIds.slice(i, i + 300))
+    for (const p of data ?? []) paid.set(p.charge_external_id, (paid.get(p.charge_external_id) ?? 0) + Number(p.amount || 0))
+  }
+  let over = 0
+  for (const c of charges) { const bal = Number(c.amount || 0) - (paid.get(c.external_id) ?? 0); if (bal > 0.005) over += bal }
+  return Math.round(over * 100) / 100
+}
+
+// Reconcilia el acceso de UN estudiante (suspende/reactiva según su vencido y
+// excepción vigente). Idempotente: no llama a Moodle si el estado ya es el correcto.
+export async function refreshStudentAccess(sb: SB, studentId: string): Promise<void> {
+  if (!moodleConfigured()) return
+  const { data: s } = await sb.from('academic_students')
+    .select('external_id, email, moodle_suspended').eq('id', studentId).maybeSingle()
+  if (!s) return
+  const now = new Date().toISOString()
+  const { data: exc } = await sb.from('moodle_access_exceptions').select('id').eq('student_id', studentId).gt('expires_at', now).limit(1)
+  const hasExc = (exc?.length ?? 0) > 0
+  const overdue = hasExc ? 0 : await overdueForStudent(sb, studentId)
+  const desired = overdue > 0.005 && !hasExc
+  if (desired === !!s.moodle_suspended) return
+  const uid = await resolveMoodleUserId(s.external_id, s.email).catch(() => null)
+  if (uid) await setUserSuspended(uid, desired).catch(() => null)
+  await sb.from('academic_students').update({ moodle_suspended: desired, moodle_suspended_at: desired ? now : null }).eq('id', studentId)
+}
+
+// Tras registrar pagos: reactiva a los estudiantes que estaban SUSPENDIDOS y ya
+// quedaron sin vencido. Solo mira a los suspendidos → mínimas llamadas a Moodle.
+export async function refreshAccessForStudents(sb: SB, studentIds: string[]): Promise<number> {
+  if (!moodleConfigured() || !studentIds.length) return 0
+  const uniq = [...new Set(studentIds.filter(Boolean))]
+  let done = 0
+  for (let i = 0; i < uniq.length; i += 300) {
+    const { data } = await sb.from('academic_students').select('id').in('id', uniq.slice(i, i + 300)).eq('moodle_suspended', true)
+    for (const s of data ?? []) { try { await refreshStudentAccess(sb, s.id); done++ } catch { /* best-effort */ } }
+  }
+  return done
 }

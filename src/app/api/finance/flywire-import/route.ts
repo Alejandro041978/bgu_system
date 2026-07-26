@@ -3,6 +3,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchByIn } from '@/lib/grades-write'
 import { initialsPaid, activateEnrollment } from '@/lib/enrollment-activation'
+import { refreshAccessForStudents } from '@/lib/moodle-access'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -426,6 +427,13 @@ export async function POST(req: NextRequest) {
       } catch (err) { errors.push(`activación ${e.id}: ${String(err)}`) }
     }
   } catch (err) { errors.push('barrido de activación: ' + String(err)) }
+
+  // Reactiva Moodle a los estudiantes suspendidos cuyo pago recién importado los
+  // dejó sin vencido (solo mira a los que estaban suspendidos).
+  try {
+    const paidStudents = importRows.map(o => o.student_id).filter(Boolean) as string[]
+    await refreshAccessForStudents(sb, paidStudents)
+  } catch (err) { errors.push('reactivación Moodle: ' + String(err)) }
 
   return NextResponse.json({ ok: true, counts, inserted, excluded: excludedCount, updated, enriched, associated, linked_to_charge: linked, events_logged: eventsLogged, matriculas_activadas: activadas, errors })
 }
