@@ -8,6 +8,7 @@ interface Op {
   reference: string | null; contact_name: string | null; description: string | null
   debit: number | null; credit: number | null; amount: number | null
   gestion_status: string; gestion_note: string | null; gestion_by: string | null
+  flywire_disbursement_id?: string | null
 }
 interface Hit { id: string; name: string; document_number: string | null }
 interface Cuota { external_id: string; program_name: string; concept: string; concept_name: string; amount: number; balance: number; due_date: string | null; status: string }
@@ -68,6 +69,12 @@ export function BooksOperations() {
   const [preview, setPreview] = useState<Preview | null>(null)
   const [importing, setImporting] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Asociar MANUALMENTE un desembolso ↔ un depósito de Books
+  const [linkDisb, setLinkDisb] = useState<Disb | null>(null)
+  const [linkCands, setLinkCands] = useState<Op[]>([])
+  const [linkQ, setLinkQ] = useState('')
+  const [linking, setLinking] = useState(false)
 
   // Asociar ingreso de Books → cuota de estudiante (crea pago serie BOOKS)
   const [assocOp, setAssocOp] = useState<Op | null>(null)
@@ -202,6 +209,21 @@ export function BooksOperations() {
     }).then(r => r.json())
     if (d.error) { setError(d.error); return }
     load(account, status); loadDisb()
+  }
+
+  // Abre el selector manual: trae los depósitos de Books aún sin cruzar (pendientes,
+  // contacto "Clientes Varios") para elegir cuál corresponde a este desembolso.
+  async function openLink(d: Disb) {
+    setLinkDisb(d); setLinkQ(''); setLinkCands([])
+    const r = await fetch('/api/finance/books/operations?status=pendiente').then(r => r.json()).catch(() => ({ operations: [] }))
+    const cands = (r.operations ?? []).filter((o: Op) => (o.credit ?? 0) > 0 && !o.flywire_disbursement_id)
+    setLinkCands(cands)
+  }
+  async function doLink(operation_id: string) {
+    if (!linkDisb) return
+    setLinking(true); setError(null)
+    await associate(linkDisb.disbursement_id, operation_id)
+    setLinking(false); setLinkDisb(null); setLinkCands([]); setLinkQ('')
   }
 
   async function confirmImport() {
@@ -386,13 +408,17 @@ export function BooksOperations() {
                       </span>
                     ) : <span className="text-gray-300">sin candidato cercano</span>}
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2 text-right whitespace-nowrap">
                     {d.suggestion && (
                       <button onClick={() => { if (confirm(d.suggestion!.by === 'ref' ? `¿Asociar el desembolso ${d.disbursement_id} (${money(d.amount)}) con el depósito de Books del ${d.suggestion!.date}? Coinciden por REFERENCIA (el depósito cita el ID del desembolso). El monto en Books (${money(d.suggestion!.amount)}) puede diferir porque contabilidad lo fraccionó.` : `¿Asociar el desembolso ${d.disbursement_id} (${money(d.amount)}) con el depósito de Books del ${d.suggestion!.date} (${money(d.suggestion!.amount)})? Diferencia ${money(d.suggestion!.diff)} (comisión).`)) associate(d.disbursement_id, d.suggestion!.operation_id) }}
                         className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
                         <Link2 className="w-3.5 h-3.5" />Asociar
                       </button>
                     )}
+                    <button onClick={() => openLink(d)}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-blue-700 ml-3">
+                      elegir…
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -400,6 +426,68 @@ export function BooksOperations() {
           </table>
         </div>
       )}
+
+      {/* Modal: asociar MANUALMENTE un desembolso ↔ un depósito de Books */}
+      {linkDisb && (() => {
+        const did = String(linkDisb.disbursement_id).toUpperCase().replace(/[^A-Z0-9]/g, '')
+        const q = linkQ.trim().toLowerCase()
+        const scored = linkCands
+          .map(o => {
+            const nref = String(o.reference ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+            const refHit = did.length >= 5 && nref.includes(did)
+            const amtHit = Math.abs((o.credit ?? 0) - linkDisb.amount) < 0.01
+            return { o, refHit, amtHit, rank: refHit ? 0 : amtHit ? 1 : 2 }
+          })
+          .filter(({ o }) => !q || [o.reference, o.contact_name, o.txn_date, String(o.credit)].some(v => String(v ?? '').toLowerCase().includes(q)))
+          .sort((a, b) => a.rank - b.rank || String(b.o.txn_date).localeCompare(String(a.o.txn_date)))
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => !linking && setLinkDisb(null)}>
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl p-5 space-y-3" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5"><Link2 className="w-4 h-4 text-blue-600" />Asociar desembolso a un depósito de Books</h3>
+                <button onClick={() => setLinkDisb(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="text-xs text-gray-500 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                Desembolso <b className="text-gray-700">{linkDisb.disbursement_id}</b> · {linkDisb.disbursement_date ?? '—'} · <b className="text-green-700">{money(linkDisb.amount)}</b>
+              </div>
+              <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
+                <Search className="w-4 h-4 text-gray-400" />
+                <input value={linkQ} onChange={e => setLinkQ(e.target.value)} placeholder="Filtrar por referencia, contacto, fecha o monto…" className="flex-1 text-sm focus:outline-none" autoFocus />
+              </div>
+              <div className="border border-gray-100 rounded-lg overflow-hidden max-h-80 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0"><tr className="bg-gray-50 text-gray-500 text-[10.5px] uppercase">
+                    <th className="px-3 py-2 text-left">Fecha</th><th className="px-3 py-2 text-left">Contacto</th><th className="px-3 py-2 text-left">Referencia</th>
+                    <th className="px-3 py-2 text-right">Monto</th><th className="px-3 py-2"></th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {scored.map(({ o, refHit, amtHit }) => (
+                      <tr key={o.id} className={refHit ? 'bg-emerald-50/50' : amtHit ? 'bg-green-50/30' : ''}>
+                        <td className="px-3 py-1.5 text-xs text-gray-500">{o.txn_date ?? '—'}</td>
+                        <td className="px-3 py-1.5 text-xs text-gray-600 max-w-40 truncate" title={o.contact_name ?? ''}>{o.contact_name ?? '—'}</td>
+                        <td className="px-3 py-1.5 text-xs max-w-56 truncate" title={o.reference ?? ''}>
+                          {refHit && <span className="mr-1 inline-flex items-center rounded bg-emerald-100 text-emerald-700 px-1 py-0.5 text-[9.5px] font-medium">ref exacta</span>}
+                          {o.reference ?? '—'}
+                        </td>
+                        <td className={`px-3 py-1.5 text-right tabular-nums text-xs ${amtHit ? 'text-green-700 font-medium' : 'text-gray-800'}`}>{money(o.credit)}</td>
+                        <td className="px-3 py-1.5 text-right">
+                          <button onClick={() => { if (confirm(`¿Asociar el desembolso ${linkDisb.disbursement_id} (${money(linkDisb.amount)}) con el depósito de Books del ${o.txn_date} (${money(o.credit)}, ref "${o.reference ?? '—'}")?`)) doLink(o.id) }}
+                            disabled={linking}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-40">
+                            {linking ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}Asociar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {scored.length === 0 && <tr><td colSpan={5} className="px-3 py-6 text-center text-xs text-gray-400">{linkCands.length === 0 ? 'Cargando depósitos pendientes…' : 'Ningún depósito coincide con el filtro.'}</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-[11px] text-gray-400">Se listan los depósitos de Books aún sin cruzar. En verde los de monto igual; en <span className="text-emerald-700">verde “ref exacta”</span> los que citan el ID del desembolso en su referencia. Al asociar, el depósito queda conciliado y apartado.</p>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Modal: asociar un ingreso de Books a una cuota de estudiante */}
       {assocOp && (
