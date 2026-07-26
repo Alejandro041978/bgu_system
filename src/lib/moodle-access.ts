@@ -73,20 +73,31 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
   const info = new Map<string, any>()
   for (let i = 0; i < idArr.length; i += 300) {
     const { data } = await sb.from('academic_students')
-      .select('id, first_name, last_name, second_last_name, document_number, email, email_alt, external_id, moodle_user_id, moodle_suspended, moodle_no_account')
+      .select('id, first_name, last_name, second_last_name, document_number, email, email_alt, external_id, moodle_user_id, moodle_suspended, situation')
       .in('id', idArr.slice(i, i + 300))
     for (const s of data ?? []) info.set(s.id, s)
   }
+
+  // "Sin cuenta Moodle" (columna opcional): tolerante si la migración aún no corrió.
+  const noAccountSet = new Set<string>()
+  try {
+    const { data } = await sb.from('academic_students').select('id').in('id', idArr).eq('moodle_no_account', true)
+    for (const s of data ?? []) noAccountSet.add(s.id)
+  } catch { /* columna moodle_no_account inexistente todavía */ }
 
   const rows: AccessRow[] = []
   for (const id of idArr) {
     const s = info.get(id); if (!s) continue
     const overdue = over.get(id) ?? 0
     const hasExc = exc.has(id)
-    const noAccount = !!s.moodle_no_account
-    // Sin cuenta Moodle = no hay acceso que restringir → nunca 'suspend'
-    const desired = overdue > 0.005 && !hasExc && !noAccount
+    const noAccount = noAccountSet.has(id)
     const cur = !!s.moodle_suspended
+    // Campus externo (aliados): NO usan nuestro Moodle → fuera de la restricción.
+    // Si no está suspendido, ni lo listamos; si por error lo está, se reactiva.
+    const isPartner = s.situation === 'campus_socio'
+    if (isPartner && !cur) continue
+    // Sin cuenta Moodle o campus externo → nunca 'suspend'
+    const desired = overdue > 0.005 && !hasExc && !noAccount && !isPartner
     const action: AccessRow['action'] = desired && !cur ? 'suspend' : (!desired && cur ? 'unsuspend' : 'none')
     rows.push({
       student_id: id, name: [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' '),
@@ -152,13 +163,15 @@ export async function overdueForStudent(sb: SB, studentId: string): Promise<numb
 export async function refreshStudentAccess(sb: SB, studentId: string): Promise<void> {
   if (!moodleConfigured()) return
   const { data: s } = await sb.from('academic_students')
-    .select('external_id, email, email_alt, moodle_user_id, moodle_suspended').eq('id', studentId).maybeSingle()
+    .select('external_id, email, email_alt, moodle_user_id, moodle_suspended, situation').eq('id', studentId).maybeSingle()
   if (!s) return
+  const isPartner = s.situation === 'campus_socio'
   const now = new Date().toISOString()
   const { data: exc } = await sb.from('moodle_access_exceptions').select('id').eq('student_id', studentId).gt('expires_at', now).limit(1)
   const hasExc = (exc?.length ?? 0) > 0
-  const overdue = hasExc ? 0 : await overdueForStudent(sb, studentId)
-  const desired = overdue > 0.005 && !hasExc
+  const overdue = (hasExc || isPartner) ? 0 : await overdueForStudent(sb, studentId)
+  // Campus externo nunca se suspende por deuda
+  const desired = overdue > 0.005 && !hasExc && !isPartner
   if (desired === !!s.moodle_suspended) return
   const uid = s.moodle_user_id ?? await resolveMoodleUserId(s.external_id, s.email_alt, s.email).catch(() => null)
   if (uid) await setUserSuspended(uid, desired).catch(() => null)
@@ -184,11 +197,14 @@ export async function diagnoseLinks(sb: SB): Promise<{ rows: LinkResult[]; name_
   const info = new Map<string, any>()
   for (let i = 0; i < ids.length; i += 300) {
     const { data } = await sb.from('academic_students')
-      .select('id, first_name, last_name, email, email_alt, external_id, moodle_user_id, moodle_suspended')
+      .select('id, first_name, last_name, email, email_alt, external_id, moodle_user_id, moodle_suspended, situation')
       .in('id', ids.slice(i, i + 300))
     for (const s of data ?? []) info.set(s.id, s)
   }
-  const targets = ids.map(id => info.get(id)).filter(s => s && !s.moodle_user_id && !s.moodle_suspended)
+  // Campus externo no usa nuestro Moodle → no se diagnostica.
+  const targets = ids.map(id => info.get(id)).filter(s => s && !s.moodle_user_id && !s.moodle_suspended && s.situation !== 'campus_socio')
+  // Actualización tolerante (columna moodle_no_account opcional)
+  const setNoAccount = async (id: string, v: boolean) => { try { await sb.from('academic_students').update({ moodle_no_account: v }).eq('id', id) } catch { /* sin columna */ } }
 
   const rows: LinkResult[] = []
   let nameSearch = true
@@ -196,18 +212,19 @@ export async function diagnoseLinks(sb: SB): Promise<{ rows: LinkResult[]; name_
     const name = [s.first_name, s.last_name].filter(Boolean).join(' ')
     const uid = await resolveMoodleUserId(s.external_id, s.email_alt, s.email).catch(() => null)
     if (uid) {
-      await sb.from('academic_students').update({ moodle_user_id: uid, moodle_no_account: false }).eq('id', s.id)
+      await sb.from('academic_students').update({ moodle_user_id: uid }).eq('id', s.id)
+      await setNoAccount(s.id, false)
       rows.push({ student_id: s.id, name, email: s.email, status: 'vinculado', moodle_user_id: uid })
       continue
     }
     if (nameSearch && s.first_name && s.last_name) {
       const found = await findMoodleUsersByName(s.first_name, s.last_name)
       if (found === null) { nameSearch = false }
-      else if (found.length === 1) { await sb.from('academic_students').update({ moodle_no_account: false }).eq('id', s.id); rows.push({ student_id: s.id, name, email: s.email, status: 'candidato', moodle_user_id: found[0].id, moodle_email: found[0].email }); continue }
-      else if (found.length > 1) { await sb.from('academic_students').update({ moodle_no_account: false }).eq('id', s.id); rows.push({ student_id: s.id, name, email: s.email, status: 'ambiguo', matches: found.length }); continue }
+      else if (found.length === 1) { await setNoAccount(s.id, false); rows.push({ student_id: s.id, name, email: s.email, status: 'candidato', moodle_user_id: found[0].id, moodle_email: found[0].email }); continue }
+      else if (found.length > 1) { await setNoAccount(s.id, false); rows.push({ student_id: s.id, name, email: s.email, status: 'ambiguo', matches: found.length }); continue }
     }
     // Confirmado sin cuenta (ni por llave ni por nombre) → se excluye del plan
-    await sb.from('academic_students').update({ moodle_no_account: true }).eq('id', s.id)
+    await setNoAccount(s.id, true)
     rows.push({ student_id: s.id, name, email: s.email, status: 'sin_cuenta' })
   }
   return { rows, name_search: nameSearch }
