@@ -41,13 +41,22 @@ export async function GET() {
     rows.push(...chunk)
     if (chunk.length < 1000) break
   }
-  // Pesos: si N8N sincronizó la SUMA ARITMÉTICA de coeficientes (desde la BD de
-  // Moodle), esa manda — detecta huecos que la normalización esconde (ej. 3
-  // Module Tests de 4 → suma 95). Sin sync, cae al peso normalizado del WS.
+  // Pesos: DOS señales complementarias y AMBAS deben cumplir.
+  //  - suma_coeficientes (BD de Moodle, ítems VISIBLES): detecta huecos que la
+  //    normalización esconde (3 Module Tests de 4 → 95)… pero es CIEGA al peso
+  //    FANTASMA (ítems ocultos con coeficiente > 0 que diluyen la nota).
+  //  - suma_pesos (WS, weightraw de ítems activos): detecta la dilución (los
+  //    visibles pesan <100 porque los ocultos roban)… pero viene null si el
+  //    lector no expone pesos. Caso 2026-07-28: 130 aulas con 5,781 pts de coef
+  //    oculto pasaron como "cumple" porque la aritmética (100 visible) mandaba
+  //    y silenciaba el 43-62% que el WS sí reportaba.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cumplePesosDe = (r: any): boolean | null => {
-    if (r.suma_coeficientes != null) return Math.abs(Number(r.suma_coeficientes) - 100) <= 0.5
-    return r.cumple_pesos
+    const okCoef = r.suma_coeficientes == null ? null : Math.abs(Number(r.suma_coeficientes) - 100) <= 0.5
+    const okWS = r.cumple_pesos ?? null
+    if (okCoef === false || okWS === false) return false
+    if (okCoef == null && okWS == null) return null
+    return true
   }
   // Cada aula vive en EXACTAMENTE una categoría (suman el total), por esta
   // precedencia: sin datos > sin evaluaciones > incumple (viola algo medible)
