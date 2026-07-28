@@ -173,6 +173,21 @@ export function resolveImportTarget(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const val = (g: any): number | null => g.retake_grade ?? g.final_grade ?? null
 
+  // Una asignatura ya APROBADA en el histórico (Activa/manual) manda SIEMPRE:
+  // no se crea ni se mantiene una fila de recursado. Las aulas Moodle se
+  // reutilizan entre cohortes y el import trae a TODOS los matriculados del
+  // aula — sin esta guardia, un alumno de una cohorte pasada (p. ej. upgrade)
+  // que sigue matriculado en el aula recibe una fila "en curso" duplicando la
+  // asignatura que ya aprobó (caso detectado 2026-07-28: 1,841 filas).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const aprobada = (g: any): boolean => {
+    if (g.source === 'moodle' || g.source === 'csv') return false
+    const v = val(g)
+    return v != null && v >= Number(g.passing_score ?? 70)
+  }
+  const historicOk = matches.find(aprobada)
+  if (historicOk) return { action: 'skip', external_id: String(historicOk.external_id), shield: false, prev_value: val(historicOk) }
+
   const own = matches.find(m => String(m.external_id) === fallbackExternalId)
     ?? matches.find(m => m.source === 'moodle' || m.source === 'csv')
   if (own) {

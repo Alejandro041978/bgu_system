@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
   const gradesByDoc = new Map<string, any[]>()
   {
     const all = await fetchByIn(sb, 'academic_grades',
-      'external_id, document_number, course_code, course_name, final_grade, retake_grade, source',
+      'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source',
       'document_number', docsArchivo)
     for (const g of all) {
       const k = String(g.document_number)
