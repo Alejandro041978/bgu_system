@@ -5,7 +5,7 @@ import { Loader2, Check, X, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 type Suggestion = {
   id: string; bot_key: string; report_date: string | null; type: 'prompt' | 'knowledge'
-  title: string; recommendation: string | null; content: string
+  title: string; recommendation: string | null; content: string; campaign_key?: string | null
   kb_topic: string | null; kb_question: string | null; kb_tags: string | null
   status: 'pending' | 'approved' | 'rejected'; applied_at: string | null; created_at: string
 }
@@ -85,6 +85,12 @@ export function SuggestionsView({ bots }: { bots: BotOpt[] }) {
                 </span>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${STATUS[s.status].cls}`}>{STATUS[s.status].label}</span>
                 <span className="text-[11px] text-gray-400">{botName(s.bot_key)}</span>
+                {s.campaign_key && s.campaign_key !== 'todas' && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700" title="Esta mejora se aplicará SOLO en esta campaña">{s.campaign_key}</span>
+                )}
+                {s.campaign_key === 'todas' && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-gray-100 text-gray-500" title="Se aplicará en todas las campañas">todas</span>
+                )}
                 <span className="text-[11px] text-gray-300 ml-auto">{s.report_date ?? s.created_at.slice(0, 10)}</span>
               </div>
 

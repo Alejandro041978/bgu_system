@@ -34,6 +34,7 @@ export interface Suggestion {
   kb_topic?: string | null
   kb_question?: string | null
   kb_tags?: string | null
+  campaign_key?: string | null
 }
 
 // Aplica una sugerencia aprobada: la incorpora de verdad al bot.
@@ -48,7 +49,12 @@ export async function applySuggestion(s: Suggestion): Promise<{ ref: string }> {
     const { data: bot } = await sb.from('bots').select('prompt').eq('key', s.bot_key).maybeSingle()
     if (!bot) throw new Error(`Bot ${s.bot_key} no encontrado`)
     const current: string = bot.prompt ?? ''
-    const line = `\n\n• ${s.content.trim()}`
+    // La mejora se ACOTA a su campaña. Camila atiende varias por el mismo
+    // número y una mejora nacida en cobranza puede ser incorrecta en
+    // titulación; sin la etiqueta, el bot la aplicaría en las seis.
+    const camp = (s.campaign_key ?? 'todas').trim().toLowerCase()
+    const prefijo = camp && camp !== 'todas' ? `[SOLO EN CAMPAÑA ${camp.toUpperCase()}] ` : ''
+    const line = `\n\n• ${prefijo}${s.content.trim()}`
     // Todas las mejoras aprobadas viven agrupadas al final del prompt, para que
     // se puedan revisar y podar de un vistazo sin buscarlas entre el texto base.
     const next = current.includes(MEJORAS_HEADER)

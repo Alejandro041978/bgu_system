@@ -6,6 +6,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// Campañas válidas para acotar una mejora. 'todas' = transversal.
+const CAMPAIGN_KEYS = ['ausente', 'cobranza', 'cashpay', 'titulacion', 'iw', 'loa', 'todas']
+
 // Ejecuta el análisis del supervisor para un bot y fecha. Reutilizable en proceso
 // (sin salto HTTP) desde el cron y desde run-supervisor, evitando apilar dos
 // timeouts de función.
@@ -75,6 +78,44 @@ export async function analyzeSupervisor(botKey: string, dateParam?: string | nul
     ? (kbRows ?? []).map((k: { title: string; category?: string }) => `- ${k.title}${k.category ? ` (${k.category})` : ''}`).join('\n')
     : '(La base de conocimientos está vacía)'
 
+  // ── Campaña de cada conversación (solo Camila) ──────────────────────────
+  // Camila atiende varias campañas por el mismo número y cada una se mide con
+  // SU propio éxito. Sin esto, el supervisor juzgaría a todas con la vara de
+  // retención ("¿volvió al aula?") y marcaría como fallo que no le pidiera la
+  // fecha de reingreso a un egresado al que escribió por su título.
+  const campaignByPhone = new Map<string, string>()
+  if (botRole === 'retencion') {
+    const [{ data: cc }, { data: rc }] = await Promise.all([
+      db.from('campaign_contacts').select('student_id, campaign_key, sent_at').order('sent_at', { ascending: false }),
+      db.from('retention_contacts').select('student_id, sent_at').neq('status', 'failed').order('sent_at', { ascending: false }),
+    ])
+    const ultimaCampana = new Map<string, { key: string; at: string }>()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of (cc ?? []) as any[]) {
+      const prev = ultimaCampana.get(String(r.student_id))
+      if (!prev || String(r.sent_at) > prev.at) ultimaCampana.set(String(r.student_id), { key: r.campaign_key, at: String(r.sent_at) })
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of (rc ?? []) as any[]) {
+      const prev = ultimaCampana.get(String(r.student_id))
+      if (!prev || String(r.sent_at) > prev.at) ultimaCampana.set(String(r.student_id), { key: 'ausente', at: String(r.sent_at) })
+    }
+    const ids = [...ultimaCampana.keys()]
+    for (let i = 0; i < ids.length; i += 300) {
+      const { data: st } = await db.from('academic_students').select('id, phone_code, phone_number').in('id', ids.slice(i, i + 300))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const s of (st ?? []) as any[]) {
+        const tel = `${s.phone_code ?? ''}${s.phone_number ?? ''}`.replace(/\D/g, '')
+        if (tel.length >= 8) campaignByPhone.set(tel.slice(-9), ultimaCampana.get(s.id)!.key)
+      }
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const campaignOfConv = (c: any): string => {
+    const tel = String(c.phone ?? c.customer_phone ?? c.ref_label ?? '').replace(/\D/g, '')
+    return (tel.length >= 9 ? campaignByPhone.get(tel.slice(-9)) : null) ?? 'ausente'
+  }
+
   // Formato de conversaciones para el análisis
   const convSamples = convList.slice(0, 50).map((c: { messages?: { role: string; content: string }[]; source?: string; created_at: string; ref_label?: string | null }, i: number) => {
     const msgs = c.messages ?? []
@@ -83,8 +124,13 @@ export async function analyzeSupervisor(botKey: string, dateParam?: string | nul
       .map(m => `  [${m.role === 'user' ? 'Usuario' : botName}]: ${m.content.slice(0, 400)}`)
       .join('\n')
     const label = c.ref_label ?? `Conversación ${i + 1}`
-    return `--- ${label} (${c.source ?? 'web'}, ${new Date(c.created_at).toLocaleTimeString('es-PE')}) ---\n${preview}`
+    const camp = botRole === 'retencion' ? ` · CAMPAÑA: ${campaignOfConv(c).toUpperCase()}` : ''
+    return `--- ${label} (${c.source ?? 'web'}, ${new Date(c.created_at).toLocaleTimeString('es-PE')}${camp}) ---\n${preview}`
   }).join('\n\n')
+
+  // Reparto de conversaciones por campaña, para el encabezado del análisis
+  const porCampana: Record<string, number> = {}
+  if (botRole === 'retencion') for (const c of convList) { const k = campaignOfConv(c); porCampana[k] = (porCampana[k] ?? 0) + 1 }
 
   // Desglose por canal
   const sourceMap: Record<string, number> = {}
@@ -132,16 +178,27 @@ Estudiantes que pidieron no ser contactados: ${rows.filter(r => r.do_not_contact
   }
 
   const analysisPrompt = isRetention
-    ? `Eres el supervisor de ${botName}, el bot de RETENCIÓN de Blackwell Global University (BGU). Analiza sus conversaciones del ${dateStr}.
+    ? `Eres el supervisor de ${botName}, el bot de ACOMPAÑAMIENTO de Blackwell Global University (BGU). Analiza sus conversaciones del ${dateStr}.
 
-${botName} no atiende consultas: busca a estudiantes que dejaron de entrar al aula y trabaja para que retomen. En las conversaciones "Usuario" es el estudiante y "${botName}" es el bot.
+${botName} no atiende consultas: ella toma la iniciativa y contacta estudiantes. En las conversaciones "Usuario" es el estudiante y "${botName}" es el bot.
 
-SU ÉXITO NO ES QUE LE DIGAN QUE SÍ. Es que el estudiante VUELVA AL AULA. Un "sí, ya voy a entrar" dicho para que deje de escribir no vale nada. Evalúala contra eso, no contra si sonó amable.
+═══ CADA CAMPAÑA SE JUZGA CON SU PROPIA VARA ═══
+${botName} atiende VARIAS campañas por el mismo número. Cada conversación viene etiquetada con su CAMPAÑA. Evalúala contra el éxito de ESA campaña, nunca contra el de otra:
+
+- AUSENTE / RETENCIÓN → éxito: que VUELVA AL AULA. Cierre válido: día + hora + qué evaluación abrirá.
+- COBRANZA → éxito: que PAGUE. Cierre válido: fecha concreta de pago. Aquí SÍ debe hablar de dinero de frente: es el motivo de su mensaje. Marcar como fallo que hable de pagos en esta campaña sería un error tuyo.
+- CASHPAY → éxito: que ENTRE A SU PORTAL a simular su escenario. NO debe calcular ella el descuento ni prometer porcentajes: eso lo hace el portal con las cuotas reales. Un "no me interesa" se acepta a la primera; insistir aquí es un fallo.
+- TITULACIÓN → éxito: que INICIE SU TRÁMITE de título. Pedirle a un egresado que "vuelva al aula" es un fallo grave: ya terminó.
+- IW → éxito: que exprese interés real en RETOMAR. Aquí sí puede invitar a volver a alguien retirado (es el propósito), pero sin hacerlo sentir en falta.
+- LOA → éxito: que confirme CUÁNDO RETOMA antes de que venza su licencia.
+
+En todas: un "sí" dicho para que deje de escribir no vale nada. Evalúala por el compromiso concreto que consiguió, no por si sonó amable.
 
 ESTADÍSTICAS DEL DÍA:
 - Conversaciones: ${convList.length}
 - Mensajes: ${totalMessages}
 - Canales: ${Object.entries(sourceMap).map(([s, n]) => `${s}(${n})`).join(', ')}
+- Por campaña: ${Object.entries(porCampana).map(([k, n]) => `${k}(${n})`).join(', ') || 'sin datos'}
 ${retentionStats}
 SU BASE DE CONOCIMIENTOS ACTUAL:
 ${kbInventory}
@@ -158,7 +215,9 @@ SECCIÓN 2 - FORTALEZAS:
 Qué hizo bien. Prioriza los casos donde encontró la traba real y la desarmó, no donde fue simpática.
 
 SECCIÓN 3 - DEBILIDADES Y FALLOS:
-Errores concretos. Revisa especialmente estos guardarraíles, que son los que más daño hacen si falla:
+Errores concretos, indicando SIEMPRE en qué campaña ocurrieron. Revisa primero el fallo más grave del modelo multi-campaña:
+0) ¿CONTRADIJO EL MOTIVO DE SU PROPIO MENSAJE? Si escribió por cobranza y luego dijo "no soy cobranza"; si escribió por titulación y pidió volver al aula; si escribió por cashpay e improvisó un porcentaje. Esto rompe la confianza y es lo más dañino que puede hacer.
+Y estos guardarraíles, que son los que más daño hacen si fallan:
 a) ¿ADVIRTIÓ ANTES DE PREGUNTAR? Nunca debe asumir el motivo de la ausencia; su primer mensaje abre preguntando.
 b) ¿INSISTIÓ EN UN CASO DE SALUD, DUELO O PROBLEMA GRAVE? Ahí debe detenerse, no presionar.
 c) ¿SIGUIÓ ESCRIBIENDO DESPUÉS DE UN "NO" o de que anunciaran su retiro? Debe soltar y pasarlo a la llamada humana.
@@ -302,7 +361,9 @@ Además de las secciones en prosa, entrega una lista de MEJORAS CONCRETAS Y APLI
 - type "prompt": un ajuste de COMPORTAMIENTO. "content" es el texto EXACTO que se agregará al prompt de ${botName}, redactado como instrucción directa al bot (ej: "Cuando el estudiante pida X, haz Y").
 - type "knowledge": un dato que le FALTÓ. "content" es la respuesta correcta; "kb_question" la pregunta que responde; "kb_topic" una categoría corta; "kb_tags" palabras clave separadas por coma.
 - "title" es el problema detectado en una frase; "recommendation" es qué hace la mejora, en una línea.
-- Sólo propón una mejora si de verdad se justifica con lo que viste hoy. Si el bot anduvo bien, devuelve "suggestions": [].
+- Sólo propón una mejora si de verdad se justifica con lo que viste hoy. Si el bot anduvo bien, devuelve "suggestions": [].${isRetention ? `
+- "campaign_key" es OBLIGATORIO: la campaña a la que aplica la mejora. Valores: "ausente", "cobranza", "cashpay", "titulacion", "iw", "loa", o "todas" si es transversal.
+  Piénsalo bien: una mejora nacida de una conversación de COBRANZA casi nunca debe aplicarse a TITULACIÓN. Usa "todas" SOLO si el ajuste vale igual en las seis campañas (tono, honestidad, cuándo soltar). Si dudas, acótala a su campaña: una mejora mal generalizada le enseña al bot a hacer lo incorrecto en otro contexto.` : ''}
 
 Responde SOLO con un JSON válido con esta estructura exacta:
 {
@@ -315,8 +376,8 @@ Responde SOLO con un JSON válido con esta estructura exacta:
   "quality_score": 8,
   "quality_justification": "texto",
   "suggestions": [
-    { "type": "prompt", "title": "...", "recommendation": "...", "content": "..." },
-    { "type": "knowledge", "title": "...", "recommendation": "...", "content": "...", "kb_question": "...", "kb_topic": "...", "kb_tags": "..." }
+    { "type": "prompt", "title": "...", "recommendation": "...", "content": "...", "campaign_key": "cobranza" },
+    { "type": "knowledge", "title": "...", "recommendation": "...", "content": "...", "kb_question": "...", "kb_topic": "...", "kb_tags": "...", "campaign_key": "todas" }
   ]
 }`
 
@@ -460,6 +521,7 @@ Generado: ${new Date().toLocaleString('es-PE')}
         kb_topic: x.kb_topic ? asText(x.kb_topic).slice(0, 120) : null,
         kb_question: x.kb_question ? asText(x.kb_question).slice(0, 300) : null,
         kb_tags: x.kb_tags ? asText(x.kb_tags).slice(0, 300) : null,
+        campaign_key: isRetention ? (CAMPAIGN_KEYS.includes(asText(x.campaign_key)) ? asText(x.campaign_key) : 'todas') : 'todas',
       }))
     if (rows.length) {
       // ignoreDuplicates: si ya se propuso esa mejora (mismo title) y sigue
