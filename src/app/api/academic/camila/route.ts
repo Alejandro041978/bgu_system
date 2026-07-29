@@ -49,12 +49,34 @@ export async function GET() {
     eleg.push(t)
   }
 
-  const contactados = eleg.filter(t => (t.contact_attempts ?? 0) > 0)
-  const enCola = elegibles - contactados.length
-  const respondieron = contactados.filter(t => t.last_outcome)
-  const volvieron = (n: typeof eleg) => n.filter(t =>
-    t.campaign_entered_at && t.last_moodle_access &&
-    new Date(t.last_moodle_access) > new Date(t.campaign_entered_at)).length
+  // Contactados y respuestas salen de la BITÁCORA (retention_contacts), no del
+  // padrón de ausentes de hoy. Quien fue contactado, respondió y volvió al aula
+  // deja de estar en riesgo y sale de `eleg`: contarlo ahí borraba justamente a
+  // los casos de éxito (el tablero mostraba "0 respondieron" con 47 respuestas
+  // registradas). El alcance de una campaña es acumulado, no una foto.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const enviados = (contacts as any[]).filter(c => c.status !== 'failed')
+  const contactadosIds = new Set(enviados.map(c => String(c.student_id)))
+  const respondieronIds = new Set(enviados.filter(c => c.replied_at).map(c => String(c.student_id)))
+  // Primer contacto de cada estudiante: la reconexión se mide desde ahí.
+  const primerContacto = new Map<string, string>()
+  for (const c of enviados) {
+    const k = String(c.student_id)
+    if (!primerContacto.has(k) || String(c.sent_at) < primerContacto.get(k)!) primerContacto.set(k, String(c.sent_at))
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const trackingById = new Map<string, any>((tracking as any[]).map(t => [String(t.student_id), t]))
+  const contactados = [...contactadosIds].map(id => trackingById.get(id)).filter(Boolean)
+  const respondieron = [...respondieronIds]
+  const enCola = Math.max(0, elegibles - eleg.filter(t => contactadosIds.has(String(t.student_id))).length)
+  // Volvió = se conectó DESPUÉS de que la campaña lo alcanzó. Para los
+  // contactados el ancla es su primer mensaje (dato duro de la bitácora); para
+  // el grupo de control, su entrada a la cola.
+  const volvieron = (n: typeof eleg) => n.filter(t => {
+    if (!t?.last_moodle_access) return false
+    const desde = primerContacto.get(String(t.student_id)) ?? t.campaign_entered_at
+    return desde && new Date(t.last_moodle_access) > new Date(desde)
+  }).length
 
   // ── Grupo de control: los que siguen en cola no recibieron nada ──────────
   // Sin esto nos atribuiríamos a los que iban a volver solos.
