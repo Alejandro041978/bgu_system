@@ -50,14 +50,39 @@ export async function GET() {
     if (c.outcome === 'convertido') sent30[c.campaign_key].convertidos++
   }
 
+  // ── Retención: motor ANTERIOR, vivo y en paralelo ────────────────────────
+  // No es una fila de `campaigns`: tiene su propia config (retention_settings),
+  // su bitácora (retention_contacts) y su cron. Cubre la misma audiencia que
+  // "ausente" pero con una SECUENCIA de 5 plantillas (día 1/3/7/14 + deuda),
+  // algo que el motor nuevo todavía no sabe hacer. Se muestra aquí para tener
+  // la foto completa en un solo lugar; su encendido se controla en su página.
+  const { data: rCfg } = await sb.from('retention_settings').select('enabled, daily_cap').eq('id', 1).maybeSingle()
+  const { data: rRecent } = await sb.from('retention_contacts')
+    .select('replied_at, status').gte('sent_at', desde)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rEnviados = ((rRecent ?? []) as any[]).filter(c => c.status !== 'failed')
+  const legacy = {
+    key: 'retencion', name: 'Retención', priority: 15, cooldown_days: 7,
+    active: !!rCfg?.enabled, config: {}, legacy: true,
+    description: 'Ausente del aula: secuencia de 5 mensajes (día 1/3/7/14 + deuda). Motor anterior, con su propio cron y bitácora.',
+    eligible: 0, sample: [] as { student_id: string; reason: string; name: string }[],
+    sent_30d: rEnviados.length,
+    converted_30d: rEnviados.filter(c => c.replied_at).length,
+    daily_cap: Number(rCfg?.daily_cap ?? 0),
+  }
+
   return NextResponse.json({
-    campaigns: r.campaigns.map(c => ({
-      ...c,
-      eligible: byCampaign[c.key]?.count ?? 0,
-      sample: (byCampaign[c.key]?.sample ?? []).map(s => ({ ...s, name: names[s.student_id] ?? s.student_id })),
-      sent_30d: sent30[c.key]?.total ?? 0,
-      converted_30d: sent30[c.key]?.convertidos ?? 0,
-    })),
+    campaigns: [
+      ...r.campaigns.map(c => ({
+        ...c,
+        legacy: false,
+        eligible: byCampaign[c.key]?.count ?? 0,
+        sample: (byCampaign[c.key]?.sample ?? []).map(s => ({ ...s, name: names[s.student_id] ?? s.student_id })),
+        sent_30d: sent30[c.key]?.total ?? 0,
+        converted_30d: sent30[c.key]?.convertidos ?? 0,
+      })),
+      legacy,
+    ].sort((a, b) => a.priority - b.priority),
     optouts: r.optouts,
     en_cooldown: r.en_cooldown,
     total_asignados: r.assignments.length,

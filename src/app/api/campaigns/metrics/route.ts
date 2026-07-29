@@ -74,8 +74,30 @@ export async function GET() {
     }
   }).sort((a, b) => a.prioridad - b.prioridad)
 
+  // Retención: motor ANTERIOR (retention_settings + su cron + retention_contacts).
+  // Se incluye para tener la foto completa; su éxito es "volvió al aula" y sus
+  // números salen de su propia bitácora.
+  const { data: rCfg } = await sb.from('retention_settings').select('enabled, daily_cap').eq('id', 1).maybeSingle()
+  const { data: rRows } = await sb.from('retention_contacts').select('student_id, sent_at, status, replied_at')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rSent = ((rRows ?? []) as any[]).filter(c => c.status !== 'failed')
+  const rContactados = new Set(rSent.map(c => String(c.student_id)))
+  const rRespondieron = new Set(rSent.filter(c => c.replied_at).map(c => String(c.student_id)))
+  const rHoy = rSent.filter(c => String(c.sent_at).slice(0, 10) === hoy).length
+  const retencion = {
+    key: 'retencion', nombre: 'Retención', activa: !!rCfg?.enabled, prioridad: 15,
+    cupo_diario: Number(rCfg?.daily_cap ?? 0), enviados_hoy: rHoy,
+    plantilla: 'camila_retencion_dia1/3/7/14 + deuda', tiene_plantilla: true, bot: 'retencion',
+    elegibles: rContactados.size, en_cola: 0,
+    contactados: rContactados.size, respondieron: rRespondieron.size,
+    exito: 0, exito_label: OUTCOME_LABEL.retencion,
+    tasa_respuesta: pct(rRespondieron.size, rContactados.size), tasa_exito: 0,
+    bloqueo: rCfg?.enabled ? null : 'Campaña apagada',
+    legacy: true,
+  }
+
   return NextResponse.json({
-    campanas: filas,
+    campanas: [...filas, retencion].sort((a, b) => a.prioridad - b.prioridad),
     totales: {
       elegibles: filas.reduce((s, f) => s + f.elegibles, 0),
       contactados: filas.reduce((s, f) => s + f.contactados, 0),

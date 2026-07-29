@@ -5,7 +5,7 @@ import { Loader2, Megaphone, Power, Users } from 'lucide-react'
 
 interface Campaign {
   key: string; name: string; description: string | null
-  priority: number; cooldown_days: number; active: boolean
+  priority: number; cooldown_days: number; active: boolean; legacy?: boolean
   eligible: number; sample: { student_id: string; name: string; reason: string }[]
   sent_30d: number; converted_30d: number
 }
@@ -50,21 +50,28 @@ export function CampaignsBoard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {campaigns.map(c => (
-          <div key={c.key} className={`bg-white border rounded-xl p-4 space-y-3 ${c.active ? 'border-green-200' : 'border-gray-200 opacity-80'}`}>
+          <div key={c.key} className={`bg-white border rounded-xl p-4 space-y-3 ${c.legacy ? 'border-amber-200 bg-amber-50/20' : c.active ? 'border-green-200' : 'border-gray-200 opacity-80'}`}>
             <div className="flex items-start justify-between gap-2">
               <div>
                 <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">
                   <Megaphone className={`w-4 h-4 ${c.active ? 'text-green-600' : 'text-gray-300'}`} />
                   {c.name}
                   <span className="text-[10px] font-normal text-gray-400">prioridad {c.priority}</span>
+                  {c.legacy && <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-300">OLD · modelo anterior</span>}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">{c.description}</p>
               </div>
+              {c.legacy ? (
+                <span title="Se controla desde su propia página de Retención" className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-medium ${c.active ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                  <Power className="w-3.5 h-3.5" />{c.active ? 'Activa' : 'Apagada'}
+                </span>
+              ) : (
               <button onClick={() => patch(c.key, { active: !c.active })}
                 title={c.active ? 'Apagar campaña' : 'Encender campaña'}
                 className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-medium ${c.active ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'}`}>
                 <Power className="w-3.5 h-3.5" />{c.active ? 'Activa' : 'Apagada'}
               </button>
+              )}
             </div>
 
             <div className="flex items-center gap-4 text-xs">
@@ -72,8 +79,8 @@ export function CampaignsBoard() {
               <span className="text-gray-400 tabular-nums">{c.sent_30d} contactados (30d) · {c.converted_30d} convertidos</span>
               <label className="ml-auto flex items-center gap-1.5 text-gray-400">
                 cooldown
-                <input defaultValue={c.cooldown_days} onBlur={e => { const v = Number(e.target.value); if (v && v !== c.cooldown_days) patch(c.key, { cooldown_days: v }) }}
-                  inputMode="numeric" className="w-12 border border-gray-200 rounded px-1.5 py-0.5 text-xs text-center" />
+                <input defaultValue={c.cooldown_days} disabled={c.legacy} onBlur={e => { const v = Number(e.target.value); if (v && v !== c.cooldown_days) patch(c.key, { cooldown_days: v }) }}
+                  inputMode="numeric" className="w-12 border border-gray-200 rounded px-1.5 py-0.5 text-xs text-center disabled:bg-gray-50 disabled:text-gray-400" />
                 días
               </label>
             </div>

@@ -9,7 +9,7 @@ interface Campana {
   plantilla: string; tiene_plantilla: boolean; bot: string
   elegibles: number; en_cola: number; contactados: number; respondieron: number
   exito: number; exito_label: string; tasa_respuesta: number; tasa_exito: number
-  bloqueo: string | null
+  bloqueo: string | null; legacy?: boolean
 }
 interface Data {
   campanas: Campana[]
@@ -64,11 +64,12 @@ export function CampaignsMonitor() {
       {/* Una tarjeta por campaña */}
       <div className="space-y-3">
         {d.campanas.map(c => (
-          <div key={c.key} className={`bg-white border rounded-xl overflow-hidden ${c.activa && !c.bloqueo ? 'border-green-200' : 'border-gray-200'}`}>
+          <div key={c.key} className={`bg-white border rounded-xl overflow-hidden ${c.legacy ? 'border-amber-200' : c.activa && !c.bloqueo ? 'border-green-200' : 'border-gray-200'}`}>
             <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2 flex-wrap">
               <span className={`w-2 h-2 rounded-full ${c.activa && !c.bloqueo ? 'bg-green-500' : c.activa ? 'bg-amber-500' : 'bg-gray-300'}`} />
               <p className="text-sm font-semibold text-gray-800">{c.nombre}</p>
               <span className="text-[10.5px] text-gray-400 font-mono">{c.key}</span>
+              {c.legacy && <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-300">OLD · modelo anterior</span>}
               <span className="text-[10.5px] text-gray-400">prioridad {c.prioridad}</span>
               <span className="ml-auto text-[11px] text-gray-500">{c.enviados_hoy}/{c.cupo_diario} hoy</span>
             </div>
