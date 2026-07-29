@@ -44,6 +44,14 @@ export async function resolveEligibility(sb: any): Promise<{
     fetchAll(sb, 'account_payments', 'student_id, amount'),
     fetchAll(sb, 'campaign_contacts', 'student_id, sent_at'),
   ])
+  // El cooldown debe mirar TAMBIÉN la bitácora del motor de retención: es un
+  // sistema paralelo (retention_settings + su propio cron) que contacta a la
+  // MISMA gente que la campaña "ausente". Sin esto, encender "ausente" con
+  // retención viva le manda dos mensajes distintos a la misma persona y rompe
+  // la regla "un número, una persona".
+  const retentionContacts = await fetchAll(sb, 'retention_contacts', 'student_id, sent_at, status')
+    .then(rows => rows.filter(r => r.status !== 'failed'))
+    .catch(() => [])
 
   const campaigns = (campRows as CampaignDef[]).sort((a, b) => a.priority - b.priority)
   const activeKeys = new Set(campaigns.filter(c => c.active).map(c => c.key))
@@ -72,9 +80,10 @@ export async function resolveEligibility(sb: any): Promise<{
     paidBy.set(String(p.student_id), (paidBy.get(String(p.student_id)) ?? 0) + Number(p.amount ?? 0))
   }
 
-  // Cooldown GLOBAL: último contacto de CUALQUIER campaña
+  // Cooldown GLOBAL: último contacto de CUALQUIER campaña, incluida retención
   const lastContact = new Map<string, string>()
-  for (const c of contacts) {
+  for (const c of [...contacts, ...retentionContacts]) {
+    if (!c.student_id || !c.sent_at) continue
     const k = String(c.student_id)
     if (!lastContact.has(k) || String(c.sent_at) > lastContact.get(k)!) lastContact.set(k, String(c.sent_at))
   }
