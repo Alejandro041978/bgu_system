@@ -21,7 +21,34 @@ export interface RetentionContext {
   balance: number | null
   pending: number
   total: number
+  campaign: string
   text: string
+}
+
+// Camila atiende VARIAS campañas por el mismo número. Su prompt define una
+// misión distinta por campaña, así que necesita saber POR QUÉ escribió: sin
+// esto negaría el motivo de su propio mensaje (p. ej. decirle "no soy cobranza"
+// a quien acaba de recibir un aviso de cuota vencida).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function campaignOf(sb: any, studentId: string): Promise<string> {
+  // El último contacto manda: es la campaña que originó esta conversación.
+  const { data: cc } = await sb.from('campaign_contacts')
+    .select('campaign_key, sent_at').eq('student_id', studentId)
+    .order('sent_at', { ascending: false }).limit(1).maybeSingle()
+  const { data: rc } = await sb.from('retention_contacts')
+    .select('sent_at').eq('student_id', studentId).neq('status', 'failed')
+    .order('sent_at', { ascending: false }).limit(1).maybeSingle()
+  if (cc?.campaign_key && (!rc?.sent_at || String(cc.sent_at) >= String(rc.sent_at))) return cc.campaign_key
+  return 'ausente'   // el motor de retención, o sin rastro: la campaña por defecto
+}
+
+const CAMPAIGN_LABEL: Record<string, string> = {
+  ausente: 'AUSENTE (dejó de entrar al aula)',
+  cobranza: 'COBRANZA (tiene una cuota vencida)',
+  cashpay: 'CASHPAY (está al día y puede adelantar cuotas con descuento)',
+  titulacion: 'TITULACIÓN (terminó su programa y no ha pedido su título)',
+  iw: 'IW (se retiró definitivamente)',
+  loa: 'LOA (en licencia, su plazo está por vencer)',
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,6 +56,8 @@ export async function buildRetentionContext(sb: any, studentId: string): Promise
   const { data: s } = await sb.from('academic_students')
     .select('id, first_name, last_name, second_last_name, document_number, situation').eq('id', studentId).maybeSingle()
   if (!s) return null
+
+  const campaign = await campaignOf(sb, studentId).catch(() => 'ausente')
 
   const { data: tr } = await sb.from('student_tracking')
     .select('*').eq('student_id', studentId).maybeSingle()
@@ -97,6 +126,8 @@ export async function buildRetentionContext(sb: any, studentId: string): Promise
 
   const lines = [
     'CONTEXTO DEL ESTUDIANTE (para que entiendas su situación; NO se lo recites):',
+    `- CAMPAÑA POR LA QUE ESCRIBISTE: ${CAMPAIGN_LABEL[campaign] ?? campaign.toUpperCase()}`,
+    '  (tu misión y tu cierre los define esta campaña — no la contradigas)',
     `- Nombre: ${name}`,
     programName ? `- Programa: ${programName}` : null,
     days != null ? `- Días sin entrar al aula: ${days}` : '- Nunca ha entrado al aula',
@@ -114,5 +145,5 @@ export async function buildRetentionContext(sb: any, studentId: string): Promise
     level === 1 ? '  Ausencia reciente: cercana y curiosa. Solo pregunta qué pasó.' : null,
   ].filter(Boolean)
 
-  return { studentId, name, level, inactivityDays: days, balance, pending, total, text: lines.join('\n') }
+  return { studentId, name, level, inactivityDays: days, balance, pending, total, campaign, text: lines.join('\n') }
 }
