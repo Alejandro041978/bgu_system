@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
+import { downloadStorageFile } from '@/lib/storage-url'
 
 // La evaluación descarga PDFs + llama a Claude con documentos: puede tardar.
 // Sin esto, Vercel corta la función y el registro queda atascado en "evaluating".
@@ -30,14 +31,18 @@ NIVELES (solo si approved):
 - doctor: Puede enseñar en todos los niveles incluyendo doctorado
 `
 
+// El bucket es PRIVADO: los documentos se bajan por la API de Storage con la
+// clave de servicio, no por su URL (que ya no es pública). Las direcciones
+// externas siguen descargándose normal.
 async function fetchFileAsBase64(url: string): Promise<{ base64: string; mediaType: string } | null> {
   try {
-    const res = await fetch(url)
-    if (!res.ok) return null
-    const buffer = await res.arrayBuffer()
+    const buffer = await downloadStorageFile(url)
+    if (!buffer) return null
     const base64 = Buffer.from(buffer).toString('base64')
-    const contentType = res.headers.get('content-type') ?? 'application/pdf'
-    return { base64, mediaType: contentType.split(';')[0] }
+    const mediaType = /\.png(\?|$)/i.test(url) ? 'image/png'
+      : /\.jpe?g(\?|$)/i.test(url) ? 'image/jpeg'
+      : 'application/pdf'
+    return { base64, mediaType }
   } catch {
     return null
   }

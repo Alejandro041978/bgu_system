@@ -1,3 +1,5 @@
+import { downloadStorageFile } from './storage-url'
+
 const BASE = 'https://api.signnow.com'
 
 async function getToken(): Promise<string> {
@@ -27,10 +29,10 @@ async function getToken(): Promise<string> {
 export async function uploadDocumentFromUrl(pdfUrl: string, fileName: string): Promise<string> {
   const token = await getToken()
 
-  // Descargar el PDF
-  const pdfRes = await fetch(pdfUrl)
-  if (!pdfRes.ok) throw new Error('No se pudo descargar el PDF del contrato')
-  const pdfBuffer = await pdfRes.arrayBuffer()
+  // Descargar el PDF. El bucket es PRIVADO: se baja por la API de Storage con
+  // la clave de servicio (las URLs guardadas ya no son públicas).
+  const pdfBuffer = await downloadStorageFile(pdfUrl)
+  if (!pdfBuffer) throw new Error('No se pudo descargar el PDF del contrato')
 
   const form = new FormData()
   form.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }), fileName)

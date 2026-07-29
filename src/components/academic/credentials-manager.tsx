@@ -359,7 +359,7 @@ export function CredentialsManager({ faculty: initialFaculty }: { faculty: Facul
                         <>
                           {cred?.source === 'external'
                             ? (cred?.external_report_url && (
-                                <a href={cred.external_report_url} target="_blank" rel="noopener noreferrer"
+                                <a href={`/api/files/open?u=${encodeURIComponent(cred.external_report_url)}`} target="_blank" rel="noopener noreferrer"
                                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
                                   <Download className="w-4 h-4" /> Descargar dictamen
                                 </a>

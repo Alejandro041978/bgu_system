@@ -148,7 +148,7 @@ export function ContractList({ contracts: initial }: { contracts: Contract[] }) 
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                   {c.file_url && (
                     <a
-                      href={c.file_url}
+                      href={`/api/files/open?u=${encodeURIComponent(c.file_url)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700"

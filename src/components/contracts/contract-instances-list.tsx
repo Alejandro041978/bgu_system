@@ -211,7 +211,7 @@ export function ContractInstancesList({ instances: initial }: { instances: Insta
                   </div>
                   {inst.pdf_url ? (
                     <a
-                      href={inst.pdf_url}
+                      href={`/api/files/open?u=${encodeURIComponent(inst.pdf_url)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 bg-white border border-green-300 text-green-700 text-xs font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition-colors"

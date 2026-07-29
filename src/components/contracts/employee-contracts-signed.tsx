@@ -144,7 +144,7 @@ export function EmployeeContractsSigned({ instances: initial }: { instances: Ins
                       </div>
                     </div>
                     {inst.pdf_url ? (
-                      <a href={inst.pdf_url} target="_blank" rel="noopener noreferrer"
+                      <a href={`/api/files/open?u=${encodeURIComponent(inst.pdf_url)}`} target="_blank" rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 bg-white border border-green-300 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors">
                         <Download className="w-3.5 h-3.5" /> Descargar PDF firmado
                       </a>
