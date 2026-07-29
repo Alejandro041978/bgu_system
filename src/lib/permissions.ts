@@ -6,6 +6,7 @@
 export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/academic/convocatorias-matriculas', 'academic_convocatorias_report'],
   ['/academic/moodle-access', 'moodle_access'],
+  ['/finance/cashpay', 'finance_cashpay'],
   ['/academic/estudiantes-convocatoria', 'academic_convocatoria_students'],
   ['/planning/effectiveness/dashboard', 'effectiveness_dashboard'],
   ['/hr/capacitaciones/participantes', 'hr_capacitacion_participantes'],

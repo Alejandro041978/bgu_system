@@ -134,6 +134,7 @@ const PAGE_GROUPS = [
       { key: 'collection_scholarships', label: 'Collection · Becas' },
       { key: 'collection_bonuses', label: 'Collection · Bonos' },
       { key: 'moodle_access', label: 'Collection · Acceso a Moodle' },
+      { key: 'finance_cashpay', label: 'Collection · Cashpay' },
       { key: 'report_tuition_audit', label: 'Reportes · Auditoría de Tuition' },
       { key: 'seguimiento_campaigns', label: 'Seguimiento · Campañas' },
       { key: 'finance_books_operations', label: 'Finanzas · Operaciones Books' },
