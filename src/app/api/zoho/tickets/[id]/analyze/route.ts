@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+import { createClient as createAuthClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
 import type { ZohoComment } from '@/types/zoho'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+// Escritura con la clave de SERVICIO (como el resto del ERP); la sesión solo
+// autentica. Con la clave pública, ticket_ai_reviews tendría que quedar abierta.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const auth = await createAuthClient()
+  const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabase = db()
 
   const { id } = await params
   const { conversations } = await request.json() as { conversations: ZohoComment[] }

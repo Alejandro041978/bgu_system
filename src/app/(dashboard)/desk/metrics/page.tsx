@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { MetricsFilters } from './metrics-filters'
 import { AgentMetricsTable } from './agent-metrics-table'
 import { MetricsSummaryCards } from './metrics-summary-cards'
@@ -15,9 +15,14 @@ const AGENTS: Record<string, { name: string; email: string }> = {
 
 interface SearchParams { month?: string }
 
+// Lectura con la clave de SERVICIO (como el resto del ERP): la autorización la
+// hace el middleware por rol, no RLS.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
 export default async function MetricsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const { month } = await searchParams
-  const supabase = await createClient()
+  const supabase = db()
 
   // Default to current month
   const now = new Date()

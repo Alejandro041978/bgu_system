@@ -1,8 +1,14 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { Topbar } from '@/components/layout/topbar'
 import { TicketFiltersBar } from '@/components/desk/ticket-filters-bar'
 import { DeskStatsSupabase } from '@/components/desk/desk-stats-supabase'
 import { TicketListSupabase } from '@/components/desk/ticket-list-supabase'
+
+// Lectura con la clave de SERVICIO (como el resto del ERP): la autorización de
+// esta página la hace el middleware por rol, no RLS. Con la clave pública la
+// tabla tendría que quedar abierta a cualquiera para funcionar.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 interface PageProps {
   searchParams: Promise<{
@@ -20,7 +26,7 @@ export default async function DeskPage({ searchParams }: PageProps) {
   const limit = 25
   const from = (page - 1) * limit
 
-  const supabase = await createClient()
+  const supabase = db()
 
   let query = supabase
     .from('desk_tickets')
