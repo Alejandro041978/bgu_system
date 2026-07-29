@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Loader2, Check, X, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Loader2, Check, X, AlertTriangle, CheckCircle2, Pencil, Save } from 'lucide-react'
+
+const CAMPANAS = ['todas', 'ausente', 'cobranza', 'cashpay', 'titulacion', 'iw', 'loa']
 
 type Suggestion = {
   id: string; bot_key: string; report_date: string | null; type: 'prompt' | 'knowledge'
@@ -24,6 +26,10 @@ export function SuggestionsView({ bots }: { bots: BotOpt[] }) {
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
+  const [draft, setDraft] = useState<{
+    id: string; title: string; recommendation: string; content: string
+    kb_topic: string; kb_question: string; kb_tags: string; campaign_key: string
+  } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -42,6 +48,29 @@ export function SuggestionsView({ bots }: { bots: BotOpt[] }) {
     const d = await res.json()
     setBusy(null)
     if (!res.ok) { alert(d.error ?? 'No se pudo aplicar'); return }
+    load()
+  }
+
+  // Edición antes de aprobar: el supervisor propone a partir de lo que vio, y
+  // puede equivocarse en un dato (plazos, montos, procedimientos). Lo que se
+  // apruebe se dirá como cierto, así que primero se corrige.
+  function editar(s: Suggestion) {
+    setDraft({
+      id: s.id, title: s.title, recommendation: s.recommendation ?? '', content: s.content,
+      kb_topic: s.kb_topic ?? '', kb_question: s.kb_question ?? '', kb_tags: s.kb_tags ?? '',
+      campaign_key: s.campaign_key ?? 'todas',
+    })
+  }
+  async function guardar() {
+    if (!draft) return
+    setBusy(draft.id)
+    const res = await fetch('/api/sofia/suggestions', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft),
+    })
+    const d = await res.json()
+    setBusy(null)
+    if (!res.ok) { alert(d.error ?? 'No se pudo guardar'); return }
+    setDraft(null)
     load()
   }
 
@@ -94,6 +123,63 @@ export function SuggestionsView({ bots }: { bots: BotOpt[] }) {
                 <span className="text-[11px] text-gray-300 ml-auto">{s.report_date ?? s.created_at.slice(0, 10)}</span>
               </div>
 
+              {draft?.id === s.id ? (
+                /* ── Modo edición ───────────────────────────────────────── */
+                <div className="space-y-2 mt-1">
+                  <label className="block">
+                    <span className="text-[11px] font-medium text-gray-500">Hallazgo (el problema detectado)</span>
+                    <input value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-medium text-gray-500">Recomendación (qué hace la mejora)</span>
+                    <input value={draft.recommendation} onChange={e => setDraft({ ...draft, recommendation: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-medium text-gray-500">
+                      {s.type === 'prompt' ? 'Texto EXACTO que se agregará al prompt' : 'Contenido del artículo — el bot lo dirá como cierto'}
+                    </span>
+                    <textarea value={draft.content} onChange={e => setDraft({ ...draft, content: e.target.value })} rows={6}
+                      className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-[13px] font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </label>
+                  {s.type === 'knowledge' && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <label className="block"><span className="text-[11px] font-medium text-gray-500">Tema</span>
+                        <input value={draft.kb_topic} onChange={e => setDraft({ ...draft, kb_topic: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" /></label>
+                      <label className="block"><span className="text-[11px] font-medium text-gray-500">Pregunta</span>
+                        <input value={draft.kb_question} onChange={e => setDraft({ ...draft, kb_question: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" /></label>
+                      <label className="block"><span className="text-[11px] font-medium text-gray-500">Tags</span>
+                        <input value={draft.kb_tags} onChange={e => setDraft({ ...draft, kb_tags: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" /></label>
+                    </div>
+                  )}
+                  {s.bot_key === 'retencion' && (
+                    <label className="block">
+                      <span className="text-[11px] font-medium text-gray-500">Campaña donde aplica</span>
+                      <select value={draft.campaign_key} onChange={e => setDraft({ ...draft, campaign_key: e.target.value })}
+                        className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {CAMPANAS.map(c => <option key={c} value={c}>{c === 'todas' ? 'Todas las campañas' : c}</option>)}
+                      </select>
+                      <span className="text-[10.5px] text-gray-400">Acótala salvo que valga igual en las seis: una mejora de cobranza puede ser errónea en titulación.</span>
+                    </label>
+                  )}
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={guardar} disabled={busy === s.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+                      {busy === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar cambios
+                    </button>
+                    <button onClick={() => setDraft(null)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+              /* ── Vista normal ───────────────────────────────────────── */
+              <>
               <p className="text-sm font-semibold text-gray-800 flex items-start gap-1.5">
                 <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />{s.title}
               </p>
@@ -122,11 +208,18 @@ export function SuggestionsView({ bots }: { bots: BotOpt[] }) {
                     {busy === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     Aprobar y aplicar
                   </button>
+                  {/* Corregir antes de aprobar: lo aprobado el bot lo dirá como cierto. */}
+                  <button onClick={() => editar(s)} disabled={busy === s.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 disabled:opacity-50">
+                    <Pencil className="w-4 h-4" /> Editar
+                  </button>
                   <button onClick={() => act(s.id, 'reject')} disabled={busy === s.id}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
                     <X className="w-4 h-4" /> Descartar
                   </button>
                 </div>
+              )}
+              </>
               )}
               {s.status === 'approved' && s.applied_at && (
                 <p className="text-[11px] text-green-600 mt-2">✓ Aplicada el {new Date(s.applied_at).toLocaleString('es-PE')}{s.type === 'prompt' ? ' — agregada al prompt' : ' — agregada a la base de conocimientos'}</p>

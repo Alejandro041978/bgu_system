@@ -36,6 +36,48 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ rows: data ?? [], counts })
 }
 
+// PUT { id, ...campos } → EDITA una sugerencia pendiente antes de aprobarla.
+// El supervisor propone a partir de lo que vio en las conversaciones, así que
+// puede equivocarse en un dato (plazos, montos, procedimientos). Aprobar tal
+// cual metería ese error al prompt o a la base de conocimientos, y el bot lo
+// diría como cierto. Editar antes de aprobar es la compuerta humana.
+export async function PUT(req: NextRequest) {
+  const user = await requireUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const b = await req.json().catch(() => null) as {
+    id?: string; title?: string; recommendation?: string; content?: string
+    kb_topic?: string; kb_question?: string; kb_tags?: string; campaign_key?: string
+  } | null
+  if (!b?.id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
+  const sb = db()
+
+  const { data: s } = await sb.from('supervisor_suggestions').select('status').eq('id', b.id).maybeSingle()
+  if (!s) return NextResponse.json({ error: 'Sugerencia no encontrada' }, { status: 404 })
+  // Una vez aplicada, editarla aquí no cambiaría el prompt ni el artículo ya
+  // creados: sería mentir sobre lo que está en producción.
+  if (s.status !== 'pending') return NextResponse.json({ error: 'Solo se pueden editar las sugerencias pendientes' }, { status: 409 })
+
+  const patch: Record<string, string | null> = {}
+  if (b.title !== undefined) {
+    if (!b.title.trim()) return NextResponse.json({ error: 'El título no puede quedar vacío' }, { status: 400 })
+    patch.title = b.title.trim().slice(0, 300)
+  }
+  if (b.content !== undefined) {
+    if (!b.content.trim()) return NextResponse.json({ error: 'El contenido no puede quedar vacío' }, { status: 400 })
+    patch.content = b.content.trim()
+  }
+  if (b.recommendation !== undefined) patch.recommendation = b.recommendation.trim().slice(0, 500) || null
+  if (b.kb_topic !== undefined) patch.kb_topic = b.kb_topic.trim().slice(0, 120) || null
+  if (b.kb_question !== undefined) patch.kb_question = b.kb_question.trim().slice(0, 300) || null
+  if (b.kb_tags !== undefined) patch.kb_tags = b.kb_tags.trim().slice(0, 300) || null
+  if (b.campaign_key !== undefined) patch.campaign_key = b.campaign_key.trim() || 'todas'
+  if (!Object.keys(patch).length) return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
+
+  const { error } = await sb.from('supervisor_suggestions').update(patch).eq('id', b.id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
 // PATCH { id, action: 'approve' | 'reject' }
 //   approve → aplica la mejora (prompt o base) y marca 'approved'.
 export async function PATCH(req: NextRequest) {
