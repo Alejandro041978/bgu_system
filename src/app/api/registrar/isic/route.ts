@@ -36,7 +36,7 @@ export async function GET() {
 
   const { data: asignadas } = await sb.from('isic_cards')
     .select('card_number, status, printed_name, valid_from, valid_to, isic_status, assigned_at, last_http_code, last_error, registration_url, ' +
-      'profile_status, notified_at, email, ' +
+      'profile_status, notified_at, email, student_id, photo_path, ' +
       'student:academic_students(first_name, last_name, second_last_name, document_number)')
     .eq('environment', environment).not('assigned_at', 'is', null)
     .order('assigned_at', { ascending: false }).limit(200)
@@ -47,7 +47,8 @@ export async function GET() {
     valid_from: c.valid_from, valid_to: c.valid_to, isic_status: c.isic_status,
     assigned_at: c.assigned_at, last_http_code: c.last_http_code, last_error: c.last_error,
     registration_url: c.registration_url, profile_status: c.profile_status,
-    notified_at: c.notified_at, email: c.email,
+    notified_at: c.notified_at, email: c.email, student_id: c.student_id,
+    has_photo: !!c.photo_path,
     student_name: [c.student?.first_name, c.student?.last_name, c.student?.second_last_name].filter(Boolean).join(' '),
     document_number: c.student?.document_number ?? null,
   }))
@@ -114,7 +115,9 @@ export async function PATCH(req: NextRequest) {
   const g = await requireStaff()
   if (g.error) return g.error
 
-  const b = await req.json().catch(() => null) as { card_number?: string; action?: string } | null
+  const b = await req.json().catch(() => null) as {
+    card_number?: string; action?: string; photo_path?: string | null; notify?: boolean
+  } | null
   if (!b?.card_number) return NextResponse.json({ error: 'Falta card_number' }, { status: 400 })
   const sb = db()
 
@@ -134,6 +137,19 @@ export async function PATCH(req: NextRequest) {
       profile_created_at: creado || null, updated_at: new Date().toISOString(),
     }).eq('card_number', b.card_number)
     return NextResponse.json({ ok: true, registration_url: url, profile_status: estado, profile_created_at: creado })
+  }
+
+  // update → el estudiante pidió cambiar su foto o corregir un dato. Los datos
+  // se releen de su ficha (no se teclean aquí), y la vigencia no se toca:
+  // extenderla es revalidar, que tiene su propio pago.
+  if (b.action === 'update') {
+    const { updateIsicCard } = await import('@/lib/isic-issue')
+    const res = await updateIsicCard(b.card_number, { photoPath: b.photo_path ?? null, notify: !!b.notify })
+    if (!res.ok) return NextResponse.json({ error: res.error, missing: res.missing }, { status: 400 })
+    return NextResponse.json({
+      ok: true, http_code: res.httpCode, photo_updated: res.photoUpdated,
+      notified: res.notified, registration_url: res.registrationUrl,
+    })
   }
 
   if (b.action === 'notify') {

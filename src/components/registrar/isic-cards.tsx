@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Loader2, Upload, CreditCard, AlertTriangle, ExternalLink, RefreshCw, Mail, Smartphone } from 'lucide-react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
+import { Loader2, Upload, CreditCard, AlertTriangle, ExternalLink, RefreshCw, Mail, Smartphone, Camera, Pencil } from 'lucide-react'
 
 interface Row {
   card_number: string; status: string; printed_name: string | null
@@ -9,6 +9,7 @@ interface Row {
   assigned_at: string | null; last_http_code: number | null; last_error: string | null
   registration_url: string | null; student_name: string; document_number: string | null
   profile_status: string | null; notified_at: string | null; email: string | null
+  student_id: string | null; has_photo: boolean
 }
 interface Evento { card_number: string | null; action: string; http_code: number | null; ok: boolean | null; response_body: string | null; created_at: string }
 interface Data {
@@ -26,6 +27,10 @@ export function IsicCards() {
   const [env, setEnv] = useState<'staging' | 'production'>('staging')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  // Panel de actualización de un carné ya emitido
+  const [editando, setEditando] = useState<string | null>(null)
+  const [nuevaFoto, setNuevaFoto] = useState<File | null>(null)
+  const [avisar, setAvisar] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -48,6 +53,31 @@ export function IsicCards() {
     if (!res.ok) { setMsg(j.error ?? 'No se pudo importar'); return }
     setMsg(`Importadas ${j.importadas} · ya existían ${j.ya_existian}${j.invalidos?.length ? ` · con formato inválido ${j.invalidos.length}` : ''}`)
     setNumbers('')
+    load()
+  }
+
+  // Actualizar un carné emitido: el estudiante pidió otra foto o corregir un
+  // dato. Los datos se releen de su ficha; aquí solo se elige la foto nueva.
+  async function actualizar(r: Row) {
+    setBusy(true); setMsg(null)
+    let photoPath: string | null = null
+    if (nuevaFoto && r.student_id) {
+      const fd = new FormData()
+      fd.append('file', nuevaFoto); fd.append('student_id', r.student_id)
+      const up = await fetch('/api/registrar/isic-photo', { method: 'POST', body: fd })
+      const uj = await up.json()
+      if (!up.ok) { setBusy(false); setMsg(uj.error ?? 'No se pudo subir la foto'); return }
+      photoPath = uj.path
+    }
+    const res = await fetch('/api/registrar/isic', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_number: r.card_number, action: 'update', photo_path: photoPath, notify: avisar }),
+    })
+    const j = await res.json()
+    setBusy(false)
+    if (!res.ok) { setMsg(j.error ?? 'No se pudo actualizar'); return }
+    setMsg(`Carné actualizado en ISIC (${j.http_code})${j.photo_updated ? ' · foto reemplazada' : ''}${j.notified ? ' · aviso enviado' : ''}`)
+    setEditando(null); setNuevaFoto(null); setAvisar(false)
     load()
   }
 
@@ -167,7 +197,8 @@ export function IsicCards() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {d.rows.map(r => (
-                  <tr key={r.card_number} className="hover:bg-gray-50">
+                  <Fragment key={r.card_number}>
+                  <tr className="hover:bg-gray-50">
                     <td className="px-3 py-2.5 font-mono text-[12.5px] text-gray-800">{r.card_number}</td>
                     <td className="px-3 py-2.5">
                       <span className="text-gray-800">{r.student_name || '—'}</span>
@@ -212,9 +243,60 @@ export function IsicCards() {
                           title={r.email ? `Reenviar instrucciones a ${r.email}` : 'Sin correo registrado'}>
                           <Mail className="w-3.5 h-3.5" /> {r.notified_at ? 'Reenviar' : 'Avisar'}
                         </button>
+                        <button onClick={() => { setEditando(editando === r.card_number ? null : r.card_number); setNuevaFoto(null); setAvisar(false); setMsg(null) }}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-blue-600"
+                          title="Cambiar la foto o empujar a ISIC los datos corregidos en la ficha">
+                          <Pencil className="w-3.5 h-3.5" /> Actualizar
+                        </button>
                       </div>
                     </td>
                   </tr>
+                  {editando === r.card_number && (
+                    <tr className="bg-blue-50/40">
+                      <td colSpan={7} className="px-3 py-3">
+                        <div className="space-y-2 max-w-2xl">
+                          <p className="text-[12.5px] font-medium text-gray-800">Actualizar {r.card_number} en ISIC</p>
+                          <p className="text-[11.5px] text-gray-600 leading-relaxed">
+                            Los datos del titular se releen de la ficha del estudiante, no se escriben aquí: si un nombre
+                            o una fecha están mal, corrígelos en su ficha y pulsa Actualizar — el carné sigue. Así el
+                            carné y el ERP nunca dicen cosas distintas.
+                            <br />
+                            <strong>La vigencia no cambia.</strong> Extenderla es revalidar, que es otro trámite con su
+                            propio pago.
+                          </p>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <label className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 cursor-pointer">
+                              <Camera className="w-3.5 h-3.5" />
+                              {nuevaFoto ? nuevaFoto.name.slice(0, 28) : r.has_photo ? 'Reemplazar foto (opcional)' : 'Agregar foto (opcional)'}
+                              <input type="file" accept="image/jpeg,image/png" className="hidden"
+                                onChange={e => { const f = e.target.files?.[0]; if (f) setNuevaFoto(f); e.target.value = '' }} />
+                            </label>
+                            <label className="inline-flex items-center gap-1.5 text-[11.5px] text-gray-600">
+                              <input type="checkbox" checked={avisar} onChange={e => setAvisar(e.target.checked)} className="rounded border-gray-300" />
+                              Reenviar el correo al estudiante
+                            </label>
+                          </div>
+                          {avisar && (
+                            <p className="text-[11px] text-gray-500">
+                              Conviene si cambió el nombre o el correo: el enlace de activación los lleva dentro, así que
+                              el que tenía quedó obsoleto.
+                            </p>
+                          )}
+                          <div className="flex gap-2 pt-0.5">
+                            <button onClick={() => actualizar(r)} disabled={busy}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+                              {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Pencil className="w-3.5 h-3.5" />} Actualizar en ISIC
+                            </button>
+                            <button onClick={() => { setEditando(null); setNuevaFoto(null) }} disabled={busy}
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-white disabled:opacity-50">
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

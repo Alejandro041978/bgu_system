@@ -15,6 +15,8 @@ export interface IssueResult {
   registrationUrl?: string | null
   httpCode?: number
   notified?: boolean      // ¿se le avisó por correo?
+  photoUpdated?: boolean
+  photoPath?: string | null
   error?: string
   missing?: string[]      // datos del estudiante que faltan
 }
@@ -207,4 +209,140 @@ export async function issueIsicCard(requestId: string): Promise<IssueResult> {
   }).eq('id', r.id)
 
   return { ok: true, cardNumber, registrationUrl, httpCode: res.code, notified }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Actualizar un carné ya emitido
+// ───────────────────────────────────────────────────────────────────────────
+// Para cuando el estudiante pide cambiar su foto o corregir un dato. Reenviar
+// el mismo cardNumber a CCDB no crea otro carné: lo actualiza y devuelve 200.
+//
+// Los datos NO se escriben a mano aquí: se vuelven a leer de la ficha del
+// estudiante. Si el nombre está mal, se corrige donde vive el dato y el carné
+// sigue. Dejar teclear un nombre distinto solo para el carné crearía una
+// divergencia que después nadie sabe explicar.
+//
+// Y la vigencia se mantiene TAL CUAL. Recalcularla aquí extendería el carné 12
+// meses gratis por cada actualización de foto: extender es revalidar, tiene su
+// propio pago y su propio endpoint (con reglas de fechas que CCDB sí valida).
+export async function updateIsicCard(
+  cardNumber: string, opts: { photoPath?: string | null; notify?: boolean } = {}
+): Promise<IssueResult> {
+  const sb = db()
+  if (!isicConfigured()) return { ok: false, error: 'Faltan las credenciales de ISIC (ISIC_USER / ISIC_PASSWORD)' }
+
+  const { data: card } = await sb.from('isic_cards')
+    .select('card_number, student_id, valid_from, valid_to, photo_path, document_request_id, isic_status')
+    .eq('card_number', cardNumber).maybeSingle()
+  if (!card) return { ok: false, error: 'Carné no encontrado' }
+  if (!card.student_id) return { ok: false, error: 'Este carné no está asignado a ningún estudiante' }
+  if (!card.valid_to) return { ok: false, error: 'Este carné no tiene vigencia registrada' }
+
+  const { data: s } = await sb.from('academic_students')
+    .select('first_name, last_name, second_last_name, date_of_birth, email, email_alt')
+    .eq('id', card.student_id).maybeSingle()
+  if (!s) return { ok: false, error: 'Estudiante no encontrado' }
+
+  const firstName = String(s.first_name ?? '').trim()
+  const lastName = [s.last_name, s.second_last_name].filter(Boolean).join(' ').trim()
+  const dob = s.date_of_birth ? String(s.date_of_birth).slice(0, 10) : ''
+  const email = String(s.email_alt ?? '').trim() || String(s.email ?? '').trim()
+
+  const missing: string[] = []
+  if (!firstName) missing.push('nombre')
+  if (!lastName) missing.push('apellidos')
+  if (!dob) missing.push('fecha de nacimiento')
+  if (missing.length) return { ok: false, missing, error: `Faltan datos del estudiante: ${missing.join(', ')}` }
+
+  const printedName = `${firstName} ${lastName}`
+  const payload: IsicCardPayload = {
+    cardNumber, cardStatus: card.isic_status === 'VOIDED' ? 'VOIDED' : 'VALID',
+    printedName, firstName, lastName, dateOfBirth: dob,
+    validFrom: card.valid_from ? String(card.valid_from).slice(0, 10) : null,
+    validTo: String(card.valid_to).slice(0, 10),
+    institutionName: INSTITUTION, email,
+  }
+
+  let res
+  try {
+    res = await isicUpsertCard(payload)
+  } catch (e) {
+    const msg = (e as Error).message
+    await log(sb, { card_number: cardNumber, action: 'update', ok: false, request_body: buildCardXml(payload), response_body: msg })
+    return { ok: false, cardNumber, error: 'No se pudo contactar a ISIC: ' + msg }
+  }
+  await log(sb, {
+    card_number: cardNumber, document_request_id: card.document_request_id, action: 'update',
+    http_code: res.code, ok: res.ok, request_body: buildCardXml(payload), response_body: res.body.slice(0, 8000),
+  })
+  if (res.code !== 200 && res.code !== 201) {
+    await sb.from('isic_cards').update({ last_http_code: res.code, last_error: res.body.slice(0, 2000) }).eq('card_number', cardNumber)
+    return { ok: false, cardNumber, httpCode: res.code, error: `ISIC respondió ${res.code}: ${res.body.slice(0, 500)}` }
+  }
+
+  // Foto nueva, si la trae. La anterior se queda en Storage: es el histórico de
+  // lo que se imprimió en cada momento.
+  const nuevaFoto = opts.photoPath?.trim() || null
+  let photoCode: number | null = null
+  const usarFoto = nuevaFoto ?? (card.photo_path as string | null)
+  if (nuevaFoto) {
+    try {
+      const { data: blob } = await sb.storage.from('isic-photos').download(nuevaFoto)
+      if (blob) {
+        const bytes = Buffer.from(await blob.arrayBuffer())
+        const mime = nuevaFoto.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg'
+        const ph = await isicPutPhoto(cardNumber, bytes, mime)
+        photoCode = ph.code
+        await log(sb, { card_number: cardNumber, action: 'photo', http_code: ph.code, ok: ph.ok, response_body: ph.body.slice(0, 2000) })
+      }
+    } catch (e) {
+      await log(sb, { card_number: cardNumber, action: 'photo', ok: false, response_body: (e as Error).message })
+    }
+  }
+
+  // El enlace de activación se regenera con los datos nuevos (lleva dentro el
+  // nombre y el correo), así que se vuelve a pedir.
+  let registrationUrl: string | null = null
+  let profileStatus: string | null = null
+  try {
+    const prof = await isicGetProfile(cardNumber)
+    if (prof.code === 200) {
+      registrationUrl = xmlValue(prof.body, 'registrationUrl')
+      profileStatus = xmlValue(prof.body, 'profileStatus')
+    }
+  } catch { /* el enlace se recupera con el botón de comprobar */ }
+
+  const now = new Date().toISOString()
+  await sb.from('isic_cards').update({
+    first_name: firstName, last_name: lastName, printed_name: printedName,
+    date_of_birth: dob, email, last_http_code: res.code, last_error: null,
+    ...(nuevaFoto ? { photo_path: nuevaFoto, photo_http_code: photoCode } : {}),
+    ...(registrationUrl ? { registration_url: registrationUrl } : {}),
+    ...(profileStatus ? { profile_status: profileStatus } : {}),
+    updated_at: now,
+  }).eq('card_number', cardNumber)
+
+  // Si cambió el correo o el nombre, el enlace anterior que tenía el estudiante
+  // quedó obsoleto: por eso se puede avisar de nuevo en el mismo acto.
+  let notified = false
+  if (opts.notify && email) {
+    try {
+      const { notifyIsicCard } = await import('./isic-notify')
+      const n = await notifyIsicCard({
+        to: email, firstName: firstName.split(' ')[0] || 'Estudiante',
+        cardNumber, registrationUrl, validTo: String(card.valid_to).slice(0, 10),
+      })
+      notified = n.ok
+      await log(sb, { card_number: cardNumber, action: 'notify', ok: n.ok, response_body: n.error ?? 'enviado a ' + email })
+      if (n.ok) await sb.from('isic_cards').update({ notified_at: now }).eq('card_number', cardNumber)
+    } catch { /* el botón Reenviar lo recupera */ }
+  }
+
+  // El documento del estudiante apunta al enlace, que pudo cambiar.
+  if (card.document_request_id && registrationUrl) {
+    await sb.from('document_requests').update({ document_url: registrationUrl, updated_at: now })
+      .eq('id', card.document_request_id)
+  }
+
+  return { ok: true, cardNumber, registrationUrl, httpCode: res.code, notified, photoUpdated: !!nuevaFoto && photoCode === 200, photoPath: usarFoto }
 }
