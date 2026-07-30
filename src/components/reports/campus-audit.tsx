@@ -27,7 +27,8 @@ interface Data {
 // Resumen por categoría padre de Moodle: cuánto pesa auditarla y qué tan vieja
 // está su foto. Es lo que permite decidir por dónde empezar.
 interface Familia {
-  familia: string; aulas: number; incumplen: number
+  ruta: string; nivel: number; nombre: string
+  aulas: number; incumplen: number
   sin_matricula_manual: number; sin_datos: number
   audited_at: string | null; mas_antigua: string | null
 }
@@ -57,7 +58,7 @@ export function CampusAudit() {
   // camino) y permite atacar primero la categoría que se está trabajando.
   // El guardado es por tandas, así que una corrida parcial no borra el resto.
   async function audit(familia?: string) {
-    const cuantas = familia ? (d?.familias ?? []).find(f => f.familia === familia)?.aulas : d?.total
+    const cuantas = familia ? (d?.familias ?? []).find(f => f.ruta === familia)?.aulas : d?.total
     const texto = familia
       ? `Se auditarán las ${cuantas ?? '?'} aulas de "${familia}". El resto del campus conserva su última foto. ¿Continuar?`
       : 'Se auditará el campus COMPLETO contra la política (ponderaciones 100% y escala sobre 100). Toma 1-3 minutos y puede agotar el tiempo; por familia es más seguro. ¿Continuar?'
@@ -158,8 +159,13 @@ export function CampusAudit() {
                   {d.familias!.map(f => {
                     const dias = f.mas_antigua ? Math.floor((Date.now() - new Date(f.mas_antigua).getTime()) / 86400000) : null
                     return (
-                      <tr key={f.familia} className="hover:bg-gray-50/50">
-                        <td className="px-3 py-2 text-gray-800">{f.familia}</td>
+                      <tr key={f.ruta} className={`hover:bg-gray-50/50 ${f.nivel === 1 ? 'bg-gray-50/60' : ''}`}>
+                        {/* Nivel 1 = lo que se ve en la portada de Moodle;
+                            nivel 2 = la unidad real de trabajo (p. ej. Update
+                            dentro de DCE). */}
+                        <td className={f.nivel === 1 ? 'px-3 py-2 text-gray-800 font-semibold' : 'px-3 py-2 pl-8 text-gray-600'}>
+                          {f.nombre}
+                        </td>
                         <td className="px-3 py-2 text-right text-gray-600">{f.aulas}</td>
                         <td className={`px-3 py-2 text-right font-medium ${f.incumplen > 0 ? 'text-rose-700' : 'text-gray-300'}`}>{f.incumplen || '—'}</td>
                         <td className={`px-3 py-2 text-right font-medium ${f.sin_matricula_manual > 0 ? 'text-rose-700' : 'text-gray-300'}`}>{f.sin_matricula_manual || '—'}</td>
@@ -183,10 +189,10 @@ export function CampusAudit() {
                           ) : <span className="text-gray-300">sin auditar</span>}
                         </td>
                         <td className="px-3 py-2 text-right">
-                          <button onClick={() => audit(f.familia)} disabled={!!auditing}
+                          <button onClick={() => audit(f.ruta)} disabled={!!auditing}
                             className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline whitespace-nowrap">
-                            {auditing === f.familia ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                            {auditing === f.familia ? 'Auditando…' : 'Auditar'}
+                            {auditing === f.ruta ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                            {auditing === f.ruta ? 'Auditando…' : 'Auditar'}
                           </button>
                         </td>
                       </tr>

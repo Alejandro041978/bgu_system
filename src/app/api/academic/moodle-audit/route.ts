@@ -87,14 +87,22 @@ export async function GET() {
   // partida por categorías, la foto deja de ser homogénea: cada familia tiene su
   // propia antigüedad. Sin esto, un "última auditoría" global mentiría — que es
   // justo lo que pasó el 30-07, cuando analicé datos de dos horas antes.
+  // Dos niveles: la familia (lo que se ve en la portada de Moodle) y sus
+  // subcategorías directas. Una familia como DCE puede ser demasiado grande
+  // para una corrida, mientras que "Update Certificate (3 months)" es la
+  // unidad real de trabajo. Como el filtro del POST compara por prefijo de la
+  // ruta, ambos niveles funcionan sin lógica extra.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const familias = new Map<string, any>()
-  for (const r of rows) {
-    const fam = String(r.categoria ?? '(sin categoría)').split(' / ')[0]
-    if (!familias.has(fam)) {
-      familias.set(fam, { familia: fam, aulas: 0, incumplen: 0, sin_matricula_manual: 0, sin_datos: 0, audited_at: null as string | null, mas_antigua: null as string | null })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const acumular = (ruta: string, nivel: number, r: any) => {
+    if (!familias.has(ruta)) {
+      familias.set(ruta, {
+        ruta, nivel, nombre: ruta.split(' / ').pop(), aulas: 0, incumplen: 0,
+        sin_matricula_manual: 0, sin_datos: 0, audited_at: null as string | null, mas_antigua: null as string | null,
+      })
     }
-    const f = familias.get(fam)
+    const f = familias.get(ruta)
     f.aulas++
     const est = estadoDe(r)
     if (est === 'incumplen') f.incumplen++
@@ -105,6 +113,14 @@ export async function GET() {
       if (!f.mas_antigua || r.audited_at < f.mas_antigua) f.mas_antigua = r.audited_at
     }
   }
+  for (const r of rows) {
+    // `familia` puede venir nula en filas auditadas antes de este cambio: se
+    // cae a la ruta guardada para no dejarlas fuera del resumen.
+    const partes = String(r.categoria ?? '(sin categoría)').split(' / ')
+    const raiz = r.familia ?? partes[0]
+    acumular(raiz, 1, r)
+    if (partes.length > 1 && partes[0] === raiz) acumular(`${raiz} / ${partes[1]}`, 2, r)
+  }
 
   const fechas = rows.map(r => r.audited_at).filter(Boolean).sort()
   return NextResponse.json({
@@ -112,7 +128,7 @@ export async function GET() {
     // importa es qué tan vieja es la parte más rezagada de la foto.
     audited_at: fechas[fechas.length - 1] ?? null,
     audited_at_mas_antigua: fechas[0] ?? null,
-    familias: [...familias.values()].sort((a, b) => String(a.familia).localeCompare(String(b.familia))),
+    familias: [...familias.values()].sort((a, b) => String(a.ruta).localeCompare(String(b.ruta))),
     moodle_url: process.env.MOODLE_URL ?? null,
     total: rows.length,
     cumplen: porEstado.get('cumplen') ?? 0,
@@ -179,15 +195,31 @@ export async function POST(req: NextRequest) {
 
   // Categorías de Moodle (para agrupar el reporte). Si la función no está
   // habilitada en el servicio, se agrupa como "(sin categoría)".
-  const catName = new Map<number, string>()
+  // Ruta COMPLETA desde la raíz, no "padre / hija": el árbol de Moodle tiene
+  // tres niveles (DCE → Update Certificate → PPA en X) y subir uno solo hacía
+  // pasar por familia a una categoría intermedia.
+  const catName = new Map<number, string>()   // ruta completa
+  const catRoot = new Map<number, string>()   // categoría de primer nivel
   try {
     const cats = await moodleCall('core_course_get_categories', {})
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const byId = new Map<number, any>(((Array.isArray(cats) ? cats : []) as any[]).map(c => [Number(c.id), c]))
     for (const [id, c] of byId) {
-      // Ruta legible: "Padre / Hija" (hasta 2 niveles hacia arriba)
-      const parent = c.parent ? byId.get(Number(c.parent)) : null
-      catName.set(id, parent ? `${parent.name} / ${c.name}` : c.name)
+      // Moodle da `path` como "/1/5/23": la cadena de ancestros por id. Si no
+      // viniera, se camina `parent` (con tope, por si hubiera un ciclo).
+      let ids: number[]
+      if (typeof c.path === 'string' && c.path.includes('/')) {
+        ids = c.path.split('/').filter(Boolean).map(Number)
+      } else {
+        ids = []
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let cur: any = c
+        for (let i = 0; cur && i < 10; i++) { ids.unshift(Number(cur.id)); cur = cur.parent ? byId.get(Number(cur.parent)) : null }
+      }
+      const nombres = ids.map(x => byId.get(x)?.name).filter(Boolean) as string[]
+      if (!nombres.length) { catName.set(id, c.name); catRoot.set(id, c.name); continue }
+      catName.set(id, nombres.join(' / '))
+      catRoot.set(id, nombres[0])
     }
   } catch { /* función no habilitada */ }
 
@@ -216,6 +248,7 @@ export async function POST(req: NextRequest) {
       aula_id: c.id, shortname: c.shortname, fullname: c.fullname,
       visible: c.visible !== 0, linked_course: linkedBy.get(Number(c.id)) ?? null,
       categoria: catName.get(Number(c.categoryid)) ?? null,
+      familia: catRoot.get(Number(c.categoryid)) ?? null,
       audited_at: new Date().toISOString(),
     }
     const vacio = {
