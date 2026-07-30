@@ -14,13 +14,28 @@ const BASE = ENV === 'production'
   ? 'https://payment.flywire.com/pay/payment'
   : 'https://payment.demo.flywire.com/pay/payment'
 
+// Campos del portal ZBL que bloqueamos. `amount` para que no se pueda pagar
+// otra cifra; los identificadores para que la conciliación no dependa de que el
+// estudiante no los toque. `student_email` y los nombres quedan editables a
+// propósito: si nuestro dato está desactualizado, bloquearlo dejaría al
+// estudiante trabado sin poder pagar (los tres son obligatorios en el portal).
+const READ_ONLY = 'amount,student_id,dni,id_cuota'
+
 // Botón "Pagar" de una cuota: abre el checkout hospedado de Flywire con el
-// monto fijo y la referencia de la cuota. El portal ZBL tiene campos propios
-// (id_cuota, id_registro_cuotas) + callback_id: por ahí viaja el external_id
-// de la cuota para conciliar el pago con su cuota al importar el reporte.
+// monto fijo y la referencia de la cuota.
+//
+// El portal ZBL define 9 campos dinámicos propios (sección "Student
+// Information"). Cuatro son obligatorios — student_id, student_first_name,
+// student_last_name, student_email — así que si no los enviamos el estudiante
+// los tipea a mano teniendo nosotros el dato. Y `dni` tiene
+// internal_alias = external_reference: es el campo por el que Flywire reporta
+// la referencia externa del pago, y el mismo que empareja el import del CSV.
 export function FlywirePayButton(
-  { chargeExternalId, amount, studentName }:
-  { chargeExternalId: string; amount: number; studentName?: string | null }
+  { chargeExternalId, amount, studentName, studentDocument, studentEmail }:
+  {
+    chargeExternalId: string; amount: number
+    studentName?: string | null; studentDocument?: string | null; studentEmail?: string | null
+  }
 ) {
   if (!RECIPIENT) return null
 
@@ -28,16 +43,32 @@ export function FlywirePayButton(
     const [firstName, ...rest] = (studentName ?? '').trim().split(/\s+/)
     const params = new URLSearchParams({
       recipient: RECIPIENT!,
-      amount: String(Math.round(amount * 100)), // centavos
-      // Referencia de la cuota en los campos que el portal ZBL ya expone y que
-      // aparecen en el reporte de Flywire (para conciliar al importar el CSV).
+      amount: String(Math.round(amount * 100)), // centavos (el portal es USD, subunidad 100)
+      // Referencia de la cuota. `id_cuota` es un campo oculto del portal y
+      // viaja de vuelta en la notificación (el portal publica los campos del
+      // recipiente en los callbacks): es la llave real de conciliación.
       callback_id: chargeExternalId,
       id_cuota: chargeExternalId,
-      // El monto no se puede editar en el checkout.
-      read_only: 'amount,id_cuota',
+      // Distingue los pagos nacidos de este botón de los que el estudiante
+      // hace entrando al portal de Flywire por su cuenta.
+      payment_source: 'ERP',
+      read_only: READ_ONLY,
     })
     if (firstName) params.set('student_first_name', firstName)
     if (rest.length) params.set('student_last_name', rest.join(' '))
+    // El ERP no tiene un código de estudiante aparte: el documento ES el
+    // código (así lo empareja también el import del CSV, por `dni`).
+    if (studentDocument) {
+      params.set('student_id', studentDocument)
+      params.set('dni', studentDocument)
+    }
+    if (studentEmail) params.set('student_email', studentEmail)
+    // Al terminar, Flywire ofrece volver al estado de cuenta (en Intelligent
+    // Links el retorno es `return_cta`, no `return_url` — ese es del embed).
+    if (typeof window !== 'undefined') {
+      params.set('return_cta', `${window.location.origin}/student/account`)
+      params.set('return_cta_name', 'Volver a mi estado de cuenta')
+    }
 
     // Ventana popup LIMPIA y centrada: al pasar dimensiones, el navegador la
     // abre como popup (sin pestañas, marcadores ni extensiones). La barra de la

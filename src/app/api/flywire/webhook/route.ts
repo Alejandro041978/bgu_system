@@ -22,9 +22,37 @@ export async function POST(req: NextRequest) {
   try { body = JSON.parse(raw) } catch { /* cuerpo no-JSON */ }
 
   const paymentId = body?.payment_id ?? body?.id ?? null
-  const externalRef = body?.external_reference ?? body?.callback_id ?? null
   const status = (body?.status ?? body?.payment_status ?? '').toLowerCase()
   const eventType = body?.event_type ?? null
+
+  // Llave de conciliación: el external_id de la cuota.
+  //
+  // OJO con el orden. En el portal ZBL el campo `dni` tiene
+  // internal_alias = external_reference, así que el `external_reference` que
+  // manda Flywire es el DOCUMENTO del estudiante, no nuestra referencia de
+  // cuota. Si lo leyéramos primero, buscaríamos la cuota por un documento, no
+  // la encontraríamos nunca, y el webhook respondería 200 sin registrar el
+  // pago: roto en silencio.
+  //
+  // La referencia real viaja en `id_cuota`, un campo oculto del portal que
+  // Flywire publica en los callbacks (publish_recipient_info_within_callbacks),
+  // y en `callback_id`. `external_reference` queda solo como último recurso.
+  const recipientFields: Record<string, string> = {}
+  const rawFields = body?.recipient_fields ?? body?.fields ?? null
+  if (Array.isArray(rawFields)) {
+    for (const f of rawFields) {
+      const k = f?.id ?? f?.field_id ?? f?.name
+      if (k) recipientFields[String(k)] = String(f?.value ?? '')
+    }
+  } else if (rawFields && typeof rawFields === 'object') {
+    for (const [k, v] of Object.entries(rawFields)) recipientFields[k] = String(v ?? '')
+  }
+  const externalRef =
+    recipientFields.id_cuota?.trim() ||
+    body?.id_cuota ||
+    body?.callback_id ||
+    body?.external_reference ||
+    null
 
   const sb = db()
 

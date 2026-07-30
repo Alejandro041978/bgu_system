@@ -79,12 +79,14 @@ export function AccountStatementView(
         </p>
       )}
 
-      <ProgramAccountView account={account} canGenerate={canGenerate} canDiscount={canDiscount} onChanged={onChanged} studentName={student.name} />
+      <ProgramAccountView account={account} canGenerate={canGenerate} canDiscount={canDiscount} onChanged={onChanged} student={student} />
     </div>
   )
 }
 
-function ProgramAccountView({ account, canGenerate, canDiscount = false, onChanged, studentName }: { account: ProgramAccount; canGenerate: boolean; canDiscount?: boolean; onChanged?: () => void; studentName?: string | null }) {
+// `student` llega completo (no solo el nombre) porque el botón de pago prellena
+// los campos obligatorios del portal de Flywire: documento y correo incluidos.
+function ProgramAccountView({ account, canGenerate, canDiscount = false, onChanged, student }: { account: ProgramAccount; canGenerate: boolean; canDiscount?: boolean; onChanged?: () => void; student?: NonNullable<Statement['student']> }) {
   const { totals } = account
   const ledger = buildLedger(account.charges, account.payments)
 
@@ -261,7 +263,8 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
                   <td className="px-3 py-2.5 text-right">
                     <span className="inline-flex items-center gap-1.5">
                       {r.first && c.balance > 0.005 && c.status !== 'pagada' && (
-                        <FlywirePayButton chargeExternalId={c.external_id} amount={c.balance} studentName={studentName} />
+                        <FlywirePayButton chargeExternalId={c.external_id} amount={c.balance}
+                          studentName={student?.name} studentDocument={student?.document_number} studentEmail={student?.email} />
                       )}
                       {r.first && canDiscount && c.balance > 0.005 && (
                         <DiscountButton charge={c} onChanged={onChanged} />
