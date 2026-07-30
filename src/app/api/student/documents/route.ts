@@ -78,12 +78,12 @@ export async function POST(req: NextRequest) {
   if (b.preview) {
     const pr = await previewDocumentRequest({ studentId, documentTypeId: b.document_type_id, programId: b.program_id || null })
     if (!pr.ok) return NextResponse.json({ error: pr.error }, { status: pr.code ?? 500 })
-    return NextResponse.json({ preview: true, checks: pr.checks, blocked: pr.blocked, price: pr.price, currency: pr.currency, requiresNote: pr.requiresNote })
+    return NextResponse.json({ preview: true, checks: pr.checks, blocked: pr.blocked, price: pr.price, currency: pr.currency, requiresNote: pr.requiresNote, requiresPhoto: pr.requiresPhoto })
   }
 
   const res = await createDocumentRequest({
     studentId, documentTypeId: b.document_type_id, programId: b.program_id || null, requestedBy: 'student',
-    requestNote: b.request_note ?? null,
+    requestNote: b.request_note ?? null, photoPath: b.photo_path ?? null,
   })
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.code ?? 500 })
   return NextResponse.json({ ok: true, id: res.id, status: res.status, checks: res.checks, blocked: res.blocked, document_url: res.document_url })

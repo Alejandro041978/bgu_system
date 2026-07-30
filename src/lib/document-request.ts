@@ -74,9 +74,34 @@ export async function maybeMarkDocumentPaid(chargeExternalId: string): Promise<b
   return true
 }
 
+// Cuántos días antes del vencimiento se abre la revalidación del carné. El
+// usuario lo pidió "a la víspera del vencimiento": un mes de margen para que el
+// estudiante alcance a pagar y no se quede sin carné ni un día.
+export const ISIC_REVALIDATION_WINDOW_DAYS = 30
+
+// ¿Ya tiene carné ISIC vigente? Un número de carné es intransferible y una
+// licencia cuesta dinero: quien ya tiene carné no vuelve a solicitarlo, lo
+// revalida. Devuelve el motivo del bloqueo, o null si puede solicitar.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function isicYaTieneCarne(sb: any, studentId: string): Promise<string | null> {
+  const hoy = new Date().toISOString().slice(0, 10)
+  const { data: card } = await sb.from('isic_cards')
+    .select('card_number, valid_to').eq('student_id', studentId).eq('status', 'assigned')
+    .gte('valid_to', hoy).order('valid_to', { ascending: false }).limit(1).maybeSingle()
+  if (!card) return null
+
+  const vence = new Date(String(card.valid_to) + 'T12:00:00')
+  const desde = new Date(vence)
+  desde.setDate(desde.getDate() - ISIC_REVALIDATION_WINDOW_DAYS)
+  const f = (d: Date) => d.toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })
+  return `Ya tienes un carné internacional vigente (${card.card_number}) hasta el ${f(vence)}. `
+    + `Un carné no se emite dos veces: se revalida. La revalidación estará disponible desde el ${f(desde)}.`
+}
+
 export interface PreviewRequestResult {
   ok: boolean; error?: string; code?: number
   checks?: ReqCheck[]; blocked?: boolean; price?: number; currency?: string; requiresNote?: boolean
+  requiresPhoto?: boolean
 }
 
 // Valida alcance y requisitos SIN crear nada (para mostrarlos al estudiante
@@ -105,8 +130,21 @@ export async function previewDocumentRequest(opts: {
   }
 
   const checks = await checkRequirements(opts.studentId, programId, type.requirements ?? [])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const requiresPhoto = (type.requirements ?? []).some((r: any) => r?.kind === 'photo')
+
+  // Carné ya vigente → se informa como requisito no cumplido, para que el
+  // estudiante lea el motivo y la fecha en que podrá revalidar.
+  if (type.isic_card) {
+    const motivo = await isicYaTieneCarne(sb, opts.studentId)
+    if (motivo) checks.push({ kind: 'isic_existing', ok: false, note: motivo })
+  }
+
   const blocked = hasBlockingFailure(checks)
-  return { ok: true, checks, blocked, price: Number(type.price) || 0, currency: type.currency ?? 'USD', requiresNote: !!type.request_note_label }
+  return {
+    ok: true, checks, blocked, price: Number(type.price) || 0, currency: type.currency ?? 'USD',
+    requiresNote: !!type.request_note_label, requiresPhoto,
+  }
 }
 
 // Crea una solicitud de documento (usada por el portal admin y el estudiantil):
@@ -114,7 +152,7 @@ export async function previewDocumentRequest(opts: {
 // si es gratuito, sin etapas y con SimpleCert configurado.
 export async function createDocumentRequest(opts: {
   studentId: string; documentTypeId: string; programId: string | null; requestedBy: string
-  requestNote?: string | null
+  requestNote?: string | null; photoPath?: string | null
 }): Promise<CreateRequestResult> {
   const sb = db()
   const { data: type } = await sb.from('document_types').select('*').eq('id', opts.documentTypeId).maybeSingle()
@@ -146,6 +184,21 @@ export async function createDocumentRequest(opts: {
     if (!catOk) return { ok: false, error: 'Este documento no está disponible para la categoría del programa seleccionado', code: 400 }
   }
 
+  // Foto del titular: si el tipo la exige, tiene que venir ya subida y validada
+  // (el endpoint /api/student/isic-photo comprueba color, 500×500 px y 5 MB).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const requiresPhoto = (type.requirements ?? []).some((r: any) => r?.kind === 'photo')
+  const photoPath = opts.photoPath?.toString().trim() || null
+  if (requiresPhoto && !photoPath) {
+    return { ok: false, error: 'Este documento requiere que subas tu foto antes de solicitarlo', code: 400 }
+  }
+
+  // Un carné vigente no se emite otra vez: se revalida.
+  if (type.isic_card) {
+    const motivo = await isicYaTieneCarne(sb, opts.studentId)
+    if (motivo) return { ok: false, error: motivo, code: 409 }
+  }
+
   const checks = await checkRequirements(opts.studentId, programId, type.requirements ?? [])
   const blocked = hasBlockingFailure(checks)
 
@@ -174,7 +227,10 @@ export async function createDocumentRequest(opts: {
     student_id: opts.studentId, document_type_id: opts.documentTypeId, program_id: programId,
     status, requested_by: opts.requestedBy, charge_external_id, requirements_checked: checks,
     // El texto viaja en field_values: visible en la cola y merge tag REQUEST_NOTE
-    field_values: requestNote ? { request_note: requestNote } : {},
+    field_values: {
+      ...(requestNote ? { request_note: requestNote } : {}),
+      ...(photoPath ? { photo_path: photoPath } : {}),
+    },
   }).select('id').single()
   if (error) return { ok: false, error: error.message, code: 500 }
 

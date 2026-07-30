@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import {
-  isicUpsertCard, isicGetProfile, isicConfigured, isicEnvironment,
+  isicUpsertCard, isicGetProfile, isicPutPhoto, isicConfigured, isicEnvironment,
   buildCardXml, xmlValue, type IsicCardPayload,
 } from './isic'
 
@@ -129,6 +129,28 @@ export async function issueIsicCard(requestId: string): Promise<IssueResult> {
     return { ok: false, cardNumber: res.code === 400 ? undefined : cardNumber, httpCode: res.code, error: `ISIC respondió ${res.code}: ${res.body.slice(0, 500)}` }
   }
 
+  // ── Foto del titular ──────────────────────────────────────────────────────
+  // Va después de crear el carné porque el endpoint de foto necesita que el
+  // carné ya exista. Si falla, la emisión NO se cae: el carné es válido sin
+  // foto y se puede reintentar. La foto vive en nuestro Storage para siempre,
+  // así que nunca depende de recuperarla del estudiante otra vez.
+  let photoCode: number | null = null
+  const photoPath = (r.field_values ?? {}).photo_path as string | undefined
+  if (photoPath) {
+    try {
+      const { data: blob } = await sb.storage.from('isic-photos').download(photoPath)
+      if (blob) {
+        const bytes = Buffer.from(await blob.arrayBuffer())
+        const mime = photoPath.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg'
+        const ph = await isicPutPhoto(cardNumber, bytes, mime)
+        photoCode = ph.code
+        await log(sb, { card_number: cardNumber, document_request_id: r.id, action: 'photo', http_code: ph.code, ok: ph.ok, response_body: ph.body.slice(0, 2000) })
+      }
+    } catch (e) {
+      await log(sb, { card_number: cardNumber, document_request_id: r.id, action: 'photo', ok: false, response_body: (e as Error).message })
+    }
+  }
+
   // ── Enlace de alta en el app móvil ────────────────────────────────────────
   // Es lo que convierte el número en un carné usable. Si falla, la emisión
   // sigue siendo válida: el enlace se puede recuperar después.
@@ -139,10 +161,15 @@ export async function issueIsicCard(requestId: string): Promise<IssueResult> {
     if (prof.code === 200) registrationUrl = xmlValue(prof.body, 'registrationUrl')
   } catch { /* el enlace se recupera con el botón de la página de licencias */ }
 
+  // Archivo permanente. CCDB destruye los datos del titular 6 meses después de
+  // que caduca el carné; a partir de ahí esta fila es la única prueba de a
+  // quién se emitió cada licencia y con qué datos.
   const now = new Date().toISOString()
   await sb.from('isic_cards').update({
     isic_status: 'VALID', last_http_code: res.code, last_error: null,
     registration_url: registrationUrl, updated_at: now,
+    first_name: firstName, last_name: lastName, date_of_birth: dob, email,
+    photo_path: photoPath ?? null, photo_http_code: photoCode,
   }).eq('card_number', cardNumber)
 
   // La solicitud queda entregada. El número y el enlace viven en field_values:

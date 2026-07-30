@@ -108,6 +108,15 @@ export async function checkRequirements(
     }
   }
 
+  // Foto del titular (carné ISIC). No es una comprobación sobre datos que ya
+  // existan: es un archivo que el estudiante sube al solicitar. Aquí solo se
+  // informa lo que se le va a pedir — ok=null, no bloquea el preview. La
+  // exigencia real vive en createDocumentRequest, y la validación técnica
+  // (color, 500×500 px, 5 MB) en el endpoint que recibe el archivo.
+  if (kinds.has('photo')) {
+    out.push({ kind: 'photo', ok: null, note: 'Foto tipo pasaporte, en color, mínimo 500×500 px y menos de 5 MB' })
+  }
+
   // Manuales → verificación humana
   for (const r of requirements) {
     if (r.kind === 'manual') out.push({ kind: 'manual', ok: null, note: r.description || 'Verificación manual' })

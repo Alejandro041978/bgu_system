@@ -1,7 +1,13 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Loader2, X, FileText, Download, Eye } from 'lucide-react'
+import { Plus, Loader2, X, FileText, Download, Eye, Camera, Check } from 'lucide-react'
+
+// Requisitos de foto de ISIC (manual CCDB): color, mínimo 500×500 px, < 5 MB,
+// JPG o PNG. Se comprueban en el navegador para avisar al instante — el
+// servidor los vuelve a comprobar, que es donde la validación cuenta.
+const FOTO_MIN_PX = 500
+const FOTO_MAX_MB = 5
 
 interface DocType { id: string; name: string; price: number; currency: string; scope_category_id: string | null; scope_category_ids: string[] | null; scope_program_ids: string[]; sample_image_url: string | null; request_note_label: string | null }
 interface Program { id: string; name: string; category_id: string | null }
@@ -34,9 +40,14 @@ export function StudentDocuments() {
   const [note, setNote] = useState('')
   const [result, setResult] = useState<{ status: string; checks: ReqCheck[]; blocked: boolean } | null>(null)
   // Preview de requisitos/costo al seleccionar el documento (sin crear nada)
-  const [preview, setPreview] = useState<{ checks: ReqCheck[]; blocked: boolean; price: number; currency: string } | null>(null)
+  const [preview, setPreview] = useState<{ checks: ReqCheck[]; blocked: boolean; price: number; currency: string; requiresPhoto: boolean } | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  // Foto del titular (carné ISIC): se sube ANTES de crear la solicitud, para no
+  // generar una cuota por un documento que no se va a poder emitir.
+  const [foto, setFoto] = useState<{ path: string; url: string | null; width: number; height: number } | null>(null)
+  const [fotoError, setFotoError] = useState<string | null>(null)
+  const [subiendo, setSubiendo] = useState(false)
 
   const load = useCallback(async () => {
     const d = await fetch('/api/student/documents').then(r => r.json())
@@ -61,7 +72,7 @@ export function StudentDocuments() {
   // Al elegir documento (o cambiar programa/nota): verifica requisitos y costo
   // sin crear la solicitud, para mostrar el estado y habilitar/deshabilitar el botón.
   useEffect(() => {
-    setPreview(null); setConfirming(false); setResult(null)
+    setPreview(null); setConfirming(false); setResult(null); setFoto(null); setFotoError(null)
     if (!typeId) return
     let cancelled = false
     setPreviewing(true)
@@ -70,16 +81,49 @@ export function StudentDocuments() {
       body: JSON.stringify({ preview: true, document_type_id: typeId, program_id: programId || null }),
     }).then(r => r.json()).then(d => {
       if (cancelled) return
-      if (d.error) setPreview({ checks: [{ kind: 'error', ok: false, note: d.error }], blocked: true, price: 0, currency: 'USD' })
-      else setPreview({ checks: d.checks ?? [], blocked: !!d.blocked, price: Number(d.price) || 0, currency: d.currency ?? 'USD' })
+      if (d.error) setPreview({ checks: [{ kind: 'error', ok: false, note: d.error }], blocked: true, price: 0, currency: 'USD', requiresPhoto: false })
+      else setPreview({ checks: d.checks ?? [], blocked: !!d.blocked, price: Number(d.price) || 0, currency: d.currency ?? 'USD', requiresPhoto: !!d.requiresPhoto })
     }).catch(() => { if (!cancelled) setPreview(null) })
       .finally(() => { if (!cancelled) setPreviewing(false) })
     return () => { cancelled = true }
   }, [typeId, programId])
 
   // Botón habilitado solo si: hay documento, la nota (si aplica) está completa,
-  // el preview cargó y NO está bloqueado por requisitos.
-  const canSubmit = !!typeId && !noteMissing && !previewing && !!preview && !preview.blocked
+  // la foto (si aplica) ya subió, el preview cargó y NO está bloqueado.
+  const fotoMissing = !!preview?.requiresPhoto && !foto
+  const canSubmit = !!typeId && !noteMissing && !fotoMissing && !previewing && !!preview && !preview.blocked
+
+  // Comprueba la foto en el navegador antes de gastar la subida, y la envía.
+  async function subirFoto(file: File) {
+    setFotoError(null); setFoto(null)
+    if (file.type !== 'image/jpeg' && file.type !== 'image/png') {
+      setFotoError('La foto debe ser JPG o PNG.'); return
+    }
+    if (file.size > FOTO_MAX_MB * 1024 * 1024) {
+      setFotoError(`La foto pesa ${(file.size / 1024 / 1024).toFixed(1)} MB y el máximo es ${FOTO_MAX_MB} MB.`); return
+    }
+    // Medir antes de subir: si no llega a 500×500 px, ISIC la rechazaría.
+    const dims = await new Promise<{ w: number; h: number } | null>(resolve => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => { URL.revokeObjectURL(url); resolve({ w: img.naturalWidth, h: img.naturalHeight }) }
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
+      img.src = url
+    })
+    if (!dims) { setFotoError('No se pudo leer la imagen.'); return }
+    if (dims.w < FOTO_MIN_PX || dims.h < FOTO_MIN_PX) {
+      setFotoError(`Tu foto mide ${dims.w}×${dims.h} px y el mínimo que exige ISIC es ${FOTO_MIN_PX}×${FOTO_MIN_PX} px. Usa una foto de más resolución.`)
+      return
+    }
+    setSubiendo(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/student/isic-photo', { method: 'POST', body: fd })
+    const d = await res.json()
+    setSubiendo(false)
+    if (!res.ok) { setFotoError(d.error ?? 'No se pudo subir la foto.'); return }
+    setFoto({ path: d.path, url: d.preview_url ?? null, width: d.width, height: d.height })
+  }
 
   function onSolicitarClick() {
     if (!canSubmit || creating) return
@@ -93,7 +137,7 @@ export function StudentDocuments() {
     setCreating(true); setResult(null)
     const d = await fetch('/api/student/documents', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ document_type_id: typeId, program_id: programId || null, request_note: note.trim() || null }),
+      body: JSON.stringify({ document_type_id: typeId, program_id: programId || null, request_note: note.trim() || null, photo_path: foto?.path ?? null }),
     }).then(r => r.json())
     setCreating(false); setConfirming(false)
     if (d.error) { setResult({ status: 'rejected', checks: [{ kind: 'error', ok: false, note: d.error }], blocked: true }); return }
@@ -157,6 +201,41 @@ export function StudentDocuments() {
               <textarea value={note} onChange={e => setNote(e.target.value)} rows={4}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Describe con detalle qué necesitas que diga el documento y para qué entidad lo presentarás…" />
+            </div>
+          )}
+
+          {/* Foto del titular (carné ISIC) */}
+          {preview?.requiresPhoto && !preview.blocked && (
+            <div className="rounded-lg border border-gray-200 p-3 space-y-2">
+              <p className="text-xs font-medium text-gray-700 flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-gray-400" /> Tu foto <span className="text-red-500">*</span>
+              </p>
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Tipo pasaporte y <strong>en color</strong>: fondo claro y uniforme, cara de frente, sin gafas de sol ni
+                gorra. Mínimo <strong>500×500 px</strong> y menos de <strong>5 MB</strong>, en JPG o PNG. Es la foto que
+                saldrá impresa en tu carné internacional.
+              </p>
+
+              {foto ? (
+                <div className="flex items-start gap-3">
+                  {foto.url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={foto.url} alt="Tu foto" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                  )}
+                  <div className="text-[11px] space-y-1">
+                    <p className="text-green-700 font-medium flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Foto aceptada ({foto.width}×{foto.height} px)</p>
+                    <button onClick={() => { setFoto(null); setFotoError(null) }} className="text-blue-600 hover:underline">Cambiar foto</button>
+                  </div>
+                </div>
+              ) : (
+                <label className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer">
+                  {subiendo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                  {subiendo ? 'Subiendo…' : 'Elegir foto'}
+                  <input type="file" accept="image/jpeg,image/png" className="hidden" disabled={subiendo}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) subirFoto(f); e.target.value = '' }} />
+                </label>
+              )}
+              {fotoError && <p className="text-[11px] text-red-600">{fotoError}</p>}
             </div>
           )}
 

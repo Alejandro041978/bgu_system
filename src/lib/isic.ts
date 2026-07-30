@@ -103,6 +103,18 @@ export function isicRevalidate(cardNumber: string, validFrom: string, validTo: s
   return call(`/ccdb2/rest/1.0/cards/${encodeURIComponent(cardNumber)}/revalidations`, { method: 'POST', body: xml })
 }
 
+// Sube la foto del titular. CCDB solo admite image/jpeg e image/png, y pide
+// color, estilo pasaporte, mínimo 500×500 px y menos de 5 MB. La imagen va cruda
+// en el cuerpo, sin envolver en XML.
+export function isicPutPhoto(cardNumber: string, bytes: Buffer, mime: 'image/jpeg' | 'image/png'): Promise<IsicResponse> {
+  return call(`/ccdb2/rest/1.0/cards/${encodeURIComponent(cardNumber)}/photo`, {
+    method: 'PUT',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    body: bytes as any,
+    headers: { 'Content-Type': mime },
+  })
+}
+
 export function isicGetCard(cardNumber: string): Promise<IsicResponse> {
   return call(`/ccdb2/rest/1.0/cards/${encodeURIComponent(cardNumber)}`, { method: 'GET' })
 }
