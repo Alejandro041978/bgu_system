@@ -114,12 +114,17 @@ export async function GET() {
     }
   }
   for (const r of rows) {
-    // `familia` puede venir nula en filas auditadas antes de este cambio: se
-    // cae a la ruta guardada para no dejarlas fuera del resumen.
-    const partes = String(r.categoria ?? '(sin categoría)').split(' / ')
-    const raiz = r.familia ?? partes[0]
-    acumular(raiz, 1, r)
-    if (partes.length > 1 && partes[0] === raiz) acumular(`${raiz} / ${partes[1]}`, 2, r)
+    // Sin `familia` la fila viene de una auditoría anterior a la ruta completa,
+    // y su `categoria` guarda solo "intermedia / hoja". NO se puede deducir la
+    // raíz de ahí: tomar el primer tramo asciende una categoría intermedia a
+    // familia, y el árbol deja de parecerse al de Moodle. Se agrupan aparte,
+    // con el nombre que dice qué hacer.
+    if (!r.familia) { acumular('· Pendientes de re-auditar', 1, r); continue }
+    const partes = String(r.categoria ?? '').split(' / ')
+    acumular(r.familia, 1, r)
+    // Solo el segundo nivel: basta para elegir por dónde empezar, y bajar más
+    // llena la lista de hojas que no son unidad de trabajo.
+    if (partes.length > 1 && partes[0] === r.familia) acumular(`${r.familia} / ${partes[1]}`, 2, r)
   }
 
   const fechas = rows.map(r => r.audited_at).filter(Boolean).sort()
@@ -379,5 +384,9 @@ export async function POST(req: NextRequest) {
     auditadas += tanda.length
   }
 
-  return NextResponse.json({ ok: true, auditadas, familia: familia ?? 'todas' })
+  // Las raíces que Moodle reportó, para poder contrastarlas con la portada del
+  // campus: si no coinciden, el problema está en lo que devuelve
+  // core_course_get_categories, no en cómo lo agrupamos.
+  const raices = [...new Set(aulas.map(c => catRoot.get(Number(c.categoryid))).filter(Boolean))]
+  return NextResponse.json({ ok: true, auditadas, familia: familia ?? 'todas', raices_moodle: raices })
 }

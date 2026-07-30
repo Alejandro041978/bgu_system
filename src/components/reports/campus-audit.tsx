@@ -189,11 +189,18 @@ export function CampusAudit() {
                           ) : <span className="text-gray-300">sin auditar</span>}
                         </td>
                         <td className="px-3 py-2 text-right">
-                          <button onClick={() => audit(f.ruta)} disabled={!!auditing}
-                            className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline whitespace-nowrap">
-                            {auditing === f.ruta ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                            {auditing === f.ruta ? 'Auditando…' : 'Auditar'}
-                          </button>
+                          {/* El grupo de pendientes no es una categoría real de
+                              Moodle: no hay ruta que filtrar, se resuelve
+                              auditando las familias o el campus entero. */}
+                          {f.ruta.startsWith('·') ? (
+                            <span className="text-[11px] text-gray-400 whitespace-nowrap">audita su familia</span>
+                          ) : (
+                            <button onClick={() => audit(f.ruta)} disabled={!!auditing}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline whitespace-nowrap">
+                              {auditing === f.ruta ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                              {auditing === f.ruta ? 'Auditando…' : 'Auditar'}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     )
