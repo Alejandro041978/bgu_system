@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target, Gift, ShieldCheck, ShieldOff, PiggyBank,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone, CreditCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -103,6 +103,7 @@ const navigation: NavGroup[] = [
           { name: 'Tipos de Documento', href: '/registrar/document-types', icon: FileText, pageKey: 'registrar_document_types' },
           { name: 'Solicitudes', href: '/registrar/requests', icon: ClipboardList, pageKey: 'registrar_requests' },
           { name: 'Degrees · Hoja de Control', href: '/registrar/degrees', icon: Award, pageKey: 'registrar_degrees' },
+          { name: 'Carnés ISIC', href: '/registrar/isic-cards', icon: CreditCard, pageKey: 'registrar_isic_cards' },
         ],
       },
       {

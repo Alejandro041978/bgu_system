@@ -28,9 +28,29 @@ export async function maybeMarkDocumentPaid(chargeExternalId: string): Promise<b
   const pagado = ((pays ?? []) as any[]).reduce((s, p) => s + Number(p.amount ?? 0), 0)
   if (pagado < Number(charge?.amount ?? 0) - 0.01) return false
 
-  const { data: type } = await sb.from('document_types').select('stages, is_final_degree').eq('id', r.document_type_id).maybeSingle()
+  const { data: type } = await sb.from('document_types').select('stages, is_final_degree, isic_card').eq('id', r.document_type_id).maybeSingle()
   const status = (type?.stages ?? []).length > 0 ? 'in_progress' : 'ready'
   await sb.from('document_requests').update({ paid: true, status, updated_at: new Date().toISOString() }).eq('id', r.id)
+
+  // Carné internacional (ISIC): el pago lo emite solo. No hay PDF que generar
+  // — se da de alta en la CCDB de ISIC y el estudiante recibe el enlace para
+  // activarlo en el app móvil. Si falla (falta la fecha de nacimiento, se
+  // agotó el bloque de licencias, CCDB no responde), la solicitud se queda en
+  // 'ready' con el motivo a la vista y Registros reintenta desde la cola: la
+  // emisión es idempotente y no gasta una licencia por intento.
+  if (type?.isic_card && status === 'ready') {
+    try {
+      const { issueIsicCard } = await import('./isic-issue')
+      const res = await issueIsicCard(r.id)
+      if (!res.ok) {
+        await sb.from('document_requests').update({
+          notes: `Carné ISIC pendiente: ${res.error ?? 'error desconocido'}`, updated_at: new Date().toISOString(),
+        }).eq('id', r.id)
+      }
+    } catch (e) {
+      console.error('issueIsicCard tras pago', e)
+    }
+  }
 
   // Título final pagado → nace su expediente en la Hoja de Control de Degrees.
   if (type?.is_final_degree && r.student_id) {
@@ -163,6 +183,11 @@ export async function createDocumentRequest(opts: {
   if (status === 'ready' && type.simplecert_project_id) {
     const res = await emitDocument(reqRow.id)
     if (res.ok) { status = 'delivered'; document_url = res.url ?? null }
+  } else if (status === 'ready' && type.isic_card) {
+    // Carné ISIC sin costo (o de cortesía): se emite en el acto.
+    const { issueIsicCard } = await import('./isic-issue')
+    const res = await issueIsicCard(reqRow.id)
+    if (res.ok) { status = 'delivered'; document_url = res.registrationUrl ?? null }
   }
 
   return { ok: true, id: reqRow.id, status, checks, blocked, document_url }

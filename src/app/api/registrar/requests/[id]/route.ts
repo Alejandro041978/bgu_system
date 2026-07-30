@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .eq('id', id).maybeSingle()
   if (!r) return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 })
 
-  const { data: type } = await sb.from('document_types').select('stages, is_final_degree').eq('id', r.document_type_id).maybeSingle()
+  const { data: type } = await sb.from('document_types').select('stages, is_final_degree, isic_card').eq('id', r.document_type_id).maybeSingle()
   const stagesCount = (type?.stages ?? []).length
 
   // El pago NO se registra manualmente: llega solo por importación de Flywire
@@ -45,6 +45,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   if (action === 'emit') {
+    // El carné ISIC no se genera como PDF: se da de alta en la CCDB de ISIC.
+    // Mismo botón, distinto emisor. Reintentar es seguro (es idempotente y no
+    // consume una licencia por intento).
+    if (type?.isic_card) {
+      const { issueIsicCard } = await import('@/lib/isic-issue')
+      const res = await issueIsicCard(id)
+      if (!res.ok) return NextResponse.json({ error: res.error, missing: res.missing }, { status: 400 })
+      return NextResponse.json({ ok: true, status: 'delivered', card_number: res.cardNumber, document_url: res.registrationUrl })
+    }
     const res = await emitDocument(id)
     if (!res.ok) return NextResponse.json({ error: res.error }, { status: 400 })
     return NextResponse.json({ ok: true, status: 'delivered', document_url: res.url })
