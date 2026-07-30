@@ -12,17 +12,18 @@ interface Aula {
   suma_coeficientes?: number | null; coefs_sync_at?: string | null
   cumple_pesos: boolean | null; cumple_escala: boolean | null
   metodo: string | null; categoria: string | null; error: string | null; audited_at: string
+  enrol_methods?: string | null; manual_enrol?: boolean | null; matriculados?: number | null
 }
 interface Data {
   audited_at: string | null; moodle_url: string | null
   total: number; cumplen: number; incumplen: number
   pesos_mal: number; escala_mal: number
   sin_evaluaciones: number; sin_ponderacion: number
-  sin_datos: number; vinculadas: number
+  sin_datos: number; vinculadas: number; sin_matricula_manual: number
   aulas: Aula[]
 }
 
-type Filtro = 'todas' | 'incumplen' | 'cumplen' | 'sin_evaluaciones' | 'sin_ponderacion' | 'sin_datos'
+type Filtro = 'todas' | 'incumplen' | 'cumplen' | 'sin_evaluaciones' | 'sin_ponderacion' | 'sin_datos' | 'sin_matricula_manual'
 
 export function CampusAudit() {
   const [d, setD] = useState<Data | null>(null)
@@ -64,7 +65,13 @@ export function CampusAudit() {
     if (cp === true && a.cumple_escala === true) return 'cumplen'
     return 'sin_ponderacion'
   }
-  const visibles = (d?.aulas ?? []).filter(a => filtro === 'todas' || estadoDe(a) === filtro)
+  // "Sin matriculación manual" NO entra en la precedencia de estadoDe: es una
+  // condición transversal. Un aula puede cumplir la política de pesos y aun así
+  // ser inalcanzable para el ERP, que es justo lo que la hacía invisible.
+  const visibles = (d?.aulas ?? []).filter(a =>
+    filtro === 'todas' ? true
+      : filtro === 'sin_matricula_manual' ? a.manual_enrol === false
+        : estadoDe(a) === filtro)
 
   // Agrupación por categoría de Moodle
   const grupos = new Map<string, Aula[]>()
@@ -117,6 +124,13 @@ export function CampusAudit() {
               <p className="text-2xl font-bold text-amber-700">{d.sin_datos}</p>
               <p className="text-xs text-amber-700">Sin datos (error)</p>
             </button>
+            {/* El aula donde el ERP no puede matricular se queda sin alumnos, y
+                entonces la importación devuelve vacío SIN error. Es el fallo que
+                no se ve: por eso tiene tarjeta propia. */}
+            <button onClick={() => setFiltro('sin_matricula_manual')} className={`rounded-lg p-3 text-left border ${filtro === 'sin_matricula_manual' ? 'border-blue-400 bg-blue-50' : d.sin_matricula_manual > 0 ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}>
+              <p className={`text-2xl font-bold ${d.sin_matricula_manual > 0 ? 'text-red-700' : 'text-gray-600'}`}>{d.sin_matricula_manual}</p>
+              <p className={`text-xs ${d.sin_matricula_manual > 0 ? 'text-red-700' : 'text-gray-500'}`}>Sin matriculación manual (el ERP no puede matricular)</p>
+            </button>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
@@ -130,6 +144,7 @@ export function CampusAudit() {
                   <th className="text-right px-3 py-3">Con peso</th>
                   <th className="text-right px-3 py-3">Σ pesos</th>
                   <th className="text-right px-3 py-3">Escala</th>
+                  <th className="text-left px-3 py-3">Matrícula</th>
                   <th className="text-left px-3 py-3">Política</th>
                 </tr>
               </thead>
@@ -181,6 +196,17 @@ export function CampusAudit() {
                     </td>
                     <td className={`px-3 py-2 text-right whitespace-nowrap ${a.cumple_escala === false ? 'text-rose-700 font-medium' : a.cumple_escala ? 'text-green-700' : 'text-gray-300'}`}>
                       {a.escala_total != null ? a.escala_total : '—'}
+                    </td>
+                    {/* Si el ERP no puede matricular, el aula se queda sin
+                        alumnos y la importación devuelve vacío SIN error. */}
+                    <td className="px-3 py-2 whitespace-nowrap text-xs">
+                      {a.manual_enrol === false ? (
+                        <span className="text-rose-700 font-medium" title={a.enrol_methods ?? undefined}>sin manual</span>
+                      ) : a.manual_enrol === true ? (
+                        <span className={a.matriculados === 0 ? 'text-amber-600' : 'text-gray-500'} title={a.enrol_methods ?? undefined}>
+                          {a.matriculados != null ? `${a.matriculados} matric.` : 'manual'}
+                        </span>
+                      ) : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {estadoDe(a) === 'sin_datos'

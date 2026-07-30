@@ -85,6 +85,9 @@ export async function GET() {
     sin_ponderacion: porEstado.get('sin_ponderacion') ?? 0,
     sin_datos: porEstado.get('sin_datos') ?? 0,
     vinculadas: rows.filter(r => r.linked_course).length,
+    // Aulas donde el ERP NO puede matricular: sin este dato, el síntoma era una
+    // importación que devolvía cero alumnos sin quejarse.
+    sin_matricula_manual: rows.filter(r => r.manual_enrol === false).length,
     aulas: rows,
   })
 }
@@ -155,7 +158,32 @@ export async function POST() {
     const vacio = {
       recursos: null, recursos_activos: null, items_evaluacion: null, items_activos: null,
       items_con_peso: null, suma_pesos: null, escala_total: null, cumple_pesos: null, cumple_escala: null,
+      enrol_methods: null, manual_enrol: null, matriculados: null,
     }
+
+    // Métodos de matriculación del aula. Va FUERA del try principal porque es
+    // el dato que explica los fallos de los demás: si el ERP no puede
+    // matricular, el aula se queda sin alumnos y todo lo que dependa de leer
+    // notas devuelve vacío sin error.
+    let enrolMethods: string | null = null
+    let manualEnrol: boolean | null = null
+    try {
+      const ms = await moodleCall('core_enrol_get_course_enrolment_methods', { courseid: c.id })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const arr = (Array.isArray(ms) ? ms : []) as any[]
+      enrolMethods = arr.map(m => `${m.type}:${m.status ? 'activo' : 'inactivo'}`).join(', ') || 'ninguno'
+      // Moodle marca `status` true cuando el método está habilitado.
+      manualEnrol = arr.some(m => m.type === 'manual' && m.status)
+    } catch { /* función no habilitada en el servicio: queda null, no false */ }
+
+    // Cuántos estudiantes hay realmente. Un aula con 0 y estudiantes esperando
+    // es el síntoma que hasta ahora pasaba desapercibido.
+    let matriculados: number | null = null
+    try {
+      const todos = await moodleCall('core_enrol_get_enrolled_users', { courseid: c.id })
+      matriculados = Array.isArray(todos) ? todos.length : null
+    } catch { /* sin permiso para listar: queda null */ }
+
     try {
       // Contenido del aula: módulos y su visibilidad (activo = visible).
       // Si la función no está habilitada en el servicio, queda null (se
@@ -185,7 +213,7 @@ export async function POST() {
       let metodo = 'alumno'
       let desmatricular = false
       if (!readerId) {
-        if (!auditorId) return { ...base, ...vacio, recursos, recursos_activos: recursosActivos, metodo: null, error: 'aula vacía y sin cuenta de servicio' }
+        if (!auditorId) return { ...base, ...vacio, enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, recursos, recursos_activos: recursosActivos, metodo: null, error: manualEnrol === false ? "el aula no tiene matriculación manual habilitada: el ERP no puede matricular" : "aula vacía y sin cuenta de servicio" }
         await moodleCall('enrol_manual_enrol_users', { enrolments: [{ roleid: MOODLE_STUDENT_ROLEID, userid: auditorId, courseid: c.id }] })
         readerId = auditorId
         metodo = 'auditor'
@@ -236,10 +264,11 @@ export async function POST() {
         escala_total: escala,
         cumple_pesos: sinEvaluaciones ? null : (sumaPesos == null ? null : Math.abs(sumaPesos - 100) <= 0.5),
         cumple_escala: sinEvaluaciones ? null : (escala == null ? null : escala === 100),
-        metodo, error: null,
+        enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados,
+        metodo, error: manualEnrol === false ? "sin matriculación manual: el ERP no puede matricular aquí" : null,
       }
     } catch (e) {
-      return { ...base, ...vacio, metodo: null, error: e instanceof Error ? e.message.slice(0, 120) : 'error' }
+      return { ...base, ...vacio, enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, metodo: null, error: e instanceof Error ? e.message.slice(0, 120) : 'error' }
     }
   }
 
