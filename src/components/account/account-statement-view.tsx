@@ -147,9 +147,11 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
               <div className="flex-1 min-w-[160px]"><Card icon={<GraduationCap className="w-4 h-4" />} label="Beca" value={money(beca)} cls="text-violet-700"
                 sub={`${account.scholarship_pct}% de ${money(becaBase)}`} /></div>
             )}
-            {account.bonus_pct != null && (
+            {/* Monto fijo (Cashpay) o porcentaje: el subtítulo dice cuál es el
+                dato aprobado, para que se pueda reconciliar con la solicitud. */}
+            {(account.bonus_pct != null || account.bonus_amount != null) && (
               <div className="flex-1 min-w-[160px]"><Card icon={<Gift className="w-4 h-4" />} label="Bonus" value={money(bonus)} cls="text-emerald-700"
-                sub={`${account.bonus_pct}% de ${money(afterBeca)} (tras beca)`} /></div>
+                sub={account.bonus_amount != null ? 'monto fijo aprobado' : `${account.bonus_pct}% de ${money(afterBeca)} (tras beca)`} /></div>
             )}
             <div className="flex-1 min-w-[160px]"><Card icon={<Wallet className="w-4 h-4" />} label="Total Tuition" value={money(totalTuition)} cls="text-gray-900"
               sub={subTotal} /></div>

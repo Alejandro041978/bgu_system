@@ -79,33 +79,69 @@ export async function POST(req: NextRequest) {
   })).filter((c: { saldo: number }) => c.saldo > 0.005)
   if (!vivos.length) return NextResponse.json({ error: 'Las cuotas de la solicitud ya están saldadas' }, { status: 409 })
 
-  const base = vivos.reduce((s: number, c: { saldo: number }) => s + c.saldo, 0)
+  const base = Math.round(vivos.reduce((s: number, c: { saldo: number }) => s + c.saldo, 0) * 100) / 100
   const pct = Number(r.discount_pct)
+  const beneficio = Math.round(base * pct) / 100
+  const neto = Math.round((base - beneficio) * 100) / 100
   const code = `CASHPAY-${String(b.id).slice(0, 6).toUpperCase()}`
-  const filas = vivos.map((c: { external_id: string; saldo: number }) => ({
-    external_id: crypto.randomUUID(),
-    charge_external_id: c.external_id,
-    student_id: r.student_id,
-    amount: Math.round(c.saldo * pct) / 100,       // prorrateo por cuota
-    paid_date: now.slice(0, 10),
-    series_code: 'DESCUENTO',
-    transaction_reference: `${code} · Cashpay ${pct}% por adelantar ${r.months} meses`,
-    payment_method: 'discount',
-  })).filter((f: { amount: number }) => f.amount > 0)
 
-  const { error } = await sb.from('account_payments').insert(filas)
-  if (error) return NextResponse.json({ error: 'No se pudo aplicar el descuento: ' + error.message }, { status: 500 })
+  // ── Cashpay = BONO de monto fijo + UNA cuota por el neto ───────────────────
+  //
+  // Antes se prorrateaba un descuento por cuota. Dos problemas: el redondeo por
+  // cuota se acumulaba (24 × 22.12 = 530.88 cuando lo aprobado eran 530.78), y
+  // el estudiante seguía viendo 24 vencimientos cuando justamente había
+  // aceptado pagar una sola vez.
+  //
+  // El bono va como MONTO, no como porcentaje: el porcentaje se calcula sobre
+  // las cuotas adelantadas, y si se guardara como % de la tuition completa
+  // habría que derivarlo — y ese derivado flota si mañana cambia la beca o una
+  // convalidación.
+  const { data: enr } = await sb.from('account_charges')
+    .select('enrollment_id, convocatoria_id, charge_type').eq('external_id', vivos[0].external_id).maybeSingle()
+
+  const { error: bErr } = await sb.from('bonuses').insert({
+    student_id: r.student_id,
+    enrollment_id: enr?.enrollment_id ?? null,
+    amount: beneficio,
+    percentage: null,
+    reason: 'Cash Pay',
+    granted_at: now.slice(0, 10),
+    granted_by: user.email ?? user.id,
+  })
+  if (bErr) return NextResponse.json({ error: 'No se pudo crear el bono: ' + bErr.message }, { status: 500 })
+
+  // La cuota única vence cuando caduca el beneficio: es lo que se aceptó — pagar
+  // ya a cambio del descuento.
+  const vence = r.expires_at ? String(r.expires_at).slice(0, 10) : now.slice(0, 10)
+  const nueva = crypto.randomUUID()
+  const { error: cErr } = await sb.from('account_charges').insert({
+    external_id: nueva, student_id: r.student_id,
+    enrollment_id: enr?.enrollment_id ?? null, convocatoria_id: enr?.convocatoria_id ?? null,
+    amount: neto, due_date: vence, charge_type: enr?.charge_type ?? null,
+    source: 'erp', is_initial: false,
+  })
+  if (cErr) return NextResponse.json({ error: 'No se pudo crear la cuota única: ' + cErr.message }, { status: 500 })
+
+  // Se borran DESPUÉS de crear lo nuevo: si algo falla, el estudiante conserva
+  // su plan anterior en vez de quedarse sin cuotas.
+  const aBorrar = vivos.map((c: { external_id: string }) => c.external_id)
+  const { error: dErr } = await sb.from('account_charges').delete().in('external_id', aBorrar)
+  if (dErr) {
+    await sb.from('account_charges').delete().eq('external_id', nueva)
+    return NextResponse.json({ error: 'No se pudieron reemplazar las cuotas: ' + dErr.message }, { status: 500 })
+  }
 
   await sb.from('cashpay_requests').update({
     status: 'aprobada', reviewed_by: user.email ?? user.id, reviewed_at: now,
     review_note: b.note?.trim() || null, applied_at: now,
-    gross_amount: Math.round(base * 100) / 100,
-    discount_amount: Math.round(base * pct) / 100,
-    net_amount: Math.round(base * (100 - pct)) / 100,
+    // La solicitud pasa a apuntar a la cuota que la materializa, no a las que
+    // ya no existen.
+    charges: [nueva],
+    gross_amount: base, discount_amount: beneficio, net_amount: neto,
   }).eq('id', b.id)
 
   return NextResponse.json({
-    ok: true, status: 'aprobada', cuotas: filas.length,
-    descuento: Math.round(base * pct) / 100, neto: Math.round(base * (100 - pct)) / 100,
+    ok: true, status: 'aprobada', reemplazadas: aBorrar.length,
+    bono: beneficio, neto, vence, codigo: code,
   })
 }

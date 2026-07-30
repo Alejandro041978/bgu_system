@@ -47,6 +47,10 @@ export interface ProgramAccount {
   scholarship_pct: number | null
   // Bono activo (%): se aplica sobre lo que resta DESPUÉS de la beca
   bonus_pct: number | null
+  // Bono de MONTO FIJO (Cashpay). Excluyente con bonus_pct: el beneficio es una
+  // cifra aprobada, no una proporción, y derivar el porcentaje lo haría flotar
+  // si mañana cambia la beca o una convalidación.
+  bonus_amount: number | null
   // Créditos convalidados/validados en el programa (Transfer Credit Savings =
   // créditos × tarifa por crédito de la matrícula)
   transfer_credits: number | null
@@ -76,7 +80,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100
 // Vive aquí, junto a los datos, porque la calculan dos sitios: la cabecera del
 // estado de cuenta y la refacturación de cuotas. Si cada uno la escribiera, un
 // día dirían totales distintos y nadie sabría cuál creer.
-export function computeTuition(a: Pick<ProgramAccount, 'list_price' | 'credit_rate' | 'transfer_credits' | 'scholarship_pct' | 'bonus_pct'>):
+export function computeTuition(a: Pick<ProgramAccount, 'list_price' | 'credit_rate' | 'transfer_credits' | 'scholarship_pct' | 'bonus_pct' | 'bonus_amount'>):
   { lista: number; ahorro: number; beca: number; bonus: number; total: number } | null {
   if (a.list_price == null) return null
   const lista = Number(a.list_price)
@@ -85,7 +89,11 @@ export function computeTuition(a: Pick<ProgramAccount, 'list_price' | 'credit_ra
   const becaBase = Math.max(0, lista - ahorro)
   const beca = a.scholarship_pct != null ? Math.round(becaBase * Number(a.scholarship_pct)) / 100 : 0
   const afterBeca = Math.round((lista - ahorro - beca) * 100) / 100
-  const bonus = a.bonus_pct != null ? Math.round(afterBeca * Number(a.bonus_pct)) / 100 : 0
+  // Monto fijo manda sobre porcentaje. Se topa en lo que resta tras la beca:
+  // un bono mayor que la deuda dejaría el total en negativo.
+  const bonus = a.bonus_amount != null
+    ? Math.min(Math.round(Number(a.bonus_amount) * 100) / 100, afterBeca)
+    : a.bonus_pct != null ? Math.round(afterBeca * Number(a.bonus_pct)) / 100 : 0
   return { lista, ahorro, beca, bonus, total: Math.round((afterBeca - bonus) * 100) / 100 }
 }
 
@@ -121,11 +129,13 @@ export async function getAccountStatement(
 
   // Bono activo por matrícula (se aplica sobre lo que resta tras la beca)
   const bonusPct = new Map<string, number>()
+  const bonusAmount = new Map<string, number>()
   try {
     const { data: bon } = await sb.from('bonuses')
-      .select('enrollment_id, percentage').eq('student_id', student.id)
-    for (const b of (bon ?? []) as { enrollment_id: string; percentage: number }[]) {
-      bonusPct.set(String(b.enrollment_id), Number(b.percentage))
+      .select('enrollment_id, percentage, amount').eq('student_id', student.id)
+    for (const b of (bon ?? []) as { enrollment_id: string; percentage: number | null; amount: number | null }[]) {
+      if (b.amount != null) bonusAmount.set(String(b.enrollment_id), Number(b.amount))
+      else if (b.percentage != null) bonusPct.set(String(b.enrollment_id), Number(b.percentage))
     }
   } catch { /* tabla aún sin migrar */ }
 
@@ -201,6 +211,7 @@ export async function getAccountStatement(
     credit_rate: rate, list_price: list,
     scholarship_pct: enr ? (scholarshipPct.get(enr) ?? null) : null,
     bonus_pct: enr ? (bonusPct.get(enr) ?? null) : null,
+    bonus_amount: enr ? (bonusAmount.get(enr) ?? null) : null,
     transfer_credits: tcCredits,
     totals: { charged: 0, paid: 0, discounts: 0, balance: 0, overdue: 0 }, charges: [], payments: [],
   })
