@@ -668,10 +668,19 @@ export function BooksOperations() {
                   </div>
                 </div>
                 <div className="flex justify-end">
+                  {/* El total y el tope dependen del modo: en una devolución el
+                      reparto vive en refAlloc y el límite es el débito, no el
+                      crédito (que viene nulo y dejaba el botón muerto). */}
                   <button onClick={doAssociate}
-                    disabled={associating || asignadoTotal <= 0 || asignadoTotal > (assocOp.credit ?? 0) + 0.01}
+                    disabled={(() => {
+                      const total = esDevolucion(assocOp)
+                        ? Math.round(Object.values(refAlloc).reduce((s, v) => s + (Number(v) || 0), 0) * 100) / 100
+                        : asignadoTotal
+                      return associating || total <= 0 || total > montoOp(assocOp) + 0.01
+                    })()}
                     className="inline-flex items-center gap-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 disabled:opacity-40">
-                    {associating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}Asociar como pago(s) Books
+                    {associating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                    {esDevolucion(assocOp) ? 'Registrar la devolución' : 'Asociar como pago(s) Books'}
                   </button>
                 </div>
               </>
