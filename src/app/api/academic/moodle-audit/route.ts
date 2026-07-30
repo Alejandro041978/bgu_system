@@ -72,8 +72,37 @@ export async function GET() {
   }
   const porEstado = new Map<string, number>()
   for (const r of rows) porEstado.set(estadoDe(r), (porEstado.get(estadoDe(r)) ?? 0) + 1)
+
+  // Resumen por FAMILIA (la categoría padre de Moodle). Con la auditoría
+  // partida por categorías, la foto deja de ser homogénea: cada familia tiene su
+  // propia antigüedad. Sin esto, un "última auditoría" global mentiría — que es
+  // justo lo que pasó el 30-07, cuando analicé datos de dos horas antes.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const familias = new Map<string, any>()
+  for (const r of rows) {
+    const fam = String(r.categoria ?? '(sin categoría)').split(' / ')[0]
+    if (!familias.has(fam)) {
+      familias.set(fam, { familia: fam, aulas: 0, incumplen: 0, sin_matricula_manual: 0, sin_datos: 0, audited_at: null as string | null, mas_antigua: null as string | null })
+    }
+    const f = familias.get(fam)
+    f.aulas++
+    const est = estadoDe(r)
+    if (est === 'incumplen') f.incumplen++
+    if (est === 'sin_datos') f.sin_datos++
+    if (r.manual_enrol === false) f.sin_matricula_manual++
+    if (r.audited_at) {
+      if (!f.audited_at || r.audited_at > f.audited_at) f.audited_at = r.audited_at
+      if (!f.mas_antigua || r.audited_at < f.mas_antigua) f.mas_antigua = r.audited_at
+    }
+  }
+
+  const fechas = rows.map(r => r.audited_at).filter(Boolean).sort()
   return NextResponse.json({
-    audited_at: rows[0]?.audited_at ?? null,
+    // La MÁS ANTIGUA, no la primera fila: con auditorías parciales, lo que
+    // importa es qué tan vieja es la parte más rezagada de la foto.
+    audited_at: fechas[fechas.length - 1] ?? null,
+    audited_at_mas_antigua: fechas[0] ?? null,
+    familias: [...familias.values()].sort((a, b) => String(a.familia).localeCompare(String(b.familia))),
     moodle_url: process.env.MOODLE_URL ?? null,
     total: rows.length,
     cumplen: porEstado.get('cumplen') ?? 0,
@@ -112,14 +141,25 @@ async function ensureAuditorUser(): Promise<number> {
   return Number(created?.[0]?.id)
 }
 
-export async function POST() {
+// POST { familia? } → audita el campus. Con `familia`, solo esa categoría de
+// Moodle (y sus hijas).
+//
+// Barrer las 678 aulas de una vez roza el maxDuration de Vercel y a veces muere
+// a medio camino. Partido por familia son decenas de aulas por corrida: termina
+// rápido, y permite priorizar las categorías que se están trabajando en vez de
+// pagar el barrido completo cada vez. Como el guardado es por tandas, una
+// corrida parcial NO borra lo auditado de las demás familias.
+export async function POST(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no configurado' }, { status: 400 })
   const sb = db()
 
+  const body = await req.json().catch(() => null) as { familia?: string } | null
+  const familia = body?.familia?.trim() || null
+
   const courses = await moodleCall('core_course_get_courses', {})
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const aulas = ((Array.isArray(courses) ? courses : []) as any[]).filter(c => c.format !== 'site')
+  let aulas = ((Array.isArray(courses) ? courses : []) as any[]).filter(c => c.format !== 'site')
 
   let auditorId: number | null = null
   try { auditorId = await ensureAuditorUser() } catch { /* sin cuenta de servicio: aulas vacías quedarán sin datos */ }
@@ -137,6 +177,16 @@ export async function POST() {
       catName.set(id, parent ? `${parent.name} / ${c.name}` : c.name)
     }
   } catch { /* función no habilitada */ }
+
+  // El filtro se aplica sobre la etiqueta resuelta ("Padre / Hija"), así que
+  // `familia` sirve tanto para una familia entera como para una categoría hija
+  // concreta: en ambos casos basta con que la etiqueta empiece por el texto.
+  if (familia) {
+    aulas = aulas.filter(c => String(catName.get(Number(c.categoryid)) ?? '').startsWith(familia))
+    if (!aulas.length) {
+      return NextResponse.json({ error: `No hay aulas en la categoría "${familia}"` }, { status: 404 })
+    }
+  }
 
   // Vínculos aula → asignatura del ERP
   const { data: offs } = await sb.from('semester_offerings')
@@ -283,5 +333,5 @@ export async function POST() {
     auditadas += tanda.length
   }
 
-  return NextResponse.json({ ok: true, auditadas })
+  return NextResponse.json({ ok: true, auditadas, familia: familia ?? 'todas' })
 }

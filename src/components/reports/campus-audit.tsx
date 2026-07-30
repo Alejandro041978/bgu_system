@@ -20,7 +20,16 @@ interface Data {
   pesos_mal: number; escala_mal: number
   sin_evaluaciones: number; sin_ponderacion: number
   sin_datos: number; vinculadas: number; sin_matricula_manual: number
+  audited_at_mas_antigua?: string | null
+  familias?: Familia[]
   aulas: Aula[]
+}
+// Resumen por categoría padre de Moodle: cuánto pesa auditarla y qué tan vieja
+// está su foto. Es lo que permite decidir por dónde empezar.
+interface Familia {
+  familia: string; aulas: number; incumplen: number
+  sin_matricula_manual: number; sin_datos: number
+  audited_at: string | null; mas_antigua: string | null
 }
 
 type Filtro = 'todas' | 'incumplen' | 'cumplen' | 'sin_evaluaciones' | 'sin_ponderacion' | 'sin_datos' | 'sin_matricula_manual'
@@ -28,7 +37,10 @@ type Filtro = 'todas' | 'incumplen' | 'cumplen' | 'sin_evaluaciones' | 'sin_pond
 export function CampusAudit() {
   const [d, setD] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [auditing, setAuditing] = useState(false)
+  // Guarda QUÉ se está auditando ('todas' o la familia), no un booleano: así el
+  // spinner sale en la fila que corresponde.
+  const [auditing, setAuditing] = useState<string | null>(null)
+  const [verFamilias, setVerFamilias] = useState(true)
   const [filtro, setFiltro] = useState<Filtro>('incumplen')
 
   const load = useCallback(async () => {
@@ -40,12 +52,23 @@ export function CampusAudit() {
   }, [])
   useEffect(() => { load() }, [load])
 
-  async function audit() {
-    if (!confirm('Se auditará cada aula del campus contra la política (ponderaciones 100% y escala sobre 100). Toma 1-3 minutos. ¿Continuar?')) return
-    setAuditing(true); setError(null)
-    const r = await fetch('/api/academic/moodle-audit', { method: 'POST' })
+  // Auditar por familia en vez de todo el campus: menos aulas por corrida (el
+  // barrido completo roza el límite de tiempo de Vercel y a veces muere a medio
+  // camino) y permite atacar primero la categoría que se está trabajando.
+  // El guardado es por tandas, así que una corrida parcial no borra el resto.
+  async function audit(familia?: string) {
+    const cuantas = familia ? (d?.familias ?? []).find(f => f.familia === familia)?.aulas : d?.total
+    const texto = familia
+      ? `Se auditarán las ${cuantas ?? '?'} aulas de "${familia}". El resto del campus conserva su última foto. ¿Continuar?`
+      : 'Se auditará el campus COMPLETO contra la política (ponderaciones 100% y escala sobre 100). Toma 1-3 minutos y puede agotar el tiempo; por familia es más seguro. ¿Continuar?'
+    if (!confirm(texto)) return
+    setAuditing(familia ?? 'todas'); setError(null)
+    const r = await fetch('/api/academic/moodle-audit', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(familia ? { familia } : {}),
+    })
     const data = await r.json()
-    setAuditing(false)
+    setAuditing(null)
     if (!r.ok) { setError(data.error ?? 'Error'); return }
     load()
   }
@@ -85,15 +108,75 @@ export function CampusAudit() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-xs text-gray-400">
-          {d?.audited_at ? `Última auditoría: ${new Date(d.audited_at).toLocaleString()}` : 'Aún no se ha auditado el campus.'}
-        </p>
-        <button onClick={audit} disabled={auditing}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white">
-          {auditing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          {auditing ? 'Auditando el campus…' : 'Auditar ahora'}
+        <div className="text-xs text-gray-400">
+          {d?.audited_at ? (
+            <>
+              <p>Auditoría más reciente: {new Date(d.audited_at).toLocaleString()}</p>
+              {/* Con auditorías por familia la foto deja de ser homogénea: lo
+                  que engaña es la más reciente, no la más vieja. */}
+              {d.audited_at_mas_antigua && d.audited_at_mas_antigua.slice(0, 10) !== d.audited_at.slice(0, 10) && (
+                <p className="text-amber-600">Hay aulas sin auditar desde {new Date(d.audited_at_mas_antigua).toLocaleDateString()}</p>
+              )}
+            </>
+          ) : 'Aún no se ha auditado el campus.'}
+        </div>
+        <button onClick={() => audit()} disabled={!!auditing}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-60">
+          {auditing === 'todas' ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          {auditing === 'todas' ? 'Auditando el campus…' : 'Auditar todo el campus'}
         </button>
       </div>
+
+      {/* Auditoría por familia: menos aulas por corrida y prioridad a la
+          categoría que se esté trabajando. */}
+      {d && (d.familias?.length ?? 0) > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <button onClick={() => setVerFamilias(v => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50">
+            <span className="text-sm font-semibold text-gray-800">Auditar por categoría de Moodle</span>
+            <span className="text-xs text-gray-400">{verFamilias ? 'ocultar' : `${d.familias!.length} categorías`}</span>
+          </button>
+          {verFamilias && (
+            <div className="overflow-x-auto border-t border-gray-100">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                    <th className="text-left px-3 py-2 w-full">Categoría</th>
+                    <th className="text-right px-3 py-2">Aulas</th>
+                    <th className="text-right px-3 py-2">Incumplen</th>
+                    <th className="text-right px-3 py-2">Sin matrícula</th>
+                    <th className="text-left px-3 py-2">Auditada</th>
+                    <th className="px-3 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {d.familias!.map(f => {
+                    const dias = f.mas_antigua ? Math.floor((Date.now() - new Date(f.mas_antigua).getTime()) / 86400000) : null
+                    return (
+                      <tr key={f.familia} className="hover:bg-gray-50/50">
+                        <td className="px-3 py-2 text-gray-800">{f.familia}</td>
+                        <td className="px-3 py-2 text-right text-gray-600">{f.aulas}</td>
+                        <td className={`px-3 py-2 text-right font-medium ${f.incumplen > 0 ? 'text-rose-700' : 'text-gray-300'}`}>{f.incumplen || '—'}</td>
+                        <td className={`px-3 py-2 text-right font-medium ${f.sin_matricula_manual > 0 ? 'text-rose-700' : 'text-gray-300'}`}>{f.sin_matricula_manual || '—'}</td>
+                        <td className={`px-3 py-2 text-xs whitespace-nowrap ${dias != null && dias >= 7 ? 'text-amber-600' : 'text-gray-500'}`}>
+                          {f.mas_antigua ? (dias === 0 ? 'hoy' : `hace ${dias} d`) : '—'}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <button onClick={() => audit(f.familia)} disabled={!!auditing}
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline whitespace-nowrap">
+                            {auditing === f.familia ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                            {auditing === f.familia ? 'Auditando…' : 'Auditar'}
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {error && <div className="text-sm bg-rose-50 text-rose-700 rounded-lg px-4 py-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4" />{error}</div>}
 
