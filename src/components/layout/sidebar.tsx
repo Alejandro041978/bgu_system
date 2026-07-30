@@ -104,6 +104,7 @@ const navigation: NavGroup[] = [
           { name: 'Solicitudes', href: '/registrar/requests', icon: ClipboardList, pageKey: 'registrar_requests' },
           { name: 'Degrees · Hoja de Control', href: '/registrar/degrees', icon: Award, pageKey: 'registrar_degrees' },
           { name: 'Carnés ISIC', href: '/registrar/isic-cards', icon: CreditCard, pageKey: 'registrar_isic_cards' },
+          { name: 'Trámites', href: '/registrar/tramites', icon: ClipboardList, pageKey: 'registrar_tramites' },
         ],
       },
       {

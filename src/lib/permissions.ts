@@ -21,6 +21,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/finance/books-operations', 'finance_books_operations'],
   ['/registrar/document-types', 'registrar_document_types'],
   ['/registrar/isic-cards', 'registrar_isic_cards'],
+  ['/registrar/tramites', 'registrar_tramites'],
   ['/collection/scholarships', 'collection_scholarships'],
   ['/reports/estado-docentes', 'report_faculty_status'],
   ['/academic/billing-plans', 'academic_billing_plans'],

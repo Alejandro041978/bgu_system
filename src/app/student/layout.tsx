@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { CalendarDays, MessageCircle, LogOut, Award, ArrowLeft, Wallet, FileText, CalendarClock, PiggyBank } from 'lucide-react'
+import { CalendarDays, MessageCircle, LogOut, Award, ArrowLeft, Wallet, FileText, CalendarClock, PiggyBank, ClipboardList } from 'lucide-react'
 import { BrandLogo } from '@/components/brand-logo'
 import Link from 'next/link'
 import { getEffectiveStudent, isSuperadmin } from '@/lib/student-identity'
@@ -71,6 +71,9 @@ export default async function StudentLayout({ children }: { children: React.Reac
           </Link>
           <Link href="/student/examenes" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
             <Award className="w-4 h-4" /> Exámenes
+          </Link>
+          <Link href="/student/tramites" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
+            <ClipboardList className="w-4 h-4" /> Trámites
           </Link>
           <Link href="/student/sofia" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
             <MessageCircle className="w-4 h-4" /> Sofia · Chat

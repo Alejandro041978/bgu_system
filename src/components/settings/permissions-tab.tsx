@@ -56,6 +56,7 @@ const PAGE_GROUPS = [
       { key: 'registrar_requests', label: 'Solicitudes de Documentos' },
       { key: 'registrar_degrees', label: 'Degrees · Hoja de Control' },
       { key: 'registrar_isic_cards', label: 'Carnés ISIC · Licencias' },
+      { key: 'registrar_tramites', label: 'Trámites' },
     ],
   },
   {

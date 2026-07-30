@@ -6,6 +6,7 @@ import { getAccountStatement } from '@/lib/account-statement'
 import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 import { maybeMarkExamPaid } from '@/lib/exam-requests'
 import { maybeMarkDocumentPaid } from '@/lib/document-request'
+import { maybeMarkTramitePaid } from '@/lib/tramites'
 import { refreshAccessForStudents } from '@/lib/moodle-access'
 
 export const revalidate = 0
@@ -88,6 +89,7 @@ export async function POST(req: NextRequest) {
     await maybeActivateOnPayment(r.charge_external_id).catch(() => null)
     await maybeMarkExamPaid(r.charge_external_id).catch(() => null)
     await maybeMarkDocumentPaid(r.charge_external_id).catch(() => null)
+  await maybeMarkTramitePaid(r.charge_external_id).catch(() => null)
   }
   // Reactiva Moodle si el pago dejó al estudiante sin vencido
   await refreshAccessForStudents(sb, rows.map(r => r.student_id)).catch(() => null)
