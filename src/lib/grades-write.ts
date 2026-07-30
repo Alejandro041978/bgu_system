@@ -31,15 +31,38 @@ export function stableUuid(seed: string): string {
 export async function fetchByIn(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sb: any, table: string, select: string, column: string, values: string[],
+  // orderBy: columna ÚNICA con la que paginar. Sin ORDER BY, Postgres no
+  // garantiza el mismo orden entre una página y la siguiente, y el .range()
+  // puede saltarse filas. Por omisión ordena por la columna del filtro, que no
+  // desempata: quien pagine datos críticos debe pasar su clave primaria.
+  opts?: { orderBy?: string },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const out: any[] = []
+  const orderBy = opts?.orderBy ?? column
   for (let i = 0; i < values.length; i += 150) {
     const part = values.slice(i, i + 150)
     for (let from = 0; ; from += 1000) {
-      const { data } = await sb.from(table).select(select).in(column, part).range(from, from + 999)
-      const rows = data ?? []
+      // Un fallo aquí NO puede devolver una lista vacía: quien nos llama la
+      // interpretaría como "este dato no existe" y obraría en consecuencia.
+      // Así se duplicaron 951 notas: el import leyó el historial, la consulta
+      // falló, recibió [] y creó de cero las asignaturas ya aprobadas de un
+      // aula entera (caso 2026-07-29/30). Se reintenta y, si no, se rompe.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let rows: any[] | null = null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let last: any = null
+      for (let intento = 0; intento < 3 && rows == null; intento++) {
+        if (intento) await new Promise(r => setTimeout(r, 300 * intento))
+        const { data, error } = await sb.from(table).select(select)
+          .in(column, part).order(orderBy).range(from, from + 999)
+        if (error) { last = error; continue }
+        rows = data ?? []
+      }
+      if (rows == null) {
+        throw new Error(`No se pudo leer ${table} (${part.length} valores de ${column}, página ${from}): ${last?.message ?? 'error desconocido'}`)
+      }
       out.push(...rows)
       if (rows.length < 1000) break
     }

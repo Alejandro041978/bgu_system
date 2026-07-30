@@ -184,11 +184,21 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   {
     const all = await fetchByIn(sb, 'academic_grades',
       'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source',
-      'document_number', docsImport)
+      'document_number', docsImport, { orderBy: 'external_id' })
     for (const g of all) {
       const k = String(g.document_number)
       if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
       gradesByDoc.get(k)!.push(g)
+    }
+    // Un aula con diez o más alumnos donde NINGUNO tiene una sola nota en todo
+    // el ERP no existe: es la lectura del historial que vino vacía. Importar
+    // así crea de cero lo que el alumno ya aprobó. Mejor no importar y que la
+    // próxima corrida lo intente.
+    if (docsImport.length >= 10 && gradesByDoc.size === 0) {
+      return {
+        ok: false, status: 503,
+        error: `No se pudo leer el historial de notas de los ${docsImport.length} alumnos del aula. No se importa nada para no duplicar asignaturas ya aprobadas; se reintentará en la próxima corrida.`,
+      }
     }
   }
 
