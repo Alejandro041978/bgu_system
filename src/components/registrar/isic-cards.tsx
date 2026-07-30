@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Loader2, Upload, CreditCard, AlertTriangle, ExternalLink, RefreshCw, Link2 } from 'lucide-react'
+import { Loader2, Upload, CreditCard, AlertTriangle, ExternalLink, RefreshCw, Mail, Smartphone } from 'lucide-react'
 
 interface Row {
   card_number: string; status: string; printed_name: string | null
   valid_from: string | null; valid_to: string | null; isic_status: string | null
   assigned_at: string | null; last_http_code: number | null; last_error: string | null
   registration_url: string | null; student_name: string; document_number: string | null
+  profile_status: string | null; notified_at: string | null; email: string | null
 }
 interface Evento { card_number: string | null; action: string; http_code: number | null; ok: boolean | null; response_body: string | null; created_at: string }
 interface Data {
@@ -50,15 +51,17 @@ export function IsicCards() {
     load()
   }
 
-  async function traerEnlace(card: string) {
-    setBusy(true)
+  async function accion(card: string, action: 'profile' | 'notify') {
+    setBusy(true); setMsg(null)
     const res = await fetch('/api/registrar/isic', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ card_number: card, action: 'profile' }),
+      body: JSON.stringify({ card_number: card, action }),
     })
     const j = await res.json()
     setBusy(false)
-    if (!res.ok) { setMsg(j.error ?? 'No se pudo consultar el perfil'); return }
+    if (!res.ok) { setMsg(j.error ?? 'No se pudo completar la acción'); return }
+    if (action === 'notify') setMsg(`Correo reenviado a ${j.sent_to}`)
+    if (action === 'profile') setMsg(j.profile_status ? `Activado en la app (${j.profile_status})` : 'Todavía no lo ha activado en la app')
     load()
   }
 
@@ -133,9 +136,19 @@ export function IsicCards() {
 
       {/* Asignadas */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5 px-4 py-3 border-b border-gray-100">
-          <CreditCard className="w-4 h-4 text-gray-400" /> Carnés emitidos
-        </p>
+        <div className="px-4 py-3 border-b border-gray-100">
+          <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+            <CreditCard className="w-4 h-4 text-gray-400" /> Carnés emitidos
+          </p>
+          <p className="text-[11.5px] text-gray-500 mt-1 flex items-start gap-1.5">
+            <Smartphone className="w-3.5 h-3.5 mt-0.5 shrink-0 text-gray-400" />
+            <span>
+              Emitir no es activar. El carné es digital y vive en la app de ISIC: la cuenta del estudiante nace cuando
+              abre el enlace <strong>en su teléfono</strong> con la app ya instalada — no hay usuario ni contraseña que
+              entregarle. ISIC no manda ningún correo, el aviso lo enviamos nosotros.
+            </span>
+          </p>
+        </div>
         {d.rows.length === 0 ? (
           <p className="text-sm text-gray-400 py-12 text-center">Todavía no se ha emitido ningún carné en este entorno.</p>
         ) : (
@@ -148,7 +161,8 @@ export function IsicCards() {
                   <th className="px-3 py-2 text-left font-medium">Nombre impreso</th>
                   <th className="px-3 py-2 text-left font-medium">Vigencia</th>
                   <th className="px-3 py-2 text-left font-medium">CCDB</th>
-                  <th className="px-3 py-2 text-left font-medium">App móvil</th>
+                  <th className="px-3 py-2 text-left font-medium">Activado</th>
+                  <th className="px-3 py-2 text-left font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -172,18 +186,33 @@ export function IsicCards() {
                         </span>
                       )}
                     </td>
+                    {/* Emitir no es activar: el carné digital solo llega al
+                        estudiante cuando abre el enlace con la app instalada. */}
                     <td className="px-3 py-2.5">
-                      {r.registration_url ? (
-                        <a href={r.registration_url} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline">
-                          <ExternalLink className="w-3.5 h-3.5" /> Enlace de alta
-                        </a>
+                      {r.profile_status ? (
+                        <span className="text-[11px] text-green-600 font-medium">✓ {r.profile_status}</span>
                       ) : (
-                        <button onClick={() => traerEnlace(r.card_number)} disabled={busy}
-                          className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-blue-600 disabled:opacity-50">
-                          <Link2 className="w-3.5 h-3.5" /> Obtener
+                        <button onClick={() => accion(r.card_number, 'profile')} disabled={busy}
+                          className="text-[11px] text-gray-400 hover:text-blue-600 disabled:opacity-50" title="Consultar a ISIC si ya lo activó">
+                          sin confirmar · comprobar
                         </button>
                       )}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        {r.registration_url && (
+                          <a href={r.registration_url} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline"
+                            title="Es un enlace para el TELÉFONO: abre la app de ISIC. En una computadora solo muestra la página de descarga.">
+                            <ExternalLink className="w-3.5 h-3.5" /> Enlace
+                          </a>
+                        )}
+                        <button onClick={() => accion(r.card_number, 'notify')} disabled={busy || !r.email}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-blue-600 disabled:opacity-40"
+                          title={r.email ? `Reenviar instrucciones a ${r.email}` : 'Sin correo registrado'}>
+                          <Mail className="w-3.5 h-3.5" /> {r.notified_at ? 'Reenviar' : 'Avisar'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

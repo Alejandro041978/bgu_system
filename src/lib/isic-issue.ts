@@ -14,6 +14,7 @@ export interface IssueResult {
   cardNumber?: string
   registrationUrl?: string | null
   httpCode?: number
+  notified?: boolean      // ¿se le avisó por correo?
   error?: string
   missing?: string[]      // datos del estudiante que faltan
 }
@@ -164,12 +165,29 @@ export async function issueIsicCard(requestId: string): Promise<IssueResult> {
   // Archivo permanente. CCDB destruye los datos del titular 6 meses después de
   // que caduca el carné; a partir de ahí esta fila es la única prueba de a
   // quién se emitió cada licencia y con qué datos.
+  // Aviso al estudiante. ISIC no manda ningún correo, así que sin esto el carné
+  // queda emitido y el estudiante no se entera. Best-effort: si el correo falla
+  // el carné sigue válido y Registros lo reenvía desde la página de licencias.
   const now = new Date().toISOString()
+  let notified = false
+  try {
+    const { notifyIsicCard } = await import('./isic-notify')
+    const n = await notifyIsicCard({
+      to: email, firstName: firstName.split(' ')[0] || 'Estudiante',
+      cardNumber, registrationUrl, validTo: to,
+    })
+    notified = n.ok
+    await log(sb, { card_number: cardNumber, document_request_id: r.id, action: 'notify', ok: n.ok, response_body: n.error ?? 'enviado a ' + email })
+  } catch (e) {
+    await log(sb, { card_number: cardNumber, document_request_id: r.id, action: 'notify', ok: false, response_body: (e as Error).message })
+  }
+
   await sb.from('isic_cards').update({
     isic_status: 'VALID', last_http_code: res.code, last_error: null,
     registration_url: registrationUrl, updated_at: now,
     first_name: firstName, last_name: lastName, date_of_birth: dob, email,
     photo_path: photoPath ?? null, photo_http_code: photoCode,
+    notified_at: notified ? now : null,
   }).eq('card_number', cardNumber)
 
   // La solicitud queda entregada. El número y el enlace viven en field_values:
@@ -181,5 +199,5 @@ export async function issueIsicCard(requestId: string): Promise<IssueResult> {
     field_values: { ...(r.field_values ?? {}), isic_card_number: cardNumber, isic_valid_to: to, isic_registration_url: registrationUrl ?? '' },
   }).eq('id', r.id)
 
-  return { ok: true, cardNumber, registrationUrl, httpCode: res.code }
+  return { ok: true, cardNumber, registrationUrl, httpCode: res.code, notified }
 }

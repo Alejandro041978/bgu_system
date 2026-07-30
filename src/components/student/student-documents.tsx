@@ -305,6 +305,14 @@ export function StudentDocuments() {
                   <p className="text-sm font-medium text-gray-800 truncate">{r.type_name}</p>
                   <p className="text-xs text-gray-400">{fdate(r.requested_at)}{Number(r.price) > 0 ? ` · ${r.currency} ${Number(r.price).toFixed(2)}${r.paid ? ' (pagado)' : ''}` : ''}</p>
                   {r.isic_card_number && <p className="text-[11px] font-mono text-gray-500 mt-0.5">Nº {r.isic_card_number}</p>}
+                  {/* La confusión que hay que evitar: el enlace no es una web,
+                      es un deep link a la app; y la cuenta se crea al abrirlo. */}
+                  {r.isic_card && r.document_url && (
+                    <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+                      Instala la app <strong>ISIC</strong> en tu teléfono y luego toca el botón: tu carné se carga solo.
+                      Si la app te pide usuario y contraseña, no las busques — se crean al abrir el enlace.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">

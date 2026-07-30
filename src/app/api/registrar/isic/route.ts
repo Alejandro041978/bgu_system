@@ -36,6 +36,7 @@ export async function GET() {
 
   const { data: asignadas } = await sb.from('isic_cards')
     .select('card_number, status, printed_name, valid_from, valid_to, isic_status, assigned_at, last_http_code, last_error, registration_url, ' +
+      'profile_status, notified_at, email, ' +
       'student:academic_students(first_name, last_name, second_last_name, document_number)')
     .eq('environment', environment).not('assigned_at', 'is', null)
     .order('assigned_at', { ascending: false }).limit(200)
@@ -45,7 +46,8 @@ export async function GET() {
     card_number: c.card_number, status: c.status, printed_name: c.printed_name,
     valid_from: c.valid_from, valid_to: c.valid_to, isic_status: c.isic_status,
     assigned_at: c.assigned_at, last_http_code: c.last_http_code, last_error: c.last_error,
-    registration_url: c.registration_url,
+    registration_url: c.registration_url, profile_status: c.profile_status,
+    notified_at: c.notified_at, email: c.email,
     student_name: [c.student?.first_name, c.student?.last_name, c.student?.second_last_name].filter(Boolean).join(' '),
     document_number: c.student?.document_number ?? null,
   }))
@@ -103,27 +105,55 @@ export async function POST(req: NextRequest) {
   })
 }
 
-// PATCH { card_number, action: 'profile' } → recupera el enlace de alta en el
-// app móvil de ISIC cuando no se obtuvo al emitir.
+// PATCH { card_number, action }
+//   profile → consulta a ISIC el enlace de alta y SI EL ESTUDIANTE YA ACTIVÓ el
+//             carné en la app. Emitir no es activar: el carné digital solo llega
+//             a sus manos cuando abre el enlace con la app instalada.
+//   notify  → reenvía el correo con las instrucciones de activación.
 export async function PATCH(req: NextRequest) {
   const g = await requireStaff()
   if (g.error) return g.error
 
   const b = await req.json().catch(() => null) as { card_number?: string; action?: string } | null
   if (!b?.card_number) return NextResponse.json({ error: 'Falta card_number' }, { status: 400 })
-  if (b.action !== 'profile') return NextResponse.json({ error: 'Acción no soportada' }, { status: 400 })
-
   const sb = db()
-  const res = await isicGetProfile(b.card_number)
-  await sb.from('isic_events').insert({
-    card_number: b.card_number, action: 'profile', http_code: res.code, ok: res.ok,
-    response_body: res.body.slice(0, 4000),
-  })
-  if (res.code !== 200) return NextResponse.json({ error: `ISIC respondió ${res.code}` }, { status: 400 })
 
-  const url = xmlValue(res.body, 'registrationUrl')
-  const estado = xmlValue(res.body, 'profileStatus')
-  await sb.from('isic_cards').update({ registration_url: url, updated_at: new Date().toISOString() })
-    .eq('card_number', b.card_number)
-  return NextResponse.json({ ok: true, registration_url: url, profile_status: estado })
+  if (b.action === 'profile') {
+    const res = await isicGetProfile(b.card_number)
+    await sb.from('isic_events').insert({
+      card_number: b.card_number, action: 'profile', http_code: res.code, ok: res.ok,
+      response_body: res.body.slice(0, 4000),
+    })
+    if (res.code !== 200) return NextResponse.json({ error: `ISIC respondió ${res.code}` }, { status: 400 })
+
+    const url = xmlValue(res.body, 'registrationUrl')
+    const estado = xmlValue(res.body, 'profileStatus')
+    const creado = xmlValue(res.body, 'profileCreatedOn')
+    await sb.from('isic_cards').update({
+      registration_url: url, profile_status: estado,
+      profile_created_at: creado || null, updated_at: new Date().toISOString(),
+    }).eq('card_number', b.card_number)
+    return NextResponse.json({ ok: true, registration_url: url, profile_status: estado, profile_created_at: creado })
+  }
+
+  if (b.action === 'notify') {
+    const { data: c } = await sb.from('isic_cards')
+      .select('card_number, first_name, email, registration_url, valid_to').eq('card_number', b.card_number).maybeSingle()
+    if (!c) return NextResponse.json({ error: 'Carné no encontrado' }, { status: 404 })
+    if (!c.email) return NextResponse.json({ error: 'Este carné no tiene correo registrado' }, { status: 400 })
+
+    const { notifyIsicCard } = await import('@/lib/isic-notify')
+    const n = await notifyIsicCard({
+      to: c.email, firstName: String(c.first_name ?? '').split(' ')[0] || 'Estudiante',
+      cardNumber: c.card_number, registrationUrl: c.registration_url, validTo: String(c.valid_to),
+    })
+    await sb.from('isic_events').insert({
+      card_number: c.card_number, action: 'notify', ok: n.ok, response_body: n.error ?? 'reenviado a ' + c.email,
+    })
+    if (!n.ok) return NextResponse.json({ error: n.error ?? 'No se pudo enviar' }, { status: 500 })
+    await sb.from('isic_cards').update({ notified_at: new Date().toISOString() }).eq('card_number', c.card_number)
+    return NextResponse.json({ ok: true, sent_to: c.email })
+  }
+
+  return NextResponse.json({ error: 'Acción no soportada' }, { status: 400 })
 }
