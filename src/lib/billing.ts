@@ -109,6 +109,12 @@ export interface RebillPreview {
   create: { amount: number; due_date: string }[]
   totalReplaced: number
   totalNew: number
+  // Total Tuition que resulta de precio oficial, convalidaciones, beca y bono.
+  // Es el objetivo de verdad: cuando se otorga una beca nueva, el plan DEBE
+  // dejar de coincidir con las cuotas viejas y pasar a coincidir con esto.
+  tuitionTarget?: number | null
+  scholarshipPct?: number | null
+  matchesTarget?: boolean
   applied?: boolean
 }
 
@@ -205,13 +211,47 @@ export async function rebillEnrollment(opts: {
     amount: monto, due_date: dueDate(opts.plan.firstDueDate, i, opts.plan.dueDay),
   }))
 
-  const preview: RebillPreview = { ok: true, replace, keep, create, totalReplaced, totalNew }
+  // Objetivo: el Total Tuition que sale del precio oficial menos
+  // convalidaciones, beca y bono. Se reusa getAccountStatement en vez de
+  // recalcularlo aquí: es la misma cuenta que ve el usuario en la cabecera, y
+  // duplicar la fórmula sería garantizar que algún día no coincidan.
+  let tuitionTarget: number | null = null
+  let scholarshipPct: number | null = null
+  try {
+    const { getAccountStatement, computeTuition } = await import('./account-statement')
+    const st = await getAccountStatement({ studentId: enr.student_id })
+    const acc = st.programs.find(p => p.enrollment_id === enr.id)
+    if (acc) {
+      scholarshipPct = acc.scholarship_pct ?? null
+      tuitionTarget = computeTuition(acc)?.total ?? null
+    }
+  } catch { /* sin tarifario congelado no hay objetivo: se cae al total anterior */ }
+
+  // Lo que quedará facturado de este concepto: lo que se conserva + el plan nuevo.
+  const totalKeptSameConcept = round2(keep.reduce((s, c) => s + Number(c.amount ?? 0), 0))
+  const quedará = round2(totalKeptSameConcept + totalNew)
+  const matchesTarget = tuitionTarget != null && Math.abs(quedará - tuitionTarget) <= 0.005
+
+  const preview: RebillPreview = {
+    ok: true, replace, keep, create, totalReplaced, totalNew,
+    tuitionTarget, scholarshipPct, matchesTarget,
+  }
   if (!opts.apply) return preview
 
-  if (Math.abs(totalNew - totalReplaced) > 0.005 && !opts.allowTotalChange) {
+  // El plan puede cambiar el total por dos motivos muy distintos:
+  //  · un error de tecleo → hay que frenarlo;
+  //  · una beca nueva → es justamente el objetivo.
+  // Por eso no se compara solo contra las cuotas viejas: si el plan cuadra con
+  // el Total Tuition vigente, no se pide nada. Solo cuando no cuadra con
+  // ninguna de las dos referencias hace falta confirmar a mano.
+  const igualQueAntes = Math.abs(totalNew - totalReplaced) <= 0.005
+  if (!igualQueAntes && !matchesTarget && !opts.allowTotalChange) {
+    const refBeca = tuitionTarget != null
+      ? ` El Total Tuition vigente${scholarshipPct != null ? ` (con beca del ${scholarshipPct}%)` : ''} es ${tuitionTarget.toFixed(2)}, y con este plan quedaría facturado ${quedará.toFixed(2)}.`
+      : ''
     return {
       ...preview, ok: false,
-      blocked: `El nuevo plan suma ${totalNew.toFixed(2)} y las cuotas que reemplaza suman ${totalReplaced.toFixed(2)}. Si de verdad quieres cambiar lo que debe el estudiante, confírmalo marcando la casilla.`,
+      blocked: `El plan nuevo suma ${totalNew.toFixed(2)} y las cuotas que reemplaza suman ${totalReplaced.toFixed(2)}.${refBeca} Si el cambio es intencional, confírmalo marcando la casilla.`,
     }
   }
 

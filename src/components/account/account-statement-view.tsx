@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { computeTuition } from '@/lib/account-statement'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
 import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil, Plus, Gift, Layers } from 'lucide-react'
 import { FlywirePayButton } from './flywire-pay-button'
@@ -128,16 +129,11 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
           ahorro TC se resta PRIMERO; la beca se calcula sobre (lista − ahorro);
           Total Tuition = lista − ahorro − beca. */}
       {(() => {
-        const lista = account.list_price
-        if (lista == null) return null
-        const ahorro = account.transfer_credits != null && account.credit_rate != null
-          ? Math.round(account.transfer_credits * account.credit_rate * 100) / 100 : 0
+        const t = computeTuition(account)
+        if (!t) return null
+        const { lista, ahorro, beca, bonus, total: totalTuition } = t
         const becaBase = Math.max(0, lista - ahorro)
-        const beca = account.scholarship_pct != null ? Math.round(becaBase * account.scholarship_pct) / 100 : 0
-        // El bono se aplica sobre lo que resta DESPUÉS de la beca
         const afterBeca = Math.round((lista - ahorro - beca) * 100) / 100
-        const bonus = account.bonus_pct != null ? Math.round(afterBeca * account.bonus_pct) / 100 : 0
-        const totalTuition = Math.round((afterBeca - bonus) * 100) / 100
         const subTotal = ['precio oficial', ahorro > 0 ? 'ahorro' : null, 'beca', account.bonus_pct != null ? 'bonus' : null].filter(Boolean).join(' − ')
         return (
           <div className="flex flex-wrap gap-3">
@@ -461,6 +457,7 @@ interface RebillPreview {
   replace: RebillCharge[]; keep: (RebillCharge & { reason: string })[]
   create: { amount: number; due_date: string }[]
   totalReplaced: number; totalNew: number
+  tuitionTarget?: number | null; scholarshipPct?: number | null; matchesTarget?: boolean
 }
 interface PlanRow {
   id: string; program_id: string; convocatoria_id: string
@@ -589,8 +586,14 @@ function RebillButton(
               <label className="block"><span className="block text-xs text-gray-500 mb-1">Primer vencimiento</span>
                 <input type="date" value={firstDue} onChange={e => { setFirstDue(e.target.value); setPrev(null) }} className={inp2} /></label>
               <label className="block"><span className="block text-xs text-gray-500 mb-1">Día de pago</span>
-                <input type="number" min="1" max="31" value={dueDay} onChange={e => { setDueDay(e.target.value); setPrev(null) }} placeholder="del 1er venc." className={inp2} /></label>
+                <input type="number" min="1" max="31" value={dueDay} onChange={e => { setDueDay(e.target.value); setPrev(null) }} placeholder="igual que arriba" className={inp2} /></label>
             </div>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              <strong>Primer vencimiento</strong> fija el mes en que arranca el plan; de ahí en adelante va una cuota por
+              mes. <strong>Día de pago</strong> es opcional y manda sobre el día de <em>todas</em> las cuotas, incluida la
+              primera: con 01/09/2026 y día 15, la primera vence el 15/09/2026. Si lo dejas vacío se usa el día del primer
+              vencimiento. En meses cortos se ajusta al último día (31 → 28 en febrero).
+            </p>
 
             {listo && !prev && (
               <button onClick={() => llamar(true)} disabled={busy}
@@ -614,13 +617,29 @@ function RebillButton(
                     <p className="text-base font-bold text-gray-800">{prev.create.length}</p>
                     <p className="text-[11px] text-gray-500">{money(prev.totalNew)}</p>
                   </div>
-                  <div className={`rounded-lg border p-2.5 ${difiere ? 'border-amber-200 bg-amber-50' : 'border-gray-200'}`}>
-                    <p className="text-[10.5px] text-gray-400 uppercase tracking-wide">Diferencia</p>
-                    <p className={`text-base font-bold ${difiere ? 'text-amber-700' : 'text-green-600'}`}>
-                      {difiere ? money(prev.totalNew - prev.totalReplaced) : 'sin cambio'}
+                  <div className={`rounded-lg border p-2.5 ${prev.matchesTarget ? 'border-green-200 bg-green-50' : difiere ? 'border-amber-200 bg-amber-50' : 'border-gray-200'}`}>
+                    <p className="text-[10.5px] text-gray-400 uppercase tracking-wide">Total Tuition</p>
+                    <p className={`text-base font-bold ${prev.matchesTarget ? 'text-green-700' : difiere ? 'text-amber-700' : 'text-gray-800'}`}>
+                      {prev.tuitionTarget != null ? money(prev.tuitionTarget) : '—'}
+                    </p>
+                    <p className="text-[11px] text-gray-500">
+                      {prev.tuitionTarget == null ? 'sin precio oficial'
+                        : prev.matchesTarget ? '✓ el plan cuadra'
+                        : prev.scholarshipPct != null ? `beca ${prev.scholarshipPct}%` : 'no cuadra'}
                     </p>
                   </div>
                 </div>
+
+                {/* El objetivo real no es "que el total no cambie": es que el plan
+                    cuadre con lo que el estudiante debe tras su beca. Cuando se
+                    otorga una beca nueva el total DEBE cambiar. */}
+                {prev.matchesTarget && difiere && (
+                  <p className="text-[12.5px] text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                    El total cambia respecto de las cuotas anteriores, pero el plan nuevo <strong>cuadra exactamente con
+                    el Total Tuition vigente</strong>{prev.scholarshipPct != null ? ` (beca del ${prev.scholarshipPct}%)` : ''}. Es lo esperado si acabas de
+                    actualizar la beca.
+                  </p>
+                )}
 
                 {prev.keep.length > 0 && (
                   <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
@@ -641,10 +660,14 @@ function RebillButton(
                   <p className="text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{prev.blocked}</p>
                 )}
 
-                {difiere && !prev.applied && (
+                {difiere && !prev.matchesTarget && !prev.applied && (
                   <label className="flex items-start gap-2 text-[12px] text-gray-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                     <input type="checkbox" checked={allowTotalChange} onChange={e => setAllowTotalChange(e.target.checked)} className="mt-0.5 rounded border-gray-300" />
-                    <span>Entiendo que esto <strong>cambia lo que debe el estudiante</strong> en {money(prev.totalNew - prev.totalReplaced)}, no solo el calendario de pagos.</span>
+                    <span>
+                      Entiendo que esto <strong>cambia lo que debe el estudiante</strong> en {money(prev.totalNew - prev.totalReplaced)}, y que el plan
+                      {prev.tuitionTarget != null ? ` no cuadra con el Total Tuition vigente (${money(prev.tuitionTarget)})` : ' no se puede comparar con un precio oficial'}.
+                      {prev.tuitionTarget != null && ' Si le otorgaste una beca nueva, actualízala primero en Becas y vuelve aquí.'}
+                    </span>
                   </label>
                 )}
 
@@ -654,7 +677,7 @@ function RebillButton(
                   </p>
                 ) : (
                   <div className="flex gap-2 pt-1">
-                    <button onClick={() => llamar(false)} disabled={busy || (!!difiere && !allowTotalChange)}
+                    <button onClick={() => llamar(false)} disabled={busy || (!!difiere && !prev.matchesTarget && !allowTotalChange)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
                       {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Aplicar el cambio
                     </button>

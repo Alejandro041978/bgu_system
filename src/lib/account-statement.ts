@@ -69,6 +69,26 @@ function fullName(r: { first_name?: string; last_name?: string; second_last_name
 const r2 = (n: number) => Math.round(n * 100) / 100
 
 /** Estado de cuenta de un estudiante, agrupado por programa (cuenta económica independiente). */
+// Total Tuition = precio oficial − ahorro por convalidación − beca − bono.
+// Regla del usuario (2026-07-23): el ahorro TC se resta PRIMERO, la beca se
+// calcula sobre (lista − ahorro), y el bono sobre lo que resta tras la beca.
+//
+// Vive aquí, junto a los datos, porque la calculan dos sitios: la cabecera del
+// estado de cuenta y la refacturación de cuotas. Si cada uno la escribiera, un
+// día dirían totales distintos y nadie sabría cuál creer.
+export function computeTuition(a: Pick<ProgramAccount, 'list_price' | 'credit_rate' | 'transfer_credits' | 'scholarship_pct' | 'bonus_pct'>):
+  { lista: number; ahorro: number; beca: number; bonus: number; total: number } | null {
+  if (a.list_price == null) return null
+  const lista = Number(a.list_price)
+  const ahorro = a.transfer_credits != null && a.credit_rate != null
+    ? Math.round(Number(a.transfer_credits) * Number(a.credit_rate) * 100) / 100 : 0
+  const becaBase = Math.max(0, lista - ahorro)
+  const beca = a.scholarship_pct != null ? Math.round(becaBase * Number(a.scholarship_pct)) / 100 : 0
+  const afterBeca = Math.round((lista - ahorro - beca) * 100) / 100
+  const bonus = a.bonus_pct != null ? Math.round(afterBeca * Number(a.bonus_pct)) / 100 : 0
+  return { lista, ahorro, beca, bonus, total: Math.round((afterBeca - bonus) * 100) / 100 }
+}
+
 export async function getAccountStatement(
   filter: { studentId?: string | null; documentNumber?: string | null; email?: string | null }
 ): Promise<Statement> {
