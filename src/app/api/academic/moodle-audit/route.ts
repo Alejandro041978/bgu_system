@@ -105,10 +105,15 @@ export async function GET() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const familias = new Map<string, any>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const acumular = (ruta: string, nivel: number, r: any) => {
+  const acumular = (ruta: string, nivel: number, r: any, orden?: string) => {
     if (!familias.has(ruta)) {
       familias.set(ruta, {
-        ruta, nivel, nombre: ruta.split(' / ').pop(), aulas: 0, incumplen: 0,
+        ruta, nivel, nombre: ruta.split(' / ').pop(),
+        // `orden` separa el criterio de ordenación del de filtrado: el bloque
+        // de pendientes va al final sin que su nombre tenga que empezar por un
+        // carácter raro.
+        orden: orden ?? ruta,
+        aulas: 0, incumplen: 0,
         sin_matricula_manual: 0, sin_datos: 0, audited_at: null as string | null, mas_antigua: null as string | null,
       })
     }
@@ -129,7 +134,16 @@ export async function GET() {
     // raíz de ahí: tomar el primer tramo asciende una categoría intermedia a
     // familia, y el árbol deja de parecerse al de Moodle. Se agrupan aparte,
     // con el nombre que dice qué hacer.
-    if (!r.familia) { acumular('· Pendientes de re-auditar', 1, r); continue }
+    if (!r.familia) {
+      // Sin raíz conocida no se puede colgar del árbol real, pero SÍ se puede
+      // ofrecer su categoría guardada como unidad auditable: el filtro por
+      // tramos la encuentra dentro de la ruta nueva. Sin esto, cuando todas las
+      // filas están pendientes no queda ningún botón y solo salva el barrido
+      // completo — que es justo lo que se quería evitar.
+      acumular('· Pendientes de re-auditar', 1, r, '￿')
+      if (r.categoria) acumular(String(r.categoria), 2, r, '￿ ' + r.categoria)
+      continue
+    }
     const partes = String(r.categoria ?? '').split(' / ')
     acumular(r.familia, 1, r)
     // Solo el segundo nivel: basta para elegir por dónde empezar, y bajar más
@@ -143,7 +157,7 @@ export async function GET() {
     // importa es qué tan vieja es la parte más rezagada de la foto.
     audited_at: fechas[fechas.length - 1] ?? null,
     audited_at_mas_antigua: fechas[0] ?? null,
-    familias: [...familias.values()].sort((a, b) => String(a.ruta).localeCompare(String(b.ruta))),
+    familias: [...familias.values()].sort((a, b) => String(a.orden).localeCompare(String(b.orden))),
     moodle_url: process.env.MOODLE_URL ?? null,
     total: rows.length,
     cumplen: porEstado.get('cumplen') ?? 0,
@@ -241,8 +255,21 @@ export async function POST(req: NextRequest) {
   // El filtro se aplica sobre la etiqueta resuelta ("Padre / Hija"), así que
   // `familia` sirve tanto para una familia entera como para una categoría hija
   // concreta: en ambos casos basta con que la etiqueta empiece por el texto.
+  // La coincidencia es por TRAMOS contiguos, no por prefijo: así una etiqueta
+  // guardada antes de la ruta completa ("Administración de Empresas - ES /
+  // Segundo Año BSBA Es") sigue encontrando sus aulas dentro de la ruta nueva
+  // ("Bachelors / Administración de Empresas - ES / Segundo Año BSBA Es").
+  // Por tramos y no por `includes` para que un nombre no case a medias con otro.
+  const coincide = (ruta: string, buscada: string): boolean => {
+    const a = ruta.split(' / ')
+    const b = buscada.split(' / ')
+    for (let i = 0; i + b.length <= a.length; i++) {
+      if (b.every((seg, j) => a[i + j] === seg)) return true
+    }
+    return false
+  }
   if (familia) {
-    aulas = aulas.filter(c => String(catName.get(Number(c.categoryid)) ?? '').startsWith(familia))
+    aulas = aulas.filter(c => coincide(String(catName.get(Number(c.categoryid)) ?? ''), familia))
     if (!aulas.length) {
       return NextResponse.json({ error: `No hay aulas en la categoría "${familia}"` }, { status: 404 })
     }
