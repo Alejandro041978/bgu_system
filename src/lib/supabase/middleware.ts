@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { pageKeyForPath } from '@/lib/permissions'
+import { findStudentByLoginEmail } from '@/lib/student-lookup'
 
 const adminClient = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -93,10 +94,14 @@ export async function updateSession(request: NextRequest) {
     const emp = empById ?? empByEmail
 
     // Only redirect to /student if explicitly registered as a student — superadmin and devs
-    // are not in hr_employees but should NOT be treated as students
-    const { data: student } = !emp && user.email
-      ? await sb.from('academic_students').select('id').eq('email', user.email).eq('disabled', false).maybeSingle()
-      : { data: null }
+    // are not in hr_employees but should NOT be treated as students.
+    //
+    // Se busca por el correo personal Y por el institucional (@blackwell.pro).
+    // Buscar solo por el personal abría el ERP entero a 40 estudiantes que solo
+    // tienen el institucional: no se les reconocía como estudiantes, y como
+    // tampoco están en hr_employees, más abajo `realIsSuper` los daba por
+    // superadministradores.
+    const student = !emp ? await findStudentByLoginEmail(sb, user.email) : null
 
     const isStudent = !emp && !!student
 

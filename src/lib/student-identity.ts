@@ -17,18 +17,18 @@ export async function isSuperadmin(userId: string): Promise<boolean> {
   return !emp?.role_id
 }
 
+import { findStudentByLoginEmail } from './student-lookup'
+export { findStudentByLoginEmail }
+
 /**
- * True si el usuario logueado es un ESTUDIANTE (su correo está en
- * academic_students). Barrera de seguridad para endpoints de gestión: un
- * estudiante NO debe crear/editar/borrar cuotas ni tocar pagos/descuentos.
+ * True si el usuario logueado es un ESTUDIANTE (por su correo personal O el
+ * institucional). Barrera de seguridad para endpoints de gestión: un estudiante
+ * NO debe crear/editar/borrar cuotas ni tocar pagos/descuentos.
  * OJO: isSuperadmin() da true para quien no está en hr_employees — y un
  * estudiante tampoco lo está — por eso el gate correcto es rechazar estudiantes.
  */
 export async function isStudentUser(user: { email?: string | null } | null): Promise<boolean> {
-  if (!user?.email) return false
-  const { data } = await admin().from('academic_students')
-    .select('id').eq('email', user.email).eq('disabled', false).maybeSingle()
-  return !!data
+  return !!(await findStudentByLoginEmail(admin(), user?.email))
 }
 
 function fullName(r: { first_name?: string; last_name?: string; second_last_name?: string } | null): string {
@@ -46,12 +46,10 @@ export async function getEffectiveStudent(user: { id: string; email?: string } |
   if (!user) return null
   const sb = admin()
 
-  if (user.email) {
-    const { data } = await sb.from('academic_students')
-      .select('document_number, email, first_name, last_name, second_last_name')
-      .eq('email', user.email).eq('disabled', false).maybeSingle()
-    if (data) return { document_number: data.document_number, email: data.email, name: fullName(data), impersonating: false }
-  }
+  // Entra por el personal o por el institucional: los estudiantes de bachelor,
+  // master y doctorado tienen @blackwell.pro y 40 de ellos NO tienen personal.
+  const data = await findStudentByLoginEmail(sb, user.email, 'document_number, email, first_name, last_name, second_last_name')
+  if (data) return { document_number: data.document_number, email: data.email, name: fullName(data), impersonating: false }
 
   const cookieStore = await cookies()
   const doc = cookieStore.get('imp_student')?.value
