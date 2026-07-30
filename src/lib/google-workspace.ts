@@ -281,7 +281,21 @@ export async function resetStudentPassword(email: string): Promise<EmailCreation
   })
   if (!res.ok) {
     const d = await res.json().catch(() => ({}))
-    throw new Error(`Google users.update ${res.status}: ${d.error?.message ?? ''}`)
+    const msg = d.error?.message ?? ''
+    // 403 aquí no es falta de scope (admin.directory.user ya permite escribir, y
+    // por eso el alta de cuentas sí funciona): es que el rol de administrador de
+    // la cuenta autorizada no incluye el privilegio de restablecer contraseñas,
+    // que en Workspace es SEPARADO del de crear usuarios.
+    if (res.status === 403) {
+      throw new Error(
+        'Google rechazó el cambio de contraseña (403). Crear cuentas sí funciona, así que no falta el permiso OAuth: '
+        + 'al rol de administrador de la cuenta autorizada le falta el privilegio de restablecer contraseñas. '
+        + 'En la consola de Google: Cuenta → Funciones de administrador → el rol de esa cuenta → Privilegios → '
+        + 'API de Admin → Usuarios → activar «Restablecer contraseña» y «Actualizar». '
+        + (msg ? `(respuesta de Google: ${msg})` : '')
+      )
+    }
+    throw new Error(`Google users.update ${res.status}: ${msg}`)
   }
   return { email, password }
 }
