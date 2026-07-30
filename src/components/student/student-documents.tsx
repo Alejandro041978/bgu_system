@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Loader2, X, FileText, Download, Eye, Camera, Check } from 'lucide-react'
+import { Plus, Loader2, X, FileText, Download, Eye, Camera, Check, Smartphone } from 'lucide-react'
 
 // Requisitos de foto de ISIC (manual CCDB): color, mínimo 500×500 px, < 5 MB,
 // JPG o PNG. Se comprueban en el navegador para avisar al instante — el
@@ -15,6 +15,7 @@ interface ReqCheck { kind: string; ok: boolean | null; note: string }
 interface Request {
   id: string; status: string; paid: boolean; requested_at: string; document_url: string | null
   type_name: string; price: number; currency: string
+  isic_card?: boolean; isic_card_number?: string | null
 }
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -303,13 +304,16 @@ export function StudentDocuments() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">{r.type_name}</p>
                   <p className="text-xs text-gray-400">{fdate(r.requested_at)}{Number(r.price) > 0 ? ` · ${r.currency} ${Number(r.price).toFixed(2)}${r.paid ? ' (pagado)' : ''}` : ''}</p>
+                  {r.isic_card_number && <p className="text-[11px] font-mono text-gray-500 mt-0.5">Nº {r.isic_card_number}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[r.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>{STATUS[r.status]?.label ?? r.status}</span>
                 {r.document_url && (
                   <a href={r.document_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white">
-                    <Download className="w-3.5 h-3.5" />Descargar
+                    {r.isic_card
+                      ? <><Smartphone className="w-3.5 h-3.5" />Activar en la app</>
+                      : <><Download className="w-3.5 h-3.5" />Descargar</>}
                   </a>
                 )}
               </div>

@@ -48,12 +48,16 @@ export async function GET() {
 
   // Solicitudes del estudiante
   const { data: reqs } = await sb.from('document_requests')
-    .select('id, status, paid, requested_at, document_url, type:document_types(name, price, currency)')
+    .select('id, status, paid, requested_at, document_url, field_values, type:document_types(name, price, currency, isic_card)')
     .eq('student_id', studentId).order('requested_at', { ascending: false })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requests = (reqs ?? []).map((r: any) => ({
     id: r.id, status: r.status, paid: r.paid, requested_at: r.requested_at, document_url: r.document_url,
     type_name: r.type?.name ?? '—', price: r.type?.price ?? 0, currency: r.type?.currency ?? 'USD',
+    // El carné no se descarga: se activa en el app de ISIC. El número también se
+    // muestra, porque es lo que le piden en los comercios.
+    isic_card: !!r.type?.isic_card,
+    isic_card_number: (r.field_values ?? {}).isic_card_number ?? null,
   }))
 
   return NextResponse.json({ requests, programs: programs ?? [], types: types ?? [] })
