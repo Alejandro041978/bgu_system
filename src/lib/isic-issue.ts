@@ -67,9 +67,16 @@ export async function issueIsicCard(requestId: string): Promise<IssueResult> {
   const firstName = String(s.first_name ?? '').trim()
   const lastName = [s.last_name, s.second_last_name].filter(Boolean).join(' ').trim()
   const dob = s.date_of_birth ? String(s.date_of_birth).slice(0, 10) : ''
-  // El correo lleva el enlace de alta del app móvil, así que va el PERSONAL —
-  // el institucional (@blackwell.pro) es el que el estudiante suele no revisar.
-  const email = String(s.email ?? s.email_alt ?? '').trim()
+  // Correo INSTITUCIONAL (@blackwell.pro, email_alt) cuando existe; el personal
+  // solo como respaldo. Misma regla que las cuentas Moodle y la emisión de
+  // documentos: es el correo con el que la institución identifica al estudiante.
+  //
+  // Y aquí no es un detalle cosmético: el correo que enviamos a CCDB queda
+  // DENTRO del enlace de activación y se convierte en la identidad de su cuenta
+  // en la app de ISIC. Por eso el aviso sale al mismo buzón: la cuenta vive ahí.
+  // Se comparan ya recortados: hay filas con email_alt en cadena vacía, y `??`
+  // solo cubre null — el respaldo tiene que dispararse igual.
+  const email = String(s.email_alt ?? '').trim() || String(s.email ?? '').trim()
 
   const missing: string[] = []
   if (!firstName) missing.push('nombre')
