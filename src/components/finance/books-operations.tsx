@@ -12,6 +12,13 @@ interface Op {
 }
 interface Hit { id: string; name: string; document_number: string | null }
 interface Cuota { external_id: string; program_name: string; concept: string; concept_name: string; amount: number; balance: number; due_date: string | null; status: string }
+// Una DEVOLUCIÓN no se asocia a una deuda sino al pago que reversa: es dinero
+// que vuelve al estudiante, y su espejo es el pago que lo trajo.
+interface Pago {
+  id: string; amount: number; paid_date: string | null; series_code: string | null
+  reference: string | null; method: string | null; charge_label: string
+  devuelto: number; disponible: number
+}
 interface Sug { operation_id: string; date: string | null; amount: number; diff: number; by?: 'ref' | 'fecha' }
 interface Disb { id: string; disbursement_id: string; disbursement_date: string | null; amount: number; currency: string | null; matched_operation_id: string | null; suggestion?: Sug | null }
 interface DisbRow { disbursement_id: string; date: string | null; amount: number; currency: string | null; count: number | null }
@@ -82,6 +89,8 @@ export function BooksOperations() {
   const [aHits, setAHits] = useState<Hit[]>([])
   const [aStudent, setAStudent] = useState<Hit | null>(null)
   const [cuotas, setCuotas] = useState<Cuota[]>([])
+  const [pagos, setPagos] = useState<Pago[]>([])
+  const [refAlloc, setRefAlloc] = useState<Record<string, string>>({})
   const [alloc, setAlloc] = useState<Record<string, string>>({})  // charge_external_id → monto
   const [associating, setAssociating] = useState(false)
 
@@ -157,7 +166,21 @@ export function BooksOperations() {
   async function pickAStudent(h: Hit) {
     setAStudent(h); setAq(h.name); setAHits([]); setAlloc({})
     const d = await fetch(`/api/finance/books/associate?student=${h.id}`).then(r => r.json())
-    setCuotas(d.cuotas ?? [])
+    setCuotas(d.cuotas ?? []); setPagos(d.pagos ?? [])
+  }
+  // Débito en Books = dinero que sale: se asocia a un pago, no a una cuota.
+  const esDevolucion = (o: Op | null) => Number(o?.debit ?? 0) > 0
+  const montoOp = (o: Op | null) => (esDevolucion(o) ? Number(o?.debit ?? 0) : Number(o?.credit ?? 0))
+  function togglePago(pg: Pago) {
+    setRefAlloc(prev => {
+      const next = { ...prev }
+      if (next[pg.id] != null) { delete next[pg.id]; return next }
+      const asignado = Object.values(prev).reduce((s, v) => s + (Number(v) || 0), 0)
+      const restante = Math.max(0, montoOp(assocOp) - asignado)
+      const sugerido = Math.min(pg.disponible, restante || pg.disponible)
+      next[pg.id] = (Math.round(sugerido * 100) / 100).toString()
+      return next
+    })
   }
   // Marca/desmarca una cuota para el reparto; al marcar, sugiere el saldo (o lo que
   // reste del ingreso, lo que sea menor) para no pasarse.
@@ -179,20 +202,31 @@ export function BooksOperations() {
     const allocations = Object.entries(alloc)
       .map(([charge_external_id, v]) => ({ charge_external_id, amount: Number(v) }))
       .filter(a => a.amount > 0)
-    if (!allocations.length) { setError('Selecciona al menos una cuota y un monto'); return }
+    const refunds = Object.entries(refAlloc)
+      .map(([payment_id, v]) => ({ payment_id, amount: Number(v) }))
+      .filter(r => r.amount > 0)
+    if (esDevolucion(assocOp) ? !refunds.length : !allocations.length) {
+      setError(esDevolucion(assocOp) ? 'Selecciona el pago que se devolvió y su monto' : 'Selecciona al menos una cuota y un monto')
+      return
+    }
     setAssociating(true); setError(null)
     const d = await fetch('/api/finance/books/associate', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ operation_id: assocOp.id, allocations }),
+      body: JSON.stringify(esDevolucion(assocOp)
+        ? { operation_id: assocOp.id, refunds }
+        : { operation_id: assocOp.id, allocations }),
     }).then(r => r.json())
     setAssociating(false)
     if (d.error) { setError(d.error); return }
-    setAssocOp(null); setAStudent(null); setAq(''); setCuotas([]); setAlloc({})
+    setAssocOp(null); setAStudent(null); setAq(''); setCuotas([]); setAlloc({}); setPagos([]); setRefAlloc({})
     load(account, status)
   }
   // Desasocia una operación ya conciliada (borra sus pagos Books) para rehacerla.
   async function desasociar(op: Op) {
-    if (!confirm(`¿Desasociar el ingreso de Books (${money(op.credit)})? Se borrarán los pagos BOOKS que creó y la operación volverá a "pendiente".`)) return
+    const dev = Number(op.debit ?? 0) > 0
+    if (!confirm(dev
+      ? `¿Desasociar la devolución de Books (${money(op.debit)})? Se borrarán los movimientos negativos que creó, el saldo del estudiante volverá a bajar y la operación quedará "pendiente".`
+      : `¿Desasociar el ingreso de Books (${money(op.credit)})? Se borrarán los pagos BOOKS que creó y la operación volverá a "pendiente".`)) return
     setError(null)
     const d = await fetch('/api/finance/books/associate', {
       method: 'DELETE', headers: { 'Content-Type': 'application/json' },
@@ -350,9 +384,11 @@ export function BooksOperations() {
                       {o.gestion_status !== 'pendiente' && <CheckCircle2 className="w-3 h-3" />}
                       {o.gestion_status}
                     </button>
-                    {o.gestion_status === 'pendiente' && (o.credit ?? 0) > 0 && (
-                      <button onClick={() => { setAssocOp(o); setAq(''); setAHits([]); setAStudent(null); setCuotas([]); setAlloc({}) }}
-                        className="block mt-1 text-[10px] text-blue-600 hover:underline">→ asociar a cuota(s)</button>
+                    {o.gestion_status === 'pendiente' && ((o.credit ?? 0) > 0 || (o.debit ?? 0) > 0) && (
+                      <button onClick={() => { setAssocOp(o); setAq(''); setAHits([]); setAStudent(null); setCuotas([]); setAlloc({}); setPagos([]); setRefAlloc({}) }}
+                        className="block mt-1 text-[10px] text-blue-600 hover:underline">
+                        {(o.debit ?? 0) > 0 ? '→ asociar devolución a un pago' : '→ asociar a cuota(s)'}
+                      </button>
                     )}
                     {o.gestion_status === 'asociada' && (
                       <button onClick={() => desasociar(o)}
@@ -494,11 +530,14 @@ export function BooksOperations() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => !associating && setAssocOp(null)}>
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-5 space-y-3" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5"><UserPlus className="w-4 h-4 text-blue-600" />Asociar ingreso de Books a una cuota</h3>
+              <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                <UserPlus className="w-4 h-4 text-blue-600" />
+                {esDevolucion(assocOp) ? 'Asociar devolución al pago que reversa' : 'Asociar ingreso de Books a una cuota'}
+              </h3>
               <button onClick={() => setAssocOp(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
             </div>
-            <div className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
-              <b className="text-gray-700">{money(assocOp.credit)}</b> · {assocOp.txn_date} · {assocOp.account_name} · {assocOp.contact_name ?? '—'} · ref {assocOp.reference ?? '—'}
+            <div className={`text-xs rounded-lg px-3 py-2 border ${esDevolucion(assocOp) ? 'text-red-700 bg-red-50 border-red-100' : 'text-gray-500 bg-gray-50 border-gray-100'}`}>
+              <b>{money(montoOp(assocOp))}</b>{esDevolucion(assocOp) ? ' devueltos' : ''} · {assocOp.txn_date} · {assocOp.account_name} · {assocOp.contact_name ?? '—'} · ref {assocOp.reference ?? '—'}
             </div>
 
             {!aStudent ? (
@@ -521,8 +560,55 @@ export function BooksOperations() {
               <>
                 <p className="text-sm text-gray-700 flex items-center gap-2">
                   {aStudent.name} <span className="text-xs text-gray-400">{aStudent.document_number}</span>
-                  <button onClick={() => { setAStudent(null); setCuotas([]); setAq('') }} className="text-xs text-blue-600 hover:underline">cambiar</button>
+                  <button onClick={() => { setAStudent(null); setCuotas([]); setPagos([]); setAq('') }} className="text-xs text-blue-600 hover:underline">cambiar</button>
                 </p>
+
+                {/* DEVOLUCIÓN: se elige el pago que se reversa. Se registra como
+                    pago negativo que hereda la cuota del original, así que el
+                    saldo del estudiante revive solo. */}
+                {esDevolucion(assocOp) ? (
+                  <div className="border border-gray-100 rounded-lg overflow-hidden max-h-72 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0"><tr className="bg-gray-50 text-gray-500 text-[10.5px] uppercase">
+                        <th className="px-3 py-2 w-8"></th>
+                        <th className="px-3 py-2 text-left">Fecha</th><th className="px-3 py-2 text-left">Origen</th>
+                        <th className="px-3 py-2 text-left">Aplicado a</th>
+                        <th className="px-3 py-2 text-right">Pago</th><th className="px-3 py-2 text-right">Sin devolver</th>
+                        <th className="px-3 py-2 text-right">Devolver</th>
+                      </tr></thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {pagos.map(pg => {
+                          const sel = refAlloc[pg.id] != null
+                          const calza = Math.abs(pg.disponible - montoOp(assocOp)) < 0.01
+                          const agotado = pg.disponible <= 0.005
+                          return (
+                            <tr key={pg.id} className={sel ? 'bg-blue-50/50' : agotado ? 'opacity-50' : calza ? 'bg-green-50/40' : ''}>
+                              <td className="px-3 py-1.5 text-center">
+                                <input type="checkbox" checked={sel} disabled={agotado} onChange={() => togglePago(pg)} className="accent-blue-600" />
+                              </td>
+                              <td className="px-3 py-1.5 text-xs text-gray-500">{pg.paid_date ?? '—'}</td>
+                              <td className="px-3 py-1.5 text-xs" title={pg.reference ?? ''}>{pg.series_code ?? pg.method ?? '—'}</td>
+                              <td className="px-3 py-1.5 text-xs text-gray-500 max-w-44 truncate" title={pg.charge_label}>{pg.charge_label}</td>
+                              <td className="px-3 py-1.5 text-right tabular-nums text-xs">{money(pg.amount)}</td>
+                              <td className={`px-3 py-1.5 text-right tabular-nums text-xs ${agotado ? 'text-gray-400' : 'text-gray-900 font-medium'}`}>
+                                {money(pg.disponible)}
+                                {pg.devuelto > 0 && <span className="block text-[10px] text-red-500">ya devuelto {money(pg.devuelto)}</span>}
+                              </td>
+                              <td className="px-3 py-1.5 text-right">
+                                {sel ? (
+                                  <input type="number" min={0} step="0.01" value={refAlloc[pg.id]}
+                                    onChange={e => setRefAlloc(prev => ({ ...prev, [pg.id]: e.target.value }))}
+                                    className="w-24 text-right text-xs border border-blue-200 rounded px-2 py-1 tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                                ) : <span className="text-gray-300 text-xs">—</span>}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                        {pagos.length === 0 && <tr><td colSpan={7} className="px-3 py-6 text-center text-xs text-gray-400">Este estudiante no tiene pagos registrados.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
                 <div className="border border-gray-100 rounded-lg overflow-hidden max-h-72 overflow-y-auto">
                   <table className="w-full text-sm">
                     <thead className="sticky top-0"><tr className="bg-gray-50 text-gray-500 text-[10.5px] uppercase">
@@ -558,14 +644,27 @@ export function BooksOperations() {
                     </tbody>
                   </table>
                 </div>
+                )}
                 <div className="flex items-center justify-between pt-1">
-                  <p className="text-[11px] text-gray-400 max-w-sm">Marca una o varias cuotas y reparte el ingreso (p. ej. enrollment + tuition en un mismo depósito). Se crea un pago serie BOOKS por cuota, sin unificarlas.</p>
+                  <p className="text-[11px] text-gray-400 max-w-sm">
+                    {esDevolucion(assocOp)
+                      ? 'Elige el pago que se le devolvió. Se registra como pago negativo sobre la misma cuota, así que el saldo del estudiante vuelve a subir por ese importe.'
+                      : 'Marca una o varias cuotas y reparte el ingreso (p. ej. enrollment + tuition en un mismo depósito). Se crea un pago serie BOOKS por cuota, sin unificarlas.'}
+                  </p>
                   <div className="text-right">
-                    <p className={`text-xs tabular-nums ${asignadoTotal > (assocOp.credit ?? 0) + 0.01 ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
-                      Asignado: <b>{money(asignadoTotal)}</b> / {money(assocOp.credit)}
-                      {asignadoTotal > (assocOp.credit ?? 0) + 0.01 && <span className="ml-1">· supera el ingreso</span>}
-                      {asignadoTotal < (assocOp.credit ?? 0) - 0.01 && asignadoTotal > 0 && <span className="ml-1 text-amber-600">· sobra {money((assocOp.credit ?? 0) - asignadoTotal)}</span>}
-                    </p>
+                    {(() => {
+                      const total = esDevolucion(assocOp)
+                        ? Math.round(Object.values(refAlloc).reduce((s, v) => s + (Number(v) || 0), 0) * 100) / 100
+                        : asignadoTotal
+                      const tope = montoOp(assocOp)
+                      return (
+                        <p className={`text-xs tabular-nums ${total > tope + 0.01 ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                          {esDevolucion(assocOp) ? 'A devolver' : 'Asignado'}: <b>{money(total)}</b> / {money(tope)}
+                          {total > tope + 0.01 && <span className="ml-1">· supera la operación</span>}
+                          {total < tope - 0.01 && total > 0 && <span className="ml-1 text-amber-600">· sobra {money(tope - total)}</span>}
+                        </p>
+                      )
+                    })()}
                   </div>
                 </div>
                 <div className="flex justify-end">
