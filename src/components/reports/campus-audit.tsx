@@ -158,8 +158,24 @@ export function CampusAudit() {
                         <td className="px-3 py-2 text-right text-gray-600">{f.aulas}</td>
                         <td className={`px-3 py-2 text-right font-medium ${f.incumplen > 0 ? 'text-rose-700' : 'text-gray-300'}`}>{f.incumplen || '—'}</td>
                         <td className={`px-3 py-2 text-right font-medium ${f.sin_matricula_manual > 0 ? 'text-rose-700' : 'text-gray-300'}`}>{f.sin_matricula_manual || '—'}</td>
-                        <td className={`px-3 py-2 text-xs whitespace-nowrap ${dias != null && dias >= 7 ? 'text-amber-600' : 'text-gray-500'}`}>
-                          {f.mas_antigua ? (dias === 0 ? 'hoy' : `hace ${dias} d`) : '—'}
+                        {/* La fecha REAL, que es el dato que manda; lo relativo
+                            va debajo como ayuda de lectura. Y si dentro de la
+                            familia hay aulas de otro día, se dice: significa que
+                            una corrida anterior se cortó a medio camino. */}
+                        <td className="px-3 py-2 text-xs whitespace-nowrap">
+                          {f.audited_at ? (
+                            <>
+                              <span className={dias != null && dias >= 7 ? 'text-amber-600 font-medium' : 'text-gray-700'}>
+                                {new Date(f.audited_at).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <span className="block text-[10.5px] text-gray-400">
+                                {dias === 0 ? 'hoy' : `hace ${dias} d`}
+                                {f.mas_antigua && f.audited_at.slice(0, 10) !== f.mas_antigua.slice(0, 10) && (
+                                  <span className="text-amber-600"> · parcial desde {new Date(f.mas_antigua).toLocaleDateString('es-PE')}</span>
+                                )}
+                              </span>
+                            </>
+                          ) : <span className="text-gray-300">sin auditar</span>}
                         </td>
                         <td className="px-3 py-2 text-right">
                           <button onClick={() => audit(f.familia)} disabled={!!auditing}
@@ -234,12 +250,22 @@ export function CampusAudit() {
               <tbody className="divide-y divide-gray-50">
                 {gruposOrdenados.map(([cat, aulasGrupo]) => [
                   <tr key={`cat-${cat}`} className="bg-gray-100/80">
-                    <td colSpan={8} className="px-4 py-2">
+                    <td colSpan={9} className="px-4 py-2">
                       <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">{cat}</span>
                       <span className="text-[11px] text-gray-500 ml-3">
                         {aulasGrupo.length} aula(s)
                         {' · '}<span className="text-green-700">{aulasGrupo.filter(x => x.cumple_pesos && x.cumple_escala).length} cumplen</span>
                         {' · '}<span className="text-rose-700">{aulasGrupo.filter(x => x.cumple_pesos === false || x.cumple_escala === false).length} incumplen</span>
+                        {/* La fecha de ESTE grupo, no la del campus: con
+                            auditorías parciales cada categoría va por su cuenta. */}
+                        {(() => {
+                          const fechas = aulasGrupo.map(x => x.audited_at).filter(Boolean).sort()
+                          if (!fechas.length) return null
+                          const dias = Math.floor((Date.now() - new Date(fechas[0]).getTime()) / 86400000)
+                          return <>{' · '}<span className={dias >= 7 ? 'text-amber-600' : 'text-gray-400'}>
+                            auditada {new Date(fechas[fechas.length - 1]).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span></>
+                        })()}
                       </span>
                     </td>
                   </tr>,
