@@ -56,10 +56,20 @@ export async function GET() {
   // porque `suma_coeficientes` seguía con el 12 sincronizado el 23-07. Un
   // número viejo no puede tumbar una medición nueva: si el sync es anterior a
   // la auditoría, esa señal se ignora y manda la del webservice.
+  //
+  // La tolerancia de 24 h no es cosmética: exigir que el sync sea POSTERIOR a
+  // la auditoría convertía cada auditoría en un invalidador de la Σ, y obligaba
+  // a correr N8N después de cada corrida. Lo que de verdad importa es que la Σ
+  // no sea anterior a un CAMBIO en Moodle; el reloj de la auditoría es solo un
+  // proxy. Con un día de margen, un sync del mismo día sigue valiendo y el caso
+  // real que motivó la regla —Σ del 23-07 contra auditoría del 30-07— se sigue
+  // detectando.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const coefVigente = (r: any): boolean =>
-    r.suma_coeficientes != null && !!r.coefs_sync_at &&
-    (!r.audited_at || new Date(r.coefs_sync_at) >= new Date(r.audited_at))
+  const coefVigente = (r: any): boolean => {
+    if (r.suma_coeficientes == null || !r.coefs_sync_at) return false
+    if (!r.audited_at) return true
+    return new Date(r.coefs_sync_at).getTime() >= new Date(r.audited_at).getTime() - 24 * 3600 * 1000
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cumplePesosDe = (r: any): boolean | null => {
     const okCoef = coefVigente(r) ? Math.abs(Number(r.suma_coeficientes) - 100) <= 0.5 : null

@@ -78,9 +78,12 @@ export function CampusAudit() {
   // sobre el peso normalizado del WS: detecta huecos como "3 Module Tests de 4"
   // ⚠ Solo vale si el sync es POSTERIOR a la auditoría: viene de otra tubería
   // (N8N) y puede estar caducado. Un número viejo no tumba una medición nueva.
+  // 24 h de tolerancia: exigir que el sync fuera posterior hacía que cada
+  // auditoría invalidara la Σ y obligara a correr N8N detrás. Lo que importa es
+  // que la Σ no preceda a un cambio en Moodle, no el orden exacto del reloj.
   const coefVigente = (a: Aula): boolean =>
     a.suma_coeficientes != null && !!a.coefs_sync_at &&
-    new Date(a.coefs_sync_at) >= new Date(a.audited_at)
+    new Date(a.coefs_sync_at).getTime() >= new Date(a.audited_at).getTime() - 24 * 3600 * 1000
   const cumplePesosDe = (a: Aula): boolean | null => {
     if (coefVigente(a)) return Math.abs(Number(a.suma_coeficientes) - 100) <= 0.5
     return a.cumple_pesos
