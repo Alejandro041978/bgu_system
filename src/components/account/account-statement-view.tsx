@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
-import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil, Plus, Gift } from 'lucide-react'
+import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil, Plus, Gift, Layers } from 'lucide-react'
 import { FlywirePayButton } from './flywire-pay-button'
 
 const money = (n: number) =>
@@ -170,7 +170,11 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
       </div>
 
       {canGenerate && account.enrollment_id && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {/* Refacturar es del mismo peso que un descuento (reescribe el libro
+              de cuotas), así que va con el permiso de descuentos, no con el de
+              crear una cuota suelta. */}
+          {canDiscount && <RebillButton enrollmentId={account.enrollment_id} charges={account.charges} onChanged={onChanged} />}
           <NewChargeButton enrollmentId={account.enrollment_id} onChanged={onChanged} />
         </div>
       )}
@@ -443,6 +447,233 @@ function ChargeFormModal(
     </div>
   )
 }
+
+// ── Refacturar: cambiar el plan de cuotas de golpe ─────────────────────────
+// Pensado para el caso "la plantilla creó 18 cuotas de 156 y quiero otro
+// esquema": nadie debería editar 18 filas a mano.
+//
+// Muestra SIEMPRE la vista previa antes de aplicar, porque lo que se está
+// tocando es lo que el estudiante debe. La previa dice exactamente qué se
+// borra, qué se conserva por tener movimientos, y qué se crea.
+interface RebillCharge { external_id: string; amount: number; due_date: string | null }
+interface RebillPreview {
+  ok: boolean; error?: string; blocked?: string; applied?: boolean
+  replace: RebillCharge[]; keep: (RebillCharge & { reason: string })[]
+  create: { amount: number; due_date: string }[]
+  totalReplaced: number; totalNew: number
+}
+interface PlanRow {
+  id: string; program_id: string; convocatoria_id: string
+  installments_count: number; installment_amount: number
+  installment_concept: number | null; first_due_date: string | null; due_day: number | null
+}
+
+function RebillButton(
+  { enrollmentId, charges, onChanged }:
+  { enrollmentId: string; charges: ChargeRow[]; onChanged?: () => void }
+) {
+  const [open, setOpen] = useState(false)
+  const [plans, setPlans] = useState<PlanRow[]>([])
+  const [convNames, setConvNames] = useState<Record<string, string>>({})
+  const [progNames, setProgNames] = useState<Record<string, string>>({})
+
+  // Concepto por defecto: el más repetido. La matrícula aparece una sola vez,
+  // así que el ganador es siempre la cuota recurrente — la que se quiere
+  // refasear. (El servidor excluye la inicial de todas formas.)
+  const conceptoSugerido = (() => {
+    const cuenta = new Map<string, number>()
+    for (const c of charges) {
+      const k = String(c.charge_type ?? '')
+      cuenta.set(k, (cuenta.get(k) ?? 0) + 1)
+    }
+    let mejor = '', max = 0
+    for (const [k, v] of cuenta) if (v > max) { mejor = k; max = v }
+    return mejor
+  })()
+
+  const [concept, setConcept] = useState(conceptoSugerido)
+  const [count, setCount] = useState('')
+  const [amount, setAmount] = useState('')
+  const [firstDue, setFirstDue] = useState('')
+  const [dueDay, setDueDay] = useState('')
+  const [allowTotalChange, setAllowTotalChange] = useState(false)
+  const [prev, setPrev] = useState<RebillPreview | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/billing/plans').then(r => r.json()).then(d => {
+      setPlans(d.plans ?? [])
+      const cn: Record<string, string> = {}
+      for (const c of d.convocatorias ?? []) cn[c.id] = c.name
+      setConvNames(cn)
+      const pn: Record<string, string> = {}
+      for (const p of d.programs ?? []) pn[p.id] = p.name
+      setProgNames(pn)
+    }).catch(() => null)
+  }, [open])
+
+  function usarPlan(id: string) {
+    const p = plans.find(x => x.id === id)
+    if (!p) return
+    setCount(String(p.installments_count ?? ''))
+    setAmount(String(p.installment_amount ?? ''))
+    setFirstDue(p.first_due_date ? String(p.first_due_date).slice(0, 10) : '')
+    setDueDay(p.due_day != null ? String(p.due_day) : '')
+    if (p.installment_concept != null) setConcept(String(p.installment_concept))
+    setPrev(null)
+  }
+
+  async function llamar(dryRun: boolean) {
+    setBusy(true); setErr(null)
+    const res = await fetch('/api/account/rebill', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        enrollment_id: enrollmentId, concept: concept === '' ? null : Number(concept),
+        installments_count: Number(count), installment_amount: Number(amount),
+        first_due_date: firstDue, due_day: dueDay === '' ? null : Number(dueDay),
+        dry_run: dryRun, allow_total_change: allowTotalChange,
+      }),
+    })
+    const d = await res.json() as RebillPreview
+    setBusy(false)
+    if (d.error) { setErr(d.error); setPrev(null); return }
+    setPrev(d)
+    if (d.applied) { onChanged?.(); setTimeout(() => { setOpen(false); setPrev(null) }, 1200) }
+  }
+
+  const listo = !!count && !!amount && !!firstDue
+  const difiere = prev && Math.abs(prev.totalNew - prev.totalReplaced) > 0.005
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+        <Layers className="w-3.5 h-3.5" /> Refacturar cuotas
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={() => !busy && setOpen(false)}>
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-800">Refacturar cuotas</h3>
+              <button onClick={() => !busy && setOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+
+            <p className="text-[12px] text-gray-500 leading-relaxed">
+              Reemplaza de una vez las cuotas pendientes de un concepto por un plan nuevo. Las cuotas con pagos o
+              descuentos <strong>no se tocan</strong>, y el concepto inicial (matrícula) tampoco.
+            </p>
+
+            {plans.length > 0 && (
+              <label className="block">
+                <span className="block text-xs text-gray-500 mb-1">Copiar de una plantilla existente</span>
+                <select onChange={e => usarPlan(e.target.value)} defaultValue=""
+                  className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">Escribir los valores a mano…</option>
+                  {plans.filter(p => Number(p.installments_count) > 0).map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.installments_count} × {Number(p.installment_amount).toFixed(2)} · {progNames[p.program_id] ?? 'programa'} · {convNames[p.convocatoria_id] ?? 'convocatoria'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <label className="block"><span className="block text-xs text-gray-500 mb-1">Nº de cuotas</span>
+                <input type="number" min="1" value={count} onChange={e => { setCount(e.target.value); setPrev(null) }} className={inp2} /></label>
+              <label className="block"><span className="block text-xs text-gray-500 mb-1">Monto por cuota</span>
+                <input type="number" step="0.01" min="0" value={amount} onChange={e => { setAmount(e.target.value); setPrev(null) }} className={inp2} /></label>
+              <label className="block"><span className="block text-xs text-gray-500 mb-1">Primer vencimiento</span>
+                <input type="date" value={firstDue} onChange={e => { setFirstDue(e.target.value); setPrev(null) }} className={inp2} /></label>
+              <label className="block"><span className="block text-xs text-gray-500 mb-1">Día de pago</span>
+                <input type="number" min="1" max="31" value={dueDay} onChange={e => { setDueDay(e.target.value); setPrev(null) }} placeholder="del 1er venc." className={inp2} /></label>
+            </div>
+
+            {listo && !prev && (
+              <button onClick={() => llamar(true)} disabled={busy}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-800 hover:bg-gray-900 disabled:opacity-50 text-white">
+                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Ver qué va a pasar
+              </button>
+            )}
+
+            {err && <p className="text-[12.5px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{err}</p>}
+
+            {prev && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg border border-gray-200 p-2.5">
+                    <p className="text-[10.5px] text-gray-400 uppercase tracking-wide">Se eliminan</p>
+                    <p className="text-base font-bold text-gray-800">{prev.replace.length}</p>
+                    <p className="text-[11px] text-gray-500">{money(prev.totalReplaced)}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 p-2.5">
+                    <p className="text-[10.5px] text-gray-400 uppercase tracking-wide">Se crean</p>
+                    <p className="text-base font-bold text-gray-800">{prev.create.length}</p>
+                    <p className="text-[11px] text-gray-500">{money(prev.totalNew)}</p>
+                  </div>
+                  <div className={`rounded-lg border p-2.5 ${difiere ? 'border-amber-200 bg-amber-50' : 'border-gray-200'}`}>
+                    <p className="text-[10.5px] text-gray-400 uppercase tracking-wide">Diferencia</p>
+                    <p className={`text-base font-bold ${difiere ? 'text-amber-700' : 'text-green-600'}`}>
+                      {difiere ? money(prev.totalNew - prev.totalReplaced) : 'sin cambio'}
+                    </p>
+                  </div>
+                </div>
+
+                {prev.keep.length > 0 && (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                    <p className="text-[11.5px] font-medium text-gray-700 mb-1">Se conservan {prev.keep.length} cuota(s):</p>
+                    {prev.keep.map(k => (
+                      <p key={k.external_id} className="text-[11px] text-gray-500">· {money(Number(k.amount))} {k.due_date ? `(vence ${k.due_date})` : ''} — {k.reason}</p>
+                    ))}
+                  </div>
+                )}
+
+                {prev.create.length > 0 && (
+                  <p className="text-[11.5px] text-gray-500">
+                    Nuevo plan: {prev.create.length} × {money(prev.create[0].amount)}, del {prev.create[0].due_date} al {prev.create[prev.create.length - 1].due_date}.
+                  </p>
+                )}
+
+                {prev.blocked && (
+                  <p className="text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{prev.blocked}</p>
+                )}
+
+                {difiere && !prev.applied && (
+                  <label className="flex items-start gap-2 text-[12px] text-gray-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <input type="checkbox" checked={allowTotalChange} onChange={e => setAllowTotalChange(e.target.checked)} className="mt-0.5 rounded border-gray-300" />
+                    <span>Entiendo que esto <strong>cambia lo que debe el estudiante</strong> en {money(prev.totalNew - prev.totalReplaced)}, no solo el calendario de pagos.</span>
+                  </label>
+                )}
+
+                {prev.applied ? (
+                  <p className="text-[13px] text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                    ✓ Refacturado: {prev.replace.length} cuota(s) reemplazadas por {prev.create.length}.
+                  </p>
+                ) : (
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={() => llamar(false)} disabled={busy || (!!difiere && !allowTotalChange)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+                      {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Aplicar el cambio
+                    </button>
+                    <button onClick={() => setPrev(null)} disabled={busy}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+                      Volver
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+const inp2 = 'w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 // Crear una cuota manual en la cuenta de la matrícula (solo admin/cobranza).
 function NewChargeButton({ enrollmentId, onChanged }: { enrollmentId: string; onChanged?: () => void }) {
