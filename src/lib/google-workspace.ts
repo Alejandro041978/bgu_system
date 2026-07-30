@@ -229,3 +229,59 @@ export async function notifyStudentEmail(personalEmail: string, studentName: str
   })
   if (error) throw new Error(`Resend: ${error.message}`)
 }
+
+// ── Estado de la cuenta en Google ──────────────────────────────────────────
+export interface StudentAccountState {
+  exists: boolean
+  everLoggedIn: boolean          // ¿alguna vez inició sesión?
+  lastLoginTime: string | null   // null si nunca
+  suspended: boolean
+  recoveryEmail: string | null   // sin esto, "olvidé mi contraseña" no funciona
+  recoveryPhone: string | null
+  changePasswordAtNextLogin: boolean
+}
+
+// Google devuelve lastLoginTime = epoch cuando la cuenta NUNCA se ha usado.
+const NUNCA = '1970-01-01T00:00:00.000Z'
+
+export async function getStudentAccountState(email: string): Promise<StudentAccountState> {
+  const token = await getAccessToken()
+  const res = await fetch(`https://admin.googleapis.com/admin/directory/v1/users/${encodeURIComponent(email)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 404) {
+    return { exists: false, everLoggedIn: false, lastLoginTime: null, suspended: false, recoveryEmail: null, recoveryPhone: null, changePasswordAtNextLogin: false }
+  }
+  const d = await res.json()
+  if (!res.ok) throw new Error(`Google users.get ${res.status}: ${d.error?.message ?? ''}`)
+  const last: string | null = d.lastLoginTime && d.lastLoginTime !== NUNCA ? d.lastLoginTime : null
+  return {
+    exists: true,
+    everLoggedIn: !!last,
+    lastLoginTime: last,
+    suspended: !!d.suspended,
+    recoveryEmail: d.recoveryEmail ?? null,
+    recoveryPhone: d.recoveryPhone ?? null,
+    changePasswordAtNextLogin: !!d.changePasswordAtNextLogin,
+  }
+}
+
+// Asigna una contraseña temporal nueva y obliga a cambiarla al entrar.
+//
+// No existe "reenviar el correo original": la contraseña se genera al crear la
+// cuenta y NO se guarda en ninguna parte (a propósito). Reenviar es, por
+// fuerza, emitir una contraseña nueva.
+export async function resetStudentPassword(email: string): Promise<EmailCreation> {
+  const token = await getAccessToken()
+  const password = tempPassword()
+  const res = await fetch(`https://admin.googleapis.com/admin/directory/v1/users/${encodeURIComponent(email)}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password, changePasswordAtNextLogin: true }),
+  })
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}))
+    throw new Error(`Google users.update ${res.status}: ${d.error?.message ?? ''}`)
+  }
+  return { email, password }
+}

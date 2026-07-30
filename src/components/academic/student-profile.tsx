@@ -181,7 +181,10 @@ export function StudentProfile() {
               <Field label="Correo"><input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={inp} /></Field>
               <Field label="Correo institucional">
                 {student.email_alt ? (
-                  <input type="email" value={form.email_alt} onChange={e => set('email_alt', e.target.value)} className={inp} />
+                  <div className="space-y-1">
+                    <input type="email" value={form.email_alt} onChange={e => set('email_alt', e.target.value)} className={inp} />
+                    <StudentEmailAccess studentId={student.id} />
+                  </div>
                 ) : (
                   <button onClick={crearCorreo} disabled={saving}
                     className="w-full border border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 rounded-lg px-2.5 py-2 text-sm transition-colors">
@@ -270,3 +273,74 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const inp = 'w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'
+
+// Estado de la cuenta @blackwell.pro y reenvío de credenciales.
+//
+// El reenvío solo tiene sentido mientras el estudiante NO haya entrado: la
+// contraseña no se guarda en ninguna parte, así que "reenviar" significa emitir
+// una nueva. Si ya entró, esa nueva contraseña le quitaría el acceso que ya
+// tiene — por eso el botón desaparece y en su lugar se dice qué hacer.
+function StudentEmailAccess({ studentId }: { studentId: string }) {
+  const [st, setSt] = useState<{
+    exists: boolean; everLoggedIn: boolean; lastLoginTime: string | null; suspended: boolean
+    recoveryEmail: string | null; recoveryPhone: string | null; personal_email: string | null
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    let vivo = true
+    setLoading(true)
+    fetch(`/api/students/${studentId}/student-email-access`)
+      .then(r => r.json())
+      .then(d => { if (vivo) { if (d.error) setErr(d.error); else setSt(d) } })
+      .catch(() => { if (vivo) setErr('No se pudo consultar Google') })
+      .finally(() => { if (vivo) setLoading(false) })
+    return () => { vivo = false }
+  }, [studentId])
+
+  async function reenviar() {
+    setBusy(true); setMsg(null); setErr(null)
+    const res = await fetch(`/api/students/${studentId}/student-email-access`, { method: 'POST' })
+    const d = await res.json()
+    setBusy(false)
+    if (!res.ok) { setErr(d.error ?? 'No se pudo reenviar'); return }
+    setMsg(`Credenciales nuevas enviadas a ${d.sent_to}`)
+  }
+
+  if (loading) return <p className="text-[11px] text-gray-400">Consultando estado de la cuenta…</p>
+  if (err && !st) return <p className="text-[11px] text-amber-600">{err}</p>
+  if (!st) return null
+
+  return (
+    <div className="space-y-1">
+      {st.everLoggedIn ? (
+        <p className="text-[11px] text-gray-500">
+          ✓ Ya usó su cuenta{st.lastLoginTime ? ` (último acceso: ${new Date(st.lastLoginTime).toLocaleDateString('es-PE')})` : ''}.
+          {st.recoveryEmail || st.recoveryPhone
+            ? ' Si olvidó la contraseña, puede recuperarla él mismo.'
+            : ' Sin datos de recuperación: si olvida la contraseña, tiene que restablecerla un administrador de Google.'}
+        </p>
+      ) : (
+        <>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] text-amber-600">Nunca ha entrado a su cuenta.</span>
+            <button onClick={reenviar} disabled={busy || !st.personal_email}
+              className="text-[11px] font-medium text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline"
+              title={st.personal_email ? `Enviar a ${st.personal_email}` : 'No tiene correo personal donde enviarlo'}>
+              {busy ? 'Enviando…' : 'Reenviar credenciales'}
+            </button>
+          </div>
+          <p className="text-[10.5px] text-gray-400 leading-relaxed">
+            Se emite una contraseña temporal nueva (la original no se guarda) y se envía a su correo personal.
+          </p>
+        </>
+      )}
+      {st.suspended && <p className="text-[11px] text-red-600">La cuenta está suspendida en Google.</p>}
+      {msg && <p className="text-[11px] text-green-600">{msg}</p>}
+      {err && <p className="text-[11px] text-red-600">{err}</p>}
+    </div>
+  )
+}
