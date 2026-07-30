@@ -28,6 +28,7 @@ interface Data {
 // está su foto. Es lo que permite decidir por dónde empezar.
 interface Familia {
   ruta: string; nivel: number; nombre: string
+  aula_ids?: number[] | null
   aulas: number; incumplen: number
   sin_matricula_manual: number; sin_datos: number
   audited_at: string | null; mas_antigua: string | null
@@ -57,16 +58,21 @@ export function CampusAudit() {
   // barrido completo roza el límite de tiempo de Vercel y a veces muere a medio
   // camino) y permite atacar primero la categoría que se está trabajando.
   // El guardado es por tandas, así que una corrida parcial no borra el resto.
-  async function audit(familia?: string) {
-    const cuantas = familia ? (d?.familias ?? []).find(f => f.ruta === familia)?.aulas : d?.total
-    const texto = familia
-      ? `Se auditarán las ${cuantas ?? '?'} aulas de "${familia}". El resto del campus conserva su última foto. ¿Continuar?`
+  async function audit(f?: Familia) {
+    const texto = f
+      ? `Se auditarán las ${f.aulas} aulas de "${f.nombre}". El resto del campus conserva su última foto. ¿Continuar?`
       : 'Se auditará el campus COMPLETO contra la política (ponderaciones 100% y escala sobre 100). Toma 1-3 minutos y puede agotar el tiempo; por familia es más seguro. ¿Continuar?'
     if (!confirm(texto)) return
-    setAuditing(familia ?? 'todas'); setError(null)
+    setAuditing(f?.ruta ?? 'todas'); setError(null)
+    // Los pendientes se auditan por ID: su etiqueta es de una auditoría vieja y
+    // la categoría pudo moverse o renombrarse en Moodle desde entonces. Las
+    // categorías reales van por nombre, que además descubre aulas nuevas.
+    const cuerpo = !f ? {}
+      : f.aula_ids?.length ? { aulas: f.aula_ids }
+        : { familia: f.ruta }
     const r = await fetch('/api/academic/moodle-audit', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(familia ? { familia } : {}),
+      body: JSON.stringify(cuerpo),
     })
     const data = await r.json()
     setAuditing(null)
@@ -195,15 +201,11 @@ export function CampusAudit() {
                           {/* El grupo de pendientes no es una categoría real de
                               Moodle: no hay ruta que filtrar, se resuelve
                               auditando las familias o el campus entero. */}
-                          {f.ruta.startsWith('·') ? (
-                            <span className="text-[11px] text-gray-400 whitespace-nowrap">audita su familia</span>
-                          ) : (
-                            <button onClick={() => audit(f.ruta)} disabled={!!auditing}
-                              className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline whitespace-nowrap">
-                              {auditing === f.ruta ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                              {auditing === f.ruta ? 'Auditando…' : 'Auditar'}
-                            </button>
-                          )}
+                          <button onClick={() => audit(f)} disabled={!!auditing}
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline whitespace-nowrap">
+                            {auditing === f.ruta ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                            {auditing === f.ruta ? 'Auditando…' : 'Auditar'}
+                          </button>
                         </td>
                       </tr>
                     )

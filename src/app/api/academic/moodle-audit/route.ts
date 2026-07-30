@@ -115,8 +115,13 @@ export async function GET() {
         orden: orden ?? ruta,
         aulas: 0, incumplen: 0,
         sin_matricula_manual: 0, sin_datos: 0, audited_at: null as string | null, mas_antigua: null as string | null,
+        // Solo para los pendientes: su etiqueta puede estar obsoleta, así que
+        // se auditan por id. Las categorías reales van por nombre, que además
+        // descubre aulas nuevas.
+        aula_ids: orden ? [] as number[] : null,
       })
     }
+    if (familias.get(ruta).aula_ids) familias.get(ruta).aula_ids.push(Number(r.aula_id))
     const f = familias.get(ruta)
     f.aulas++
     const est = estadoDe(r)
@@ -212,8 +217,15 @@ export async function POST(req: NextRequest) {
   if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no configurado' }, { status: 400 })
   const sb = db()
 
-  const body = await req.json().catch(() => null) as { familia?: string } | null
+  const body = await req.json().catch(() => null) as { familia?: string; aulas?: number[] } | null
   const familia = body?.familia?.trim() || null
+  // Lista explícita de aulas: para el bloque de pendientes, cuya etiqueta
+  // guardada puede estar obsoleta si la categoría se movió o renombró en Moodle
+  // desde la última auditoría. Por id no hay ambigüedad. Para categorías reales
+  // se sigue filtrando por nombre, que además DESCUBRE aulas nuevas.
+  const soloIds = Array.isArray(body?.aulas)
+    ? new Set(body.aulas.map(Number).filter(Number.isFinite))
+    : null
 
   const courses = await moodleCall('core_course_get_courses', {})
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -268,10 +280,17 @@ export async function POST(req: NextRequest) {
     }
     return false
   }
-  if (familia) {
+  if (soloIds) {
+    aulas = aulas.filter(c => soloIds.has(Number(c.id)))
+    if (!aulas.length) {
+      return NextResponse.json({ error: 'Ninguna de esas aulas existe ya en Moodle' }, { status: 404 })
+    }
+  } else if (familia) {
     aulas = aulas.filter(c => coincide(String(catName.get(Number(c.categoryid)) ?? ''), familia))
     if (!aulas.length) {
-      return NextResponse.json({ error: `No hay aulas en la categoría "${familia}"` }, { status: 404 })
+      return NextResponse.json({
+        error: `Ninguna aula cuelga hoy de "${familia}". Esa etiqueta es de una auditoría anterior: la categoría se movió o se renombró en Moodle. Audita su familia (o el campus) para que se recoloque.`,
+      }, { status: 404 })
     }
   }
 
