@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Search, Loader2, X, FileText, Trash2, ChevronDown, ChevronRight, Download, CheckCircle2, Send, Inbox, Zap, Clock, CircleSlash } from 'lucide-react'
+import { Plus, Search, Loader2, X, FileText, Trash2, ChevronDown, ChevronRight, Download, CheckCircle2, Send, Inbox, Zap, Clock, CircleSlash, Camera } from 'lucide-react'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
-interface DocType { id: string; name: string; price: number; currency: string; active: boolean; scope_category_id: string | null; scope_category_ids: string[] | null; scope_program_ids: string[]; request_note_label?: string | null }
+interface DocType { id: string; name: string; price: number; currency: string; active: boolean; scope_category_id: string | null; scope_category_ids: string[] | null; scope_program_ids: string[]; request_note_label?: string | null; requirements?: { kind: string; description?: string }[] | null }
 interface Program { id: string; name: string; category_id: string | null }
 interface ReqCheck { kind: string; ok: boolean | null; note: string }
 interface StageField { key: string; label: string }
@@ -65,7 +65,12 @@ export function RequestsManager() {
   const [typeId, setTypeId] = useState('')
   const [note, setNote] = useState('')
   const [creating, setCreating] = useState(false)
-  const [result, setResult] = useState<{ status: string; checks: ReqCheck[]; blocked: boolean } | null>(null)
+  const [result, setResult] = useState<{ status: string; checks: ReqCheck[]; blocked: boolean; error?: string } | null>(null)
+  // Foto del titular, cuando el documento la exige (carné ISIC). Registros la
+  // sube por el estudiante que se acerca en persona.
+  const [foto, setFoto] = useState<{ path: string; url: string | null; width: number; height: number } | null>(null)
+  const [fotoError, setFotoError] = useState<string | null>(null)
+  const [subiendo, setSubiendo] = useState(false)
 
   const load = useCallback(async () => {
     const [r, t] = await Promise.all([
@@ -88,19 +93,50 @@ export function RequestsManager() {
     setPrograms(d.programs ?? [])
     if ((d.programs ?? []).length === 1) setProgramId(d.programs[0].id)
   }
+  // Sube la foto midiéndola primero en el navegador, para avisar al instante
+  // cuando no llega al mínimo de ISIC en vez de esperar la respuesta.
+  async function subirFoto(file: File) {
+    if (!student) { setFotoError('Elige primero al estudiante.'); return }
+    setFotoError(null); setFoto(null)
+    if (file.type !== 'image/jpeg' && file.type !== 'image/png') { setFotoError('La foto debe ser JPG o PNG.'); return }
+    if (file.size > 5 * 1024 * 1024) { setFotoError(`La foto pesa ${(file.size / 1024 / 1024).toFixed(1)} MB y el máximo es 5 MB.`); return }
+    const dims = await new Promise<{ w: number; h: number } | null>(resolve => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => { URL.revokeObjectURL(url); resolve({ w: img.naturalWidth, h: img.naturalHeight }) }
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
+      img.src = url
+    })
+    if (!dims) { setFotoError('No se pudo leer la imagen.'); return }
+    if (dims.w < 500 || dims.h < 500) {
+      setFotoError(`La foto mide ${dims.w}×${dims.h} px y el mínimo que exige ISIC es 500×500 px.`); return
+    }
+    setSubiendo(true)
+    const fd = new FormData()
+    fd.append('file', file); fd.append('student_id', student.id)
+    const res = await fetch('/api/registrar/isic-photo', { method: 'POST', body: fd })
+    const d = await res.json()
+    setSubiendo(false)
+    if (!res.ok) { setFotoError(d.error ?? 'No se pudo subir la foto.'); return }
+    setFoto({ path: d.path, url: d.preview_url ?? null, width: d.width, height: d.height })
+  }
+
   async function create() {
-    if (!student || !typeId || noteMissing) return
+    if (!student || !typeId || noteMissing || fotoMissing) return
     setCreating(true); setResult(null)
-    const d = await fetch('/api/registrar/requests', {
+    const res = await fetch('/api/registrar/requests', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student_id: student.id, document_type_id: typeId, program_id: programId || null, request_note: note.trim() || null }),
-    }).then(r => r.json())
+      body: JSON.stringify({ student_id: student.id, document_type_id: typeId, program_id: programId || null, request_note: note.trim() || null, photo_path: foto?.path ?? null }),
+    })
+    const d = await res.json()
     setCreating(false)
-    if (d.error) { setResult({ status: 'rejected', checks: [], blocked: true }); return }
+    // El motivo se muestra tal cual lo dio el servidor. Antes se descartaba y
+    // solo se veía "Rechazado", que no dice nada a quien tiene que resolverlo.
+    if (d.error) { setResult({ status: 'rejected', checks: [], blocked: true, error: d.error }); return }
     setResult({ status: d.status, checks: d.checks ?? [], blocked: d.blocked })
     load()
   }
-  function resetNew() { setOpen(false); setStudent(null); setQ(''); setTypeId(''); setProgramId(''); setNote(''); setResult(null) }
+  function resetNew() { setOpen(false); setStudent(null); setQ(''); setTypeId(''); setProgramId(''); setNote(''); setResult(null); setFoto(null); setFotoError(null) }
 
   // Tipos disponibles según el alcance del documento y el programa elegido.
   const selectedProgram = programs.find(p => p.id === programId)
@@ -113,6 +149,8 @@ export function RequestsManager() {
   })
   const selectedType = availableTypes.find(x => x.id === typeId)
   const noteMissing = !!selectedType?.request_note_label && !note.trim()
+  const requiresPhoto = (selectedType?.requirements ?? []).some(r => r?.kind === 'photo')
+  const fotoMissing = requiresPhoto && !foto
 
   const [deleting, setDeleting] = useState<string | null>(null)
   async function remove(r: Request) {
@@ -234,15 +272,49 @@ export function RequestsManager() {
             </label>
           )}
 
+          {/* Foto del titular (carné ISIC) */}
+          {student && requiresPhoto && (
+            <div className="rounded-lg border border-gray-200 p-3 space-y-2">
+              <p className="text-xs font-medium text-gray-700 flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-gray-400" /> Foto del estudiante <span className="text-red-500">*</span>
+              </p>
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Tipo pasaporte y <strong>en color</strong>: fondo claro, cara de frente, sin gafas de sol ni gorra.
+                Mínimo <strong>500×500 px</strong>, menos de <strong>5 MB</strong>, JPG o PNG. Saldrá impresa en el carné.
+              </p>
+              {foto ? (
+                <div className="flex items-start gap-3">
+                  {foto.url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={foto.url} alt="Foto del estudiante" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                  )}
+                  <div className="text-[11px] space-y-1">
+                    <p className="text-green-700 font-medium">✓ Foto aceptada ({foto.width}×{foto.height} px)</p>
+                    <button onClick={() => { setFoto(null); setFotoError(null) }} className="text-blue-600 hover:underline">Cambiar foto</button>
+                  </div>
+                </div>
+              ) : (
+                <label className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer">
+                  {subiendo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                  {subiendo ? 'Subiendo…' : 'Elegir foto'}
+                  <input type="file" accept="image/jpeg,image/png" className="hidden" disabled={subiendo}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) subirFoto(f); e.target.value = '' }} />
+                </label>
+              )}
+              {fotoError && <p className="text-[11px] text-red-600">{fotoError}</p>}
+            </div>
+          )}
+
           {result && (
             <div className={`text-xs rounded-lg px-3 py-2 ${result.blocked ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-              <p className="font-medium">{STATUS[result.status]?.label ?? result.status}</p>
+              <p className="font-medium">{result.error ? 'No se pudo crear' : STATUS[result.status]?.label ?? result.status}</p>
+              {result.error && <p className="mt-0.5">{result.error}</p>}
               {result.checks.map((c, i) => <div key={i}>{c.ok === true ? '✓' : c.ok === false ? '✗' : '○'} {c.note}</div>)}
             </div>
           )}
 
           {student && (
-            <button onClick={create} disabled={!typeId || creating || noteMissing} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+            <button onClick={create} disabled={!typeId || creating || noteMissing || fotoMissing} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
               {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}Crear solicitud
             </button>
           )}
