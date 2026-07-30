@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Loader2, ClipboardList, Check, X, Plus, Search } from 'lucide-react'
+import { TramiteTypesConfig } from './tramite-types-config'
 
 interface Row {
   id: string; status: string; requested_at: string; paid_at: string | null
@@ -120,6 +121,10 @@ export function TramitesManager() {
       </div>
 
       {error && <p className="text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+
+      {/* El catálogo vive aquí y no en otra página: se administra desde donde se
+          trabaja, y evita una entrada más de sidebar y permisos. */}
+      <TramiteTypesConfig onChanged={load} />
 
       {/* Alta por el administrativo: mismo circuito, se genera la cuota igual */}
       {nuevo && (
