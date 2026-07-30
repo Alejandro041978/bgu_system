@@ -50,9 +50,19 @@ export async function GET() {
   //    lector no expone pesos. Caso 2026-07-28: 130 aulas con 5,781 pts de coef
   //    oculto pasaron como "cumple" porque la aritmética (100 visible) mandaba
   //    y silenciaba el 43-62% que el WS sí reportaba.
+  // ⚠ La Σ aritmética viene de OTRA tubería (N8N → /api/sync/moodle-coefs) y
+  // puede quedar CADUCADA respecto de la auditoría. Pasó el 30-07: se
+  // normalizó Update en Moodle, se auditó, y las 48 salieron "incumplen"
+  // porque `suma_coeficientes` seguía con el 12 sincronizado el 23-07. Un
+  // número viejo no puede tumbar una medición nueva: si el sync es anterior a
+  // la auditoría, esa señal se ignora y manda la del webservice.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const coefVigente = (r: any): boolean =>
+    r.suma_coeficientes != null && !!r.coefs_sync_at &&
+    (!r.audited_at || new Date(r.coefs_sync_at) >= new Date(r.audited_at))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cumplePesosDe = (r: any): boolean | null => {
-    const okCoef = r.suma_coeficientes == null ? null : Math.abs(Number(r.suma_coeficientes) - 100) <= 0.5
+    const okCoef = coefVigente(r) ? Math.abs(Number(r.suma_coeficientes) - 100) <= 0.5 : null
     const okWS = r.cumple_pesos ?? null
     if (okCoef === false || okWS === false) return false
     if (okCoef == null && okWS == null) return null
@@ -108,7 +118,10 @@ export async function GET() {
     cumplen: porEstado.get('cumplen') ?? 0,
     incumplen: porEstado.get('incumplen') ?? 0,
     pesos_mal: rows.filter(r => cumplePesosDe(r) === false).length,
-    con_suma_aritmetica: rows.filter(r => r.suma_coeficientes != null).length,
+    con_suma_aritmetica: rows.filter(r => coefVigente(r)).length,
+    // Aulas cuya Σ aritmética quedó vieja: su señal no se está usando, y hay
+    // que volver a correr el sync de N8N para recuperarla.
+    coefs_caducados: rows.filter(r => r.suma_coeficientes != null && !coefVigente(r)).length,
     escala_mal: rows.filter(r => r.cumple_escala === false).length,
     sin_evaluaciones: porEstado.get('sin_evaluaciones') ?? 0,
     sin_ponderacion: porEstado.get('sin_ponderacion') ?? 0,

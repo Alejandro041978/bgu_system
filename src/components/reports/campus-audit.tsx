@@ -19,7 +19,7 @@ interface Data {
   total: number; cumplen: number; incumplen: number
   pesos_mal: number; escala_mal: number
   sin_evaluaciones: number; sin_ponderacion: number
-  sin_datos: number; vinculadas: number; sin_matricula_manual: number
+  sin_datos: number; vinculadas: number; sin_matricula_manual: number; coefs_caducados?: number
   audited_at_mas_antigua?: string | null
   familias?: Familia[]
   aulas: Aula[]
@@ -75,8 +75,13 @@ export function CampusAudit() {
 
   // La suma ARITMÉTICA de coeficientes (sync N8N desde la BD de Moodle) manda
   // sobre el peso normalizado del WS: detecta huecos como "3 Module Tests de 4"
+  // ⚠ Solo vale si el sync es POSTERIOR a la auditoría: viene de otra tubería
+  // (N8N) y puede estar caducado. Un número viejo no tumba una medición nueva.
+  const coefVigente = (a: Aula): boolean =>
+    a.suma_coeficientes != null && !!a.coefs_sync_at &&
+    new Date(a.coefs_sync_at) >= new Date(a.audited_at)
   const cumplePesosDe = (a: Aula): boolean | null => {
-    if (a.suma_coeficientes != null) return Math.abs(Number(a.suma_coeficientes) - 100) <= 0.5
+    if (coefVigente(a)) return Math.abs(Number(a.suma_coeficientes) - 100) <= 0.5
     return a.cumple_pesos
   }
   // Misma precedencia que la API: cada aula vive en UNA sola categoría
@@ -195,6 +200,21 @@ export function CampusAudit() {
       )}
 
       {error && <div className="text-sm bg-rose-50 text-rose-700 rounded-lg px-4 py-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4" />{error}</div>}
+
+      {/* La Σ aritmética viene de N8N, no de la auditoría: si quedó vieja, su
+          señal se ignora (no puede tumbar una medición nueva) pero se pierde la
+          detección de huecos que el webservice no ve. */}
+      {d && (d.coefs_caducados ?? 0) > 0 && (
+        <div className="text-[13px] bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>
+            <strong>{d.coefs_caducados} aulas</strong> tienen la suma de coeficientes sincronizada ANTES de su última
+            auditoría, así que se está ignorando. La política se evalúa solo con el webservice, que no detecta huecos
+            del tipo &ldquo;faltan 3 de 4 Module Tests&rdquo;. Vuelve a correr el sync de coeficientes en N8N para recuperar
+            esa señal.
+          </span>
+        </div>
+      )}
 
       {d && d.total > 0 && (
         <>
