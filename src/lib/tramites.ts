@@ -25,6 +25,23 @@ export async function createTramiteRequest(opts: {
     return { ok: false, error: `Este trámite requiere que respondas: "${type.request_note_label}"`, code: 400 }
   }
 
+  // Requisito de situación (Re-entry exige IW). Se valida en el servidor y no
+  // solo en la pantalla: el portal oculta el botón, pero la ruta también la
+  // puede llamar Registros en nombre del estudiante — y la regla es la misma
+  // para los dos.
+  if (type.requires_situation) {
+    const { data: stu } = await sb.from('academic_students')
+      .select('situation').eq('id', opts.studentId).maybeSingle()
+    const actual = String(stu?.situation ?? '').trim()
+    if (actual.toLowerCase() !== String(type.requires_situation).trim().toLowerCase()) {
+      return {
+        ok: false, code: 409,
+        error: type.requires_situation_note
+          || `Este trámite exige situación "${type.requires_situation}" y la del estudiante es "${actual || 'sin registrar'}".`,
+      }
+    }
+  }
+
   // Un trámite en curso a la vez por tipo: pedir Re-entry dos veces generaría
   // dos cuotas por lo mismo y el administrativo no sabría cuál atender.
   const { data: enCurso } = await sb.from('tramite_requests')

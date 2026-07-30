@@ -40,8 +40,12 @@ export async function GET() {
   if (!studentId) return NextResponse.json({ types: [], requests: [] })
 
   const { data: types } = await sb.from('tramite_types')
-    .select('id, name, description, price, currency, request_note_label, instructions')
+    .select('id, name, description, price, currency, request_note_label, instructions, requires_situation, requires_situation_note')
     .eq('active', true).order('name')
+
+  // Su situación viaja al cliente para poder DECIRLE por qué un trámite no le
+  // corresponde, en vez de dejarle un botón muerto o un error al confirmar.
+  const { data: stu } = await sb.from('academic_students').select('situation').eq('id', studentId).maybeSingle()
 
   const { data: reqs } = await sb.from('tramite_requests')
     .select('id, status, requested_at, paid_at, attended_at, resolution_note, request_note, type:tramite_types(name, price, currency)')
@@ -53,7 +57,7 @@ export async function GET() {
     attended_at: r.attended_at, resolution_note: r.resolution_note, request_note: r.request_note,
     type_name: r.type?.name ?? '—', price: r.type?.price ?? 0, currency: r.type?.currency ?? 'USD',
   }))
-  return NextResponse.json({ types: types ?? [], requests })
+  return NextResponse.json({ types: types ?? [], requests, situation: stu?.situation ?? null })
 }
 
 // POST { tramite_type_id, request_note } → solicita el trámite y genera la cuota

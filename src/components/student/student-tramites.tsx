@@ -7,6 +7,7 @@ interface TramiteType {
   id: string; name: string; description: string | null
   price: number; currency: string
   request_note_label: string | null; instructions: string | null
+  requires_situation: string | null; requires_situation_note: string | null
 }
 interface Request {
   id: string; status: string; requested_at: string; paid_at: string | null
@@ -36,15 +37,24 @@ export function StudentTramites() {
   const [confirming, setConfirming] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
+  const [situation, setSituation] = useState<string | null>(null)
+
   const load = useCallback(async () => {
     const d = await fetch('/api/student/tramites').then(r => r.json())
-    setTypes(d.types ?? []); setRequests(d.requests ?? [])
+    setTypes(d.types ?? []); setRequests(d.requests ?? []); setSituation(d.situation ?? null)
     setLoading(false)
   }, [])
   useEffect(() => { load() }, [load])
 
+  // Requisito de situación: se explica en la pantalla en vez de dejar que el
+  // estudiante lo descubra al confirmar. El servidor lo valida igual.
+  const cumpleSituacion = (t: TramiteType) =>
+    !t.requires_situation ||
+    String(situation ?? '').trim().toLowerCase() === t.requires_situation.trim().toLowerCase()
+
   const selected = types.find(t => t.id === typeId)
   const noteMissing = !!selected?.request_note_label && !note.trim()
+  const bloqueado = !!selected && !cumpleSituacion(selected)
 
   async function crear() {
     if (!typeId || noteMissing) return
@@ -97,6 +107,7 @@ export function StudentTramites() {
               {types.map(t => (
                 <option key={t.id} value={t.id}>
                   {t.name}{Number(t.price) > 0 ? ` — ${money(t.price, t.currency)}` : ' — sin costo'}
+                  {cumpleSituacion(t) ? '' : ' · no disponible para ti'}
                 </option>
               ))}
             </select>
@@ -106,6 +117,18 @@ export function StudentTramites() {
             <div className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2 text-xs text-gray-600 space-y-1">
               {selected.description && <p>{selected.description}</p>}
               {selected.instructions && <p className="text-gray-500">{selected.instructions}</p>}
+            </div>
+          )}
+
+          {bloqueado && selected && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+              <p className="font-medium mb-0.5">No puedes solicitar este trámite</p>
+              <p>
+                {selected.requires_situation_note
+                  ?? `Requiere estar en situación "${selected.requires_situation}".`}
+                {' '}Tu situación registrada es <strong>{situation || 'sin registrar'}</strong>.
+              </p>
+              <p className="mt-1 text-amber-700">Si crees que es un error, escríbele a Registros antes de pagar nada.</p>
             </div>
           )}
 
@@ -135,8 +158,8 @@ export function StudentTramites() {
           )}
 
           {!confirming && (
-            <button onClick={() => { if (Number(selected?.price ?? 0) > 0) setConfirming(true); else crear() }}
-              disabled={!typeId || noteMissing || creating}
+            <button onClick={() => { if (bloqueado) return; if (Number(selected?.price ?? 0) > 0) setConfirming(true); else crear() }}
+              disabled={!typeId || noteMissing || bloqueado || creating}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
               {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}Solicitar
             </button>
