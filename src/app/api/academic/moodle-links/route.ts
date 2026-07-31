@@ -124,16 +124,38 @@ export async function GET(req: NextRequest) {
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
   const g = await requireStaff(); if ('error' in g) return g.error
+  const sb = db()
+  const quien = g.user.email ?? g.user.id
+  const ahora = new Date().toISOString()
+  const filas: Record<string, unknown>[] = []
+
+  // ?aplicar=alta|media → confirma de una vez todas las propuestas de esa
+  // confianza que sigan pendientes, sin tener que armar el JSON a mano. Se
+  // recalcula acá: no se confía en una lista que el navegador tenga vieja.
+  const aplicar = req.nextUrl.searchParams.get('aplicar')
+  if (aplicar === 'alta' || aplicar === 'media') {
+    const aulas = await todo(sb, 'moodle_aula_audit', 'aula_id, shortname, matriculados, categoria', 'aula_id') as AulaAudit[]
+    const courses = await todo(sb, 'academic_courses', 'id, program_id, name, code', 'id') as CursoMalla[]
+    const yaLink = await todo(sb, 'moodle_course_links', 'aula_id', 'aula_id')
+    const ya = new Set(yaLink.map((l: { aula_id: number }) => Number(l.aula_id)))
+    const props = proponer(aulas, courses, inferirAlias(aulas, courses), courseNameKey)
+    for (const p of props) {
+      if (p.confianza !== aplicar || !p.course_id || ya.has(p.aula_id)) continue
+      filas.push({ aula_id: p.aula_id, course_id: p.course_id, kind: 'asignatura', linked_by: quien, linked_at: ahora })
+    }
+    if (!filas.length) return NextResponse.json({ ok: true, guardados: 0, nota: `No quedan propuestas de confianza ${aplicar} sin vincular` })
+    for (let i = 0; i < filas.length; i += 500) {
+      const { error } = await sb.from('moodle_course_links').upsert(filas.slice(i, i + 500), { onConflict: 'aula_id' })
+      if (error) return NextResponse.json({ error: error.message, guardados: i }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, confianza: aplicar, guardados: filas.length })
+  }
+
   const body = await req.json().catch(() => null) as {
     vinculos?: { aula_id: number; course_id: string }[]
     no_curriculares?: number[]
   } | null
   if (!body) return NextResponse.json({ error: 'Cuerpo inválido' }, { status: 400 })
-
-  const sb = db()
-  const quien = g.user.email ?? g.user.id
-  const ahora = new Date().toISOString()
-  const filas: Record<string, unknown>[] = []
 
   for (const v of body.vinculos ?? []) {
     if (!v?.aula_id || !v?.course_id) continue
