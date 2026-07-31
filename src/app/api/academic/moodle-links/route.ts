@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isStudentUser } from '@/lib/student-identity'
 import { inferirAlias, proponer, type AulaAudit, type CursoMalla } from '@/lib/moodle-links'
+import { courseNameKey } from '@/lib/course-match'
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
   }
 
   const alias = inferirAlias(aulas, courses)
-  const propuestas = proponer(aulas, courses, alias)
+  const propuestas = proponer(aulas, courses, alias, courseNameKey)
 
   const filas = propuestas.map(p => {
     const ya = yaVinculada.get(p.aula_id)
@@ -79,21 +80,41 @@ export async function GET(req: NextRequest) {
   })
 
   const pendientes = filas.filter(f => f.estado === 'pendiente')
-  const lista = solo === 'todas' ? filas : pendientes
+  const lista = (solo === 'todas' ? filas : pendientes).sort((a, b) => b.matriculados - a.matriculados)
+  const detalle = req.nextUrl.searchParams.get('detalle') === '1'
+  const conf = (c: string) => pendientes.filter(f => f.confianza === c)
+  const fam = (f: string) => pendientes.filter(p => p.familia === f)
+  const resumir = (rs: typeof pendientes) => ({
+    aulas: rs.length,
+    con_alumnos: rs.filter(r => r.matriculados > 0).length,
+    matriculas: rs.reduce((s, r) => s + r.matriculados, 0),
+  })
+
+  // Los códigos que no existen en ninguna malla, agrupados: si un programa
+  // entero aparece acá, no es un error de tipeo — es un plan que falta cargar.
+  const desconocidos = new Map<string, { code: string; sufijo: string | null; aulas: number; alumnos: number }>()
+  for (const f of fam('codigo_desconocido')) {
+    const k = String(f.code)
+    if (!desconocidos.has(k)) desconocidos.set(k, { code: k, sufijo: f.sufijo, aulas: 0, alumnos: 0 })
+    const d = desconocidos.get(k)!
+    d.aulas++; d.alumnos += f.matriculados
+  }
 
   return NextResponse.json({
     aulas_del_campus: aulas.length,
     ya_vinculadas: filas.filter(f => f.estado !== 'pendiente').length,
-    pendientes: pendientes.length,
-    pendientes_con_alumnos: pendientes.filter(f => f.matriculados > 0).length,
-    matriculas_en_juego: pendientes.reduce((s, f) => s + f.matriculados, 0),
-    propuesta: {
-      alta: pendientes.filter(f => f.confianza === 'alta').length,
-      media: pendientes.filter(f => f.confianza === 'media').length,
-      ninguna: pendientes.filter(f => f.confianza === 'ninguna').length,
+    pendientes: resumir(pendientes),
+    listas_para_vincular: { alta: resumir(conf('alta')), media: resumir(conf('media')) },
+    sin_propuesta: {
+      no_es_asignatura: resumir(fam('no_es_asignatura')),
+      codigo_desconocido: resumir(fam('codigo_desconocido')),
+      codigo_ambiguo: resumir(fam('codigo_ambiguo')),
     },
     alias_deducidos: [...alias.entries()].map(([sufijo, pid]) => ({ sufijo, programa: nombrePrograma.get(pid) ?? pid })),
-    aulas: lista.sort((a, b) => b.matriculados - a.matriculados),
+    codigos_sin_malla: [...desconocidos.values()].sort((a, b) => b.alumnos - a.alumnos || b.aulas - a.aulas),
+    ambiguas: fam('codigo_ambiguo').map(f => ({ aula_id: f.aula_id, shortname: f.shortname, matriculados: f.matriculados, motivo: f.motivo })),
+    // La lista completa sólo bajo pedido: son cientos de filas.
+    aulas: detalle ? lista : lista.slice(0, 15),
   })
 }
 

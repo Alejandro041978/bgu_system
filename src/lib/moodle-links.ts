@@ -76,6 +76,16 @@ export function inferirAlias(aulas: AulaAudit[], courses: CursoMalla[]): Map<str
 }
 
 export type Confianza = 'alta' | 'media' | 'ninguna'
+// Familias del "no se puede proponer". No son lo mismo y no se arreglan igual:
+//   no_es_asignatura   → aulas de inducción, demos, encuestas, capacitaciones.
+//                        Se marcan no_curricular una vez y desaparecen.
+//   codigo_desconocido → el aula trae un código que no está en ninguna malla.
+//                        O falta cargar ese plan en el ERP (el doctorado
+//                        entero, por ejemplo), o el código de Moodle está mal.
+//   codigo_ambiguo     → el código existe en varios programas y el sufijo no
+//                        alcanza para elegir. Se decide a mano, es rápido.
+export type Familia = 'no_es_asignatura' | 'codigo_desconocido' | 'codigo_ambiguo' | null
+
 export interface Propuesta {
   aula_id: number
   shortname: string | null
@@ -86,46 +96,90 @@ export interface Propuesta {
   course_name: string | null
   program_id: string | null
   confianza: Confianza
+  familia: Familia
   motivo: string
+}
+
+// "Módulo 02 - Prescripción de Macronutrientes en el Deporte" → el nombre real.
+// Los DCE no traen código: su aula se llama como la asignatura, precedida del
+// número de módulo y a veces seguida del sufijo del programa.
+export function nombreLimpio(shortname: string | null | undefined, sufijo: string | null): string {
+  let s = String(shortname ?? '').trim()
+  if (sufijo && s.endsWith(sufijo)) s = s.slice(0, s.length - sufijo.length).replace(/[\s\-–]+$/, '')
+  s = s.replace(/^\s*(m[oó]dulo|module|modulo)\s*\d+\s*[-–.]?\s*/i, '')
+  return s.trim()
 }
 
 export function proponer(
   aulas: AulaAudit[], courses: CursoMalla[], alias: Map<string, string>,
+  claveNombre: (s: string | null | undefined) => string,
 ): Propuesta[] {
   const porProgCode = new Map<string, CursoMalla[]>()
   const porCode = new Map<string, CursoMalla[]>()
+  const porNombre = new Map<string, CursoMalla[]>()
   for (const c of courses) {
     const k = normCode(c.code)
-    if (!k) continue
-    const pk = `${c.program_id}|${k}`
-    if (!porProgCode.has(pk)) porProgCode.set(pk, [])
-    porProgCode.get(pk)!.push(c)
-    if (!porCode.has(k)) porCode.set(k, [])
-    porCode.get(k)!.push(c)
+    if (k) {
+      const pk = `${c.program_id}|${k}`
+      if (!porProgCode.has(pk)) porProgCode.set(pk, [])
+      porProgCode.get(pk)!.push(c)
+      if (!porCode.has(k)) porCode.set(k, [])
+      porCode.get(k)!.push(c)
+    }
+    const n = claveNombre(c.name)
+    if (n) {
+      if (!porNombre.has(n)) porNombre.set(n, [])
+      porNombre.get(n)!.push(c)
+    }
   }
+  // El sufijo puede venir con prefijo de modalidad: "UP BSBA" es el upgrade del
+  // mismo programa. Si el sufijo completo no se dedujo, se reintenta con su
+  // última palabra, que es la sigla del programa.
+  const programaDe = (sufijo: string | null): string | undefined => {
+    if (!sufijo) return undefined
+    const directo = alias.get(sufijo)
+    if (directo) return directo
+    const ultima = sufijo.trim().split(/\s+/).pop()
+    return ultima && ultima !== sufijo ? alias.get(ultima) : undefined
+  }
+
   return aulas.map(a => {
     const { code, sufijo } = leerNombreAula(a.shortname)
     const base = {
       aula_id: Number(a.aula_id), shortname: a.shortname,
       matriculados: Number(a.matriculados ?? 0), code, sufijo,
     }
-    if (!code) {
-      return { ...base, course_id: null, course_name: null, program_id: null, confianza: 'ninguna' as const, motivo: 'El nombre del aula no empieza por un código de asignatura' }
-    }
-    const pid = sufijo ? alias.get(sufijo) : undefined
-    if (pid) {
-      const hit = porProgCode.get(`${pid}|${code}`) ?? []
-      if (hit.length === 1) {
-        return { ...base, course_id: hit[0].id, course_name: hit[0].name, program_id: hit[0].program_id, confianza: 'alta' as const, motivo: `Código ${code} en el programa que corresponde a "${sufijo}"` }
+    const nada = { course_id: null, course_name: null, program_id: null, confianza: 'ninguna' as const }
+
+    if (code) {
+      const pid = programaDe(sufijo)
+      if (pid) {
+        const hit = porProgCode.get(`${pid}|${code}`) ?? []
+        if (hit.length === 1) {
+          return { ...base, course_id: hit[0].id, course_name: hit[0].name, program_id: hit[0].program_id, confianza: 'alta' as const, familia: null, motivo: `Código ${code} en el programa que corresponde a "${sufijo}"` }
+        }
       }
+      const global = porCode.get(code) ?? []
+      if (global.length === 1) {
+        return { ...base, course_id: global[0].id, course_name: global[0].name, program_id: global[0].program_id, confianza: 'media' as const, familia: null, motivo: `El código ${code} existe en un solo programa de toda la malla` }
+      }
+      if (global.length > 1) {
+        return { ...base, ...nada, familia: 'codigo_ambiguo' as const, motivo: `El código ${code} existe en ${global.length} asignaturas y el sufijo no permite elegir` }
+      }
+      return { ...base, ...nada, familia: 'codigo_desconocido' as const, motivo: `El código ${code} no existe en ninguna malla` }
     }
-    const global = porCode.get(code) ?? []
-    if (global.length === 1) {
-      return { ...base, course_id: global[0].id, course_name: global[0].name, program_id: global[0].program_id, confianza: 'media' as const, motivo: `El código ${code} existe en un solo programa de toda la malla` }
+
+    // Sin código: los DCE nombran el aula como la asignatura, precedida del
+    // número de módulo. Ahí el nombre sí es señal — es el mismo emparejador
+    // que usan el acta y los egresados.
+    const limpio = nombreLimpio(a.shortname, sufijo)
+    const porN = porNombre.get(claveNombre(limpio)) ?? []
+    if (porN.length === 1) {
+      return { ...base, course_id: porN[0].id, course_name: porN[0].name, program_id: porN[0].program_id, confianza: 'media' as const, familia: null, motivo: `El nombre "${limpio}" corresponde a una única asignatura de la malla` }
     }
-    if (global.length > 1) {
-      return { ...base, course_id: null, course_name: null, program_id: null, confianza: 'ninguna' as const, motivo: `El código ${code} existe en ${global.length} asignaturas y el sufijo no permite elegir` }
+    if (porN.length > 1) {
+      return { ...base, ...nada, familia: 'codigo_ambiguo' as const, motivo: `El nombre "${limpio}" existe en ${porN.length} programas y el aula no trae código` }
     }
-    return { ...base, course_id: null, course_name: null, program_id: null, confianza: 'ninguna' as const, motivo: `El código ${code} no existe en ninguna malla` }
+    return { ...base, ...nada, familia: 'no_es_asignatura' as const, motivo: 'El aula no trae código y su nombre no corresponde a ninguna asignatura de la malla' }
   })
 }
