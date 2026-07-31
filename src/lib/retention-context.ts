@@ -21,6 +21,10 @@ export interface RetentionContext {
   balance: number | null
   pending: number
   total: number
+  // Asignaturas EMPEZADAS y sin terminar, con avance real. No es lo mismo que
+  // "le faltan N": es el argumento de que no arranca de cero.
+  started: number
+  bestProgress: number | null
   campaign: string
   text: string
 }
@@ -113,6 +117,27 @@ export async function buildRetentionContext(sb: any, studentId: string): Promise
     }
   }
 
+  // --- asignaturas a medio hacer ---
+  //
+  // El estado pendiente significa "empezada y sin resolver": el acumulado aún
+  // no llega al mínimo y todavía queda ponderación por rendir. Se exige avance
+  // real (rendido > 0) porque una matrícula donde nunca entró SÍ es empezar de
+  // cero, y prometerle lo contrario sería mentirle.
+  let started = 0
+  let bestProgress: number | null = null
+  if (s.document_number) {
+    const { data: enCurso } = await sb.from('academic_grades')
+      .select('rendido_pct')
+      .eq('document_number', s.document_number)
+      .eq('estado_academico', 'pendiente')
+      .gt('rendido_pct', 0)
+    started = (enCurso ?? []).length
+    for (const r of (enCurso ?? []) as { rendido_pct: number | null }[]) {
+      const v = Number(r.rendido_pct ?? 0)
+      if (bestProgress == null || v > bestProgress) bestProgress = Math.round(v)
+    }
+  }
+
   // --- nivel ---
   const days = tr?.inactivity_days ?? null
   // Nivel 3 = prometió volver y no volvió. Pesa más que los días de ausencia:
@@ -132,6 +157,11 @@ export async function buildRetentionContext(sb: any, studentId: string): Promise
     programName ? `- Programa: ${programName}` : null,
     days != null ? `- Días sin entrar al aula: ${days}` : '- Nunca ha entrado al aula',
     lastMoodle ? `- Última vez en el aula: ${lastMoodle}` : null,
+    started > 0
+      ? `- Asignaturas empezadas y sin terminar: ${started}` +
+        (bestProgress != null ? ` (en la más avanzada lleva ${bestProgress}% del curso rendido)` : '') +
+        ' — NO empieza de cero si vuelve'
+      : null,
     balance != null
       ? (balance > 0.005
         ? `- Saldo pendiente: ${balance.toFixed(2)} USD (puedes hablarlo y ofrecer opciones; NUNCA como amenaza)`
@@ -145,5 +175,5 @@ export async function buildRetentionContext(sb: any, studentId: string): Promise
     level === 1 ? '  Ausencia reciente: cercana y curiosa. Solo pregunta qué pasó.' : null,
   ].filter(Boolean)
 
-  return { studentId, name, level, inactivityDays: days, balance, pending, total, campaign, text: lines.join('\n') }
+  return { studentId, name, level, inactivityDays: days, balance, pending, total, started, bestProgress, campaign, text: lines.join('\n') }
 }
