@@ -35,6 +35,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/academic/acta-detalle', 'academic_acta_detail'],
   ['/academic/grade-scales', 'academic_grade_scales'],
   ['/academic/moodle-actas', 'academic_moodle_actas'],
+  ['/academic/classroom-links', 'academic_classroom_links'],
   ['/reports/tuition-audit', 'report_tuition_audit'],
   ['/academic/credentials', 'academic_credentials'],
   ['/academic/seguimiento', 'academic_tracking'],

@@ -83,6 +83,7 @@ export async function GET(req: NextRequest) {
       estado: ya ? (ya.kind === 'no_curricular' ? 'no_curricular' : 'vinculada')
             : viejo ? 'vinculada_por_oferta' : 'pendiente',
       course_id_actual: ya?.course_id ?? viejo,
+      sync_enabled: ya?.sync_enabled ?? false,
     }
   })
 
@@ -110,6 +111,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     aulas_del_campus: aulas.length,
     ya_vinculadas: filas.filter(f => f.estado !== 'pendiente').length,
+    sincronizando: filas.filter(f => f.sync_enabled).length,
     pendientes: resumir(pendientes),
     listas_para_vincular: { alta: resumir(conf('alta')), media: resumir(conf('media')) },
     sin_propuesta: {
