@@ -6,6 +6,7 @@ import {
   indexarMalla, resolverAsignatura, estadoDeNota, ordenarIntentos,
   type NotaMin, type CursoMalla, type MotivoSinResolver,
 } from '@/lib/course-enrollments'
+import { courseNameKey } from '@/lib/course-match'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -54,6 +55,8 @@ export async function POST(req: NextRequest) {
   const students = await todo(sb, 'academic_students', 'id, document_number', 'id')
   const progEnr = await todo(sb, 'academic_student_enrollments', 'id, student_id, program_id, term_year', 'id')
   const courses = await todo(sb, 'academic_courses', 'id, program_id, name, code', 'id') as CursoMalla[]
+  const programs = await todo(sb, 'academic_programs', 'id, name', 'id')
+  const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
   const grades = await todo(sb, 'academic_grades',
     'external_id, document_number, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, withdrawn_at, synced_at, source, course_enrollment_id',
     'external_id') as (NotaMin & { course_enrollment_id: string | null })[]
@@ -74,6 +77,12 @@ export async function POST(req: NextRequest) {
   const sinResolver = new Map<MotivoSinResolver, number>()
   const ejemplos: Record<string, string[]> = {}
   const ambiguas: string[] = []
+  let ambiguasN = 0
+  // documento → programa al que apuntan sus notas no resueltas. Una nota cuya
+  // asignatura existe pero en otro programa casi nunca es un error de nombre:
+  // es una matrícula de programa que falta en el ERP (un estudiante que cursó
+  // un bachelor y hoy sólo tiene registrado su máster).
+  const faltaPrograma = new Map<string, Map<string, number>>()
   // (student_id + course_id) → notas de ese estudiante en esa asignatura
   const porIntento = new Map<string, { student_id: string; course_id: string; program_id: string | null; notas: NotaMin[] }>()
 
@@ -89,9 +98,20 @@ export async function POST(req: NextRequest) {
       sinResolver.set(m, (sinResolver.get(m) ?? 0) + 1)
       ejemplos[m] = ejemplos[m] ?? []
       if (ejemplos[m].length < 8 && n.course_name) ejemplos[m].push(`${n.document_number} · ${n.course_name}`)
+      if (m === 'otro_programa') {
+        const doc = String(n.document_number ?? '')
+        if (!faltaPrograma.has(doc)) faltaPrograma.set(doc, new Map())
+        const cuenta = faltaPrograma.get(doc)!
+        for (const c of (idx.porNombre.get(courseNameKey(n.course_name)) ?? [])) {
+          if (c.program_id) cuenta.set(c.program_id, (cuenta.get(c.program_id) ?? 0) + 1)
+        }
+      }
       continue
     }
-    if (r.ambiguo && ambiguas.length < 40) ambiguas.push(`${n.document_number} · ${n.course_name}`)
+    if (r.ambiguo) {
+      ambiguasN++
+      if (ambiguas.length < 40) ambiguas.push(`${n.document_number} · ${n.course_name}`)
+    }
     const k = `${stu.id}|${r.course_id}`
     if (!porIntento.has(k)) porIntento.set(k, { student_id: stu.id, course_id: r.course_id, program_id: r.program_id, notas: [] })
     porIntento.get(k)!.notas.push(n)
@@ -129,10 +149,19 @@ export async function POST(req: NextRequest) {
     notas_leidas: grades.length,
     matriculas_a_crear: nuevas.length,
     asignaturas_con_mas_de_un_intento: variosIntentos,
-    ambiguas_resueltas_por_defecto: ambiguas.length,
+    ambiguas_resueltas_por_defecto: ambiguasN,
     sin_resolver: Object.fromEntries(sinResolver),
     ejemplos_sin_resolver: ejemplos,
     muestra_ambiguas: ambiguas.slice(0, 10),
+    // Accionable para Registros: a cada uno le falta la matrícula del programa
+    // que ya cursó. Corregido eso, esta reconstrucción se vuelve a correr y las
+    // notas se enlazan solas — es idempotente.
+    matriculas_de_programa_faltantes: [...faltaPrograma.entries()]
+      .map(([doc, cuenta]) => {
+        const [pid, n] = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0] ?? ['', 0]
+        return { documento: doc, notas_sin_enlazar: [...cuenta.values()].reduce((s, v) => Math.max(s, v), 0), programa_probable: nombrePrograma.get(pid) ?? pid, coincidencias: n }
+      })
+      .sort((a, b) => b.notas_sin_enlazar - a.notas_sin_enlazar),
     duracion_s: 0 as number,
   }
   if (!apply) {
