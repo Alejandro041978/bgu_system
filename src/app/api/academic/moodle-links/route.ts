@@ -87,6 +87,76 @@ export async function GET(req: NextRequest) {
     }
   })
 
+  // -------------------------------------------------------------------------
+  // ?vista=cobertura → el inventario al revés: para cada asignatura del plan,
+  // qué aulas la enseñan.
+  //
+  // Es la foto de la herencia. La misma asignatura suele tener una aula por
+  // modalidad —upgrade, regular, campus asociado— más la plantilla original
+  // vacía, y hay asignaturas sin ninguna aula: esas no pueden calificar a
+  // nadie, por más que el estudiante esté matriculado.
+  // -------------------------------------------------------------------------
+  if (req.nextUrl.searchParams.get('vista') === 'cobertura') {
+    const modalidad = (sn: string | null): string => {
+      const s = String(sn ?? '')
+      if (/\bUP\b/i.test(s)) return 'upgrade'
+      if (/\bCVC\b/i.test(s)) return 'campus asociado'
+      return 'regular'
+    }
+    // Aula → asignatura: lo ya decidido manda; si no, la propuesta.
+    const porCurso = new Map<string, typeof filas>()
+    for (const f of filas) {
+      const cid = f.course_id_actual ?? f.course_id
+      if (!cid) continue
+      if (!porCurso.has(String(cid))) porCurso.set(String(cid), [])
+      porCurso.get(String(cid))!.push(f)
+    }
+    const cursosDe = new Map<string, CursoMalla[]>()
+    for (const c of courses) {
+      const p = String(c.program_id ?? 'sin-programa')
+      if (!cursosDe.has(p)) cursosDe.set(p, [])
+      cursosDe.get(p)!.push(c)
+    }
+    const pedido = req.nextUrl.searchParams.get('programa')
+
+    const programas = [...cursosDe.entries()].map(([pid, cs]) => {
+      const detalle = cs.map(c => {
+        const as = (porCurso.get(c.id) ?? []).map(f => ({
+          aula_id: f.aula_id, shortname: f.shortname,
+          modalidad: modalidad(f.shortname),
+          matriculados: f.matriculados,
+          sync_enabled: f.sync_enabled,
+          estado: f.estado,
+        })).sort((a, b) => b.matriculados - a.matriculados)
+        return {
+          course_id: c.id, code: c.code, name: c.name,
+          aulas: as.length,
+          matriculas: as.reduce((s, x) => s + x.matriculados, 0),
+          sincronizando: as.filter(x => x.sync_enabled).length,
+          alerta: as.length === 0 ? 'sin ninguna aula'
+                : as.every(x => x.matriculados === 0) ? 'todas sus aulas están vacías'
+                : as.some(x => x.matriculados > 0) && !as.some(x => x.sync_enabled) ? 'tiene alumnos y ninguna aula sincroniza'
+                : null,
+          detalle: as,
+        }
+      }).sort((a, b) => String(a.code).localeCompare(String(b.code)))
+
+      return {
+        program_id: pid,
+        programa: nombrePrograma.get(pid) ?? pid,
+        asignaturas: cs.length,
+        aulas: detalle.reduce((s, c) => s + c.aulas, 0),
+        matriculas: detalle.reduce((s, c) => s + c.matriculas, 0),
+        sin_ninguna_aula: detalle.filter(c => c.aulas === 0).length,
+        con_alumnos_sin_sincronizar: detalle.filter(c => c.alerta === 'tiene alumnos y ninguna aula sincroniza').length,
+        // El detalle sólo del programa pedido: son 432 asignaturas en total.
+        cursos: pedido && pedido === pid ? detalle : undefined,
+      }
+    }).sort((a, b) => b.matriculas - a.matriculas)
+
+    return NextResponse.json({ programas })
+  }
+
   const pendientes = filas.filter(f => f.estado === 'pendiente')
   const lista = (solo === 'todas' ? filas : pendientes).sort((a, b) => b.matriculados - a.matriculados)
   const detalle = req.nextUrl.searchParams.get('detalle') === '1'
