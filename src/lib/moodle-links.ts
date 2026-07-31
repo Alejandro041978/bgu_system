@@ -44,15 +44,39 @@ export function leerNombreAula(shortname: string | null | undefined): { code: st
   }
 }
 
-// Sufijo → programa, deducido de los datos.
-export function inferirAlias(aulas: AulaAudit[], courses: CursoMalla[]): Map<string, string> {
+// Sufijo → programa.
+//
+// La mejor fuente no es una inferencia: son las aulas que YA están vinculadas
+// en el ERP. Cada una es una decisión que alguien tomó, y dice sin ambigüedad
+// que ese sufijo pertenece a ese programa. Sólo cuando un sufijo no aparece en
+// ninguna aula vinculada se recurre a la votación por códigos de malla.
+export function inferirAlias(
+  aulas: AulaAudit[], courses: CursoMalla[],
+  vinculadas?: Map<number, string>,   // aula_id → course_id ya decidido
+): Map<string, string> {
+  const programaDeCurso = new Map<string, string | null>(courses.map(c => [c.id, c.program_id]))
   const codigosDe = new Map<string, Set<string>>()   // program_id → códigos de su malla
   for (const c of courses) {
     if (!c.program_id) continue
     if (!codigosDe.has(c.program_id)) codigosDe.set(c.program_id, new Set())
     codigosDe.get(c.program_id)!.add(normCode(c.code))
   }
-  const votos = new Map<string, Map<string, number>>()  // sufijo → programa → aciertos
+
+  // 1. Lo que ya está decidido manda.
+  const porDecision = new Map<string, Map<string, number>>()
+  for (const a of aulas) {
+    const cid = vinculadas?.get(Number(a.aula_id))
+    if (!cid) continue
+    const pid = programaDeCurso.get(cid)
+    const { sufijo } = leerNombreAula(a.shortname)
+    if (!pid || !sufijo) continue
+    if (!porDecision.has(sufijo)) porDecision.set(sufijo, new Map())
+    const v = porDecision.get(sufijo)!
+    v.set(pid, (v.get(pid) ?? 0) + 1)
+  }
+
+  // 2. Y donde no hay decisión previa, se vota con los códigos de la malla.
+  const votos = new Map<string, Map<string, number>>()
   for (const a of aulas) {
     const { code, sufijo } = leerNombreAula(a.shortname)
     if (!code || !sufijo) continue
@@ -62,11 +86,19 @@ export function inferirAlias(aulas: AulaAudit[], courses: CursoMalla[]): Map<str
       if (cods.has(code)) v.set(pid, (v.get(pid) ?? 0) + 1)
     }
   }
+
   const alias = new Map<string, string>()
-  for (const [sufijo, v] of votos) {
+  for (const [sufijo, v] of porDecision) {
     const orden = [...v.entries()].sort((a, b) => b[1] - a[1])
-    // Se exige que el ganador sea claro: al menos dos aciertos y el doble que
-    // el siguiente. Un sufijo ambiguo no propone nada, que es mejor que
+    // Un sufijo cuyas aulas vinculadas apuntan a dos programas distintos no es
+    // una señal: es un sufijo que no identifica programa. No se usa.
+    if (orden.length === 1 || (orden.length > 1 && orden[0][1] > orden[1][1])) alias.set(sufijo, orden[0][0])
+  }
+  for (const [sufijo, v] of votos) {
+    if (alias.has(sufijo)) continue
+    const orden = [...v.entries()].sort((a, b) => b[1] - a[1])
+    // Sin decisión previa se exige un ganador claro: al menos dos aciertos y el
+    // doble que el siguiente. Un empate no propone nada, que es mejor que
     // proponer mal.
     if (orden.length && orden[0][1] >= 2 && (orden.length === 1 || orden[0][1] >= orden[1][1] * 2)) {
       alias.set(sufijo, orden[0][0])

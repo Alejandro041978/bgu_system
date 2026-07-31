@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
   const courses = await todo(sb, 'academic_courses', 'id, program_id, name, code', 'id') as CursoMalla[]
   const programs = await todo(sb, 'academic_programs', 'id, name', 'id')
   const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
+  const nombreCurso = new Map<string, string>(courses.map(c => [c.id, `${c.code ?? ''} · ${c.name ?? ''}`.trim()]))
 
   // Vínculos ya establecidos: primero la tabla nueva, y como puente el enlace
   // viejo de la oferta formativa, que sigue siendo válido hasta que se migre.
@@ -64,7 +65,13 @@ export async function GET(req: NextRequest) {
     if (o.moodle_course_id != null) legado.set(Number(o.moodle_course_id), o.course_id)
   }
 
-  const alias = inferirAlias(aulas, courses)
+  // Lo ya decidido: primero la tabla nueva, y si no, el enlace viejo de la
+  // oferta. Alimenta la deducción del sufijo y sirve de contraste.
+  const decidido = new Map<number, string>()
+  for (const [id, c] of legado) decidido.set(id, c)
+  for (const [id, v] of yaVinculada) { if (v.course_id) decidido.set(id, v.course_id) }
+
+  const alias = inferirAlias(aulas, courses, decidido)
   const propuestas = proponer(aulas, courses, alias, courseNameKey)
 
   const filas = propuestas.map(p => {
@@ -113,6 +120,16 @@ export async function GET(req: NextRequest) {
     alias_deducidos: [...alias.entries()].map(([sufijo, pid]) => ({ sufijo, programa: nombrePrograma.get(pid) ?? pid })),
     codigos_sin_malla: [...desconocidos.values()].sort((a, b) => b.alumnos - a.alumnos || b.aulas - a.aulas),
     ambiguas: fam('codigo_ambiguo').map(f => ({ aula_id: f.aula_id, shortname: f.shortname, matriculados: f.matriculados, motivo: f.motivo })),
+    // Contraste contra lo ya decidido: aulas donde mi propuesta NO coincide con
+    // el vínculo que ya existe. Cada una es un error de alguno de los dos lados
+    // y hay que mirarla; no se toca nada automáticamente.
+    discrepancias: filas
+      .filter(f => f.course_id_actual && f.course_id && f.course_id !== f.course_id_actual)
+      .map(f => ({
+        aula_id: f.aula_id, shortname: f.shortname, matriculados: f.matriculados,
+        vinculada_hoy_a: nombreCurso.get(String(f.course_id_actual)) ?? f.course_id_actual,
+        yo_propongo: f.course_name, confianza: f.confianza, motivo: f.motivo,
+      })),
     // La lista completa sólo bajo pedido: son cientos de filas.
     aulas: detalle ? lista : lista.slice(0, 15),
   })
@@ -136,9 +153,13 @@ export async function POST(req: NextRequest) {
   if (aplicar === 'alta' || aplicar === 'media') {
     const aulas = await todo(sb, 'moodle_aula_audit', 'aula_id, shortname, matriculados, categoria', 'aula_id') as AulaAudit[]
     const courses = await todo(sb, 'academic_courses', 'id, program_id, name, code', 'id') as CursoMalla[]
-    const yaLink = await todo(sb, 'moodle_course_links', 'aula_id', 'aula_id')
+    const yaLink = await todo(sb, 'moodle_course_links', 'aula_id, course_id', 'aula_id')
     const ya = new Set(yaLink.map((l: { aula_id: number }) => Number(l.aula_id)))
-    const props = proponer(aulas, courses, inferirAlias(aulas, courses), courseNameKey)
+    const offs = await todo(sb, 'semester_offerings', 'moodle_course_id, course_id', 'id')
+    const decidido = new Map<number, string>()
+    for (const o of offs) { if (o.moodle_course_id != null) decidido.set(Number(o.moodle_course_id), o.course_id) }
+    for (const l of yaLink) { if (l.course_id) decidido.set(Number(l.aula_id), l.course_id) }
+    const props = proponer(aulas, courses, inferirAlias(aulas, courses, decidido), courseNameKey)
     for (const p of props) {
       if (p.confianza !== aplicar || !p.course_id || ya.has(p.aula_id)) continue
       filas.push({ aula_id: p.aula_id, course_id: p.course_id, kind: 'asignatura', linked_by: quien, linked_at: ahora })
