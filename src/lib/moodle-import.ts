@@ -1,4 +1,5 @@
 import { moodleCall } from './moodle'
+import { rendidoPct, estadoAcademico, huboEvaluacionNueva, type ItemProceso } from './grade-status'
 import { importGrades, resolveImportTarget, fetchByIn, stableUuid, type ImportRow } from './grades-write'
 
 // ---------------------------------------------------------------------------
@@ -229,7 +230,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     if (target.action === 'skip') { yaRegistradas++; continue }
     if (target.action === 'fill') rellenadas++
     const externalId = target.external_id
-    rows.push({
+    const fila: ImportRow = {
       external_id: externalId,
       shield: target.shield,
       document_number: String(stu.document_number ?? ''),
@@ -242,7 +243,8 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       term_block: null,
       final_grade: total,
       passing_score: passing,
-    })
+    }
+    rows.push(fila)
 
     // SOLO ítems con ponderación. Los ítems sin peso no entran al acta aunque
     // tengan nota: son asistencia a sincrónicas, simulacros, evaluaciones
@@ -263,6 +265,14 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
         val: val == null ? null : Math.round(val * 100) / 100,
         desc: i.itemname ?? '',
       }
+    })
+    // La nota de Moodle es un acumulado sobre el 100% del curso: 3,33 no es
+    // "le va mal", es "lleva un quiz de 3,33%". El estado lo decide la
+    // aritmética del acumulado, sin umbrales.
+    fila.rendido_pct = rendidoPct(process as ItemProceso[])
+    fila.estado_academico = estadoAcademico({
+      valor: total, passing_score: passing,
+      rendido_pct: fila.rendido_pct, cerrado: false,
     })
     detailByExternal.set(externalId, { student_id: stu.id, process, total })
   }
@@ -307,9 +317,13 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       for (const e of (data ?? []) as { id: string; student_id: string }[]) if (!enrOf.has(e.student_id)) enrOf.set(e.student_id, e.id)
     }
     const existingDetail = new Map<string, string>()
+    const detalleAnterior = new Map<string, ItemProceso[] | null>()
     for (let i = 0; i < extIds.length; i += 200) {
-      const { data } = await sb.from('academic_grade_details').select('id, external_id').in('external_id', extIds.slice(i, i + 200))
-      for (const d of (data ?? []) as { id: string; external_id: string }[]) existingDetail.set(d.external_id, d.id)
+      const { data } = await sb.from('academic_grade_details').select('id, external_id, process_grades').in('external_id', extIds.slice(i, i + 200))
+      for (const d of (data ?? []) as { id: string; external_id: string; process_grades: ItemProceso[] | null }[]) {
+        existingDetail.set(d.external_id, d.id)
+        detalleAnterior.set(d.external_id, d.process_grades ?? null)
+      }
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const inserts: any[] = []
@@ -344,6 +358,23 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       const chunk = updates.slice(i, i + 20)
       await Promise.all(chunk.map(u => sb.from('academic_grade_details').update(u.patch).eq('id', u.id)))
       detallesEscritos += chunk.length
+    }
+
+    // Fecha de la última evaluación REAL. No es synced_at: ese se mueve cada
+    // vez que el cron mira el aula. Aquí sólo se marca cuando cambió el valor
+    // de algún ítem del detalle — que el profesor renombre una actividad no
+    // es una evaluación nueva.
+    //
+    // Hoy no lo usa nadie. Se captura porque los cierres por inactividad que
+    // vienen (aprobados sin 100% a los 30 días, pendientes a los 12 meses)
+    // dependen de él, y ese historial no se puede reconstruir después.
+    const evaluados = [...detailByExternal.entries()]
+      .filter(([ext, d]) => !locked.has(ext) && huboEvaluacionNueva(detalleAnterior.get(ext), d.process as ItemProceso[]))
+      .map(([ext]) => ext)
+    for (let i = 0; i < evaluados.length; i += 200) {
+      await sb.from('academic_grades')
+        .update({ last_evaluated_at: new Date().toISOString() })
+        .in('external_id', evaluados.slice(i, i + 200))
     }
   }
 

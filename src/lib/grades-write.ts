@@ -162,6 +162,11 @@ export interface ImportRow {
   term_block?: string | null
   final_grade: number | null
   passing_score?: number | null
+  // Estado académico calculado del detalle: cuánto del curso está rendido, qué
+  // estado se deduce, y cuándo cambió por última vez una nota del detalle.
+  rendido_pct?: number | null
+  estado_academico?: string | null
+  last_evaluated_at?: string | null
   // Blinda la fila contra el sync de N8N (escribe edited_at). Se usa al
   // RELLENAR una fila "en curso" heredada de SystemActiva: sin el blindaje,
   // el sync nocturno la revertiría a null porque en Activa sigue vacía.
@@ -307,6 +312,9 @@ export async function importGrades(
       term_block: r.term_block ?? null,
       final_grade: r.final_grade,
       passing_score: r.passing_score ?? null,
+      rendido_pct: r.rendido_pct ?? null,
+      estado_academico: r.estado_academico ?? null,
+      last_evaluated_at: r.last_evaluated_at ?? null,
       source: opts.origin,
       synced_at: new Date().toISOString(),
       // shield=true blinda contra el sync N8N; null es inocuo: las filas
