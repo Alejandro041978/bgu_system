@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { codigosDeMalla, codigoVisible } from '@/lib/course-code'
 
 export const revalidate = 0
 
@@ -31,14 +32,18 @@ export async function GET(req: NextRequest) {
   // columnas (migración sin correr), no filtra ni marca.
   const withdrawn = new Set<string>()
   const editableByExt = new Map<string, boolean>()
+  // course_id por nota: es lo que permite mostrar el código de la malla
+  // (STA 460) en vez del número de orden con el que llegó de SystemActiva (207).
+  const cursoByExt = new Map<string, string | null>()
   if (stu?.document_number) {
-    const r = await sb.from('academic_grades').select('external_id, withdrawn_at, source, moodle_course_id')
+    const r = await sb.from('academic_grades').select('external_id, withdrawn_at, source, moodle_course_id, course_id')
       .eq('document_number', stu.document_number)
     if (!r.error) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const w of (r.data ?? []) as any[]) {
         if (w.withdrawn_at) withdrawn.add(String(w.external_id))
         editableByExt.set(String(w.external_id), w.source === 'systemactiva' && !w.moodle_course_id)
+        cursoByExt.set(String(w.external_id), w.course_id ?? null)
       }
     }
   }
@@ -47,9 +52,12 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const e of (enr ?? []) as any[]) progByEnr.set(e.id, e.academic_programs?.name ?? 'Programa')
 
+  const malla = await codigosDeMalla(sb, [...cursoByExt.values()])
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = ((details ?? []) as any[]).filter(d => !withdrawn.has(String(d.external_id))).map(d => ({
     ...d,
+    course_code: codigoVisible(cursoByExt.get(String(d.external_id)), malla, d.course_code),
     program_name: d.enrollment_id ? (progByEnr.get(d.enrollment_id) ?? 'Sin programa') : 'Sin programa',
     editable: editableByExt.get(String(d.external_id)) ?? false,
   }))

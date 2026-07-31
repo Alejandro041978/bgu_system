@@ -42,14 +42,14 @@ export async function GET(req: NextRequest) {
     categoryPassing = cat?.passing_score ?? null
   }
 
-  const { data: courses } = await sb.from('academic_courses').select('code, name, credits').eq('program_id', programId)
+  const { data: courses } = await sb.from('academic_courses').select('id, code, name, credits').eq('program_id', programId)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const malla = (courses ?? []) as any[]
   const belongs = (g: { course_code: string | null; course_name: string | null }) =>
     malla.some(c => (c.code && g.course_code && String(c.code) === String(g.course_code)) || sameCourse(g.course_name, c.name))
 
   const { data: grades } = await sb.from('academic_grades')
-    .select('external_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id')
+    .select('external_id, course_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id')
     .eq('document_number', student.document_number).neq('source', 'convalidacion').neq('source', 'validacion')
 
   // Parciales del Acta Detallada (misma inscripción por external_id): una
@@ -67,7 +67,10 @@ export async function GET(req: NextRequest) {
     const st = gradeStatus(g, categoryPassing)
     const has_grade = st.has_grade || (partialsByExt.get(String(g.external_id)) ?? false)
     return {
-      external_id: g.external_id, course_code: g.course_code, course_name: g.course_name,
+      external_id: g.external_id,
+      // El código de la malla, no el número de orden de SystemActiva.
+      course_code: (g.course_id ? malla.find((c: { id: string; code: string | null }) => c.id === g.course_id)?.code : null) ?? g.course_code,
+      course_name: g.course_name,
       credits: g.credits != null ? Number(g.credits) : null,
       term: [g.term_year, g.term_block].filter(Boolean).join(' · '),
       status: st.status, grade: st.grade, has_grade, withdrawn: !!g.withdrawn_at,
