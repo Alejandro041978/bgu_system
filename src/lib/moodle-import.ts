@@ -169,6 +169,30 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
 
   // Compuerta de política: un aula que no cumple NO se importa.
   const politica = await aulaPolicy(sb, courseid, report)
+
+  // Rastro del rechazo. Hasta ahora el aula que no cumplía se devolvía en la
+  // respuesta HTTP del cron, que no lee nadie: se detectaba sesenta veces al
+  // día y se tiraba. Ahora queda escrito desde cuándo y por qué, y se borra
+  // sola en cuanto el aula vuelve a cumplir.
+  //
+  // Es lo que permite avisar de una transición —"esta aula dejaba de
+  // sincronizar hace seis días"— en vez de solo mostrar un estado a quien se
+  // acuerde de abrir una pantalla.
+  try {
+    if (politica.violations.length) {
+      const { data: prev } = await sb.from('moodle_aula_audit')
+        .select('reject_since').eq('aula_id', courseid).maybeSingle()
+      await sb.from('moodle_aula_audit').update({
+        reject_since: prev?.reject_since ?? new Date().toISOString(),
+        reject_reason: politica.violations.join('; '),
+      }).eq('aula_id', courseid)
+    } else {
+      await sb.from('moodle_aula_audit')
+        .update({ reject_since: null, reject_reason: null })
+        .eq('aula_id', courseid).not('reject_since', 'is', null)
+    }
+  } catch { /* el rastro no puede tumbar la importación */ }
+
   if (politica.violations.length) {
     return {
       ok: false, status: 400, politica,
