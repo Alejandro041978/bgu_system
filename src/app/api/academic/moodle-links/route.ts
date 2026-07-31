@@ -54,10 +54,10 @@ export async function GET(req: NextRequest) {
 
   // Vínculos ya establecidos: primero la tabla nueva, y como puente el enlace
   // viejo de la oferta formativa, que sigue siendo válido hasta que se migre.
-  const links = await todo(sb, 'moodle_course_links', 'aula_id, course_id, kind', 'aula_id')
+  const links = await todo(sb, 'moodle_course_links', 'aula_id, course_id, kind, sync_enabled', 'aula_id')
     .catch(() => [] as { aula_id: number; course_id: string | null; kind: string }[])
-  const yaVinculada = new Map<number, { course_id: string | null; kind: string }>()
-  for (const l of links) yaVinculada.set(Number(l.aula_id), { course_id: l.course_id, kind: l.kind })
+  const yaVinculada = new Map<number, { course_id: string | null; kind: string; sync_enabled: boolean }>()
+  for (const l of links) yaVinculada.set(Number(l.aula_id), { course_id: l.course_id, kind: l.kind, sync_enabled: !!l.sync_enabled })
 
   const offs = await todo(sb, 'semester_offerings', 'moodle_course_id, course_id', 'id')
   const legado = new Map<number, string>()
@@ -150,6 +150,50 @@ export async function POST(req: NextRequest) {
   // confianza que sigan pendientes, sin tener que armar el JSON a mano. Se
   // recalcula acá: no se confía en una lista que el navegador tenga vieja.
   const aplicar = req.nextUrl.searchParams.get('aplicar')
+
+  // ?aplicar=oferta → trae a la tabla nueva los vínculos que hoy viven en
+  // semester_offerings. Esos SÍ nacen sincronizando: es exactamente el conjunto
+  // que el cron ya recorre, así que la migración no cambia nada en marcha.
+  if (aplicar === 'oferta') {
+    const offs = await todo(sb, 'semester_offerings', 'moodle_course_id, course_id', 'id')
+    const yaLink = await todo(sb, 'moodle_course_links', 'aula_id', 'aula_id')
+    const ya = new Set(yaLink.map((l: { aula_id: number }) => Number(l.aula_id)))
+    const vistos = new Set<number>()
+    for (const o of offs) {
+      const id = Number(o.moodle_course_id)
+      if (!o.moodle_course_id || !o.course_id || ya.has(id) || vistos.has(id)) continue
+      vistos.add(id)
+      filas.push({
+        aula_id: id, course_id: o.course_id, kind: 'asignatura',
+        sync_enabled: true, sync_enabled_by: quien, sync_enabled_at: ahora,
+        linked_by: quien, linked_at: ahora, nota: 'Migrada desde la oferta formativa',
+      })
+    }
+    if (!filas.length) return NextResponse.json({ ok: true, guardados: 0, nota: 'No quedan vínculos de oferta por migrar' })
+    for (let i = 0; i < filas.length; i += 500) {
+      const { error } = await sb.from('moodle_course_links').upsert(filas.slice(i, i + 500), { onConflict: 'aula_id' })
+      if (error) return NextResponse.json({ error: error.message, guardados: i }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, migradas_desde_la_oferta: filas.length, sincronizando: filas.length })
+  }
+
+  // ?sincronizar=1,2,3 | ?apagar=1,2,3 → enciende o apaga la importación de
+  // esas aulas. Es una decisión aparte de la identidad, y siempre explícita.
+  const encender = req.nextUrl.searchParams.get('sincronizar')
+  const apagar = req.nextUrl.searchParams.get('apagar')
+  if (encender || apagar) {
+    const ids = String(encender ?? apagar).split(',').map(n => Number(n.trim())).filter(n => n > 0)
+    if (!ids.length) return NextResponse.json({ error: 'No se recibió ninguna aula' }, { status: 400 })
+    const { error, count } = await sb.from('moodle_course_links')
+      .update(encender
+        ? { sync_enabled: true, sync_enabled_by: quien, sync_enabled_at: ahora }
+        : { sync_enabled: false, sync_enabled_by: quien, sync_enabled_at: ahora },
+        { count: 'exact' })
+      .in('aula_id', ids).eq('kind', 'asignatura')
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, [encender ? 'sincronizando' : 'apagadas']: count ?? ids.length })
+  }
+
   if (aplicar === 'alta' || aplicar === 'media') {
     const aulas = await todo(sb, 'moodle_aula_audit', 'aula_id, shortname, matriculados, categoria', 'aula_id') as AulaAudit[]
     const courses = await todo(sb, 'academic_courses', 'id, program_id, name, code', 'id') as CursoMalla[]

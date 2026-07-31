@@ -26,6 +26,18 @@ create table if not exists moodle_course_links (
   course_id           uuid references academic_courses(id),
   -- asignatura | no_curricular
   kind                text not null default 'asignatura',
+
+  -- Identidad y sincronización son dos decisiones distintas y se guardan
+  -- aparte. Saber qué asignatura enseña un aula es un hecho: conviene
+  -- declararlo aunque el aula esté cerrada, sea de una cohorte vieja o sea una
+  -- copia. Traer sus notas al ERP es una decisión operativa que se prende y se
+  -- apaga, y que no todas las aulas merecen.
+  --
+  -- Por eso nace en false: vincular no sincroniza. Se enciende a propósito.
+  sync_enabled        boolean not null default false,
+  sync_enabled_by     text,
+  sync_enabled_at     timestamptz,
+
   nota                text,
   linked_by           text,
   linked_at           timestamptz not null default now(),
