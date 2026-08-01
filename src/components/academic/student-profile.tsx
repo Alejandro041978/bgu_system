@@ -192,6 +192,9 @@ export function StudentProfile() {
                   </button>
                 )}
               </Field>
+              <Field label="Cuenta del Campus Virtual">
+                <MoodleAccount studentId={student.id} />
+              </Field>
               <label className="block sm:col-span-3">
                 <span className="block text-xs text-gray-500 mb-1">{`Teléfono${student.phone_number ? ` (envíos: ${student.phone_number})` : ''}`}</span>
                 <div className="flex gap-1.5">
@@ -341,6 +344,104 @@ function StudentEmailAccess({ studentId }: { studentId: string }) {
       {st.suspended && <p className="text-[11px] text-red-600">La cuenta está suspendida en Google.</p>}
       {msg && <p className="text-[11px] text-green-600">{msg}</p>}
       {err && <p className="text-[11px] text-red-600">{err}</p>}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Cuenta del Campus Virtual (Moodle).
+//
+// Tres casos, y el botón se comporta distinto en cada uno:
+//   a) Con derecho a correo estudiantil → la cuenta nace con el @blackwell.pro,
+//      y hasta que ese correo no exista el botón no deja crearla.
+//   b) Sin derecho, programa en nuestro campus → con el correo personal.
+//   c) Campus externo → no corresponde, y se dice.
+//
+// La contraseña de primer uso no se guarda: "reenviar" emite una nueva y la
+// anterior deja de servir. Es el mismo criterio del correo estudiantil.
+// ---------------------------------------------------------------------------
+interface EstadoMoodle {
+  caso: 'a' | 'b' | 'c'; motivo: string; corresponde: boolean
+  usuario: string | null; falta_correo_estudiantil: boolean
+  tiene_cuenta: boolean; moodle_user_id: string | null
+  credenciales_enviadas_a: string | null; credenciales_enviadas_el: string | null
+}
+
+function MoodleAccount({ studentId }: { studentId: string }) {
+  const [st, setSt] = useState<EstadoMoodle | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+
+  const traer = () => {
+    setLoading(true)
+    fetch(`/api/academic/moodle-account?student_id=${studentId}`)
+      .then(r => r.json())
+      .then(d => { if (d.error) setErr(d.error); else { setSt(d); setErr(null) } })
+      .catch(() => setErr('No se pudo consultar el estado'))
+      .finally(() => setLoading(false))
+  }
+  useEffect(traer, [studentId])
+
+  const actuar = async (accion: 'crear' | 'reenviar') => {
+    setBusy(true); setMsg(null); setErr(null)
+    try {
+      const r = await fetch('/api/academic/moodle-account', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, accion }),
+      })
+      const d = await r.json()
+      if (!r.ok) setErr(d.error ?? 'No se pudo completar')
+      else { setMsg(`${d.nota} Usuario: ${d.usuario}`); traer() }
+    } catch { setErr('No se pudo completar') }
+    setBusy(false)
+  }
+
+  if (loading) return <p className="text-xs text-gray-400">Consultando…</p>
+  if (err && !st) return <p className="text-xs text-red-600">{err}</p>
+  if (!st) return null
+
+  if (!st.corresponde) {
+    return <p className="text-xs text-gray-500">No corresponde — {st.motivo.toLowerCase()}.</p>
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {st.tiene_cuenta ? (
+        <p className="text-xs text-gray-600">
+          Cuenta creada · usuario <span className="font-medium">{st.usuario}</span>
+          {st.credenciales_enviadas_el && (
+            <span className="block text-gray-400">
+              credenciales enviadas a {st.credenciales_enviadas_a} el {new Date(st.credenciales_enviadas_el).toLocaleDateString('es-PE')}
+            </span>
+          )}
+        </p>
+      ) : st.falta_correo_estudiantil ? (
+        <p className="text-xs text-amber-700">
+          Primero hay que crear su correo estudiantil: la cuenta del campus debe nacer con él.
+        </p>
+      ) : (
+        <p className="text-xs text-gray-500">Sin cuenta · se creará con {st.usuario}</p>
+      )}
+
+      <div className="flex gap-2">
+        {!st.tiene_cuenta && !st.falta_correo_estudiantil && (
+          <button onClick={() => actuar('crear')} disabled={busy}
+            className="border border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 rounded-lg px-2.5 py-1.5 text-xs transition-colors disabled:opacity-50">
+            {busy ? 'Creando…' : '+ Crear cuenta del campus'}
+          </button>
+        )}
+        {st.tiene_cuenta && (
+          <button onClick={() => actuar('reenviar')} disabled={busy}
+            className="border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-lg px-2.5 py-1.5 text-xs transition-colors disabled:opacity-50">
+            {busy ? 'Enviando…' : 'Reenviar credenciales'}
+          </button>
+        )}
+      </div>
+
+      {msg && <p className="text-xs text-green-700">{msg}</p>}
+      {err && <p className="text-xs text-red-600">{err}</p>}
     </div>
   )
 }
