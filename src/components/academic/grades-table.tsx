@@ -16,10 +16,26 @@ export interface Grade {
   source?: string | null
   program_ids?: string[]
   edited_at?: string | null
+  estado_academico?: string | null
+  rendido_pct?: number | null
 }
 
 function gradeInfo(g: Grade): { value: number | null; passed: boolean | null; label: string } {
   const value = g.retake_grade ?? g.final_grade
+
+  // La etiqueta sale del estado calculado, no de comparar la nota contra el
+  // mínimo. La nota del campus es un acumulado sobre el 100% del curso: quien
+  // rindió dos quizzes de 3,33% con 95 puntos tiene 6,33 y está empezando, no
+  // desaprobado. Decírselo así al estudiante en su propio portal es el peor
+  // lugar donde podíamos equivocarnos.
+  if (g.estado_academico === 'aprobado') return { value, passed: true, label: 'Aprobado' }
+  if (g.estado_academico === 'reprobado') return { value, passed: false, label: 'Desaprobado' }
+  if (g.estado_academico === 'pendiente') {
+    const r = g.rendido_pct
+    return { value, passed: null, label: r != null && r > 0 ? `En curso · ${Math.round(r)}% rendido` : 'En curso' }
+  }
+
+  // Sin estado calculado: criterio anterior.
   if (value === null || value === undefined) return { value: null, passed: null, label: 'En curso' }
   const threshold = g.passing_score
   const passed = threshold != null ? value >= threshold : null

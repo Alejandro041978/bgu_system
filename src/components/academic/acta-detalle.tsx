@@ -31,6 +31,18 @@ function calcAverage(d: Detail): number | null {
 }
 
 function statusOf(d: Detail): { label: string; cls: string } | null {
+  // La etiqueta sale del estado calculado, NO de comparar la nota contra el
+  // mínimo. La nota de Moodle es un acumulado sobre el 100% del curso: quien
+  // rindió dos quizzes de 3,33% con 95 puntos tiene 6,33, y no está
+  // desaprobado — está empezando.
+  const est = (d as { estado_academico?: string | null }).estado_academico
+  if (est === 'aprobado') return { label: 'Aprobado', cls: 'bg-green-50 text-green-700' }
+  if (est === 'reprobado') return { label: 'Desaprobado', cls: 'bg-red-50 text-red-700' }
+  if (est === 'pendiente') {
+    const r = (d as { rendido_pct?: number | null }).rendido_pct
+    return { label: r != null && r > 0 ? `En curso · ${Math.round(r)}%` : 'En curso', cls: 'bg-gray-100 text-gray-500' }
+  }
+  // Sin estado calculado (nota antigua sin recalcular): se cae al criterio viejo.
   const val = d.retake_grade ?? d.final_grade
   if (val == null) return { label: 'En curso', cls: 'bg-gray-100 text-gray-500' }
   if (d.passing_score == null) return null
