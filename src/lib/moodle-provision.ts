@@ -107,21 +107,50 @@ async function ensureCourse(sb: any, o: { id: string; moodle_course_id: string |
   return c.id
 }
 
+// Las aulas del grupo, resueltas por la COLECCIÓN del estudiante.
+//
+// Una asignatura tiene varias aulas —la regular, la del upgrade, la del campus
+// asociado, la que se dicte en inglés— y cuál le toca a este estudiante lo
+// dice su colección, no la oferta. La oferta queda como respaldo para las
+// matrículas que todavía no tienen colección elegida.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function loadGroupCourses(sb: any, groupId: string) {
+async function loadGroupCourses(sb: any, groupId: string, collectionId?: string | null) {
   const { data: offs } = await sb.from('semester_offerings')
-    .select('id, moodle_course_id, course:academic_courses(name, code)').eq('group_id', groupId)
+    .select('id, moodle_course_id, course_id, course:academic_courses(name, code)').eq('group_id', groupId)
+
+  // aula de cada asignatura dentro de la colección
+  const porColeccion = new Map<string, number>()
+  if (collectionId) {
+    const { data: links } = await sb.from('moodle_course_links')
+      .select('aula_id, course_id').eq('collection_id', collectionId).eq('kind', 'asignatura')
+    for (const l of (links ?? []) as { aula_id: number; course_id: string }[]) {
+      porColeccion.set(String(l.course_id), Number(l.aula_id))
+    }
+  }
   // El carrusel repite la misma asignatura en varios años y todas apuntan a la
   // MISMA aula Moodle → deduplicar para no matricular dos veces en cada aula.
   const courseIds = new Set<number>()
   const unmapped: string[] = []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const o of (offs ?? []) as any[]) {
-    const cid = await ensureCourse(sb, { id: o.id, moodle_course_id: o.moodle_course_id, code: o.course?.code ?? null })
+    const deColeccion = o.course_id ? porColeccion.get(String(o.course_id)) : undefined
+    const cid = deColeccion ?? await ensureCourse(sb, { id: o.id, moodle_course_id: o.moodle_course_id, code: o.course?.code ?? null })
     if (cid) courseIds.add(cid)
     else unmapped.push(o.course?.name ?? o.id)
   }
   return { courseIds: [...courseIds], unmapped: [...new Set(unmapped)] }
+}
+
+// La colección elegida en la matrícula de ese programa. Es lo que decide en
+// cuál de las aulas de cada asignatura entra este estudiante.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function coleccionDe(sb: any, groupId: string, studentId: string): Promise<string | null> {
+  const { data: gr } = await sb.from('academic_groups').select('program_id').eq('id', groupId).maybeSingle()
+  if (!gr?.program_id) return null
+  const { data: enr } = await sb.from('academic_student_enrollments')
+    .select('collection_id').eq('student_id', studentId).eq('program_id', gr.program_id)
+    .not('collection_id', 'is', null).limit(1).maybeSingle()
+  return enr?.collection_id ?? null
 }
 
 // Matricula/desmatricula UN estudiante en las aulas del grupo. Best-effort.
@@ -132,7 +161,7 @@ export async function provisionStudent(groupId: string, studentId: string, actio
   try {
     const { data: s } = await sb.from('academic_students').select(STUDENT_FIELDS).eq('id', studentId).maybeSingle()
     if (!s) { result.errors.push('Estudiante no encontrado'); return result }
-    const { courseIds, unmapped } = await loadGroupCourses(sb, groupId)
+    const { courseIds, unmapped } = await loadGroupCourses(sb, groupId, await coleccionDe(sb, groupId, studentId))
     result.courses_unmapped = unmapped
     const uid = await ensureMoodleUser(sb, s, result)
     if (!uid) { result.no_account = 1; return result }
@@ -154,8 +183,20 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
   if (!result.configured) return result
   const sb = admin()
   try {
-    const { courseIds, unmapped } = await loadGroupCourses(sb, groupId)
-    result.courses_unmapped = unmapped
+    // Las aulas dependen de la COLECCIÓN de cada estudiante, así que no hay un
+    // único juego para todo el grupo: en el mismo carrusel puede haber gente de
+    // la colección regular y del campus asociado. Se resuelve una vez por
+    // colección distinta y se reutiliza.
+    const porColeccion = new Map<string, number[]>()
+    const cargar = async (colId: string | null) => {
+      const k = colId ?? '—'
+      if (!porColeccion.has(k)) {
+        const r = await loadGroupCourses(sb, groupId, colId)
+        porColeccion.set(k, r.courseIds)
+        result.courses_unmapped = [...new Set([...result.courses_unmapped, ...r.unmapped])]
+      }
+      return porColeccion.get(k)!
+    }
     const { data: members } = await sb.from('academic_group_students')
       .select(`status, academic_students(${STUDENT_FIELDS})`).eq('group_id', groupId).eq('status', 'activo')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -167,7 +208,8 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
       const uid = await ensureMoodleUser(sb, s, result)
       if (!uid) { result.no_account++; continue }
       result.with_account++
-      for (const cid of courseIds) enrolments.push({ userid: uid, courseid: cid })
+      const suyas = await cargar(await coleccionDe(sb, groupId, s.id))
+      for (const cid of suyas) enrolments.push({ userid: uid, courseid: cid })
     }
     for (let i = 0; i < enrolments.length; i += 300) {
       const wave = enrolments.slice(i, i + 300)
@@ -185,7 +227,10 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
     for (const m of (done ?? []) as any[]) {
       const uid = Number(m.academic_students?.moodle_user_id)
       if (!Number.isFinite(uid) || !uid) continue
-      for (const cid of courseIds) unenrolments.push({ userid: uid, courseid: cid })
+      // Se desmatricula de las aulas de SU colección; si no tiene, de las que
+      // resuelva la oferta, que es el comportamiento de siempre.
+      const suyas = await cargar(await coleccionDe(sb, groupId, String(m.academic_students?.id)))
+      for (const cid of suyas) unenrolments.push({ userid: uid, courseid: cid })
     }
     for (let i = 0; i < unenrolments.length; i += 300) {
       try { await unenrolUsersBulk(unenrolments.slice(i, i + 300)) }
