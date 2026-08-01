@@ -36,7 +36,23 @@ export async function GET(req: NextRequest) {
       .order('term_block', { ascending: false })
       .order('course_code')
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    const grades = data ?? []
+    let grades = data ?? []
+
+    // El código que se muestra es el del plan de estudios. academic_grades.course_code
+    // guarda el número de orden con el que la nota llegó de SystemActiva (207, 101),
+    // que no es el código de la asignatura y además colisiona entre programas.
+    {
+      const ids = [...new Set(grades.map((g: { course_id?: string | null }) => g.course_id).filter(Boolean))] as string[]
+      if (ids.length) {
+        const code = new Map<string, string | null>()
+        for (let i = 0; i < ids.length; i += 300) {
+          const { data: cs } = await sb.from('academic_courses').select('id, code').in('id', ids.slice(i, i + 300))
+          for (const c of (cs ?? []) as { id: string; code: string | null }[]) code.set(c.id, c.code)
+        }
+        grades = grades.map((g: { course_id?: string | null; course_code?: string | null }) =>
+          g.course_id && code.get(g.course_id) ? { ...g, course_code: code.get(g.course_id) } : g)
+      }
+    }
 
     let programs: { id: string; name: string }[] = []
     const { data: studs } = await sb.from('academic_students').select('id').eq('document_number', document)
