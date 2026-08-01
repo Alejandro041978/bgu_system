@@ -44,6 +44,14 @@ export function NuevaMatricula() {
   const [programs, setPrograms] = useState<Program[]>([])
   const [convs, setConvs] = useState<Conv[]>([])
   const [categoryId, setCategoryId] = useState('')
+  // Colección y carrusel: se muestran SIEMPRE, preseleccionados cuando hay una
+  // sola opción. Lo que se decide solo y nadie ve es de donde vienen los
+  // problemas que arrastramos; aquí la decisión queda a la vista aunque no
+  // haya nada que elegir.
+  const [colecciones, setColecciones] = useState<{ id: string; name: string; con_aula: number; asignaturas: number }[]>([])
+  const [carruseles, setCarruseles] = useState<{ id: string; name: string; abbreviation: string | null }[]>([])
+  const [collectionId, setCollectionId] = useState('')
+  const [entryGroupId, setEntryGroupId] = useState('')
   const [yearId, setYearId] = useState('')
   const [convId, setConvId] = useState('')
   const [programId, setProgramId] = useState('')
@@ -97,10 +105,34 @@ export function NuevaMatricula() {
     setSearching(false)
   }
 
+  useEffect(() => {
+    setColecciones([]); setCarruseles([]); setCollectionId(''); setEntryGroupId('')
+    if (!programId) return
+    fetch('/api/academic/moodle-collections')
+      .then(r => r.json())
+      .then(d => {
+        const suyas = (d.colecciones ?? []).filter((c: { program_id: string }) => c.program_id === programId)
+        setColecciones(suyas)
+        if (suyas.length === 1) setCollectionId(suyas[0].id)
+      }).catch(() => { /* el bloqueo de abajo avisa */ })
+    fetch(`/api/academic/groups?program_id=${programId}`)
+      .then(r => r.json())
+      .then(d => {
+        const gs = (Array.isArray(d) ? d : d.groups ?? []) as { id: string; name: string; abbreviation: string | null }[]
+        setCarruseles(gs)
+        if (gs.length === 1) setEntryGroupId(gs[0].id)
+      }).catch(() => { /* opcional: si falla, se coloca después */ })
+  }, [programId])
+
   const catPrograms = programs.filter(p => p.category_id === categoryId)
   const studentReady = !!selected || (creating && newStudent.first_name.trim() && newStudent.last_name.trim() && newStudent.document_number.trim())
   const prereqBlocks = !!(prereq?.aplica && prereq.cumple === false)
-  const canSubmit = studentReady && programId && convId && !saving && !prereqBlocks
+  // Sin colección creada no se matricula: el estudiante quedaría sin forma de
+  // entrar a ninguna aula. Puede estar INCOMPLETA —4 casillas de 40 mientras se
+  // arma— porque el vínculo ya está hecho y el cron diario incorpora las aulas
+  // que se vayan añadiendo. Lo que no puede es no existir.
+  const sinColeccion = !!programId && colecciones.length === 0
+  const canSubmit = studentReady && programId && convId && !!collectionId && !saving && !prereqBlocks
 
   async function submit() {
     if (!canSubmit) return
@@ -114,6 +146,8 @@ export function NuevaMatricula() {
         program_id: programId,
         convocatoria_id: convId,
         enrollment_date: enrollDate,
+        collection_id: collectionId || null,
+        entry_group_id: entryGroupId || null,
       }),
     })
     const d = await res.json()
@@ -261,6 +295,28 @@ export function NuevaMatricula() {
             <select value={convId} onChange={e => setConvId(e.target.value)} className={inp} disabled={!convs.length}>
               <option value="">{categoryId ? (convs.length ? 'Seleccionar…' : 'Sin convocatorias en este año') : 'Elige categoría y año'}</option>
               {convs.map(c => <option key={c.id} value={c.id}>{c.name} — {c.semester} ({fdate(c.first_day)})</option>)}
+            </select>
+          </label>
+          <label>
+            <span className="block text-xs text-gray-500 mb-1">Colección de aulas</span>
+            <select value={collectionId} onChange={e => setCollectionId(e.target.value)} className={inp} disabled={!programId}>
+              <option value="">{!programId ? 'Elige el programa' : (colecciones.length ? 'Seleccionar…' : 'El programa no tiene colecciones')}</option>
+              {colecciones.map(c => (
+                <option key={c.id} value={c.id}>{c.name} — {c.con_aula} de {c.asignaturas} aulas</option>
+              ))}
+            </select>
+            {sinColeccion && (
+              <span className="mt-1 block text-xs text-red-600">
+                Este programa no tiene ninguna colección de aulas. Créala en Calificaciones › Vinculación de Aulas
+                antes de matricular: sin ella el estudiante no tendría a qué aula entrar.
+              </span>
+            )}
+          </label>
+          <label>
+            <span className="block text-xs text-gray-500 mb-1">Carrusel de entrada</span>
+            <select value={entryGroupId} onChange={e => setEntryGroupId(e.target.value)} className={inp} disabled={!programId}>
+              <option value="">{!programId ? 'Elige el programa' : (carruseles.length ? 'Colocar después' : 'El programa no tiene carruseles')}</option>
+              {carruseles.map(c => <option key={c.id} value={c.id}>{c.abbreviation ? c.abbreviation + ' · ' : ''}{c.name}</option>)}
             </select>
           </label>
           <label>

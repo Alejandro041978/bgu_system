@@ -73,12 +73,14 @@ export async function POST(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const body = await req.json().catch(() => null)
-  const { student_id, new_student, program_id, convocatoria_id, enrollment_date } = (body ?? {}) as {
+  const { student_id, new_student, program_id, convocatoria_id, enrollment_date, collection_id, entry_group_id } = (body ?? {}) as {
     student_id?: string
     new_student?: { first_name?: string; last_name?: string; second_last_name?: string; document_number?: string; email?: string; phone_code?: string; phone_local?: string; city?: string; country?: string; birth_country?: string }
     program_id?: string
     convocatoria_id?: string
     enrollment_date?: string
+    collection_id?: string | null
+    entry_group_id?: string | null
   }
   if (!program_id || !convocatoria_id) return NextResponse.json({ error: 'Faltan programa o convocatoria' }, { status: 400 })
   if (!student_id && !new_student) return NextResponse.json({ error: 'Falta el estudiante (existente o nuevo)' }, { status: 400 })
@@ -185,6 +187,12 @@ export async function POST(req: NextRequest) {
       program_id,
       convocatoria_id,
       enrollment_date: (enrollment_date?.trim() || new Date().toISOString().slice(0, 10)),
+      // La colección decide a qué aula de cada asignatura entra este
+      // estudiante; el carrusel, por dónde empieza. Van en la matrícula y no en
+      // el estudiante porque quien cursa dos programas puede estar en la
+      // colección regular de uno y en la del campus asociado del otro.
+      collection_id: collection_id || null,
+      entry_group_id: entry_group_id || null,
     })
     if (enrErr) return NextResponse.json({ error: `No se pudo crear la matrícula: ${enrErr.message}` }, { status: 500 })
   }
