@@ -3,14 +3,16 @@
 import { useState } from 'react'
 import { ClassroomLinks } from './classroom-links'
 import { ClassroomCoverage } from './classroom-coverage'
+import { ClassroomCollections } from './classroom-collections'
 
 export function ClassroomLinksTabs() {
-  const [tab, setTab] = useState<'vincular' | 'cobertura'>('cobertura')
+  const [tab, setTab] = useState<'vincular' | 'cobertura' | 'colecciones'>('cobertura')
   return (
     <div className="space-y-5">
       <div className="flex gap-2 border-b border-slate-200">
         {([
           ['cobertura', 'Cobertura por programa'],
+          ['colecciones', 'Colecciones'],
           ['vincular', 'Vincular aulas'],
         ] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
@@ -29,6 +31,15 @@ export function ClassroomLinksTabs() {
               cuyas aulas no sincronizan.
             </p>
             <ClassroomCoverage />
+          </>
+        : tab === 'colecciones'
+        ? <>
+            <p className="text-sm text-slate-600">
+              Una colección es la malla de un programa con un aula en cada casilla: la regular, la del upgrade, la del
+              campus asociado, la que se dicte en inglés. Una casilla, un aula — si se crea un aula nueva ocupa la
+              posición, y la anterior sale de la colección pero sigue trayendo notas hasta que sus alumnos terminen.
+            </p>
+            <ClassroomCollections />
           </>
         : <ClassroomLinks />}
     </div>
