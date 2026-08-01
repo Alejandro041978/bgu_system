@@ -65,6 +65,10 @@
       "schedule": "20 10 * * *"
     },
     {
+      "path": "/api/cron/moodle-enrol-sync",
+      "schedule": "40 10 * * *"
+    },
+    {
       "path": "/api/cron/moodle-access",
       "schedule": "0 6 * * *"
     }
