@@ -18,6 +18,11 @@ async function requireUser() {
 function gradeStatus(g: any, passing: number | null): { status: string; grade: number | null; has_grade: boolean } {
   const v = (g.retake_grade ?? g.final_grade) as number | null
   if (v == null) return { status: 'en_proceso', grade: null, has_grade: false }
+  // El estado calculado manda: la nota del campus es un acumulado sobre el
+  // 100% del curso, no un promedio de lo rendido.
+  if (g.estado_academico === 'pendiente') return { status: 'en_proceso', grade: v, has_grade: true }
+  if (g.estado_academico === 'aprobado') return { status: 'aprobado', grade: v, has_grade: true }
+  if (g.estado_academico === 'reprobado') return { status: 'desaprobado', grade: v, has_grade: true }
   const p = g.passing_score ?? passing
   const ok = p != null ? Number(v) >= Number(p) : true
   return { status: ok ? 'aprobado' : 'desaprobado', grade: v, has_grade: true }
@@ -49,7 +54,7 @@ export async function GET(req: NextRequest) {
     malla.some(c => (c.code && g.course_code && String(c.code) === String(g.course_code)) || sameCourse(g.course_name, c.name))
 
   const { data: grades } = await sb.from('academic_grades')
-    .select('external_id, course_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id')
+    .select('external_id, course_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id, estado_academico')
     .eq('document_number', student.document_number).neq('source', 'convalidacion').neq('source', 'validacion')
 
   // Parciales del Acta Detallada (misma inscripción por external_id): una

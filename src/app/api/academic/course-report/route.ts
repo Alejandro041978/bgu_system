@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
   // Notas de esos estudiantes que correspondan a la asignatura (paginado:
   // PostgREST corta en 1000 y un lote de documentos trae muchas más)
   const grades = await fetchByIn(sb, 'academic_grades',
-    'external_id, document_number, course_code, course_name, term_year, term_block, final_grade, retake_grade, passing_score, source, edited_at, locked_at',
+    'external_id, document_number, course_code, course_name, term_year, term_block, final_grade, retake_grade, passing_score, source, edited_at, locked_at, estado_academico',
     'document_number', docs)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: any[] = []
@@ -135,7 +135,12 @@ export async function GET(req: NextRequest) {
         term_year: g.term_year, term_block: g.term_block,
         final_grade: g.final_grade, retake_grade: g.retake_grade,
         efectiva,
-        estado: efectiva == null ? 'en_curso' : (umbral == null || Number(efectiva) >= Number(umbral)) ? 'aprobado' : 'desaprobado',
+        // El estado calculado manda sobre comparar la nota contra el mínimo:
+        // la nota del campus es un acumulado sobre el 100% del curso.
+        estado: g.estado_academico === 'pendiente' ? 'en_curso'
+          : g.estado_academico === 'aprobado' ? 'aprobado'
+          : g.estado_academico === 'reprobado' ? 'desaprobado'
+          : efectiva == null ? 'en_curso' : (umbral == null || Number(efectiva) >= Number(umbral)) ? 'aprobado' : 'desaprobado',
         source: g.source ?? null,
         edited: !!g.edited_at, locked: !!g.locked_at,
       })

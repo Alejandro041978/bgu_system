@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let grades: any[] | null = []
   if (document) {
-    const base = () => sb.from('academic_grades').select('course_code, course_name, final_grade, retake_grade, passing_score')
+    const base = () => sb.from('academic_grades').select('course_code, course_name, final_grade, retake_grade, passing_score, estado_academico')
       .eq('document_number', document).neq('source', 'convalidacion').neq('source', 'validacion')
     const r = await base().is('withdrawn_at', null)
     grades = r.error ? (await base()).data : r.data
@@ -81,7 +81,15 @@ export async function GET(req: NextRequest) {
     if (withValue.length) {
       const best = withValue.reduce((a, b) => (Number(b.v) > Number(a.v) ? b : a))
       const passing = best.g.passing_score ?? categoryPassing
-      const passed = passing != null ? Number(best.v) >= Number(passing) : true
+      // El estado calculado manda sobre comparar la nota contra el mínimo: la
+      // nota del campus es un acumulado sobre el 100% del curso, así que un
+      // 6,33 de quien rindió dos quizzes no es un reprobado, es alguien que
+      // está empezando.
+      const est = (best.g as { estado_academico?: string | null }).estado_academico
+      if (est === 'pendiente') { summary.en_proceso++; return { code: c.code, name: c.name, credits: c.credits, status: 'en_proceso', grade: best.v } }
+      const passed = est === 'aprobado' ? true
+        : est === 'reprobado' ? false
+        : (passing != null ? Number(best.v) >= Number(passing) : true)
       if (passed) { summary.aprobado++; return { code: c.code, name: c.name, credits: c.credits, status: 'aprobado', grade: best.v } }
       summary.desaprobado++; return { code: c.code, name: c.name, credits: c.credits, status: 'desaprobado', grade: best.v }
     }
