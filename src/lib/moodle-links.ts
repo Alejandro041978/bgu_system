@@ -36,7 +36,11 @@ export const normCode = (s: string | null | undefined): string =>
 // "ENG 202 - Composición de Inglés II - UP BSBA" → { code: 'ENG202', sufijo: 'UP BSBA' }
 export function leerNombreAula(shortname: string | null | undefined): { code: string | null; sufijo: string | null } {
   const s = String(shortname ?? '').trim()
-  const m = s.toUpperCase().match(/^\s*([A-Z]{2,5}\s?\d{2,4})/)
+  // \s* y no \s?: en el campus hay aulas escritas con dos espacios entre el
+  // prefijo y el número ("CBU  200 - Cálculo Empresarial - BSBA"). Admitiendo
+  // uno solo, ésas quedaban como "el nombre no empieza por un código" y no se
+  // ofrecían como candidatas de su propia asignatura.
+  const m = s.toUpperCase().match(/^\s*([A-Z]{2,5}\s*\d{2,4})/)
   const partes = s.split(' - ').map(x => x.trim()).filter(Boolean)
   return {
     code: m ? normCode(m[1]) : null,
