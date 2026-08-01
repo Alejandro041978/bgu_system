@@ -60,6 +60,21 @@ export async function GET(req: NextRequest) {
     alumnosDe.get(m.collection_id)!.add(m.student_id)
     if (m.status === 'activa' || m.status === 'activo') activosDe.get(m.collection_id)!.add(m.student_id)
   }
+  // Estudiantes DISTINTOS que aparecen en las aulas de cada colección, según
+  // las notas importadas de esas aulas. No es el padrón exacto —el ERP guarda
+  // el conteo de matriculados del aula, no quiénes son— pero es el único
+  // recuento por persona que tenemos hoy, y no duplica a quien lleva doce
+  // asignaturas. Para el padrón exacto haría falta guardar la lista de
+  // matriculados que el import ya consulta en cada corrida.
+  const notas = await todo(sb, 'academic_grades', 'document_number, moodle_course_id', 'external_id')
+  const alumnosPorAula = new Map<number, Set<string>>()
+  for (const n of notas as { document_number: string | null; moodle_course_id: string | null }[]) {
+    if (!n.moodle_course_id || !n.document_number) continue
+    const k = Number(n.moodle_course_id)
+    if (!alumnosPorAula.has(k)) alumnosPorAula.set(k, new Set())
+    alumnosPorAula.get(k)!.add(String(n.document_number))
+  }
+
   const aulaOf = new Map<number, { shortname: string | null; matriculados: number }>()
   for (const a of aulas) aulaOf.set(Number(a.aula_id), { shortname: a.shortname, matriculados: Number(a.matriculados ?? 0) })
 
@@ -77,6 +92,14 @@ export async function GET(req: NextRequest) {
       // pero cuenta a cada alumno una vez por asignatura.
       matriculas_en_aulas: suyas.reduce((s: number, l: { aula_id: number }) => s + (aulaOf.get(Number(l.aula_id))?.matriculados ?? 0), 0),
       alumnos: alumnosDe.get(c.id)?.size ?? 0,
+      // Personas distintas dentro de sus aulas, sin duplicar por asignatura.
+      alumnos_en_aulas: (() => {
+        const u = new Set<string>()
+        for (const l of suyas as { aula_id: number }[]) {
+          for (const d of alumnosPorAula.get(Number(l.aula_id)) ?? []) u.add(d)
+        }
+        return u.size
+      })(),
       alumnos_activos: activosDe.get(c.id)?.size ?? 0,
     }
   })
