@@ -36,8 +36,13 @@ export async function GET(req: NextRequest) {
   // (STA 460) en vez del número de orden con el que llegó de SystemActiva (207).
   const cursoByExt = new Map<string, string | null>()
   const estadoByExt = new Map<string, { estado: string | null; rendido: number | null }>()
+  // La NOTA oficial. academic_grade_details guarda su propia copia del número y
+  // esa copia se quedó atrás en 467 filas: el Acta Detallada mostraba "—" en
+  // asignaturas aprobadas. La fuente es academic_grades, que es la que usan el
+  // acta personal, el cálculo de egresados y el estado académico.
+  const notaByExt = new Map<string, { final: number | null; retake: number | null; passing: number | null }>()
   if (stu?.document_number) {
-    const r = await sb.from('academic_grades').select('external_id, withdrawn_at, source, moodle_course_id, course_id, estado_academico, rendido_pct')
+    const r = await sb.from('academic_grades').select('external_id, withdrawn_at, source, moodle_course_id, course_id, estado_academico, rendido_pct, final_grade, retake_grade, passing_score')
       .eq('document_number', stu.document_number)
     if (!r.error) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,6 +51,7 @@ export async function GET(req: NextRequest) {
         editableByExt.set(String(w.external_id), w.source === 'systemactiva' && !w.moodle_course_id)
         cursoByExt.set(String(w.external_id), w.course_id ?? null)
         estadoByExt.set(String(w.external_id), { estado: w.estado_academico ?? null, rendido: w.rendido_pct ?? null })
+        notaByExt.set(String(w.external_id), { final: w.final_grade ?? null, retake: w.retake_grade ?? null, passing: w.passing_score ?? null })
       }
     }
   }
@@ -64,6 +70,9 @@ export async function GET(req: NextRequest) {
     editable: editableByExt.get(String(d.external_id)) ?? false,
     estado_academico: estadoByExt.get(String(d.external_id))?.estado ?? null,
     rendido_pct: estadoByExt.get(String(d.external_id))?.rendido ?? null,
+    final_grade: notaByExt.has(String(d.external_id)) ? notaByExt.get(String(d.external_id))!.final : d.final_grade,
+    retake_grade: notaByExt.has(String(d.external_id)) ? notaByExt.get(String(d.external_id))!.retake : d.retake_grade,
+    passing_score: notaByExt.get(String(d.external_id))?.passing ?? d.passing_score,
   }))
 
   return NextResponse.json({ details: rows })
