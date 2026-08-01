@@ -93,27 +93,11 @@ export async function getCourseByCode(code: string): Promise<{ id: number } | nu
   return Array.isArray(courses) && courses.length ? courses[0] : null
 }
 
-// Crea la cuenta Moodle con la convención histórica del campus (la que usaba
-// SystemActiva): auth manual y username = el correo, en minúsculas. Moodle
-// genera la contraseña y la envía él mismo al correo de la cuenta.
-export async function createMoodleUser(u: {
-  email: string; firstname: string; lastname: string; idnumber?: string
-}): Promise<number> {
-  const created = await moodleCall('core_user_create_users', {
-    users: [{
-      username: u.email.trim().toLowerCase(),
-      email: u.email.trim().toLowerCase(),
-      firstname: u.firstname,
-      lastname: u.lastname,
-      auth: 'manual',
-      createpassword: 1,
-      ...(u.idnumber ? { idnumber: u.idnumber } : {}),
-    }],
-  })
-  const id = Number(created?.[0]?.id)
-  if (!Number.isFinite(id)) throw new Error('Moodle no devolvió el id del usuario creado')
-  return id
-}
+// La creación de cuentas de estudiante vive en moodle-account.ts: el ERP
+// genera la contraseña de primer uso, se la pasa a Moodle con "cambiar al
+// primer ingreso" y manda él el aviso. La vía anterior (createpassword=1)
+// delegaba en el cron de Moodle y dejaba estudiantes creados sin contraseña y
+// sin correo, así que se retiró para que nadie la reintroduzca por error.
 
 export async function enrolUser(courseid: number, userid: number, roleid = MOODLE_STUDENT_ROLEID): Promise<void> {
   assertStudentRole(roleid)

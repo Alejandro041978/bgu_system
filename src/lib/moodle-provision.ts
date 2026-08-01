@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { getUserByEmail, getUserByIdnumber, getCourseByCode, createMoodleUser, enrolUser, enrolUsersBulk, unenrolUser, unenrolUsersBulk, moodleConfigured } from './moodle'
+import { getUserByEmail, getUserByIdnumber, getCourseByCode, enrolUser, enrolUsersBulk, unenrolUser, unenrolUsersBulk, moodleConfigured } from './moodle'
+import { crearCuentaMoodle, notificarCuentaMoodle } from './moodle-account'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -62,13 +63,35 @@ async function ensureMoodleUser(sb: any, s: StudentRow, result: SyncResult): Pro
       result.errors.push(`${nombre}: sin correo institucional ni personal, no se puede crear la cuenta Moodle`)
       return null
     }
-    const id = await createMoodleUser({
+    // La contraseña la genera el ERP y el aviso lo manda el ERP. Antes esto
+    // usaba createpassword=1, que delega en el cron de Moodle: si el campus no
+    // lo tiene corriendo —que es el caso— el estudiante quedaba creado, sin
+    // contraseña y sin aviso, y nadie se enteraba.
+    const cuenta = await crearCuentaMoodle({
       email: identidad,
       firstname: s.first_name || '—',
       lastname: [s.last_name, s.second_last_name].filter(Boolean).join(' ') || '—',
+      idnumber: s.external_id ?? undefined,
     })
     result.accounts_created++
-    u = { id }
+    u = { id: cuenta.moodle_user_id }
+
+    // El aviso va al correo personal cuando existe: es el que el estudiante
+    // puede abrir seguro. Si falla, la cuenta ya está creada y queda el botón
+    // de reenviar credenciales en su ficha — no se pierde el aprovisionamiento
+    // por un problema de correo.
+    const destino = s.email || identidad
+    try {
+      await notificarCuentaMoodle({
+        to: destino, nombre, usuario: identidad, password: cuenta.password,
+      })
+      await sb.from('academic_students').update({
+        moodle_credentials_sent_at: new Date().toISOString(),
+        moodle_credentials_sent_to: destino,
+      }).eq('id', s.id)
+    } catch (e) {
+      result.errors.push(`${nombre}: cuenta creada pero no se pudo enviar el aviso (${e instanceof Error ? e.message : String(e)}) — usa "Reenviar credenciales" en su ficha`)
+    }
   }
   await sb.from('academic_students').update({ moodle_user_id: String(u.id) }).eq('id', s.id)
   return u.id
