@@ -6,7 +6,8 @@ import { RefreshCw, Plus, Power, PowerOff, ArrowLeft, CircleSlash } from 'lucide
 interface Coleccion {
   id: string; program_id: string; programa: string; name: string
   language: string | null; partner: string | null; suffix: string | null; active: boolean
-  asignaturas: number; con_aula: number; sincronizando: number; alumnos: number
+  asignaturas: number; con_aula: number; sincronizando: number
+  alumnos: number; alumnos_activos: number; matriculas_en_aulas: number
 }
 interface Candidata { aula_id: number; shortname: string | null; matriculados: number; coincide_sufijo: boolean }
 interface Casilla {
@@ -211,6 +212,7 @@ export function ClassroomCollections() {
               <th className="px-3 py-2 text-right">Cobertura</th>
               <th className="px-3 py-2 text-right">Sincronizando</th>
               <th className="px-3 py-2 text-right">Alumnos</th>
+              <th className="px-3 py-2 text-right">Matrículas en aulas</th>
             </tr>
           </thead>
           <tbody>
@@ -226,7 +228,13 @@ export function ClassroomCollections() {
                   {c.con_aula} / {c.asignaturas}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">{c.sincronizando}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{num(c.alumnos)}</td>
+                <td className="px-3 py-2 text-right tabular-nums" title="Estudiantes con esta colección elegida en su matrícula">
+                  {num(c.alumnos)}
+                  {c.alumnos_activos !== c.alumnos && <span className="ml-1 text-xs text-slate-400">({num(c.alumnos_activos)} activos)</span>}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums text-slate-500" title="Suma de matriculados de sus aulas: cada alumno cuenta una vez por asignatura">
+                  {num(c.matriculas_en_aulas)}
+                </td>
               </tr>
             ))}
             {!cols.length && !cargando && (

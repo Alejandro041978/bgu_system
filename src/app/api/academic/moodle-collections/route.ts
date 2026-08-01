@@ -47,6 +47,19 @@ export async function GET(req: NextRequest) {
   const courses = await todo(sb, 'academic_courses', 'id, program_id, code, name', 'id')
   const links = await todo(sb, 'moodle_course_links', 'aula_id, course_id, kind, sync_enabled, collection_id, replaced_at', 'aula_id')
   const aulas = await todo(sb, 'moodle_aula_audit', 'aula_id, shortname, matriculados', 'aula_id')
+  // Alumnos ÚNICOS de cada colección: los que la tienen elegida en su matrícula.
+  // No es lo mismo que la suma de matriculados de sus aulas —quien lleva 12
+  // asignaturas cuenta 12 veces ahí—, y es el número que dice cuántos
+  // estudiantes del total estudian en esta colección.
+  const matriculas = await todo(sb, 'academic_student_enrollments', 'student_id, collection_id, status', 'id')
+  const alumnosDe = new Map<string, Set<string>>()
+  const activosDe = new Map<string, Set<string>>()
+  for (const m of matriculas as { student_id: string; collection_id: string | null; status: string | null }[]) {
+    if (!m.collection_id) continue
+    if (!alumnosDe.has(m.collection_id)) { alumnosDe.set(m.collection_id, new Set()); activosDe.set(m.collection_id, new Set()) }
+    alumnosDe.get(m.collection_id)!.add(m.student_id)
+    if (m.status === 'activa' || m.status === 'activo') activosDe.get(m.collection_id)!.add(m.student_id)
+  }
   const aulaOf = new Map<number, { shortname: string | null; matriculados: number }>()
   for (const a of aulas) aulaOf.set(Number(a.aula_id), { shortname: a.shortname, matriculados: Number(a.matriculados ?? 0) })
 
@@ -60,7 +73,11 @@ export async function GET(req: NextRequest) {
       asignaturas: malla.length,
       con_aula: malla.filter((x: { id: string }) => llenas.has(x.id)).length,
       sincronizando: suyas.filter((l: { sync_enabled: boolean }) => l.sync_enabled).length,
-      alumnos: suyas.reduce((s: number, l: { aula_id: number }) => s + (aulaOf.get(Number(l.aula_id))?.matriculados ?? 0), 0),
+      // La suma de matriculados de sus aulas: útil para dimensionar el campus,
+      // pero cuenta a cada alumno una vez por asignatura.
+      matriculas_en_aulas: suyas.reduce((s: number, l: { aula_id: number }) => s + (aulaOf.get(Number(l.aula_id))?.matriculados ?? 0), 0),
+      alumnos: alumnosDe.get(c.id)?.size ?? 0,
+      alumnos_activos: activosDe.get(c.id)?.size ?? 0,
     }
   })
 
