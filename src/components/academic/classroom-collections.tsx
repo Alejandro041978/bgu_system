@@ -22,6 +22,7 @@ export function ClassroomCollections() {
   const [cols, setCols] = useState<Coleccion[]>([])
   const [sel, setSel] = useState<Coleccion | null>(null)
   const [casillas, setCasillas] = useState<Casilla[] | null>(null)
+  const [libres, setLibres] = useState<Candidata[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -45,7 +46,7 @@ export function ClassroomCollections() {
       const r = await fetch(`/api/academic/moodle-collections?id=${c.id}`, { cache: 'no-store' })
       const j = await r.json()
       if (!r.ok) throw new Error(j.error ?? 'No se pudo cargar')
-      setCasillas(j.casillas ?? [])
+      setCasillas(j.casillas ?? []); setLibres(j.libres ?? [])
     } catch (e) { setError(String(e instanceof Error ? e.message : e)) }
     setCargando(false)
   }
@@ -125,17 +126,30 @@ export function ClassroomCollections() {
                       <span className="text-slate-700">
                         <span className="font-mono text-xs text-slate-500">{c.aula.aula_id}</span> · {c.aula.shortname}
                       </span>
-                    ) : c.candidatas.length ? (
+                    ) : (c.candidatas.length || libres.length) ? (
                       <select defaultValue="" onChange={e => e.target.value && accion(
                         { accion: 'asignar', collection_id: sel.id, course_id: c.course_id, aula_id: e.target.value },
                         `Aula ${e.target.value} asignada a ${c.code}`)}
                         className="w-full rounded border border-slate-300 px-2 py-1 text-sm">
                         <option value="">Elegir aula…</option>
-                        {c.candidatas.map(a => (
-                          <option key={a.aula_id} value={a.aula_id}>
-                            {a.aula_id} · {a.shortname} ({a.matriculados} al.){a.coincide_sufijo ? ' ✓' : ''}
-                          </option>
-                        ))}
+                        {!!c.candidatas.length && (
+                          <optgroup label="Con el mismo código">
+                            {c.candidatas.map(a => (
+                              <option key={a.aula_id} value={a.aula_id}>
+                                {a.aula_id} · {a.shortname} ({a.matriculados} al.){a.coincide_sufijo ? ' ✓' : ''}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        <optgroup label="Otras aulas libres del campus">
+                          {libres
+                            .filter(a => !c.candidatas.some(x => x.aula_id === a.aula_id))
+                            .map(a => (
+                              <option key={a.aula_id} value={a.aula_id}>
+                                {a.aula_id} · {a.shortname} ({a.matriculados} al.)
+                              </option>
+                            ))}
+                        </optgroup>
                       </select>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-xs text-amber-700">

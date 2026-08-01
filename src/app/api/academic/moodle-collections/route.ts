@@ -142,9 +142,21 @@ export async function GET(req: NextRequest) {
     }
   }).sort((a: { code: string | null }, b: { code: string | null }) => String(a.code).localeCompare(String(b.code)))
 
+  // Todas las aulas libres del campus, para las casillas cuyo código no coincide
+  // con ninguna. Pasa cuando el campus y la malla nombran distinto la misma
+  // asignatura: el aula se llama "ACC 260 - Principios de Contabilidad
+  // Financiera" y en la malla es "FIN 260 - Principles of Financial
+  // Accounting". Sin esta lista esa casilla sería imposible de llenar.
+  const libres = aulas
+    .filter((a: { aula_id: number }) => !ocupadas.has(Number(a.aula_id)))
+    .map((a: { aula_id: number; shortname: string | null; matriculados: number }) => ({
+      aula_id: Number(a.aula_id), shortname: a.shortname, matriculados: Number(a.matriculados ?? 0),
+    }))
+    .sort((x: { matriculados: number }, y: { matriculados: number }) => y.matriculados - x.matriculados)
+
   return NextResponse.json({
     coleccion: { ...col, programa: nombrePrograma.get(col.program_id) ?? col.program_id },
-    casillas,
+    casillas, libres,
     con_aula: casillas.filter((c: { aula: unknown }) => c.aula).length,
     total: casillas.length,
   })
