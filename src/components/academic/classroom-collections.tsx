@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { RefreshCw, Plus, Power, PowerOff, ArrowLeft, CircleSlash } from 'lucide-react'
+import { RefreshCw, Plus, Power, PowerOff, ArrowLeft, CircleSlash, Pencil, Check, X } from 'lucide-react'
 
 interface Coleccion {
   id: string; program_id: string; programa: string; name: string
@@ -29,6 +29,10 @@ export function ClassroomCollections() {
   const [creando, setCreando] = useState(false)
   const [programas, setProgramas] = useState<{ id: string; name: string }[]>([])
   const [nueva, setNueva] = useState({ program_id: '', name: '', language: '', partner: '', suffix: '' })
+  // Edición en la propia fila: el nombre, el código con el que se nombran sus
+  // aulas en Moodle, y el idioma.
+  const [editando, setEditando] = useState<string | null>(null)
+  const [edit, setEdit] = useState({ name: '', suffix: '', language: '' })
 
   const listar = async () => {
     setCargando(true); setError(null)
@@ -232,11 +236,37 @@ export function ClassroomCollections() {
           </thead>
           <tbody>
             {cols.map(c => (
-              <tr key={c.id} className="cursor-pointer border-t border-slate-100 hover:bg-slate-50" onClick={() => abrir(c)}>
-                <td className="px-3 py-2">
-                  <span className="font-medium text-slate-800">{c.name}</span>
-                  {c.language && <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{c.language}</span>}
-                  {c.suffix && <span className="ml-1 font-mono text-xs text-slate-400">{c.suffix}</span>}
+              <tr key={c.id} className={`border-t border-slate-100 ${editando === c.id ? 'bg-slate-50' : 'cursor-pointer hover:bg-slate-50'}`}
+                onClick={() => { if (editando !== c.id) abrir(c) }}>
+                <td className="px-3 py-2" onClick={e => { if (editando === c.id) e.stopPropagation() }}>
+                  {editando === c.id ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <input value={edit.name} onChange={e => setEdit({ ...edit, name: e.target.value })}
+                        placeholder="Nombre" className="w-40 rounded border border-slate-300 px-2 py-1 text-sm" />
+                      <input value={edit.language} onChange={e => setEdit({ ...edit, language: e.target.value })}
+                        placeholder="es/en" className="w-16 rounded border border-slate-300 px-2 py-1 text-sm" />
+                      <input value={edit.suffix} onChange={e => setEdit({ ...edit, suffix: e.target.value })}
+                        placeholder="Código en Moodle" className="w-36 rounded border border-slate-300 px-2 py-1 font-mono text-xs" />
+                      <button onClick={() => { accion({ accion: 'editar', collection_id: c.id, ...edit }, 'Colección actualizada'); setEditando(null) }}
+                        className="rounded border border-emerald-300 bg-emerald-50 p-1 text-emerald-700" title="Guardar">
+                        <Check className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => setEditando(null)} className="rounded border border-slate-300 p-1 text-slate-500" title="Cancelar">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="font-medium text-slate-800">{c.name}</span>
+                      {c.language && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{c.language}</span>}
+                      {c.suffix && <span className="font-mono text-xs text-slate-400">{c.suffix}</span>}
+                      <button
+                        onClick={e => { e.stopPropagation(); setEditando(c.id); setEdit({ name: c.name, suffix: c.suffix ?? '', language: c.language ?? '' }) }}
+                        className="text-slate-300 hover:text-slate-600" title="Editar nombre, idioma y código">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-slate-600">{c.programa}</td>
                 <td className={`px-3 py-2 text-right tabular-nums ${c.con_aula === c.asignaturas ? 'text-emerald-700' : 'text-amber-700'}`}>

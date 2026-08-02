@@ -164,7 +164,8 @@ export async function GET(req: NextRequest) {
 
 // ---------------------------------------------------------------------------
 // POST — acciones sobre colecciones
-//   { accion:'crear', program_id, name, language?, partner?, suffix? }
+//   { accion:'crear',  program_id, name, language?, partner?, suffix? }
+//   { accion:'editar', collection_id, name?, language?, partner?, suffix? }
 //   { accion:'asignar', collection_id, course_id, aula_id }   ← ocupa la casilla
 //   { accion:'vaciar',  collection_id, course_id }
 //   { accion:'sincronizar'|'apagar', collection_id }
@@ -186,6 +187,24 @@ export async function POST(req: NextRequest) {
     }).select('id').maybeSingle()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ ok: true, id: data?.id })
+  }
+
+  if (b.accion === 'editar') {
+    if (!b.collection_id) return NextResponse.json({ error: 'Falta la colección' }, { status: 400 })
+    const patch: Record<string, unknown> = {}
+    if (typeof b.name === 'string' && b.name.trim()) patch.name = b.name.trim()
+    if (b.language !== undefined) patch.language = b.language || null
+    if (b.suffix !== undefined) patch.suffix = b.suffix || null
+    if (b.partner !== undefined) patch.partner = b.partner || null
+    if (!Object.keys(patch).length) return NextResponse.json({ error: 'Nada que cambiar' }, { status: 400 })
+    const { error } = await sb.from('moodle_collections').update(patch).eq('id', b.collection_id)
+    if (error) {
+      // El nombre es único dentro del programa: dos colecciones Upgrade en el
+      // mismo bachelor serían indistinguibles para quien matricula.
+      const dup = /duplicate|unique/i.test(error.message)
+      return NextResponse.json({ error: dup ? 'Ya existe una colección con ese nombre en el programa' : error.message }, { status: 400 })
+    }
+    return NextResponse.json({ ok: true })
   }
 
   if (b.accion === 'asignar') {
