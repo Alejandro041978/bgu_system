@@ -6,6 +6,7 @@ import { RefreshCw, Plus, Power, PowerOff, ArrowLeft, CircleSlash, Pencil, Check
 interface Coleccion {
   id: string; program_id: string; programa: string; name: string
   language: string | null; partner: string | null; suffix: string | null; active: boolean
+  category_id: string | null; categoria: string | null
   asignaturas: number; con_aula: number; sincronizando: number
   alumnos: number; alumnos_activos: number; alumnos_en_aulas: number; matriculas_en_aulas: number
 }
@@ -31,6 +32,7 @@ export function ClassroomCollections() {
   const [nueva, setNueva] = useState({ program_id: '', name: '', language: '', partner: '', suffix: '' })
   // Edición en la propia fila: el nombre, el código con el que se nombran sus
   // aulas en Moodle, y el idioma.
+  const [categoria, setCategoria] = useState('')
   const [editando, setEditando] = useState<string | null>(null)
   const [edit, setEdit] = useState({ name: '', suffix: '', language: '' })
 
@@ -195,6 +197,18 @@ export function ClassroomCollections() {
           className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-3 py-2 text-sm text-white hover:bg-slate-800">
           <Plus className="h-4 w-4" /> Nueva colección
         </button>
+        <select value={categoria} onChange={e => setCategoria(e.target.value)}
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+          <option value="">Todas las categorías ({cols.length})</option>
+          {[...new Map(cols.filter(c => c.category_id).map(c => [c.category_id!, c.categoria ?? c.category_id!])).entries()]
+            .sort((a, b) => String(a[1]).localeCompare(String(b[1])))
+            .map(([id, nombre]) => (
+              <option key={id} value={id}>{nombre} ({cols.filter(c => c.category_id === id).length})</option>
+            ))}
+          {cols.some(c => !c.category_id) && (
+            <option value="__sin">Sin categoría ({cols.filter(c => !c.category_id).length})</option>
+          )}
+        </select>
       </div>
 
       {error && <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
@@ -235,7 +249,7 @@ export function ClassroomCollections() {
             </tr>
           </thead>
           <tbody>
-            {cols.map(c => (
+            {cols.filter(c => !categoria || (categoria === '__sin' ? !c.category_id : c.category_id === categoria)).map(c => (
               <tr key={c.id} className={`border-t border-slate-100 ${editando === c.id ? 'bg-slate-50' : 'cursor-pointer hover:bg-slate-50'}`}
                 onClick={() => { if (editando !== c.id) abrir(c) }}>
                 <td className="px-3 py-2" onClick={e => { if (editando === c.id) e.stopPropagation() }}>
@@ -268,7 +282,10 @@ export function ClassroomCollections() {
                     </span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-slate-600">{c.programa}</td>
+                <td className="px-3 py-2 text-slate-600">
+                  {c.programa}
+                  {c.categoria && <span className="block text-xs text-slate-400">{c.categoria}</span>}
+                </td>
                 <td className={`px-3 py-2 text-right tabular-nums ${c.con_aula === c.asignaturas ? 'text-emerald-700' : 'text-amber-700'}`}>
                   {c.con_aula} / {c.asignaturas}
                 </td>

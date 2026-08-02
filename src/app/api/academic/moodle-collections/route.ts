@@ -42,8 +42,13 @@ export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id')
 
   const cols = await todo(sb, 'moodle_collections', 'id, program_id, name, language, partner, suffix, active, nota', 'name')
-  const programs = await todo(sb, 'academic_programs', 'id, name', 'id')
+  const programs = await todo(sb, 'academic_programs', 'id, name, category_id, category:academic_programs_category(id, name)', 'id')
   const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
+  // Categoría del programa: con 65 programas y varias colecciones cada uno, la
+  // lista se vuelve larga y casi siempre se trabaja sobre una familia entera
+  // (los bachelors, los DCE) y no sobre un programa suelto.
+  const catDe = new Map<string, { id: string; name: string } | null>(
+    programs.map((p: { id: string; category: { id: string; name: string } | null }) => [p.id, p.category ?? null]))
   const courses = await todo(sb, 'academic_courses', 'id, program_id, code, name', 'id')
   const links = await todo(sb, 'moodle_course_links', 'aula_id, course_id, kind, sync_enabled, collection_id, replaced_at', 'aula_id')
   const aulas = await todo(sb, 'moodle_aula_audit', 'aula_id, shortname, matriculados', 'aula_id')
@@ -85,6 +90,8 @@ export async function GET(req: NextRequest) {
     return {
       ...c,
       programa: nombrePrograma.get(c.program_id) ?? c.program_id,
+      category_id: catDe.get(c.program_id)?.id ?? null,
+      categoria: catDe.get(c.program_id)?.name ?? null,
       asignaturas: malla.length,
       con_aula: malla.filter((x: { id: string }) => llenas.has(x.id)).length,
       sincronizando: suyas.filter((l: { sync_enabled: boolean }) => l.sync_enabled).length,
