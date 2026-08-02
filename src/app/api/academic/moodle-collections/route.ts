@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id')
 
   const cols = await todo(sb, 'moodle_collections', 'id, program_id, name, language, partner, suffix, active, nota', 'name')
-  const programs = await todo(sb, 'academic_programs', 'id, name, category_id, category:academic_programs_category(id, name)', 'id')
+  const programs = await todo(sb, 'academic_programs', 'id, name, category_id, partner_campus, category:academic_programs_category(id, name)', 'id')
   const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
   // Categoría del programa: con 65 programas y varias colecciones cada uno, la
   // lista se vuelve larga y casi siempre se trabaja sobre una familia entera
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
   // No es lo mismo que la suma de matriculados de sus aulas —quien lleva 12
   // asignaturas cuenta 12 veces ahí—, y es el número que dice cuántos
   // estudiantes del total estudian en esta colección.
-  const matriculas = await todo(sb, 'academic_student_enrollments', 'student_id, collection_id, status', 'id')
+  const matriculas = await todo(sb, 'academic_student_enrollments', 'student_id, program_id, collection_id, status', 'id')
   const alumnosDe = new Map<string, Set<string>>()
   const activosDe = new Map<string, Set<string>>()
   for (const m of matriculas as { student_id: string; collection_id: string | null; status: string | null }[]) {
@@ -110,6 +110,52 @@ export async function GET(req: NextRequest) {
       alumnos_activos: activosDe.get(c.id)?.size ?? 0,
     }
   })
+
+  // -------------------------------------------------------------------------
+  // ?vista=programas-libres → programas sin ninguna colección.
+  //
+  // Se excluyen a propósito los de CAMPUS EXTERNO: esos se venden pero no se
+  // dictan en nuestro Moodle, así que no deben tener colección y aparecerían
+  // como pendientes para siempre. Se cuentan aparte para que se vea que la
+  // exclusión es deliberada y no un olvido.
+  // -------------------------------------------------------------------------
+  if (req.nextUrl.searchParams.get('vista') === 'programas-libres') {
+    const conColeccion = new Set(cols.map((c: { program_id: string }) => c.program_id))
+    const asignaturasDe = new Map<string, number>()
+    for (const c of courses as { program_id: string | null }[]) {
+      if (!c.program_id) continue
+      asignaturasDe.set(c.program_id, (asignaturasDe.get(c.program_id) ?? 0) + 1)
+    }
+    const alumnosDePrograma = new Map<string, Set<string>>()
+    for (const m of matriculas as { student_id: string; program_id?: string; status: string | null }[]) {
+      const pid = (m as { program_id?: string }).program_id
+      if (!pid) continue
+      if (!alumnosDePrograma.has(pid)) alumnosDePrograma.set(pid, new Set())
+      alumnosDePrograma.get(pid)!.add(m.student_id)
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const todos = (programs as any[]).filter(p => !conColeccion.has(p.id))
+    const externos = todos.filter(p => p.partner_campus)
+    const libres = todos.filter(p => !p.partner_campus).map(p => ({
+      program_id: p.id,
+      programa: p.name,
+      categoria: p.category?.name ?? null,
+      category_id: p.category?.id ?? null,
+      asignaturas: asignaturasDe.get(p.id) ?? 0,
+      estudiantes: alumnosDePrograma.get(p.id)?.size ?? 0,
+    })).sort((a, b) => b.estudiantes - a.estudiantes || String(a.programa).localeCompare(String(b.programa)))
+
+    return NextResponse.json({
+      total: libres.length,
+      con_estudiantes: libres.filter(p => p.estudiantes > 0).length,
+      estudiantes: libres.reduce((s, p) => s + p.estudiantes, 0),
+      excluidos_campus_externo: externos.length,
+      programas: libres,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      campus_externo: externos.map((p: any) => ({ program_id: p.id, programa: p.name, categoria: p.category?.name ?? null })),
+    })
+  }
 
   if (!id) return NextResponse.json({ colecciones: resumen })
 

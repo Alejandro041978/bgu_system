@@ -5,9 +5,10 @@ import { ClassroomLinks } from './classroom-links'
 import { ClassroomCoverage } from './classroom-coverage'
 import { ClassroomCollections } from './classroom-collections'
 import { ClassroomFree } from './classroom-free'
+import { ProgramFree } from './program-free'
 
 export function ClassroomLinksTabs() {
-  const [tab, setTab] = useState<'vincular' | 'cobertura' | 'colecciones' | 'libres'>('cobertura')
+  const [tab, setTab] = useState<'vincular' | 'cobertura' | 'colecciones' | 'libres' | 'programas'>('cobertura')
   return (
     <div className="space-y-5">
       <div className="flex gap-2 border-b border-slate-200">
@@ -16,6 +17,7 @@ export function ClassroomLinksTabs() {
           ['colecciones', 'Colecciones'],
           ['vincular', 'Vincular aulas'],
           ['libres', 'Aulas libres'],
+          ['programas', 'Programas libres'],
         ] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm ${
@@ -51,6 +53,15 @@ export function ClassroomLinksTabs() {
               llevan un código que no existe en ninguna malla. La última columna dice de cuál se trata.
             </p>
             <ClassroomFree />
+          </>
+        : tab === 'programas'
+        ? <>
+            <p className="text-sm text-slate-600">
+              Programas de nuestro campus que todavía no tienen ninguna colección: sus estudiantes no pueden entrar a
+              ninguna aula y Nueva Matrícula no deja crear matrículas en ellos. Los de campus externo quedan fuera de
+              esta lista a propósito — se venden pero no se dictan aquí, así que no les corresponde colección.
+            </p>
+            <ProgramFree />
           </>
         : <ClassroomLinks />}
     </div>
