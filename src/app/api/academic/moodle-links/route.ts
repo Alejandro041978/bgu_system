@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
 
   // Vínculos ya establecidos: primero la tabla nueva, y como puente el enlace
   // viejo de la oferta formativa, que sigue siendo válido hasta que se migre.
-  const links = await todo(sb, 'moodle_course_links', 'aula_id, course_id, kind, sync_enabled', 'aula_id')
+  const links = await todo(sb, 'moodle_course_links', 'aula_id, course_id, kind, sync_enabled, collection_id', 'aula_id')
     .catch(() => [] as { aula_id: number; course_id: string | null; kind: string }[])
   const yaVinculada = new Map<number, { course_id: string | null; kind: string; sync_enabled: boolean }>()
   for (const l of links) yaVinculada.set(Number(l.aula_id), { course_id: l.course_id, kind: l.kind, sync_enabled: !!l.sync_enabled })
@@ -86,6 +86,39 @@ export async function GET(req: NextRequest) {
       sync_enabled: ya?.sync_enabled ?? false,
     }
   })
+
+  // -------------------------------------------------------------------------
+  // ?vista=libres → las aulas del campus que no están en ninguna colección.
+  //
+  // Son las que todavía no pertenecen a ningún programa: unas porque nadie las
+  // ha colocado, otras porque no son asignaturas (inducción, demos, encuestas)
+  // y otras porque su código no existe en ninguna malla. La lista dice de cuál
+  // se trata en cada caso, para que se puedan ir vaciando.
+  // -------------------------------------------------------------------------
+  if (req.nextUrl.searchParams.get('vista') === 'libres') {
+    const enColeccion = new Set<number>()
+    for (const l of links) { if (l.collection_id) enColeccion.add(Number(l.aula_id)) }
+    const libres = filas
+      .filter(f => !enColeccion.has(f.aula_id))
+      .map(f => ({
+        aula_id: f.aula_id, shortname: f.shortname, matriculados: f.matriculados,
+        code: f.code, sufijo: f.sufijo,
+        propuesta: f.course_name, programa: f.programa, confianza: f.confianza,
+        familia: f.familia, motivo: f.motivo,
+        // Sabemos qué asignatura enseña aunque no esté en ninguna colección:
+        // viene del enlace viejo de la oferta o de la propuesta.
+        identificada: !!(f.course_id_actual ?? f.course_id),
+        no_curricular: f.estado === 'no_curricular',
+      }))
+      .sort((a, b) => b.matriculados - a.matriculados)
+    return NextResponse.json({
+      total: libres.length,
+      con_alumnos: libres.filter(a => a.matriculados > 0).length,
+      matriculas: libres.reduce((s, a) => s + a.matriculados, 0),
+      identificadas: libres.filter(a => a.identificada).length,
+      aulas: libres,
+    })
+  }
 
   // -------------------------------------------------------------------------
   // ?vista=cobertura → el inventario al revés: para cada asignatura del plan,

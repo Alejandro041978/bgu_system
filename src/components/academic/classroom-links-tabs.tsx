@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { ClassroomLinks } from './classroom-links'
 import { ClassroomCoverage } from './classroom-coverage'
 import { ClassroomCollections } from './classroom-collections'
+import { ClassroomFree } from './classroom-free'
 
 export function ClassroomLinksTabs() {
-  const [tab, setTab] = useState<'vincular' | 'cobertura' | 'colecciones'>('cobertura')
+  const [tab, setTab] = useState<'vincular' | 'cobertura' | 'colecciones' | 'libres'>('cobertura')
   return (
     <div className="space-y-5">
       <div className="flex gap-2 border-b border-slate-200">
@@ -14,6 +15,7 @@ export function ClassroomLinksTabs() {
           ['cobertura', 'Cobertura por programa'],
           ['colecciones', 'Colecciones'],
           ['vincular', 'Vincular aulas'],
+          ['libres', 'Aulas libres'],
         ] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm ${
@@ -40,6 +42,15 @@ export function ClassroomLinksTabs() {
               posición, y la anterior sale de la colección pero sigue trayendo notas hasta que sus alumnos terminen.
             </p>
             <ClassroomCollections />
+          </>
+        : tab === 'libres'
+        ? <>
+            <p className="text-sm text-slate-600">
+              Aulas que existen en el campus y todavía no pertenecen a ninguna colección, es decir a ningún programa.
+              Unas esperan que alguien las coloque, otras no son asignaturas —inducción, demos, encuestas— y otras
+              llevan un código que no existe en ninguna malla. La última columna dice de cuál se trata.
+            </p>
+            <ClassroomFree />
           </>
         : <ClassroomLinks />}
     </div>
