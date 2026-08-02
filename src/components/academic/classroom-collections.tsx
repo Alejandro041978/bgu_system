@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { RefreshCw, Plus, Power, PowerOff, ArrowLeft, CircleSlash, Pencil, Check, X } from 'lucide-react'
+import { RefreshCw, Plus, Power, PowerOff, ArrowLeft, CircleSlash, Pencil, Check, X, Trash2 } from 'lucide-react'
 
 interface Coleccion {
   id: string; program_id: string; programa: string; name: string
@@ -279,6 +279,22 @@ export function ClassroomCollections() {
                         className="text-slate-300 hover:text-slate-600" title="Editar nombre, idioma y código">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
+                      {/* Sólo si está vacía: con aulas dentro se perdería el trabajo de
+                          haberlas colocado, y con matrículas dejaría a esos estudiantes
+                          apuntando a algo que ya no existe. La ruta lo vuelve a
+                          comprobar por si la pantalla está desactualizada. */}
+                      {c.con_aula === 0 && c.alumnos === 0 && (
+                        <button
+                          onClick={e => {
+                            e.stopPropagation()
+                            if (confirm(`¿Borrar la colección "${c.name}"? No tiene aulas ni matrículas, así que no se pierde nada.`)) {
+                              accion({ accion: 'eliminar', collection_id: c.id }, 'Colección eliminada')
+                            }
+                          }}
+                          className="text-slate-300 hover:text-red-600" title="Borrar la colección (está vacía)">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </span>
                   )}
                 </td>

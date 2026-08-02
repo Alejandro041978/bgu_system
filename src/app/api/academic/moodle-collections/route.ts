@@ -218,7 +218,8 @@ export async function GET(req: NextRequest) {
 // ---------------------------------------------------------------------------
 // POST — acciones sobre colecciones
 //   { accion:'crear',  program_id, name, language?, partner?, suffix? }
-//   { accion:'editar', collection_id, name?, language?, partner?, suffix? }
+//   { accion:'editar',   collection_id, name?, language?, partner?, suffix? }
+//   { accion:'eliminar', collection_id }  ← sólo si está vacía
 //   { accion:'asignar', collection_id, course_id, aula_id }   ← ocupa la casilla
 //   { accion:'vaciar',  collection_id, course_id }
 //   { accion:'sincronizar'|'apagar', collection_id }
@@ -258,6 +259,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: dup ? 'Ya existe una colección con ese nombre en el programa' : error.message }, { status: 400 })
     }
     return NextResponse.json({ ok: true })
+  }
+
+  // Borrar una colección sólo si está vacía por los dos lados: sin aulas en sus
+  // casillas y sin matrículas que la señalen. Una colección con matrículas
+  // dejaría a esos estudiantes apuntando a algo que ya no existe, y una con
+  // aulas perdería el trabajo de haberlas colocado.
+  if (b.accion === 'eliminar') {
+    if (!b.collection_id) return NextResponse.json({ error: 'Falta la colección' }, { status: 400 })
+
+    const { count: conAulas } = await sb.from('moodle_course_links')
+      .select('aula_id', { count: 'exact', head: true }).eq('collection_id', b.collection_id)
+    if (conAulas) {
+      return NextResponse.json({
+        error: `No se puede borrar: tiene ${conAulas} aula${conAulas > 1 ? 's' : ''} en sus casillas. Quítalas primero.`,
+      }, { status: 409 })
+    }
+
+    const { count: conMatriculas } = await sb.from('academic_student_enrollments')
+      .select('id', { count: 'exact', head: true }).eq('collection_id', b.collection_id)
+    if (conMatriculas) {
+      return NextResponse.json({
+        error: `No se puede borrar: ${conMatriculas} matrícula${conMatriculas > 1 ? 's' : ''} la tienen elegida. Habría que reasignarlas antes.`,
+      }, { status: 409 })
+    }
+
+    const { error } = await sb.from('moodle_collections').delete().eq('id', b.collection_id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, eliminada: true })
   }
 
   if (b.accion === 'asignar') {
