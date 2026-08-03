@@ -28,12 +28,28 @@ export interface AccessRow {
 
 // Vencido por estudiante: suma del saldo de cuotas con vencimiento <= hoy e impagas.
 // Mismo criterio que el estado de cuenta (saldo = monto − pagos, descuentos incluidos).
+// Sólo la TUITION cierra el acceso al campus (regla del usuario, 2026-08-03).
+//
+// Antes contaba cualquier cargo vencido, y eso metía en la lista de suspendidos
+// a estudiantes que debían 1, 10 o 35 dólares de un trámite, un examen o un
+// documento. Cerrarle el aula a alguien por un dólar de una constancia no es lo
+// que Cobranzas quiso; la deuda que justifica cortar el servicio es la del
+// servicio mismo.
+//
+//   1 = matrícula (sin vencimiento, nunca cuenta)
+//   2 = tuition  ← la única que suspende
+//   3 = trámites, exámenes y documentos
+//   4 = importe cero
+const CHARGE_TYPE_TUITION = 2
+
 export async function overdueByStudent(sb: SB): Promise<Map<string, number>> {
   const today = new Date().toISOString().slice(0, 10)
   const charges: { external_id: string; student_id: string; amount: number; due_date: string }[] = []
   for (let f = 0; ; f += 1000) {
     const { data } = await sb.from('account_charges')
-      .select('external_id, student_id, amount, due_date').not('due_date', 'is', null).lte('due_date', today).range(f, f + 999)
+      .select('external_id, student_id, amount, due_date')
+      .eq('charge_type', CHARGE_TYPE_TUITION)
+      .not('due_date', 'is', null).lte('due_date', today).range(f, f + 999)
     charges.push(...(data ?? []))
     if ((data ?? []).length < 1000) break
   }
