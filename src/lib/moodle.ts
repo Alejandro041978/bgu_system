@@ -125,6 +125,24 @@ export async function unenrolUser(courseid: number, userid: number): Promise<voi
 // Requiere que el token tenga habilitada la función core_user_update_users.
 export async function setUserSuspended(userid: number, suspended: boolean): Promise<void> {
   await moodleCall('core_user_update_users', { users: [{ id: userid, suspended: suspended ? 1 : 0 }] })
+
+  // Se RELEE. core_user_update_users devuelve null tanto si aplicó el cambio
+  // como si ignoró el campo, y el 26/07/2026 pasó exactamente eso: 59 cuentas
+  // morosas recibieron la orden de suspensión, Moodle no devolvió error, el ERP
+  // se anotó "suspendido"… y el campo quedó en 0. Como el motor se fiaba de su
+  // propia anotación, no volvió a intentarlo nunca: la restricción se cayó en
+  // silencio durante semanas.
+  //
+  // Confirmar cuesta una llamada más y convierte un fallo invisible en un error
+  // que se ve y se reintenta.
+  const users = await moodleCall('core_user_get_users_by_field', { field: 'id', values: [String(userid)] })
+  const real = Array.isArray(users) && users[0] ? Number(users[0].suspended) === 1 : null
+  if (real === null) throw new Error(`Moodle no devolvió la cuenta ${userid} al verificar la suspensión`)
+  if (real !== suspended) {
+    throw new Error(
+      `Moodle aceptó la llamada pero la cuenta ${userid} sigue ${real ? 'suspendida' : 'activa'}: ` +
+      'el servicio web no está aplicando el campo suspended. Revisar los permisos del token en el campus.')
+  }
 }
 
 // Resuelve el id de Moodle: primero por idnumber (= external_id, llave de los
