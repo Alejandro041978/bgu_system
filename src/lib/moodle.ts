@@ -124,7 +124,18 @@ export async function unenrolUser(courseid: number, userid: number): Promise<voi
 // Suspende o reactiva la cuenta Moodle. Suspendida = no puede iniciar sesión.
 // Requiere que el token tenga habilitada la función core_user_update_users.
 export async function setUserSuspended(userid: number, suspended: boolean): Promise<void> {
-  await moodleCall('core_user_update_users', { users: [{ id: userid, suspended: suspended ? 1 : 0 }] })
+  const resp = await moodleCall('core_user_update_users', { users: [{ id: userid, suspended: suspended ? 1 : 0 }] })
+
+  // core_user_update_users NO lanza excepción cuando decide saltarse a un
+  // usuario: lo cuenta en 'warnings', y ese bloque lo estábamos descartando.
+  // Ahí está el motivo exacto —permisos, política de contraseñas, plugin de
+  // autenticación— en vez de un "no se aplicó" a secas.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const avisos = (resp?.warnings ?? []) as any[]
+  if (avisos.length) {
+    const texto = avisos.map(w => `${w.warningcode ?? '?'}: ${w.message ?? ''}`).join(' · ')
+    throw new Error(`Moodle no actualizó la cuenta ${userid} — ${texto}`)
+  }
 
   // Se RELEE. core_user_update_users devuelve null tanto si aplicó el cambio
   // como si ignoró el campo, y el 26/07/2026 pasó exactamente eso: 59 cuentas
