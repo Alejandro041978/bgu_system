@@ -142,3 +142,27 @@ export async function resolveMoodleUserId(idnumber: string | null, ...emails: (s
   }
   return null
 }
+
+// ---------------------------------------------------------------------------
+// Estado REAL de suspensión en el campus, por lotes.
+//
+// El ERP guarda en academic_students.moodle_suspended lo que él cree haber
+// hecho. Si un administrador reactiva una cuenta desde Moodle, esa creencia
+// queda desfasada y el motor de accesos ya no vuelve a suspenderla: para él
+// "ya está suspendida". Esto lee la verdad del otro lado para poder contrastar.
+// ---------------------------------------------------------------------------
+export async function suspendedByMoodleIds(ids: number[]): Promise<Map<number, boolean>> {
+  const out = new Map<number, boolean>()
+  const limpios = [...new Set(ids.filter(n => Number.isFinite(n) && n > 0))]
+  for (let i = 0; i < limpios.length; i += 100) {
+    const lote = limpios.slice(i, i + 100)
+    try {
+      const users = await moodleCall('core_user_get_users_by_field', {
+        field: 'id', values: lote.map(String),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const u of (users ?? []) as any[]) out.set(Number(u.id), Number(u.suspended) === 1)
+    } catch { /* el lote que falle queda sin dato: se reporta como no verificable */ }
+  }
+  return out
+}
