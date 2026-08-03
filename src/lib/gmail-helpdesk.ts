@@ -72,6 +72,10 @@ export async function sendGmailReply(args: {
   to: string; subject: string; text: string
   html?: string | null
   threadId?: string | null; lastInboundGmailId?: string | null
+  // Adjuntos ya descargados en memoria. Van DENTRO del correo, no como enlace:
+  // el destinatario suele ser alguien de fuera y un enlace firmado que caduca
+  // sería peor que el archivo.
+  attachments?: { filename: string; mimeType: string; content: Buffer }[]
 }): Promise<{ id: string }> {
   const token = await gmailToken()
   const auth = { headers: { Authorization: `Bearer ${token}` } }
@@ -93,17 +97,50 @@ export async function sendGmailReply(args: {
   const subjectB64 = `=?UTF-8?B?${Buffer.from(args.subject, 'utf8').toString('base64')}?=`
   const contentType = args.html ? 'text/html' : 'text/plain'
   const payload = args.html ?? args.text
-  const mime = [
+  const cabeceras = [
     `To: ${args.to}`,
     `Subject: ${subjectB64}`,
     'MIME-Version: 1.0',
-    `Content-Type: ${contentType}; charset=UTF-8`,
-    'Content-Transfer-Encoding: base64',
     ...(inReplyTo ? [`In-Reply-To: ${inReplyTo}`] : []),
     ...(references ? [`References: ${references}`] : []),
+  ]
+  const cuerpo = [
+    `Content-Type: ${contentType}; charset=UTF-8`,
+    'Content-Transfer-Encoding: base64',
     '',
     Buffer.from(payload, 'utf8').toString('base64'),
-  ].join('\r\n')
+  ]
+
+  const adjuntos = args.attachments ?? []
+  let mime: string
+  if (!adjuntos.length) {
+    mime = [...cabeceras, ...cuerpo].join('\r\n')
+  } else {
+    // Con adjuntos el correo pasa a multipart/mixed: el texto es la primera
+    // parte y cada archivo va detrás, en base64 partido en líneas de 76
+    // caracteres, como pide el formato.
+    const b = `bgu_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+    const partes = [
+      ...cabeceras,
+      `Content-Type: multipart/mixed; boundary="${b}"`,
+      '',
+      `--${b}`,
+      ...cuerpo,
+    ]
+    for (const a of adjuntos) {
+      const seguro = a.filename.replace(/["\r\n]/g, '')
+      partes.push(
+        `--${b}`,
+        `Content-Type: ${a.mimeType}; name="${seguro}"`,
+        'Content-Transfer-Encoding: base64',
+        `Content-Disposition: attachment; filename="${seguro}"`,
+        '',
+        (a.content.toString('base64').match(/.{1,76}/g) ?? []).join('\r\n'),
+      )
+    }
+    partes.push(`--${b}--`, '')
+    mime = partes.join('\r\n')
+  }
 
   const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Send, Loader2, User, Hand, CheckCircle2, RotateCcw, MessageSquare, Inbox, Mail, Layers, Check, CheckCheck, AlertTriangle, Tag, Search } from 'lucide-react'
+import { Send, Loader2, User, Hand, CheckCircle2, RotateCcw, MessageSquare, Inbox, Mail, Layers, Check, CheckCheck, AlertTriangle, Tag, Search, Paperclip, X as XIcon } from 'lucide-react'
 
 // Glifo de WhatsApp (lucide no trae íconos de marca)
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -126,6 +126,9 @@ export function InboxView() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [adjuntos, setAdjuntos] = useState<{ storage_path: string; filename: string; mime_type: string; size_bytes: number }[]>([])
+  const [subiendo, setSubiendo] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   // Buscador de estudiante: ver TODAS las comunicaciones de un alumno
   const [stuQ, setStuQ] = useState('')
@@ -204,16 +207,74 @@ export function InboxView() {
     await fetch(`/api/inbox/conversations/${selected.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reopen' }) })
     await loadThread(selected.id); await loadList()
   }
+  // Los archivos se suben ANTES de enviar y se quedan guardados: así el agente
+  // los ve, puede quitar el que se equivocó, y si el envío falla no hay que
+  // volver a buscarlos en el disco.
+  async function adjuntar(files: FileList | null) {
+    if (!selected || !files?.length) return
+    setSubiendo(true)
+    for (const f of Array.from(files)) {
+      const fd = new FormData()
+      fd.append('file', f)
+      fd.append('conversation_id', selected.id)
+      const r = await fetch('/api/inbox/attachments', { method: 'POST', body: fd })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) { alert(d.error ?? `No se pudo subir ${f.name}`); continue }
+      setAdjuntos(prev => [...prev, d])
+    }
+    setSubiendo(false)
+  }
+
   async function send() {
-    if (!selected || !input.trim() || sending) return
+    if (!selected || sending) return
+    if (!input.trim() && !adjuntos.length) return
     setSending(true)
     const text = input.trim()
-    setInput('')
-    const res = await fetch(`/api/inbox/conversations/${selected.id}/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: text }) })
-    if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error ?? 'Error al enviar'); setInput(text) }
+    const files = adjuntos
+    setInput(''); setAdjuntos([])
+    const res = await fetch(`/api/inbox/conversations/${selected.id}/send`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: text, attachments: files }),
+    })
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      alert(d.error ?? 'Error al enviar')
+      setInput(text); setAdjuntos(files)
+    }
     await loadThread(selected.id); await loadList()
     setSending(false)
   }
+
+  // Clip + input oculto. Compartido por los dos compositores para que el
+  // comportamiento sea idéntico se responda por correo o por WhatsApp.
+  const BotonAdjuntar = () => (
+    <>
+      <input ref={fileRef} type="file" multiple className="hidden"
+        onChange={e => { adjuntar(e.target.files); if (fileRef.current) fileRef.current.value = '' }} />
+      <button type="button" onClick={() => fileRef.current?.click()} disabled={subiendo || sending}
+        title="Adjuntar archivos"
+        className="flex items-center gap-1.5 border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 px-3 py-2 rounded-lg text-sm">
+        {subiendo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+      </button>
+    </>
+  )
+
+  const Adjuntos = () => !adjuntos.length ? null : (
+    <div className="mb-2 flex flex-wrap gap-1.5">
+      {adjuntos.map(a => (
+        <span key={a.storage_path}
+          className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs text-gray-700">
+          <Paperclip className="w-3 h-3 text-gray-400" />
+          {a.filename}
+          <span className="text-gray-400">{fsize(a.size_bytes)}</span>
+          <button onClick={() => setAdjuntos(prev => prev.filter(x => x.storage_path !== a.storage_path))}
+            className="text-gray-400 hover:text-red-600" title="Quitar">
+            <XIcon className="w-3 h-3" />
+          </button>
+        </span>
+      ))}
+    </div>
+  )
 
   return (
     <div className="flex gap-4 h-[calc(100vh-140px)]">
@@ -419,8 +480,10 @@ export function InboxView() {
                 <textarea value={input} onChange={e => setInput(e.target.value)}
                   rows={6} placeholder="Escribe el correo completo… (Enter hace salto de línea)"
                   className="w-full resize-y border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]" />
-                <div className="flex justify-end">
-                  <button onClick={send} disabled={!input.trim() || sending}
+                <Adjuntos />
+                <div className="flex justify-end gap-2">
+                  <BotonAdjuntar />
+                  <button onClick={send} disabled={(!input.trim() && !adjuntos.length) || sending || subiendo}
                     className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
                     {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                     {sending ? 'Enviando…' : 'Enviar correo'}
@@ -430,12 +493,14 @@ export function InboxView() {
             ) : (
               /* Chat (WhatsApp/ticket): Enter envía, Shift+Enter salto de línea */
               <div className="p-3 border-t border-gray-100">
+                <Adjuntos />
                 <div className="flex items-end gap-2">
+                  <BotonAdjuntar />
                   <textarea value={input} onChange={e => setInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                     rows={1} placeholder="Escribe una respuesta…"
                     className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-32" />
-                  <button onClick={send} disabled={!input.trim() || sending}
+                  <button onClick={send} disabled={(!input.trim() && !adjuntos.length) || sending || subiendo}
                     className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
                     {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </button>

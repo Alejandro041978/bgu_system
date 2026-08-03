@@ -4,7 +4,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { getBot } from '@/lib/bots'
 import { sendWhatsAppMessage } from '@/lib/twilio'
 import { recordInboxConversation } from '@/lib/inbox-record'
-import { gmailHelpdeskConfigured, sendGmailReply } from '@/lib/gmail-helpdesk'
+import { gmailHelpdeskConfigured, sendGmailReply, INBOX_BUCKET } from '@/lib/gmail-helpdesk'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -15,15 +15,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
-  const { body } = await req.json() as { body?: string }
-  if (!body?.trim()) return NextResponse.json({ error: 'Mensaje vacío' }, { status: 400 })
+  const { body, attachments } = await req.json() as {
+    body?: string
+    attachments?: { storage_path: string; filename: string; mime_type: string; size_bytes: number }[]
+  }
+  const adjuntos = attachments ?? []
+  // Un adjunto sin texto es un envío válido: mandar solo el archivo es normal.
+  if (!body?.trim() && !adjuntos.length) return NextResponse.json({ error: 'Mensaje vacío' }, { status: 400 })
 
   const sb = db()
   const { data: conv } = await sb.from('wa_conversations').select('*').eq('id', id).maybeSingle()
   if (!conv) return NextResponse.json({ error: 'Conversación no encontrada' }, { status: 404 })
 
   let outSubject: string | null = null
-  let storedBody = body
+  let storedBody = body ?? ''
   let twilioSid: string | null = null
   const caseTag = conv.case_number != null ? ` [Caso #${conv.case_number}]` : ''
 
@@ -56,20 +61,41 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Número de caso en el asunto (para que el cliente pueda referirse a él)
     outSubject = base.replace(/\s*\[Caso #\d+\]/gi, '').trim() + caseTag
 
+    // Los adjuntos viajan DENTRO del correo: el destinatario es alguien de
+    // fuera y un enlace firmado que caduca sería peor que el archivo.
+    const archivos: { filename: string; mimeType: string; content: Buffer }[] = []
+    for (const a of adjuntos) {
+      const { data: blob, error: dlErr } = await sb.storage.from(INBOX_BUCKET).download(a.storage_path)
+      if (dlErr || !blob) {
+        return NextResponse.json({ error: `No se pudo leer el adjunto "${a.filename}": ${dlErr?.message ?? 'no encontrado'}` }, { status: 500 })
+      }
+      archivos.push({
+        filename: a.filename,
+        mimeType: a.mime_type || 'application/octet-stream',
+        content: Buffer.from(await blob.arrayBuffer()),
+      })
+    }
+
     let sentNative = false
     if (gmailHelpdeskConfigured()) {
       try {
         await sendGmailReply({
           to: conv.customer_email,
           subject: outSubject,
-          text: body,
+          text: body ?? '',
           threadId: conv.thread_ref,
           lastInboundGmailId: lastIn?.message_id ?? null,
+          attachments: archivos,
         })
         sentNative = true
       } catch { /* sin gmail.send todavía: cae al respaldo N8N */ }
     }
     if (!sentNative) {
+      // El respaldo de N8N no lleva adjuntos: mandar el texto solo sería
+      // engañoso — el agente creería que el archivo salió.
+      if (archivos.length) {
+        return NextResponse.json({ error: 'No se pudo enviar por Gmail y el respaldo de N8N no admite adjuntos. Reintenta en un momento.' }, { status: 500 })
+      }
       const webhookUrl = process.env.N8N_EMAIL_WEBHOOK_URL
       if (!webhookUrl) return NextResponse.json({ error: 'Gmail nativo falló y N8N_EMAIL_WEBHOOK_URL no está configurada' }, { status: 500 })
       const resp = await fetch(webhookUrl, {
@@ -97,20 +123,59 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if ((outCount ?? 0) === 0 && conv.case_number != null) storedBody = `${body}\n\nCaso #${conv.case_number}`
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://system.blackwell.university'
-    const sent = await sendWhatsAppMessage(conv.customer_phone, storedBody, {
-      from: inbox.twilio_number, sid: inbox.twilio_account_sid, token: inbox.twilio_auth_token,
-    }, { statusCallback: `${appUrl}/api/whatsapp/status` })
+    const creds = { from: inbox.twilio_number, sid: inbox.twilio_account_sid, token: inbox.twilio_auth_token }
+
+    // A diferencia del correo, aquí el archivo NO viaja en el mensaje: Twilio
+    // lo descarga de una URL. Se firma por una hora, que sobra para que lo baje
+    // y no deja el archivo expuesto para siempre.
+    const urls: string[] = []
+    for (const a of adjuntos) {
+      const { data: signed, error: sErr } = await sb.storage.from(INBOX_BUCKET)
+        .createSignedUrl(a.storage_path, 3600)
+      if (sErr || !signed?.signedUrl) {
+        return NextResponse.json({ error: `No se pudo preparar el adjunto "${a.filename}" para WhatsApp: ${sErr?.message ?? 'sin URL'}` }, { status: 500 })
+      }
+      urls.push(signed.signedUrl)
+    }
+
+    // WhatsApp admite un adjunto por mensaje. Con varios se manda uno por
+    // archivo: el texto acompaña al primero y el resto van sueltos, que es
+    // como se ve en el teléfono de todos modos.
+    const sent = await sendWhatsAppMessage(conv.customer_phone, storedBody, creds, {
+      statusCallback: `${appUrl}/api/whatsapp/status`,
+      mediaUrl: urls.slice(0, 1),
+    })
     if (!sent.ok) return NextResponse.json({ error: sent.error }, { status: 500 })
     twilioSid = sent.messageSid ?? null
+
+    for (const u of urls.slice(1)) {
+      const extra = await sendWhatsAppMessage(conv.customer_phone, '', creds, {
+        statusCallback: `${appUrl}/api/whatsapp/status`, mediaUrl: [u],
+      })
+      if (!extra.ok) {
+        return NextResponse.json({ error: `Se envió el mensaje pero falló un adjunto: ${extra.error}` }, { status: 500 })
+      }
+    }
   }
 
   const { data: emp } = await sb.from('hr_employees').select('full_name').eq('user_id', user.id).maybeSingle()
   const agentNm = emp?.full_name ?? user.email ?? 'Agente'
 
+  // Los adjuntos quedan colgados del mensaje enviado, en la misma tabla que los
+  // que llegan: así el historial de la conversación los muestra igual venga de
+  // donde venga.
   const { data: msg } = await sb.from('wa_messages').insert({
     conversation_id: id, direction: 'out', body: storedBody, subject: outSubject, agent_id: user.id, agent_name: agentNm,
     twilio_sid: twilioSid, delivery_status: twilioSid ? 'sent' : null,
   }).select('*').single()
+
+  if (msg && adjuntos.length) {
+    await sb.from('wa_attachments').insert(adjuntos.map(a => ({
+      message_id: msg.id, conversation_id: id,
+      filename: a.filename, mime_type: a.mime_type,
+      size_bytes: a.size_bytes, storage_path: a.storage_path,
+    })))
+  }
 
   const now = new Date().toISOString()
   // Si nadie la tenía asignada, al responder queda asignada al que responde

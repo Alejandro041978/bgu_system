@@ -5,10 +5,16 @@ export async function sendWhatsAppMessage(
   to: string,
   body: string,
   creds: { from: string; sid: string; token: string },
-  opts?: { statusCallback?: string }
+  // mediaUrl: URLs PÚBLICAS que Twilio descarga para adjuntar. Tienen que ser
+  // alcanzables desde fuera —firmadas y con vigencia suficiente— porque quien
+  // las baja es Twilio, no el destinatario.
+  opts?: { statusCallback?: string; mediaUrl?: string[] }
 ): Promise<{ ok: boolean; error?: string; messageSid?: string }> {
   const params = new URLSearchParams({ From: creds.from, To: to, Body: body })
   if (opts?.statusCallback) params.set('StatusCallback', opts.statusCallback)
+  // WhatsApp admite un adjunto por mensaje; con varios, Twilio manda uno solo.
+  // Quien llama se encarga de enviar un mensaje por archivo.
+  for (const u of opts?.mediaUrl ?? []) params.append('MediaUrl', u)
   const resp = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${creds.sid}/Messages.json`, {
     method: 'POST',
     headers: {
