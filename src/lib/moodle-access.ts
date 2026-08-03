@@ -1,4 +1,4 @@
-import { setUserSuspended, resolveMoodleUserId, moodleConfigured, findMoodleUsersByName } from './moodle'
+import { setUserSuspended, resolveMoodleUserId, moodleConfigured, findMoodleUsersByName, suspendedByMoodleIds } from './moodle'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any
@@ -136,6 +136,21 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
     for (const s of data ?? []) noAccountSet.add(s.id)
   } catch { /* columna moodle_no_account inexistente todavía */ }
 
+  // El estado actual se lee del CAMPUS, no de nuestra propia anotación.
+  //
+  // moodle_suspended guarda lo que el ERP cree haber hecho, y el 26/07 esa
+  // creencia se separó de la realidad en 59 cuentas: el motor las daba por
+  // cerradas y por eso calculaba acción 'ninguna', así que no volvía a
+  // intentarlo nunca. Preguntándole a Moodle, cualquier desvío —una llamada
+  // que no aplicó, una reactivación manual— se corrige en la corrida siguiente
+  // en vez de durar para siempre.
+  const idsMoodle = idArr.map(id => Number(info.get(id)?.moodle_user_id)).filter(n => Number.isFinite(n) && n > 0)
+  let realEnMoodle = new Map<number, boolean>()
+  if (moodleConfigured() && idsMoodle.length) {
+    try { realEnMoodle = await suspendedByMoodleIds(idsMoodle) }
+    catch { /* si el campus no responde, se cae a la anotación local */ }
+  }
+
   const rows: AccessRow[] = []
   for (const id of idArr) {
     const s = info.get(id); if (!s) continue
@@ -143,7 +158,9 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
     const ex = exc.get(id)
     const hasExc = !!ex
     const noAccount = noAccountSet.has(id)
-    const cur = !!s.moodle_suspended
+    // La verdad del campus manda; la anotación local es sólo el respaldo.
+    const enMoodle = realEnMoodle.get(Number(s.moodle_user_id))
+    const cur = enMoodle ?? !!s.moodle_suspended
     // Campus externo (aliados): NO usan nuestro Moodle → fuera de la restricción.
     // Si no está suspendido, ni lo listamos; si por error lo está, se reactiva.
     const isPartner = s.situation === 'campus_socio'
