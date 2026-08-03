@@ -30,6 +30,36 @@ export interface TicketInput {
   botKey?: string          // quién lo generó (sofia, retencion…)
 }
 
+// ---------------------------------------------------------------------------
+// Encuentra al estudiante detrás de un contacto, por teléfono o por correo.
+//
+// Un ticket que se responde por correo y no tiene correo del cliente es un
+// ticket que nadie puede contestar — y eso pasaba: el ticket sólo guardaba el
+// correo si el bot se lo pasaba, y nunca miraba la ficha del estudiante, que
+// casi siempre lo tiene. Se prefiere el personal: es el que el estudiante lee
+// seguro, mientras que al institucional puede no haber entrado nunca.
+// ---------------------------------------------------------------------------
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function buscarEstudiante(sb: any, args: { phone?: string | null; email?: string | null }) {
+  const tel = (args.phone ?? '').replace('whatsapp:', '').trim()
+  const mail = (args.email ?? '').trim().toLowerCase()
+  const cols = 'id, first_name, last_name, second_last_name, email, email_alt, phone_number'
+
+  if (mail && /^[^\s,()'"]+@[^\s,()'"]+$/.test(mail)) {
+    const { data } = await sb.from('academic_students').select(cols)
+      .or(`email.eq.${mail},email_alt.eq.${mail}`).limit(1).maybeSingle()
+    if (data) return data
+  }
+  if (tel) {
+    // El teléfono se guarda con y sin '+' según de dónde venga el dato.
+    const sinMas = tel.replace(/^\+/, '')
+    const { data } = await sb.from('academic_students').select(cols)
+      .or(`phone_number.eq.${tel},phone_number.eq.${sinMas},phone_number.eq.+${sinMas}`).limit(1).maybeSingle()
+    if (data) return data
+  }
+  return null
+}
+
 export async function createInboxTicket(t: TicketInput): Promise<{ caseNumber: number | null; conversationId: string }> {
   const sb = db()
   const now = new Date().toISOString()
@@ -41,14 +71,24 @@ export async function createInboxTicket(t: TicketInput): Promise<{ caseNumber: n
   // es un ticket que nadie mira.
   const assigned = await autoAssign(language, topic)
 
+  // Un ticket se responde por correo, así que sin correo nace muerto. Si el bot
+  // no lo trajo, se busca en la ficha del estudiante por teléfono o por correo.
+  const estudiante = await buscarEstudiante(sb, { phone: phone, email: t.contactEmail })
+  const correo = t.contactEmail ?? estudiante?.email ?? estudiante?.email_alt ?? null
+  const nombre = t.contactName
+    ?? (estudiante ? [estudiante.first_name, estudiante.last_name, estudiante.second_last_name].filter(Boolean).join(' ') : null)
+
   const base = {
     inbox_key: 'servicio',
     channel: 'ticket',
     status: 'open',
     assigned_to: assigned?.user_id ?? null,
     assigned_name: assigned?.name ?? null,
-    customer_name: t.contactName ?? null,
-    customer_email: t.contactEmail ?? null,
+    customer_name: nombre,
+    customer_email: correo,
+    // Queda enganchado a su ficha: es lo que permite ver todas sus
+    // comunicaciones juntas y resolver el correo más adelante si cambia.
+    student_id: estudiante?.id ?? null,
     subject: t.subject,
     summary: t.description.slice(0, 500),
     language, topic,
@@ -72,6 +112,13 @@ export async function createInboxTicket(t: TicketInput): Promise<{ caseNumber: n
       await sb.from('wa_conversations').update({
         status: 'open', subject: t.subject, summary: base.summary, topic, language,
         unread_count: 1, last_message_at: now, last_message_preview: t.subject, updated_at: now,
+        // Se completa lo que falte sin pisar lo que ya hubiera: aquí es donde
+        // se perdía el correo. La conversación venía de WhatsApp —donde nadie
+        // lo necesita— y al convertirse en ticket, que se responde por correo,
+        // se quedaba sin él.
+        ...(correo ? { customer_email: correo } : {}),
+        ...(estudiante?.id ? { student_id: estudiante.id } : {}),
+        ...(nombre ? { customer_name: nombre } : {}),
       }).eq('id', existing.id)
       convId = existing.id
     }

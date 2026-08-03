@@ -5,6 +5,7 @@ import { getBot } from '@/lib/bots'
 import { sendWhatsAppMessage } from '@/lib/twilio'
 import { recordInboxConversation } from '@/lib/inbox-record'
 import { gmailHelpdeskConfigured, sendGmailReply, INBOX_BUCKET } from '@/lib/gmail-helpdesk'
+import { buscarEstudiante } from '@/lib/inbox-ticket'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -38,6 +39,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // el diálogo con Sofía (los humanos no acceden a ese número) y un WhatsApp
   // frío desde el número humano exigiría plantilla de Meta.
   const porCorreo = conv.channel === 'email' || conv.channel === 'ticket'
+
+  // Sin correo en el caso, se busca en la ficha del estudiante antes de
+  // rendirse: casi siempre lo tiene, y pedirle al agente que lo complete a mano
+  // cuando el ERP ya lo sabe es hacerle perder el tiempo. Los tickets viejos
+  // nacieron sin él —Sofía no siempre lo pasaba— así que este rescate los
+  // arregla al primer intento de respuesta y lo deja guardado.
+  if (porCorreo && !conv.customer_email) {
+    const est = await buscarEstudiante(sb, { phone: conv.customer_phone, email: null })
+    const rescatado = est?.email ?? est?.email_alt ?? null
+    if (rescatado) {
+      conv.customer_email = rescatado
+      await sb.from('wa_conversations')
+        .update({ customer_email: rescatado, ...(conv.student_id ? {} : { student_id: est.id }) })
+        .eq('id', id)
+    }
+  }
   if (porCorreo && !conv.customer_email) {
     return NextResponse.json({ error: 'Los tickets se responden por correo y este caso no tiene correo del cliente: complétalo primero en la ficha del caso.' }, { status: 400 })
   }
