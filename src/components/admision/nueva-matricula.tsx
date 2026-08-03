@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Loader2, Search, UserPlus, CheckCircle2, GraduationCap, X } from 'lucide-react'
 
 interface Ref { id: string; name: string }
-interface Program { id: string; name: string; category_id: string | null }
+interface Program { id: string; name: string; category_id: string | null; partner_campus?: string | boolean | null }
 interface Conv { id: string; name: string; semester: string; first_day: string | null }
 interface Found { id: string; name: string; document: string; email: string | null; situation: string | null; programs: string[] }
 
@@ -131,8 +131,11 @@ export function NuevaMatricula() {
   // entrar a ninguna aula. Puede estar INCOMPLETA —4 casillas de 40 mientras se
   // arma— porque el vínculo ya está hecho y el cron diario incorpora las aulas
   // que se vayan añadiendo. Lo que no puede es no existir.
-  const sinColeccion = !!programId && colecciones.length === 0
-  const canSubmit = studentReady && programId && convId && !!collectionId && !saving && !prereqBlocks
+  // Un programa de CAMPUS EXTERNO no se dicta en nuestro Moodle: no le
+  // corresponde colección, así que ni se le exige ni se le pide.
+  const esExterno = !!programs.find(p => p.id === programId)?.partner_campus
+  const sinColeccion = !!programId && !esExterno && colecciones.length === 0
+  const canSubmit = studentReady && programId && convId && (esExterno || !!collectionId) && !saving && !prereqBlocks
 
   async function submit() {
     if (!canSubmit) return
@@ -299,12 +302,23 @@ export function NuevaMatricula() {
           </label>
           <label>
             <span className="block text-xs text-gray-500 mb-1">Colección de aulas</span>
-            <select value={collectionId} onChange={e => setCollectionId(e.target.value)} className={inp} disabled={!programId}>
-              <option value="">{!programId ? 'Elige el programa' : (colecciones.length ? 'Seleccionar…' : 'El programa no tiene colecciones')}</option>
-              {colecciones.map(c => (
+            <select value={collectionId} onChange={e => setCollectionId(e.target.value)} className={inp} disabled={!programId || esExterno}>
+              <option value="">
+                {!programId ? 'Elige el programa'
+                  : esExterno ? 'No corresponde — campus externo'
+                  : colecciones.length ? 'Seleccionar…'
+                  : 'El programa no tiene colecciones'}
+              </option>
+              {!esExterno && colecciones.map(c => (
                 <option key={c.id} value={c.id}>{c.name} — {c.con_aula} de {c.asignaturas} aulas</option>
               ))}
             </select>
+            {esExterno && (
+              <span className="mt-1 block text-xs text-gray-500">
+                Este programa se dicta en un campus externo, así que no tiene aulas en nuestro Moodle
+                ni se le crea cuenta de campus.
+              </span>
+            )}
             {sinColeccion && (
               <span className="mt-1 block text-xs text-red-600">
                 Este programa no tiene ninguna colección de aulas. Créala en Calificaciones › Vinculación de Aulas

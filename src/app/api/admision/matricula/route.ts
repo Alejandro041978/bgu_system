@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   if (!q) {
     const { data: programs } = await sb.from('academic_programs')
-      .select('id, name, category_id').order('name')
+      .select('id, name, category_id, partner_campus').order('name')
     return NextResponse.json({ programs: programs ?? [] })
   }
 
