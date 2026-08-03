@@ -245,21 +245,21 @@ export function InboxView() {
     setSending(false)
   }
 
-  // Clip + input oculto. Compartido por los dos compositores para que el
-  // comportamiento sea idéntico se responda por correo o por WhatsApp.
-  const BotonAdjuntar = () => (
-    <>
-      <input ref={fileRef} type="file" multiple className="hidden"
-        onChange={e => { adjuntar(e.target.files); if (fileRef.current) fileRef.current.value = '' }} />
-      <button type="button" onClick={() => fileRef.current?.click()} disabled={subiendo || sending}
-        title="Adjuntar archivos"
-        className="flex items-center gap-1.5 border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 px-3 py-2 rounded-lg text-sm">
-        {subiendo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
-      </button>
-    </>
+  // El clip y las fichas se escriben en línea, NO como componentes definidos
+  // aquí dentro: React trata cada render como un tipo nuevo y desmonta el
+  // subárbol. Con el <input type="file"> eso era fatal — el buzón se refresca
+  // solo cada pocos segundos, así que entre abrir el diálogo del sistema y
+  // elegir los archivos el input ya se había reemplazado, y el onChange nunca
+  // llegaba: los archivos no se subían y el correo salía sin ellos.
+  const botonAdjuntar = (
+    <button type="button" onClick={() => fileRef.current?.click()} disabled={subiendo || sending}
+      title="Adjuntar archivos"
+      className="flex items-center gap-1.5 border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 px-3 py-2 rounded-lg text-sm">
+      {subiendo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+    </button>
   )
 
-  const Adjuntos = () => !adjuntos.length ? null : (
+  const fichasAdjuntos = !adjuntos.length ? null : (
     <div className="mb-2 flex flex-wrap gap-1.5">
       {adjuntos.map(a => (
         <span key={a.storage_path}
@@ -278,6 +278,15 @@ export function InboxView() {
 
   return (
     <div className="flex gap-4 h-[calc(100vh-140px)]">
+      {/* El input vive UNA sola vez y fuera de los compositores: así sobrevive a
+          los refrescos de la lista mientras el diálogo del sistema está
+          abierto. Se limpia después de subir, no antes. */}
+      <input ref={fileRef} type="file" multiple className="hidden"
+        onChange={async e => {
+          const fs = e.target.files
+          await adjuntar(fs)
+          if (fileRef.current) fileRef.current.value = ''
+        }} />
       {/* Panel izquierdo: lista */}
       <div className="w-80 flex-shrink-0 bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden">
         <div className="flex border-b border-gray-100">
@@ -480,9 +489,9 @@ export function InboxView() {
                 <textarea value={input} onChange={e => setInput(e.target.value)}
                   rows={6} placeholder="Escribe el correo completo… (Enter hace salto de línea)"
                   className="w-full resize-y border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]" />
-                <Adjuntos />
+                {fichasAdjuntos}
                 <div className="flex justify-end gap-2">
-                  <BotonAdjuntar />
+                  {botonAdjuntar}
                   <button onClick={send} disabled={(!input.trim() && !adjuntos.length) || sending || subiendo}
                     className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
                     {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
@@ -493,9 +502,9 @@ export function InboxView() {
             ) : (
               /* Chat (WhatsApp/ticket): Enter envía, Shift+Enter salto de línea */
               <div className="p-3 border-t border-gray-100">
-                <Adjuntos />
+                {fichasAdjuntos}
                 <div className="flex items-end gap-2">
-                  <BotonAdjuntar />
+                  {botonAdjuntar}
                   <textarea value={input} onChange={e => setInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                     rows={1} placeholder="Escribe una respuesta…"
