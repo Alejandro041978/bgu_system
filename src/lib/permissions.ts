@@ -32,6 +32,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/finance/reconciliation', 'finance_reconciliation'],
   ['/reports/accesos-portal', 'report_portal_logins'],
   ['/reports/auditor-campus', 'report_campus_audit'],
+  ['/reports/moodle-status', 'report_moodle_status'],
   ['/academic/acta-detalle', 'academic_acta_detail'],
   ['/academic/grade-scales', 'academic_grade_scales'],
   ['/academic/moodle-actas', 'academic_moodle_actas'],

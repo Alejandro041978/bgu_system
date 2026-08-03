@@ -195,3 +195,29 @@ export async function suspendedByMoodleIds(ids: number[]): Promise<Map<number, b
   }
   return out
 }
+
+// Estado de cuenta + último acceso, por lotes. Lo mismo que
+// suspendedByMoodleIds pero trayendo también lastaccess, que es el único dato
+// que dice si el estudiante DE VERDAD está usando el campus — el ERP puede
+// saber que tiene cuenta y que no está suspendido, y aun así no tener ni idea
+// de si entra.
+export async function moodleUserState(ids: number[]): Promise<Map<number, { suspended: boolean; lastaccess: number }>> {
+  const out = new Map<number, { suspended: boolean; lastaccess: number }>()
+  const limpios = [...new Set(ids.filter(n => Number.isFinite(n) && n > 0))]
+  for (let i = 0; i < limpios.length; i += 100) {
+    try {
+      const users = await moodleCall('core_user_get_users_by_field', {
+        field: 'id', values: limpios.slice(i, i + 100).map(String),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const u of (users ?? []) as any[]) {
+        out.set(Number(u.id), {
+          suspended: Number(u.suspended) === 1,
+          // Moodle devuelve 0 cuando la cuenta nunca se usó.
+          lastaccess: Number(u.lastaccess ?? 0),
+        })
+      }
+    } catch { /* el lote que falle queda sin dato */ }
+  }
+  return out
+}

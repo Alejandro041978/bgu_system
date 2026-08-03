@@ -20,6 +20,21 @@ export async function POST(req: NextRequest) {
   const sb = db()
   const rows = await planAccess(sb)
   const res = await applyAccess(sb, rows)
+
+  // Deja constancia de la corrida. Hasta ahora no quedaba rastro de cuándo se
+  // había reconciliado el acceso por última vez, así que nadie podía saber si
+  // lo que veía en pantalla era de hoy o de hace tres semanas — que es
+  // exactamente el punto ciego que hizo que 59 cuentas quedaran abiertas sin
+  // que nadie lo notara.
+  try {
+    await sb.from('system_job_runs').insert({
+      job: 'moodle-access',
+      ok: res.errors.length === 0,
+      summary: { evaluados: rows.length, suspendidas: res.suspended, reactivadas: res.unsuspended, errores: res.errors.length },
+      errors: res.errors.slice(0, 50),
+    })
+  } catch { /* el registro no puede tumbar la reconciliación */ }
+
   return NextResponse.json({ ok: true, evaluados: rows.length, ...res })
 }
 
