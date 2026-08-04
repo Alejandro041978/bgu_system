@@ -184,6 +184,14 @@ const navigation: NavGroup[] = [
           { name: 'Dashboard', href: '/planning/effectiveness/dashboard', icon: Gauge, pageKey: 'effectiveness_dashboard' },
         ],
       },
+      {
+        name: 'Plan de Evaluación', href: '/planning/assessment', icon: Target, pageKey: 'assessment_plan',
+        children: [
+          { name: 'Cargar Plan', href: '/planning/assessment', icon: Target, pageKey: 'assessment_plan' },
+          { name: 'Tablero de Medidas', href: '/planning/assessment/measures', icon: TrendingUp, pageKey: 'assessment_measures' },
+          { name: 'Dashboard', href: '/planning/assessment/dashboard', icon: Gauge, pageKey: 'assessment_dashboard' },
+        ],
+      },
     ],
   },
   {

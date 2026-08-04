@@ -101,6 +101,9 @@ const PAGE_GROUPS = [
       { key: 'effectiveness_kpis', label: 'Plan de Efectividad · KPIs' },
       { key: 'effectiveness_plan', label: 'Plan de Efectividad · Cargar Plan' },
       { key: 'effectiveness_dashboard', label: 'Plan de Efectividad · Dashboard' },
+      { key: 'assessment_plan', label: 'Plan de Evaluación · Cargar Plan' },
+      { key: 'assessment_measures', label: 'Plan de Evaluación · Tablero de Medidas' },
+      { key: 'assessment_dashboard', label: 'Plan de Evaluación · Dashboard' },
     ],
   },
   {
