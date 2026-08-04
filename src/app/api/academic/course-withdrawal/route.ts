@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { sameCourse } from '@/lib/course-match'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -31,6 +32,9 @@ function gradeStatus(g: any, passing: number | null): { status: string; grade: n
 // GET ?student_id=&program_id= → inscripciones (academic_grades) del estudiante
 // que pertenecen a la malla del programa + resumen de créditos/precio.
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const studentId = req.nextUrl.searchParams.get('student_id')
@@ -104,6 +108,9 @@ export async function GET(req: NextRequest) {
 // las de Moodle no se tocan aquí. Escribe edited_at para que el sync no la pise
 // y actualiza ambas tablas (academic_grades + academic_grade_details) por external_id.
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as { external_id?: string; final_grade?: number | null } | null
@@ -142,6 +149,9 @@ export async function PATCH(req: NextRequest) {
 // POST { external_id, student_id, program_id } → retira la asignatura (sin notas)
 // Recalcula el Total Tuition: list_price de la matrícula −= tarifa × créditos.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as { external_id?: string; student_id?: string; program_id?: string } | null

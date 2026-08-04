@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { createDocumentRequest } from '@/lib/document-request'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -10,6 +11,9 @@ const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 
 // GET → lista de solicitudes (con estudiante y tipo). Filtro opcional ?status=
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -37,6 +41,9 @@ export async function GET(req: NextRequest) {
 
 // POST → crear solicitud (verifica requisitos, crea cargo si tiene costo)
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -54,6 +61,9 @@ export async function POST(req: NextRequest) {
 
 // DELETE ?id= → borra una solicitud NO pagada (y su cargo asociado)
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { provisionStudent } from '@/lib/moodle-provision'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -17,6 +18,9 @@ async function ok() {
 
 // POST { student_id } → asociar estudiante al grupo
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await ok())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
   const b = await req.json().catch(() => null)
@@ -31,6 +35,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 // DELETE ?student_id= → quitar estudiante del grupo
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await ok())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
   const studentId = req.nextUrl.searchParams.get('student_id')

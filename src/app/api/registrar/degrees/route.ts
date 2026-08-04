@@ -3,6 +3,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { marcarTitulado } from '@/lib/titulacion'
 import { gmailHelpdeskConfigured, sendGmailReply } from '@/lib/gmail-helpdesk'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -22,6 +23,9 @@ const FIELDS = ['receiver_name', 'receiver_phone', 'receiver_address', 'receiver
 
 // GET → hoja de control (expedientes con su estudiante y programa)
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const status = req.nextUrl.searchParams.get('status')
@@ -70,6 +74,9 @@ export async function GET(req: NextRequest) {
 // POST { student_id, program_id, includes_apostille?, document_request_id? }
 // → crea el expediente con código correlativo y datos de entrega precargados
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as {
@@ -107,6 +114,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH { id, check?: {name, value}, fields?: {...}, includes_apostille?, action?: 'send_digital' }
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { runStudentTracking } from '@/lib/student-tracking'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -17,6 +18,9 @@ async function requireUser() {
 
 // GET ?risk= → filas de seguimiento + resumen por nivel
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const risk = req.nextUrl.searchParams.get('risk')
@@ -66,6 +70,9 @@ export async function GET(req: NextRequest) {
 // PATCH → etiquetar manualmente la situación de un estudiante (source = 'manual')
 const VALID_SITUATIONS = ['activo', 'egresado', 'retiro_permanente', 'retiro_temporal', 'campus_socio']
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const body = await req.json().catch(() => null) as { student_id?: string; situation?: string } | null
   if (!body?.student_id || !body?.situation || !VALID_SITUATIONS.includes(body.situation)) {
@@ -84,6 +91,9 @@ export async function PATCH(req: NextRequest) {
 
 // POST → recalcula ahora (usuario autenticado)
 export async function POST() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   try {
     const r = await runStudentTracking()

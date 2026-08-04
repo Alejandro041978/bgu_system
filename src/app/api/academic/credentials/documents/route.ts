@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 const admin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -13,6 +14,9 @@ async function requireUser() {
 // POST (multipart) → sube un documento adicional (máx 3) del docente y lo agrega
 // a faculty_credentials.additional_documents. Crea el registro si no existe.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const fd = await req.formData()
   const file = fd.get('file') as File | null
@@ -46,6 +50,9 @@ export async function POST(req: NextRequest) {
 
 // DELETE ?employee_id=&url= → quita un documento adicional (de la lista y del storage)
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const employeeId = req.nextUrl.searchParams.get('employee_id')
   const url = req.nextUrl.searchParams.get('url')

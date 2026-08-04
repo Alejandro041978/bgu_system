@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -72,6 +73,9 @@ function mapBeca(r: any, stu: any, progName: Map<string, string>, enr: any, tcMa
 //        (la lista completa colgaba el navegador con miles de filas).
 // GET ?student=<id> → matrículas del estudiante (selector) + SUS becas
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
 
@@ -157,6 +161,9 @@ export async function GET(req: NextRequest) {
 // POST { student_id, enrollment_id, percentage, note? } → otorga la beca.
 // Solo se guarda el PORCENTAJE; el monto siempre se deriva de la base vigente.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
@@ -195,6 +202,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH { id, action: 'revoke' } → revoca (queda el rastro)
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)

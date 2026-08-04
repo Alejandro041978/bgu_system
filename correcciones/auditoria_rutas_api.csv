@@ -1,0 +1,262 @@
+﻿ruta,veredicto,verbos,escribe,service_role,acepta_id_por_parametro
+/api/academic/assignments,SIN AUTENTICACIÓN,POST,sí,sí,no
+/api/academic/assignments/[id],SIN AUTENTICACIÓN,DELETE,sí,sí,no
+/api/academic/courses,SIN AUTENTICACIÓN,POST,sí,sí,no
+/api/academic/courses/[id],SIN AUTENTICACIÓN,PATCH/DELETE,sí,sí,no
+/api/academic/credentials,SIN AUTENTICACIÓN,GET/PATCH,sí,sí,no
+/api/academic/credentials/evaluate/[id],SIN AUTENTICACIÓN,POST,sí,sí,no
+/api/academic/credentials/report/[id],SIN AUTENTICACIÓN,GET,no,sí,no
+/api/academic/offerings,SIN AUTENTICACIÓN,GET/POST,sí,sí,no
+/api/academic/offerings/[id],SIN AUTENTICACIÓN,PATCH/DELETE,sí,sí,no
+/api/academic/programs,SIN AUTENTICACIÓN,GET/POST,sí,sí,no
+/api/academic/programs/[id],SIN AUTENTICACIÓN,PATCH/DELETE,sí,sí,no
+/api/academic/programs/apply-partner,SIN AUTENTICACIÓN,POST,sí,no,no
+/api/academic/schedules,SIN AUTENTICACIÓN,GET,no,sí,no
+/api/academic/semesters,SIN AUTENTICACIÓN,GET/POST,sí,sí,no
+/api/academic/semesters/[id],SIN AUTENTICACIÓN,PATCH/DELETE,sí,sí,no
+/api/academic/years,SIN AUTENTICACIÓN,GET/POST,sí,sí,no
+/api/academic/years/[id],SIN AUTENTICACIÓN,PATCH/DELETE,sí,sí,no
+/api/auth/signout,SIN AUTENTICACIÓN,POST,sí,no,no
+/api/chat,SIN AUTENTICACIÓN,POST,sí,sí,no
+/api/chat/student,SIN AUTENTICACIÓN,POST,sí,sí,no
+/api/contracts/instances/[id]/pdf,SIN AUTENTICACIÓN,POST,sí,sí,no
+/api/contracts/send,SIN AUTENTICACIÓN,POST,sí,sí,no
+/api/contracts/templates,SIN AUTENTICACIÓN,GET/POST,sí,sí,no
+/api/contracts/templates/[id],SIN AUTENTICACIÓN,GET/PATCH/DELETE,sí,sí,no
+/api/convenios,SIN AUTENTICACIÓN,GET/POST/DELETE,sí,sí,no
+/api/convenios/matriculas,SIN AUTENTICACIÓN,GET/POST/DELETE,sí,sí,no
+/api/convenios/upload,SIN AUTENTICACIÓN,POST,sí,sí,no
+/api/google/oauth/callback,SIN AUTENTICACIÓN,GET,no,no,no
+/api/hr/capacitacion-participantes,SIN AUTENTICACIÓN,GET/POST/DELETE,sí,sí,no
+/api/hr/capacitaciones,SIN AUTENTICACIÓN,GET/POST/DELETE,sí,sí,no
+/api/inbox/survey,SIN AUTENTICACIÓN,GET,no,sí,no
+/api/kpis/[periodId]/employee/[employeeId],SIN AUTENTICACIÓN,GET/POST,sí,sí,no
+/api/kpis/[periodId]/summary,SIN AUTENTICACIÓN,GET,no,sí,no
+/api/registrar/formats,SIN AUTENTICACIÓN,GET,no,no,no
+/api/settings/users/check,SIN AUTENTICACIÓN,GET,no,sí,no
+/api/settings/users/sync-auth,SIN AUTENTICACIÓN,GET/POST,sí,sí,no
+/api/sofia/debug,SIN AUTENTICACIÓN,GET,no,sí,no
+/api/sofia/supervisor/report/[id],SIN AUTENTICACIÓN,GET,no,sí,no
+/api/students/check-email,SIN AUTENTICACIÓN,GET,no,sí,no
+/api/sync/student-withdrawals,SIN AUTENTICACIÓN,POST,sí,no,no
+/api/widget,SIN AUTENTICACIÓN,GET,no,no,no
+/api/zoho/books/callback,SIN AUTENTICACIÓN,GET,no,sí,no
+/api/zoho/books/connect,SIN AUTENTICACIÓN,GET,no,no,no
+/api/zoho/books/exchange,SIN AUTENTICACIÓN,GET,no,sí,no
+/api/zoho/callback,SIN AUTENTICACIÓN,GET,no,sí,no
+/api/zoho/tickets/[id]/reply,SIN AUTENTICACIÓN,POST,sí,no,no
+/api/academic/course-withdrawal,ESTUDIANTE PUEDE · con id ajeno,GET/PATCH/POST,sí,sí,sí
+/api/academic/credentials/documents,ESTUDIANTE PUEDE · con id ajeno,POST/DELETE,sí,sí,sí
+/api/academic/grade-details,ESTUDIANTE PUEDE · con id ajeno,GET,no,sí,sí
+/api/academic/groups/[id]/students,ESTUDIANTE PUEDE · con id ajeno,POST/DELETE,sí,sí,sí
+/api/academic/tracking,ESTUDIANTE PUEDE · con id ajeno,GET/PATCH/POST,sí,sí,sí
+/api/academic/withdrawals,ESTUDIANTE PUEDE · con id ajeno,GET/POST,sí,no,sí
+/api/admision/matricula/prereq,ESTUDIANTE PUEDE · con id ajeno,GET,no,no,sí
+/api/collection/bonuses,ESTUDIANTE PUEDE · con id ajeno,GET/POST/PATCH/DELETE,sí,sí,sí
+/api/collection/scholarships,ESTUDIANTE PUEDE · con id ajeno,GET/POST/PATCH,sí,sí,sí
+/api/kpis/definitions,ESTUDIANTE PUEDE · con id ajeno,GET/POST/DELETE,sí,sí,sí
+/api/registrar/degrees,ESTUDIANTE PUEDE · con id ajeno,GET/POST/PATCH,sí,sí,sí
+/api/registrar/requests,ESTUDIANTE PUEDE · con id ajeno,GET/POST/DELETE,sí,sí,sí
+/api/academic/camila,estudiante puede entrar,GET,no,no,no
+/api/academic/carousels-overview,estudiante puede entrar,GET,no,sí,no
+/api/academic/convocatoria-students,estudiante puede entrar,GET/POST,sí,sí,no
+/api/academic/convocatorias-report,estudiante puede entrar,GET,no,sí,no
+/api/academic/credentials/[id],estudiante puede entrar,DELETE,sí,sí,no
+/api/academic/credentials/external,estudiante puede entrar,POST,sí,sí,no
+/api/academic/credentials/upload,estudiante puede entrar,POST,sí,sí,no
+/api/academic/exams,estudiante puede entrar,GET/PATCH,sí,sí,no
+/api/academic/grade-scales,estudiante puede entrar,GET/POST,sí,sí,no
+/api/academic/grade-scales/[id],estudiante puede entrar,PATCH/DELETE,sí,sí,no
+/api/academic/grades,estudiante puede entrar,GET/PATCH,sí,sí,no
+/api/academic/grades-import,estudiante puede entrar,POST,sí,sí,no
+/api/academic/groups,estudiante puede entrar,GET/POST/PATCH/DELETE,sí,sí,no
+/api/academic/groups/[id],estudiante puede entrar,GET,no,sí,no
+/api/academic/groups/[id]/moodle-sync,estudiante puede entrar,POST,sí,no,no
+/api/academic/groups/[id]/offerings,estudiante puede entrar,POST/DELETE,sí,sí,no
+/api/academic/groups/auto-place,estudiante puede entrar,POST,sí,sí,no
+/api/academic/moodle-actas,estudiante puede entrar,GET/PATCH/POST,sí,sí,no
+/api/academic/moodle-audit,estudiante puede entrar,GET/POST,sí,sí,no
+/api/academic/program-categories,estudiante puede entrar,GET/POST,sí,sí,no
+/api/academic/program-categories/[id],estudiante puede entrar,PATCH/DELETE,sí,sí,no
+/api/academic/teaching-assignments,estudiante puede entrar,GET,no,sí,no
+/api/academic/transfer-credit-items/[itemId],estudiante puede entrar,PATCH/DELETE,sí,sí,no
+/api/academic/transfer-credits,estudiante puede entrar,GET/POST,sí,sí,no
+/api/academic/transfer-credits/[id],estudiante puede entrar,GET/DELETE,sí,sí,no
+/api/academic/transfer-credits/[id]/items,estudiante puede entrar,POST,sí,sí,no
+/api/academic/transfer-credits/[id]/pdf,estudiante puede entrar,GET,no,sí,no
+/api/academic/transfer-scheme-items/[itemId],estudiante puede entrar,DELETE,sí,sí,no
+/api/academic/transfer-schemes,estudiante puede entrar,GET/POST,sí,sí,no
+/api/academic/transfer-schemes/[id],estudiante puede entrar,GET/DELETE,sí,sí,no
+/api/academic/transfer-schemes/[id]/apply,estudiante puede entrar,POST,sí,sí,no
+/api/academic/transfer-schemes/[id]/apply-bulk,estudiante puede entrar,POST,sí,sí,no
+/api/academic/transfer-schemes/[id]/items,estudiante puede entrar,POST,sí,sí,no
+/api/academic/withdrawal-requests/[id],estudiante puede entrar,PATCH,sí,no,no
+/api/academic/withdrawals/[id],estudiante puede entrar,PATCH/DELETE,sí,no,no
+/api/academic/withdrawals/next-number,estudiante puede entrar,GET,no,no,no
+/api/account/concepts,estudiante puede entrar,GET/POST,sí,sí,no
+/api/account/statement,estudiante puede entrar,GET,no,no,no
+/api/admision/matricula,estudiante puede entrar,GET/POST,sí,sí,no
+/api/admision/matricula/activate,estudiante puede entrar,POST,sí,sí,no
+/api/billing/plans,estudiante puede entrar,GET/POST/DELETE,sí,sí,no
+/api/campaigns,estudiante puede entrar,GET/PATCH,sí,sí,no
+/api/convocatorias,estudiante puede entrar,GET/POST/PATCH/DELETE,sí,sí,no
+/api/finance/books,estudiante puede entrar,GET,no,sí,no
+/api/finance/books/debug,estudiante puede entrar,GET,no,sí,no
+/api/finance/credit-rates,estudiante puede entrar,GET/POST/DELETE,sí,sí,no
+/api/finance/debt-report,estudiante puede entrar,GET,no,sí,no
+/api/finance/flywire-disbursements,estudiante puede entrar,GET/PATCH/POST,sí,sí,no
+/api/finance/flywire-import,estudiante puede entrar,POST,sí,sí,no
+/api/finance/other-income,estudiante puede entrar,GET/PATCH/DELETE,sí,sí,no
+/api/finance/pagos-conciliar,estudiante puede entrar,GET/PATCH,sí,sí,no
+/api/finance/reconciliation,estudiante puede entrar,GET,no,sí,no
+/api/finance/refunds,estudiante puede entrar,POST,sí,sí,no
+/api/google/oauth/start,estudiante puede entrar,GET,no,no,no
+/api/helpdesk/skills,estudiante puede entrar,GET/PUT,sí,sí,no
+/api/hr/contracts,estudiante puede entrar,POST,sí,sí,no
+/api/hr/contracts/[id]/sign,estudiante puede entrar,POST/GET,sí,sí,no
+/api/hr/contracts/upload,estudiante puede entrar,POST,sí,sí,no
+/api/hr/employees,estudiante puede entrar,POST/GET,sí,sí,no
+/api/hr/employees/[id],estudiante puede entrar,PATCH,sí,sí,no
+/api/hr/employees/resend-invite,estudiante puede entrar,POST,sí,sí,no
+/api/inbox/attachments,estudiante puede entrar,POST,sí,sí,no
+/api/inbox/conversations,estudiante puede entrar,GET,no,sí,no
+/api/inbox/conversations/[id],estudiante puede entrar,GET/PATCH,sí,sí,no
+/api/inbox/metrics,estudiante puede entrar,GET,no,sí,no
+/api/kpis/[periodId]/calculate,estudiante puede entrar,POST,sí,sí,no
+/api/kpis/periods,estudiante puede entrar,GET/POST/PATCH,sí,sí,no
+/api/me/permissions,estudiante puede entrar,GET,no,sí,no
+/api/moodle/ping,estudiante puede entrar,GET,no,no,no
+/api/registrar/degrees/upload,estudiante puede entrar,POST,sí,sí,no
+/api/registrar/document-types,estudiante puede entrar,GET/POST/PATCH/DELETE,sí,sí,no
+/api/registrar/document-types/sample,estudiante puede entrar,POST,sí,sí,no
+/api/registrar/requests/[id],estudiante puede entrar,PATCH,sí,sí,no
+/api/reports/faculty-status,estudiante puede entrar,GET,no,sí,no
+/api/reports/graduates,estudiante puede entrar,GET,no,sí,no
+/api/reports/portal-logins,estudiante puede entrar,GET,no,sí,no
+/api/reports/recaudacion,estudiante puede entrar,GET,no,sí,no
+/api/reports/student-status,estudiante puede entrar,GET,no,sí,no
+/api/reports/tuition-audit,estudiante puede entrar,GET,no,sí,no
+/api/sales/admission-comments,estudiante puede entrar,POST/DELETE,sí,sí,no
+/api/sales/admission-docs,estudiante puede entrar,GET/POST/DELETE/PATCH,sí,sí,no
+/api/sales/admission-types,estudiante puede entrar,POST/PATCH/DELETE,sí,sí,no
+/api/sales/admissions,estudiante puede entrar,GET/POST,sí,sí,no
+/api/sales/funnels,estudiante puede entrar,GET/POST/PATCH/DELETE,sí,sí,no
+/api/sales/leads,estudiante puede entrar,GET/PATCH,sí,sí,no
+/api/settings/permissions,estudiante puede entrar,GET/POST,sí,sí,no
+/api/settings/role-members,estudiante puede entrar,GET,no,sí,no
+/api/settings/roles,estudiante puede entrar,GET/POST/PATCH/DELETE,sí,sí,no
+/api/settings/users,estudiante puede entrar,GET/PATCH,sí,sí,no
+/api/sofia/bots,estudiante puede entrar,GET,no,sí,no
+/api/sofia/knowledge,estudiante puede entrar,GET/POST,sí,sí,no
+/api/sofia/knowledge/[id],estudiante puede entrar,GET/PUT/DELETE,sí,sí,no
+/api/sofia/knowledge/import,estudiante puede entrar,POST,sí,sí,no
+/api/sofia/run-supervisor,estudiante puede entrar,POST,sí,no,no
+/api/sofia/save-prompt,estudiante puede entrar,POST,sí,sí,no
+/api/sofia/suggestions,estudiante puede entrar,GET/PUT/PATCH,sí,sí,no
+/api/staff/impersonate-user,estudiante puede entrar,GET/POST,sí,sí,no
+/api/students/[id],estudiante puede entrar,GET/PATCH,sí,sí,no
+/api/students/[id]/create-email,estudiante puede entrar,POST,sí,sí,no
+/api/students/[id]/programs,estudiante puede entrar,GET,no,sí,no
+/api/students/search,estudiante puede entrar,GET,no,sí,no
+/api/zoho/tickets/[id]/analyze,estudiante puede entrar,POST,sí,sí,no
+/api/academic/acta,ok,GET,no,sí,sí
+/api/academic/course-enrollments/rebuild,ok,POST/GET,sí,sí,no
+/api/academic/course-report,cron,GET,no,sí,no
+/api/academic/grade-status/rebuild,ok,POST/GET,sí,sí,no
+/api/academic/moodle-access,ok,GET/POST,sí,sí,no
+/api/academic/moodle-access/verify,ok,GET,no,sí,no
+/api/academic/moodle-account,ok,GET/POST,sí,sí,sí
+/api/academic/moodle-collections,ok,GET/POST,sí,sí,no
+/api/academic/moodle-links,ok,GET/POST,sí,sí,no
+/api/academic/sync-grades,cron,POST/GET,sí,sí,no
+/api/academic/withdrawal-requests,cron,GET/POST,sí,no,sí
+/api/account/charges,ok,GET/POST/PATCH/DELETE,sí,sí,no
+/api/account/discount,ok,POST,sí,sí,no
+/api/account/generate-charges,ok,POST,sí,no,no
+/api/account/payments,ok,PATCH/DELETE,sí,sí,no
+/api/account/rebill,ok,POST,sí,no,no
+/api/alerts/campus,ok,GET,no,sí,no
+/api/campaigns/metrics,ok,GET,no,sí,no
+/api/contracts/sign/[token]/confirm,firma por token,POST,sí,sí,no
+/api/contracts/sign/[token]/otp,firma por token,POST,sí,sí,no
+/api/cron/build-prompt,cron,POST/GET,sí,sí,no
+/api/cron/campaigns,cron,POST/GET,sí,sí,no
+/api/cron/carousels,cron,GET/POST,sí,sí,no
+/api/cron/close-grades,cron,POST/GET,sí,sí,no
+/api/cron/graduates,cron,GET/POST,sí,no,no
+/api/cron/inbox-autoclose,cron,GET/POST,sí,no,no
+/api/cron/loa-expiry,cron,GET/POST,sí,no,no
+/api/cron/moodle-access,cron,POST/GET,sí,sí,no
+/api/cron/moodle-enrol-sync,cron,POST/GET,sí,sí,no
+/api/cron/moodle-import,cron,POST/GET,sí,sí,no
+/api/cron/retention-campaign,cron,GET/POST,sí,no,no
+/api/cron/retention-commitments,cron,GET/POST,sí,no,no
+/api/cron/sofia-supervisor,cron,POST/GET,sí,no,no
+/api/cron/student-tracking,cron,POST/GET,sí,no,no
+/api/cron/sync-templates,cron,GET/POST,sí,no,no
+/api/files/open,ok,GET,no,no,no
+/api/finance/books/associate,ok,GET/POST/DELETE,sí,sí,no
+/api/finance/books/operations,cron,GET/POST/PATCH,sí,sí,no
+/api/finance/cashpay,ok,GET/POST,sí,sí,no
+/api/flywire/diag,webhook,GET,no,no,no
+/api/flywire/webhook,webhook,POST,sí,sí,no
+/api/google/diag,ok,GET,no,no,no
+/api/google/workspace-audit,cron,GET,no,sí,no
+/api/inbox/conversations/[id]/send,cron,POST,sí,sí,no
+/api/inbox/email/backfill,cron,GET,no,sí,no
+/api/inbox/email/incoming,cron,POST,sí,sí,no
+/api/inbox/email/reconcile,cron,POST,sí,sí,no
+/api/moodle/recon,cron,GET,no,sí,no
+/api/planning/actions,ok,GET/POST,sí,sí,no
+/api/planning/actions/[id],ok,PATCH/DELETE,sí,sí,no
+/api/planning/assessment,ok,GET,no,sí,no
+/api/planning/audit,ok,GET,no,sí,no
+/api/planning/cycles,ok,GET/POST,sí,sí,no
+/api/planning/cycles/[id],ok,PATCH/DELETE,sí,sí,no
+/api/planning/dashboard,ok,GET,no,sí,no
+/api/planning/dimensions,ok,GET/POST,sí,sí,no
+/api/planning/dimensions/[id],ok,PATCH/DELETE,sí,sí,no
+/api/planning/effectiveness/calculate,ok,GET,no,sí,no
+/api/planning/effectiveness/kpis,ok,GET/POST/PATCH/DELETE,sí,sí,no
+/api/planning/effectiveness/linkable,ok,GET,no,sí,no
+/api/planning/effectiveness/plan-kpis,ok,GET/POST/PATCH/DELETE,sí,sí,no
+/api/planning/effectiveness/plans,ok,GET/POST,sí,sí,no
+/api/planning/history,ok,DELETE/GET,sí,sí,no
+/api/planning/indicators,ok,GET,no,sí,no
+/api/planning/objectives,ok,GET/POST,sí,sí,no
+/api/planning/objectives/[id],ok,PATCH/DELETE,sí,sí,no
+/api/planning/progress,ok,GET/POST,sí,sí,no
+/api/planning/progress/[id],ok,PATCH/DELETE,sí,sí,no
+/api/planning/responsibles,ok,POST,sí,sí,no
+/api/planning/responsibles/[id],ok,PATCH/DELETE,sí,sí,no
+/api/planning/responsibles/tree,ok,GET,no,sí,no
+/api/planning/strategies,ok,GET/POST,sí,sí,no
+/api/planning/strategies/[id],ok,PATCH/DELETE,sí,sí,no
+/api/registrar/isic,ok,GET/POST/PATCH,sí,sí,no
+/api/registrar/isic-photo,ok,POST,sí,no,no
+/api/registrar/tramite-types,ok,GET/POST/PATCH/DELETE,sí,sí,no
+/api/registrar/tramites,ok,GET/POST/PATCH,sí,sí,sí
+/api/reports/moodle-status,ok,GET,no,sí,no
+/api/sofia/knowledge/seed,cron,POST,sí,sí,no
+/api/student/acta,portal,GET,no,sí,no
+/api/student/cashpay,portal,GET/POST,sí,sí,no
+/api/student/documents,portal,GET/POST,sí,sí,no
+/api/student/exams,portal,GET/POST,sí,sí,no
+/api/student/heartbeat,portal,POST,sí,sí,no
+/api/student/impersonate,portal,POST,sí,no,no
+/api/student/isic-photo,portal,POST,sí,sí,no
+/api/student/magic-link,portal,POST,sí,sí,no
+/api/student/moodle-exception,portal,GET/POST,sí,sí,no
+/api/student/tramites,portal,GET/POST,sí,sí,no
+/api/students/[id]/student-email-access,ok,GET/POST,sí,sí,no
+/api/sync/account-charges,cron,POST,sí,sí,no
+/api/sync/account-payments,cron,POST,sí,sí,no
+/api/sync/courses,cron,POST,sí,sí,no
+/api/sync/desk,cron,POST/GET,sí,sí,no
+/api/sync/grade-details,cron,POST,sí,sí,no
+/api/sync/moodle-coefs,cron,POST,sí,sí,no
+/api/sync/programs,cron,POST,sí,sí,no
+/api/sync/student-emails,cron,POST,sí,sí,no
+/api/sync/student-external-ids,cron,POST,sí,sí,no
+/api/whatsapp/status,webhook,POST,sí,sí,no
+/api/whatsapp/webhook,webhook,POST,sí,sí,no

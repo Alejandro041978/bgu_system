@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { wdb, nextResolutionNumber, recomputeSituations } from '@/lib/withdrawals'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -13,6 +14,9 @@ async function requireUser() {
 
 // GET ?type=&status= → registro de retiros
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = wdb()
   const type = req.nextUrl.searchParams.get('type')
@@ -37,6 +41,9 @@ export async function GET(req: NextRequest) {
 
 // POST → registrar un retiro (IW o LOA). Genera el número de resolución si no se envía.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const body = await req.json().catch(() => null) as {

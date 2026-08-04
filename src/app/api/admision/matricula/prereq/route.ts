@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { checkEnrollmentPrereq } from '@/lib/enrollment-prereq'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -8,6 +9,9 @@ export const revalidate = 0
 // (Master exige Bachelor nuestro terminado o con ≤2 asignaturas; Doctorado
 // exige lo mismo del Master.) Alimenta el aviso de Nueva Matrícula.
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

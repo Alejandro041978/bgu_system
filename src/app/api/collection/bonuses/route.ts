@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -72,6 +73,9 @@ function afterBeca(lista: number | null, savings: number, becaPct: number): numb
 // GET → bonos otorgados con estudiante/programa/base/monto
 // GET ?student=<id> → matrículas del estudiante (para el selector de programa)
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
 
@@ -162,6 +166,9 @@ export async function GET(req: NextRequest) {
 
 // POST { student_id, enrollment_id, percentage, reason } → otorga el bono.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
@@ -189,6 +196,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH { id, percentage?, reason? } → edita el bono
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
@@ -211,6 +221,9 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE ?id= → elimina el bono
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
