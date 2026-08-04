@@ -16,7 +16,9 @@
 
 -- ── BLOQUE 1 · Tablas ──────────────────────────────────────────────────────
 
--- El documento vigente. Es plurianual (2025-2028) con ciclo anual.
+-- El documento vigente. Es ANUAL: un IAP por año académico. Se conservan
+-- start/end porque cada plan se identifica por la ventana que cubre, y en un
+-- plan anual las dos apuntan al mismo año — no porque pueda abarcar varios.
 create table if not exists iap_plans (
   id                     uuid primary key default gen_random_uuid(),
   name                   text not null,
@@ -129,9 +131,9 @@ grant all on table iap_improvement_plans to service_role;
 -- ── BLOQUE 2 · El plan y sus 20 medidas ────────────────────────────────────
 
 insert into iap_plans (name, version, start_academic_year_id, end_academic_year_id, doc_owner)
-select 'Institutional Assessment Plan 2025-2028', '1.0',
+select 'Institutional Assessment Plan 2025-2026', '1.0',
        (select id from academic_years where start_date >= '2025-09-01' order by start_date limit 1),
-       (select id from academic_years order by start_date desc limit 1),
+       (select id from academic_years where start_date >= '2025-09-01' order by start_date limit 1),
        'Office of Institutional Quality and Effectiveness'
  where not exists (select 1 from iap_plans where status = 'active');
 

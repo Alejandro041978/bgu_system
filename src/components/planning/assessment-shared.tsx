@@ -18,7 +18,10 @@ export interface FilaCalendario {
   medidas: string[]; responsable: string | null; desconocidas: string[]
 }
 export interface IAP {
-  plan: { name: string; version: string; doc_owner: string | null; desde: string | null; hasta: string | null }
+  plan: {
+    name: string; version: string; doc_owner: string | null
+    desde: string | null; hasta: string | null; cubre_el_anio: boolean
+  }
   anio: { id: string; etiqueta: string; start_date: string; end_date: string } | null
   anios: { id: string; etiqueta: string }[]
   cobertura: {
@@ -63,17 +66,30 @@ export function SelectorAnio(
   { d: IAP; anioId: string; cargando: boolean; traer: (id?: string) => void },
 ) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div>
-        <p className="text-sm font-semibold text-gray-900">{d.plan.name}</p>
-        <p className="text-xs text-gray-500">
-          Versión {d.plan.version}{d.plan.doc_owner ? ` · ${d.plan.doc_owner}` : ''}
-        </p>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">{d.plan.name}</p>
+          <p className="text-xs text-gray-500">
+            Versión {d.plan.version}{d.plan.doc_owner ? ` · ${d.plan.doc_owner}` : ''}
+          </p>
+        </div>
+        <select value={anioId} onChange={e => traer(e.target.value)} disabled={cargando}
+          className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm">
+          {d.anios.map(y => <option key={y.id} value={y.id}>Año académico {y.etiqueta}</option>)}
+        </select>
       </div>
-      <select value={anioId} onChange={e => traer(e.target.value)} disabled={cargando}
-        className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm">
-        {d.anios.map(y => <option key={y.id} value={y.id}>Año académico {y.etiqueta}</option>)}
-      </select>
+
+      {/* El IAP es anual: mirar otro año sin su plan propio no es un error,
+          pero tampoco es un dato — hay que decirlo antes de que alguien lo lea
+          como si lo fuera. */}
+      {!d.plan.cubre_el_anio && (
+        <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-900">
+          El año académico seleccionado <b>no tiene su propio plan de evaluación</b>. Se está mostrando la
+          estructura de <b>{d.plan.name}</b>. Cada año necesita su IAP: las medidas y los estándares pueden
+          cambiar de un ciclo al siguiente.
+        </p>
+      )}
     </div>
   )
 }

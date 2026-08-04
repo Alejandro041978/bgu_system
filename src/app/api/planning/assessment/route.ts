@@ -44,16 +44,32 @@ export async function GET(req: NextRequest) {
 
   const sb = db()
 
-  const { data: plan } = await sb.from('iap_plans')
-    .select('id, name, version, doc_owner, start_academic_year_id, end_academic_year_id')
-    .eq('status', 'active').limit(1).maybeSingle()
-  if (!plan) return NextResponse.json({ error: 'No hay un Institutional Assessment Plan activo' }, { status: 409 })
-
   const { data: anios } = await sb.from('academic_years')
     .select('id, name, start_date, end_date, status').order('start_date')
   const lista = (anios ?? []) as AcademicYear[]
   const pedido = req.nextUrl.searchParams.get('academic_year_id')
   const anio = (pedido ? lista.find(y => y.id === pedido) : null) ?? anioVigente(lista) ?? lista[lista.length - 1] ?? null
+
+  // El IAP es ANUAL: hay un plan por año académico. Se elige el que cubre el
+  // año consultado, no "el activo" — si no, al mirar 2026-2027 se verían las
+  // medidas del plan de 2025-2026 con los resultados del año siguiente, que es
+  // la peor mezcla posible: parece correcta.
+  const { data: planes } = await sb.from('iap_plans')
+    .select('id, name, version, doc_owner, status, start_academic_year_id, end_academic_year_id')
+    .order('created_at')
+  const fechaDe = (id: string | null) => lista.find(y => y.id === id)?.start_date ?? null
+  const cubre = (p: { start_academic_year_id: string | null; end_academic_year_id: string | null }) => {
+    if (!anio) return false
+    const d = fechaDe(p.start_academic_year_id), h = fechaDe(p.end_academic_year_id) ?? fechaDe(p.start_academic_year_id)
+    return !!d && !!h && d <= anio.start_date && anio.start_date <= h
+  }
+  const plan = (planes ?? []).find(cubre)
+    ?? (planes ?? []).find((p: { status: string }) => p.status === 'active')
+    ?? null
+  if (!plan) return NextResponse.json({ error: 'No hay un Institutional Assessment Plan activo' }, { status: 409 })
+
+  // Si el año que se mira no es el que cubre el plan, hay que decirlo.
+  const planCubreElAnio = cubre(plan)
 
   const [{ data: medidas }, { data: alin }, { data: bench }, { data: cal }, { data: objs }] = await Promise.all([
     sb.from('iap_measures').select('*').eq('plan_id', plan.id).order('code'),
@@ -145,6 +161,7 @@ export async function GET(req: NextRequest) {
       name: plan.name, version: plan.version, doc_owner: plan.doc_owner,
       desde: lista.find(y => y.id === plan.start_academic_year_id)?.name ?? null,
       hasta: lista.find(y => y.id === plan.end_academic_year_id)?.name ?? null,
+      cubre_el_anio: planCubreElAnio,
     },
     anio: anio ? { id: anio.id, etiqueta: etiquetaDe(anio), start_date: anio.start_date, end_date: anio.end_date } : null,
     anios: lista.map(y => ({ id: y.id, etiqueta: etiquetaDe(y) })),
