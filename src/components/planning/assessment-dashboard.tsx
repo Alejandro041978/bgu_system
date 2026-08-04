@@ -1,15 +1,15 @@
 'use client'
 
 import { CheckCircle2, XCircle, MinusCircle } from 'lucide-react'
-import { useIAP, SelectorAnio, Tarjeta } from './assessment-shared'
+import { useIAP, SelectorAnio, Tarjeta, ESTADO } from './assessment-shared'
 
 // ---------------------------------------------------------------------------
 // EL DASHBOARD — resultados contra estándar, por objetivo institucional.
 //
-// La lectura honesta de este tablero hoy no es "cómo vamos" sino "cuánto
-// podemos afirmar". Con 17 de 20 medidas sin fuente, la barra de evidencia por
-// objetivo es el dato más útil que existe: dice de qué se puede hablar ante un
-// acreditador y de qué no.
+// Usa la escala de cinco estados del documento, no un cumple/no-cumple. La
+// distinción que más pesa es "sin datos": no es un incumplimiento, es un vacío
+// de evidencia, y ante un acreditador son cosas opuestas. Por eso va en gris y
+// nunca en rojo.
 // ---------------------------------------------------------------------------
 export function AssessmentDashboard() {
   const { d, anioId, cargando, error, traer } = useIAP()
@@ -27,10 +27,10 @@ export function AssessmentDashboard() {
       <SelectorAnio d={d} anioId={anioId} cargando={cargando} traer={traer} />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Tarjeta titulo="Evidencia disponible" valor={`${evidencia}%`} detalle={`${c.con_resultado} de ${c.medidas} medidas con resultado`} alerta={evidencia < 50} />
-        <Tarjeta titulo="Cumplen el estándar" valor={c.cumplen} />
-        <Tarjeta titulo="Bajo el estándar" valor={c.no_cumplen} detalle="candidatas a plan de mejora" alerta={c.no_cumplen > 0} />
-        <Tarjeta titulo="Sin poder medirse" valor={c.sin_fuente} detalle="encuestas y rúbricas por construir" alerta={c.sin_fuente > 0} />
+        <Tarjeta titulo="Medidas evaluadas" valor={`${evidencia}%`} detalle={`${c.con_resultado} de ${c.medidas} con estado asignado`} alerta={evidencia < 50} />
+        <Tarjeta titulo="Cumplen la meta" valor={c.cumplidos} detalle={`${c.parciales} parciales`} />
+        <Tarjeta titulo="No cumplidas" valor={c.no_cumplidos} detalle="candidatas a plan de mejora" alerta={c.no_cumplidos > 0} />
+        <Tarjeta titulo="Sin datos" valor={c.sin_datos} detalle={`${c.no_aplicables} no aplicables`} alerta={c.sin_datos > 0} />
       </div>
 
       <div className="rounded-lg border border-gray-200 overflow-hidden">
@@ -39,9 +39,9 @@ export function AssessmentDashboard() {
         </p>
         {d.objetivos.filter(o => o.del_iap).map(o => {
           const ms = o.medidas.map(cod => porCodigo.get(cod)).filter(Boolean) as NonNullable<ReturnType<typeof porCodigo.get>>[]
-          const conRes = ms.filter(m => m.resultado !== null).length
+          const conRes = ms.filter(m => m.estado !== null).length
           const pct = ms.length ? Math.round((conRes * 100) / ms.length) : 0
-          const bajo = ms.filter(m => m.cumple === false).length
+          const bajo = ms.filter(m => m.estado === 'no_cumplido').length
           return (
             <div key={o.code} className="border-b border-gray-100 px-4 py-3 last:border-0">
               <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -59,13 +59,10 @@ export function AssessmentDashboard() {
               </div>
               <div className="mt-2 flex flex-wrap gap-1">
                 {ms.map(m => (
-                  <span key={m.code} title={`${m.name}${m.resultado !== null ? ` — ${m.resultado}` : ' — sin dato'}`}
-                    className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] ${
-                      m.cumple === true ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                      : m.cumple === false ? 'border-red-200 bg-red-50 text-red-700'
-                      : 'border-gray-200 bg-gray-50 text-gray-400'}`}>
-                    {m.cumple === true ? <CheckCircle2 className="h-3 w-3" />
-                      : m.cumple === false ? <XCircle className="h-3 w-3" />
+                  <span key={m.code} title={`${m.name}${m.resultado_texto ? ` — ${m.resultado_texto}` : ' — sin dato'}`}
+                    className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] ${m.estado ? ESTADO[m.estado].cls : ESTADO.sin_datos.cls}`}>
+                    {m.estado === 'cumplido' ? <CheckCircle2 className="h-3 w-3" />
+                      : m.estado === 'no_cumplido' ? <XCircle className="h-3 w-3" />
                       : <MinusCircle className="h-3 w-3" />}
                     {m.code}
                   </span>

@@ -44,7 +44,7 @@ export function AssessmentPlan() {
                         m?.tipo === 'directa'
                           ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                           : 'border-teal-200 bg-teal-50 text-teal-700'}`}>
-                      {c}{!m?.indicador && ' ·'}
+                      {c}{m?.binding === 'pendiente' && ' ·'}
                     </span>
                   )
                 }) : (
@@ -56,7 +56,7 @@ export function AssessmentPlan() {
         </div>
         <p className="mt-2 text-[11px] text-gray-400">
           <span className="text-indigo-700">Azul</span> = medida directa · <span className="text-teal-700">verde</span> = indirecta.
-          El punto (·) marca las que todavía no tienen de dónde salir.
+          El punto (·) marca las que todavía no tienen origen decidido para este año.
         </p>
       </div>
 

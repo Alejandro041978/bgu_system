@@ -4,14 +4,27 @@ import { useEffect, useState } from 'react'
 
 // Tipos y carga compartidos por las tres vistas del IAP.
 export interface Benchmark { scope: string; value: number; operator: string; note: string | null }
+export type Estado = 'cumplido' | 'parcial' | 'no_cumplido' | 'sin_datos' | 'no_aplicable'
+export interface Evidencia { label: string; url: string | null }
 export interface Medida {
   id: string; code: string; name: string; tipo: 'directa' | 'indirecta'
   frecuencia: string | null; ventana: string | null
   unidad: string | null; fuente_dato: string | null
+  proposito: string | null; dato_minimo: string | null; evidencia_esperada: string | null
+  tipo_cruce: string | null; sin_cruce: string | null; uso_esperado: string | null
+  kpis_efectividad: string[]; kpis_estrategicos: string[]
   objetivos: string[]; benchmarks: Benchmark[]
+  binding: 'erp_formula' | 'externo' | 'encuesta' | 'rubrica' | 'manual' | 'pendiente'
+  meta_texto: string | null; meta_valor: number | null; meta_operador: string
+  responsable: string | null
+  resultado: number | null; resultado_texto: string | null
+  estado: Estado | null
+  resultado_erp: number | null; discrepa: boolean
+  decision: string | null
+  evidencias: Evidencia[]
   indicador: { id: string; code: string; name: string; source: string } | null
-  resultado: number | null; cumple: boolean | null
 }
+export interface EstadoDef { code: string; label: string; criterio: string | null; tratamiento: string | null }
 export interface Objetivo { code: string; name: string; del_iap: boolean; medidas: string[] }
 export interface FilaCalendario {
   seq: number; periodo: string; actividad: string
@@ -26,12 +39,36 @@ export interface IAP {
   anios: { id: string; etiqueta: string }[]
   cobertura: {
     medidas: number; directas: number; indirectas: number
-    con_fuente: number; sin_fuente: number; con_resultado: number
-    cumplen: number; no_cumplen: number; calendario_con_codigos_rotos: number
+    del_erp: number; externos: number; pendientes: number
+    con_resultado: number; con_evidencia: number
+    cumplidos: number; parciales: number; no_cumplidos: number
+    sin_datos: number; no_aplicables: number
+    discrepancias: number; calendario_con_codigos_rotos: number
   }
+  escala: EstadoDef[]
   objetivos: Objetivo[]
   medidas: Medida[]
   calendario: FilaCalendario[]
+}
+
+// La escala del documento, con sus colores. sin_datos NO es rojo: no es un
+// incumplimiento, es un vacío de evidencia — y pintarlo igual que un
+// incumplimiento es justo el error que el propio instrumento advierte.
+export const ESTADO: Record<string, { txt: string; cls: string }> = {
+  cumplido:     { txt: 'Cumplido',        cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  parcial:      { txt: 'Parcial',         cls: 'border-amber-200 bg-amber-50 text-amber-800' },
+  no_cumplido:  { txt: 'No cumplido',     cls: 'border-red-200 bg-red-50 text-red-700' },
+  sin_datos:    { txt: 'Sin datos',       cls: 'border-slate-300 bg-slate-100 text-slate-600' },
+  no_aplicable: { txt: 'No aplicable',    cls: 'border-slate-200 bg-white text-slate-400' },
+}
+
+export const BINDING: Record<string, { txt: string; cls: string }> = {
+  erp_formula: { txt: 'ERP',       cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  externo:     { txt: 'externo',   cls: 'border-orange-200 bg-orange-50 text-orange-700' },
+  encuesta:    { txt: 'encuesta',  cls: 'border-sky-200 bg-sky-50 text-sky-700' },
+  rubrica:     { txt: 'rúbrica',   cls: 'border-violet-200 bg-violet-50 text-violet-700' },
+  manual:      { txt: 'manual',    cls: 'border-gray-200 bg-gray-50 text-gray-600' },
+  pendiente:   { txt: 'pendiente', cls: 'border-dashed border-gray-300 bg-white text-gray-400' },
 }
 
 export function useIAP() {

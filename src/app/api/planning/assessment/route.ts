@@ -71,13 +71,23 @@ export async function GET(req: NextRequest) {
   // Si el año que se mira no es el que cubre el plan, hay que decirlo.
   const planCubreElAnio = cubre(plan)
 
-  const [{ data: medidas }, { data: alin }, { data: bench }, { data: cal }, { data: objs }] = await Promise.all([
+  const [{ data: medidas }, { data: alin }, { data: bench }, { data: cal }, { data: objs }, { data: evid }, { data: escala }, { data: emps }] = await Promise.all([
     sb.from('iap_measures').select('*').eq('plan_id', plan.id).order('code'),
     sb.from('iap_measure_objectives').select('measure_id, objective_id'),
     sb.from('iap_benchmarks').select('measure_id, scope, value, operator, note'),
     sb.from('iap_calendar').select('*').eq('plan_id', plan.id).order('seq'),
     sb.from('strategic_objectives').select('id, code, name, status').eq('status', 'active').order('code'),
+    sb.from('iap_measure_evidence').select('measure_id, label, url').order('label'),
+    sb.from('iap_status_catalog').select('*').order('seq'),
+    sb.from('hr_employees').select('id, full_name'),
   ])
+  const nombreEmp = new Map<string, string>((emps ?? []).map((e: { id: string; full_name: string }) => [e.id, e.full_name]))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const evidDe = new Map<string, any[]>()
+  for (const e of evid ?? []) {
+    if (!evidDe.has(e.measure_id)) evidDe.set(e.measure_id, [])
+    evidDe.get(e.measure_id)!.push({ label: e.label, url: e.url })
+  }
 
   const indIds = (medidas ?? []).map((m: { indicator_id: string | null }) => m.indicator_id).filter(Boolean)
   const { data: cat } = indIds.length
@@ -112,25 +122,34 @@ export async function GET(req: NextRequest) {
     benchDe.get(b.measure_id)!.push({ scope: b.scope, value: Number(b.value), operator: b.operator, note: b.note })
   }
 
-  const salida = (medidas ?? []).map((m: {
-    id: string; code: string; name: string; measure_type: string; frequency: string | null
-    collection_window: string | null; responsible_unit: string | null; data_source: string | null
-    indicator_id: string | null
-  }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const salida = (medidas ?? []).map((m: any) => {
     const ind = m.indicator_id ? catPorId.get(m.indicator_id) : null
-    const resultado = m.indicator_id && resultados.has(m.indicator_id) ? resultados.get(m.indicator_id)! : null
+    // El número del ERP para ese indicador, si existe. Se devuelve aparte del
+    // reportado: cuando difieren, alguien tiene que mirar cuál vale.
+    const delErp = m.indicator_id && resultados.has(m.indicator_id) ? resultados.get(m.indicator_id)! : null
+    const reportado = m.result_value === null || m.result_value === undefined ? null : Number(m.result_value)
     const bs = (benchDe.get(m.id) ?? []).sort((a, b) => a.scope.localeCompare(b.scope))
-    const general = bs.find(b => b.scope === 'general')
-    const cumple = resultado === null || !general ? null
-      : general.operator === '<=' ? resultado <= general.value : resultado >= general.value
     return {
       id: m.id, code: m.code, name: m.name, tipo: m.measure_type,
       frecuencia: m.frequency, ventana: m.collection_window,
       unidad: m.responsible_unit, fuente_dato: m.data_source,
+      proposito: m.purpose, dato_minimo: m.minimum_data, evidencia_esperada: m.expected_evidence,
+      tipo_cruce: m.cross_type, sin_cruce: m.no_cross_note, uso_esperado: m.expected_use,
+      kpis_efectividad: m.effectiveness_kpi_codes ?? [], kpis_estrategicos: m.strategic_kpi_codes ?? [],
       objetivos: (objsDeMedida.get(m.id) ?? []).sort(),
       benchmarks: bs,
+      binding: m.source_binding ?? 'pendiente',
+      meta_texto: m.target_text, meta_valor: m.target_value === null ? null : Number(m.target_value),
+      meta_operador: m.target_operator ?? '>=',
+      responsable: m.owner_employee_id ? nombreEmp.get(m.owner_employee_id) ?? m.owner_label : m.owner_label,
+      resultado: reportado, resultado_texto: m.result_text,
+      estado: m.result_status as string | null,
+      resultado_erp: delErp,
+      discrepa: reportado !== null && delErp !== null && Math.abs(reportado - delErp) > 0.005,
+      decision: m.decision,
+      evidencias: evidDe.get(m.id) ?? [],
       indicador: ind ? { id: ind.id, code: String(ind.code ?? '').trim(), name: ind.name, source: ind.source } : null,
-      resultado, cumple,
     }
   })
 
@@ -155,8 +174,9 @@ export async function GET(req: NextRequest) {
       .map((m) => (m as { code: string }).code).sort(),
   }))
 
-  const conFuente = salida.filter((m: { indicador: unknown }) => m.indicador)
+  const cuenta = (e: string) => salida.filter((m: { estado: string | null }) => m.estado === e).length
   return NextResponse.json({
+    escala: escala ?? [],
     plan: {
       name: plan.name, version: plan.version, doc_owner: plan.doc_owner,
       desde: lista.find(y => y.id === plan.start_academic_year_id)?.name ?? null,
@@ -169,11 +189,16 @@ export async function GET(req: NextRequest) {
       medidas: salida.length,
       directas: salida.filter((m: { tipo: string }) => m.tipo === 'directa').length,
       indirectas: salida.filter((m: { tipo: string }) => m.tipo === 'indirecta').length,
-      con_fuente: conFuente.length,
-      sin_fuente: salida.length - conFuente.length,
-      con_resultado: salida.filter((m: { resultado: number | null }) => m.resultado !== null).length,
-      cumplen: salida.filter((m: { cumple: boolean | null }) => m.cumple === true).length,
-      no_cumplen: salida.filter((m: { cumple: boolean | null }) => m.cumple === false).length,
+      // "del ERP" es el binding del año, no una propiedad fija del indicador:
+      // el año que viene esta cifra debería subir sin que cambie el modelo.
+      del_erp: salida.filter((m: { binding: string }) => m.binding === 'erp_formula').length,
+      externos: salida.filter((m: { binding: string }) => m.binding === 'externo').length,
+      pendientes: salida.filter((m: { binding: string }) => m.binding === 'pendiente').length,
+      con_resultado: salida.filter((m: { estado: string | null }) => m.estado !== null).length,
+      con_evidencia: salida.filter((m: { evidencias: unknown[] }) => m.evidencias.length).length,
+      cumplidos: cuenta('cumplido'), parciales: cuenta('parcial'), no_cumplidos: cuenta('no_cumplido'),
+      sin_datos: cuenta('sin_datos'), no_aplicables: cuenta('no_aplicable'),
+      discrepancias: salida.filter((m: { discrepa: boolean }) => m.discrepa).length,
       calendario_con_codigos_rotos: calendario.filter((c: { desconocidas: string[] }) => c.desconocidas.length).length,
     },
     objetivos: porObjetivo,
