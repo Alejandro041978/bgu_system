@@ -114,18 +114,37 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     return Math.min(restante, 240_000)
   }
 
-  const { data: linkedOffs } = await sb.from('semester_offerings')
-    .select('course:academic_courses(id, code, name, credits, program_id, academic_programs(category_id))')
-    .eq('moodle_course_id', String(courseid))
+  // ── A qué asignatura del ERP pertenece esta aula ─────────────────────────
+  //
+  // El vínculo vive en moodle_course_links desde que se movió de la oferta
+  // formativa al plan de estudios. Se lee de ahí primero y solo se cae a
+  // semester_offerings para las aulas que nunca se migraron: cambiar la fuente
+  // sin ese respaldo dejaría de importar aulas que hoy sí funcionan.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const linkedCourses = new Map<string, any>()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const o of (linkedOffs ?? []) as any[]) if (o.course) linkedCourses.set(o.course.id, o.course)
+  const SEL = 'id, code, name, credits, program_id, academic_programs(category_id)'
+
+  const { data: vinc } = await sb.from('moodle_course_links')
+    .select('course_id').eq('aula_id', Number(courseid)).eq('kind', 'asignatura').is('replaced_at', null)
+  const cursoIds = [...new Set(((vinc ?? []) as { course_id: string | null }[])
+    .map(v => v.course_id).filter(Boolean) as string[])]
+  if (cursoIds.length) {
+    const { data: cs } = await sb.from('academic_courses').select(SEL).in('id', cursoIds)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const c of (cs ?? []) as any[]) linkedCourses.set(c.id, c)
+  }
   if (linkedCourses.size === 0) {
-    return { ok: false, status: 400, error: 'Esta aula no está vinculada a ninguna asignatura. Vincúlala en el detalle del grupo (ID curso Moodle) antes de importar.' }
+    const { data: linkedOffs } = await sb.from('semester_offerings')
+      .select(`course:academic_courses(${SEL})`).eq('moodle_course_id', String(courseid))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const o of (linkedOffs ?? []) as any[]) if (o.course) linkedCourses.set(o.course.id, o.course)
+  }
+
+  if (linkedCourses.size === 0) {
+    return { ok: false, status: 400, error: 'Esta aula no está vinculada a ninguna asignatura. Vincúlala en Colecciones de aulas antes de importar.' }
   }
   if (linkedCourses.size > 1) {
-    return { ok: false, status: 400, error: 'Esta aula está vinculada a más de una asignatura distinta; corrige el vínculo en los grupos antes de importar.' }
+    return { ok: false, status: 400, error: 'Esta aula está vinculada a más de una asignatura distinta; corrige el vínculo en Colecciones de aulas antes de importar.' }
   }
   const destCourse = [...linkedCourses.values()][0]
   let passing: number | null = null

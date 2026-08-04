@@ -39,11 +39,31 @@ export async function POST(req: NextRequest) {
   const started = Date.now()
   const sb = db()
 
-  // Aulas vinculadas (fuente de verdad: semester_offerings.moodle_course_id)
-  const { data: offs } = await sb.from('semester_offerings')
-    .select('moodle_course_id').not('moodle_course_id', 'is', null)
-  const aulaIds = [...new Set(((offs ?? []) as { moodle_course_id: string }[])
-    .map(o => Number(o.moodle_course_id)).filter(n => isFinite(n) && n > 0))]
+  // Aulas a importar: moodle_course_links, que es donde vive el vínculo desde
+  // que se movió de la oferta formativa al plan de estudios.
+  //
+  // Antes esto leía semester_offerings.moodle_course_id. La migración quedó a
+  // medias: las tablas nuevas, las colecciones y la pantalla se construyeron y
+  // se cargaron 587 vínculos, pero el importador nunca cambió de fuente. El
+  // resultado fue el peor posible — 381 aulas se veían "vinculadas" en pantalla
+  // y el cron no las visitaba nunca, así que sus notas no llegaban y nada daba
+  // error.
+  //
+  // Y se respeta sync_enabled, que hasta ahora no controlaba nada: vincular
+  // declara la correspondencia, encender autoriza que las notas entren al
+  // expediente. Son dos permisos distintos y el segundo tiene que poder
+  // negarse.
+  const { data: links } = await sb.from('moodle_course_links')
+    .select('aula_id').eq('kind', 'asignatura').eq('sync_enabled', true).is('replaced_at', null)
+  const aulaIds = [...new Set(((links ?? []) as { aula_id: number }[])
+    .map(l => Number(l.aula_id)).filter(n => isFinite(n) && n > 0))]
+
+  if (!aulaIds.length) {
+    return NextResponse.json({
+      ok: true, aulas: 0,
+      nota: 'Ningún aula tiene la sincronización encendida. Se vinculan en Colecciones y se encienden ahí mismo.',
+    })
+  }
 
   // Rotación justa: cada intento deja huella en moodle_aula_audit.last_import_at
   // (con o sin cambios, aceptado o rechazado) y se procesa primero lo menos
