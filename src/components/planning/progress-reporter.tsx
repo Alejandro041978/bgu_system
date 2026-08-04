@@ -21,6 +21,7 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
   const [items, setItems] = useState<ResponsibleItem[]>([])
   const [loading, setLoading] = useState(false)
   const [filterEmployeeId, setFilterEmployeeId] = useState('')
+  const [filterObjectiveId, setFilterObjectiveId] = useState('')
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [progressByResp, setProgressByResp] = useState<Record<string, ProgressEntry[]>>({})
@@ -33,6 +34,9 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
   useEffect(() => {
     if (!selectedCycleId) return
     setLoading(true)
+    // Los objetivos son de cada ciclo: dejar el filtro puesto al cambiar de
+    // ciclo mostraría una lista vacía sin explicar por qué.
+    setFilterObjectiveId('')
     fetch(`/api/planning/responsibles/tree?cycle_id=${selectedCycleId}`)
       .then(r => r.json())
       .then(data => { setItems(Array.isArray(data) ? data : []); setLoading(false) })
@@ -84,7 +88,14 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
     setProgressByResp(prev => ({ ...prev, [respId]: (prev[respId] ?? []).filter(p => p.id !== id) }))
   }
 
-  const filtered = filterEmployeeId ? items.filter(i => i.employee?.id === filterEmployeeId) : items
+  // Los objetivos que realmente aparecen en este ciclo, en orden de código.
+  const objetivos = [...new Map(
+    items.filter(i => i.objective?.id).map(i => [i.objective!.id, i.objective!]),
+  ).values()].sort((a, b) => (a.code ?? '').localeCompare(b.code ?? ''))
+
+  const filtered = items.filter(i =>
+    (!filterEmployeeId || i.employee?.id === filterEmployeeId) &&
+    (!filterObjectiveId || i.objective?.id === filterObjectiveId))
 
   return (
     <div className="space-y-4">
@@ -93,7 +104,7 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
         <p className="text-sm text-gray-500 mt-0.5">Cada responsable registra el avance de sus acciones, año por año</p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="relative">
           <select value={selectedCycleId} onChange={e => setSelectedCycleId(e.target.value)}
             className="appearance-none border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -109,13 +120,34 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
         </div>
+        <div className="relative">
+          <select value={filterObjectiveId} onChange={e => setFilterObjectiveId(e.target.value)}
+            className="appearance-none border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm bg-white max-w-xs truncate focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todos los objetivos</option>
+            {objetivos.map(o => (
+              <option key={o.id} value={o.id}>
+                {o.code}{o.name ? ` · ${o.name.length > 60 ? o.name.slice(0, 60) + '…' : o.name}` : ''}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+        </div>
+        {(filterEmployeeId || filterObjectiveId) && (
+          <span className="text-xs text-gray-500">
+            {filtered.length} de {items.length} acciones
+            <button onClick={() => { setFilterEmployeeId(''); setFilterObjectiveId('') }}
+              className="ml-2 text-blue-600 hover:underline">limpiar</button>
+          </span>
+        )}
       </div>
 
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-200 py-16 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-dashed border-gray-300 py-16 text-center text-sm text-gray-400">
-          No hay acciones por responsable registradas en este ciclo.
+          {items.length
+            ? 'Ningún responsable coincide con los filtros aplicados.'
+            : 'No hay acciones por responsable registradas en este ciclo.'}
         </div>
       ) : (
         <div className="space-y-2">
