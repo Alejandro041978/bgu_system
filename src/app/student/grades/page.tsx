@@ -15,10 +15,9 @@ export default async function StudentGradesPage() {
   if (student?.document_number || student?.email) {
     const admin = createServiceRole(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let q = (admin as any).from('academic_grades').select('*')
-      .order('term_year', { ascending: false })
-      .order('term_block', { ascending: false })
-      .order('course_code')
+    // Orden por asignatura: el estudiante lee su malla, no la cronología de
+    // las cargas de SystemActiva.
+    let q = (admin as any).from('academic_grades').select('*').order('course_code')
     q = student.document_number ? q.eq('document_number', student.document_number) : q.eq('email', student.email)
     const { data } = await q
     grades = (data ?? []) as Grade[]
@@ -42,11 +41,12 @@ export default async function StudentGradesPage() {
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">Mis Notas</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Consulta tus calificaciones por año académico</p>
+        <p className="text-sm text-gray-500 mt-0.5">Tus asignaturas y sus calificaciones</p>
       </div>
-      {/* Sin bloques: son herencia de SystemActiva y no corresponden a ningún
-          período real del estudiante. Ver el comentario en GradesTable. */}
-      <GradesTable grades={grades} agrupacion="anio" />
+      {/* Sin cortes: los bloques y los años son herencia de SystemActiva y no
+          corresponden a ningún período que el estudiante haya cursado. Ver el
+          comentario en GradesTable. */}
+      <GradesTable grades={grades} agrupacion="ninguno" />
     </div>
   )
 }
