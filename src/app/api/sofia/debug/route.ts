@@ -1,12 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { observar } from '@/lib/api-observe'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  await observar(req, '/api/sofia/debug')
+
   const db = supabase as any
 
   const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardStaff } from '@/lib/api-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const capacitacionId = req.nextUrl.searchParams.get('capacitacion_id')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = db() as any
@@ -35,6 +39,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const body = await req.json() as { capacitacion_id: string; employee_id: string }
   if (!body.capacitacion_id || !body.employee_id) {
     return NextResponse.json({ error: 'capacitacion_id y employee_id requeridos' }, { status: 400 })
@@ -53,6 +60,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const { id } = await req.json() as { id: string }
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

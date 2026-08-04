@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardStaff } from '@/lib/api-guard'
 
 const admin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,6 +11,9 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const { id } = await params
   const supabase = admin()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,6 +31,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const { id } = await params
   const body = await req.json() as { name?: string; description?: string; body?: string; status?: string }
 
@@ -57,6 +64,9 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const { id } = await params
   const supabase = admin()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

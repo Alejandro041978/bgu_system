@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateContractPdf } from '@/lib/generate-contract-pdf'
+import { observar } from '@/lib/api-observe'
 
 const admin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function POST(
-  _req: NextRequest,
+export async function POST(_req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  await observar(_req, '/api/contracts/instances/[id]/pdf')
+
   try {
     const { id } = await params
     const supabase = admin()

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardStaff } from '@/lib/api-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const convenioId = req.nextUrl.searchParams.get('convenio_id')
   if (!convenioId) return NextResponse.json({ error: 'convenio_id requerido' }, { status: 400 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,6 +21,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const body = await req.json() as {
     convenio_id: string; nombre: string;
     documento_identidad?: string; carrera?: string;
@@ -46,6 +53,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const { id } = await req.json() as { id: string }
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

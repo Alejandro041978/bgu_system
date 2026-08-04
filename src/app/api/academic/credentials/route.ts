@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardStaff } from '@/lib/api-guard'
 
 const admin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,6 +8,9 @@ const admin = () => createClient(
 )
 
 export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const db = admin() as any
   const { data, error } = await db
     .from('faculty_credentials')
@@ -18,6 +22,9 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const body = await req.json()
   const { id, ...updates } = body
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })

@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
+import { guardStaff } from '@/lib/api-guard'
 
 // Must match EXACTLY the redirect URI registered in Zoho API Console
 const REDIRECT_URI = process.env.ZOHO_REDIRECT_URI ?? 'https://system.blackwell.university/api/zoho/callback'
 
 export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const params = new URLSearchParams({
     // accountants.READ se añade (2026-07-24) para leer las transacciones por
     // cuenta (/chartofaccounts/accounttransactions) — Operaciones Books.

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { observar } from '@/lib/api-observe'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,6 +8,8 @@ const supabase = createClient(
 )
 
 export async function GET(req: NextRequest) {
+  await observar(req, '/api/students/check-email')
+
   const email = req.nextUrl.searchParams.get('email')
   if (!email) return NextResponse.json({ exists: false })
 

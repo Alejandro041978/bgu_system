@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { observar } from '@/lib/api-observe'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,6 +10,8 @@ const supabase = createClient(
 // GET /api/settings/users/check?email=...
 // GET /api/settings/users/check?email=...&reset=1  → also resets password
 export async function GET(req: NextRequest) {
+  await observar(req, '/api/settings/users/check')
+
   const email = req.nextUrl.searchParams.get('email')
   if (!email) return NextResponse.json({ error: 'Pass ?email=...' })
 

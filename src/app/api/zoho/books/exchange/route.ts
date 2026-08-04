@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { observar } from '@/lib/api-observe'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,6 +10,8 @@ const supabaseAdmin = createClient(
 // ONE-TIME endpoint: exchange a Zoho Self-Client grant token for a refresh token
 // Usage: GET /api/zoho/books/exchange?code=1000.xxx...
 export async function GET(request: NextRequest) {
+  await observar(request, '/api/zoho/books/exchange')
+
   const code = request.nextUrl.searchParams.get('code')
   if (!code) {
     return new NextResponse(`

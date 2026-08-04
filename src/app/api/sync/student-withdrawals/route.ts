@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
+import { observar } from '@/lib/api-observe'
 
 // ============================================================================
 // RETIRADO — no usar.
@@ -12,7 +13,9 @@ import { NextResponse } from 'next/server'
 //
 //   Por eso responde 410 Gone en vez de existir con la lógica viva.
 // ============================================================================
-export async function POST() {
+export async function POST(req: NextRequest) {
+  await observar(req, '/api/sync/student-withdrawals')
+
   return NextResponse.json({
     error: 'Endpoint retirado. Los retiros ahora se gestionan desde el ERP (Registros → Retiros); ya no se importan de SystemActiva.',
   }, { status: 410 })

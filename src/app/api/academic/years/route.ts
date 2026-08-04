@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardStaff } from '@/lib/api-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (db() as any)
     .from('academic_years')
@@ -14,6 +18,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const body = await req.json()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (db() as any)

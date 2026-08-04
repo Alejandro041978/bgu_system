@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guardStaff } from '@/lib/api-guard'
 
 const SIMPLECERT_BASE = 'https://app.simplecert.net/api'
 const SIMPLECERT_ACCOUNT_ID = 25481
@@ -26,6 +27,9 @@ type RawElement = {
 }
 
 export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const sessionToken = await getSimpleCertSession()
   if (!sessionToken) {
     return NextResponse.json({ error: 'No se pudo autenticar con SimpleCert' }, { status: 502 })

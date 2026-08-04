@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { verifyFlywireSignature, FLYWIRE_PAID_STATUSES } from '@/lib/flywire'
 import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 import { refreshStudentAccess } from '@/lib/moodle-access'
+import { observar } from '@/lib/api-observe'
 
 export const revalidate = 0
 
@@ -13,6 +14,8 @@ const num = (v: unknown) => (v == null || v === '' ? null : Number(v))
 
 // POST — Notificación de pago de Flywire (Notifications v2).
 export async function POST(req: NextRequest) {
+  await observar(req, '/api/flywire/webhook')
+
   const raw = await req.text()
   const digest = req.headers.get('x-flywire-digest')
   const valid = verifyFlywireSignature(raw, digest)

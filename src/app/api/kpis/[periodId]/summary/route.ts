@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { observar } from '@/lib/api-observe'
 
 const admin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET(
-  _req: NextRequest,
+export async function GET(_req: NextRequest,
   { params }: { params: Promise<{ periodId: string }> }
 ) {
+  await observar(_req, '/api/kpis/[periodId]/summary')
+
   const { periodId } = await params
   const supabase = admin()
 

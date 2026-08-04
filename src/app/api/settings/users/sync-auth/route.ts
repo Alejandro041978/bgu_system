@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { observar } from '@/lib/api-observe'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,7 +14,9 @@ function generateTempPassword(): string {
 
 // GET: diagnose — list employees without auth account
 // POST: fix — create auth accounts for all employees missing one
-export async function GET() {
+export async function GET(req: NextRequest) {
+  await observar(req, '/api/settings/users/sync-auth')
+
   const db = supabase as any
   const { data: employees } = await db
     .from('hr_employees')
@@ -34,7 +37,9 @@ export async function GET() {
   })
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  await observar(req, '/api/settings/users/sync-auth')
+
   const db = supabase as any
   const { data: employees } = await db
     .from('hr_employees')

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { observar } from '@/lib/api-observe'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -13,6 +14,8 @@ const RANK: Record<string, number> = { queued: 1, sent: 2, delivered: 3, read: 4
 // registrado — un SID desconocido se ignora, así que el endpoint no expone ni
 // acepta nada más.
 export async function POST(req: NextRequest) {
+  await observar(req, '/api/whatsapp/status')
+
   const form = await req.formData().catch(() => null)
   const sid = form?.get('MessageSid')?.toString()
   const status = form?.get('MessageStatus')?.toString()?.toLowerCase()

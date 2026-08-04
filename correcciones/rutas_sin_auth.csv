@@ -1,0 +1,53 @@
+﻿ruta,verbos,escribe,la_llama_el_erp,senales_de_cliente_externo,decision
+/api/academic/assignments,POST,sí,sí,,cerrar
+/api/academic/assignments/[id],DELETE,sí,sí,,cerrar
+/api/academic/courses,POST,sí,sí,,cerrar
+/api/academic/courses/[id],PATCH/DELETE,sí,sí,,cerrar
+/api/academic/credentials/evaluate/[id],POST,sí,sí,clave por cabecera,dejar fuera
+/api/academic/credentials/report/[id],GET,no,sí,,cerrar
+/api/academic/credentials,GET/PATCH,sí,sí,,cerrar
+/api/academic/offerings,GET/POST,sí,sí,,cerrar
+/api/academic/offerings/[id],PATCH/DELETE,sí,sí,,cerrar
+/api/academic/programs/apply-partner,POST,sí,sí,,cerrar
+/api/academic/programs,GET/POST,sí,sí,,cerrar
+/api/academic/programs/[id],PATCH/DELETE,sí,sí,,cerrar
+/api/academic/schedules,GET,no,sí,,cerrar
+/api/academic/semesters,GET/POST,sí,sí,,cerrar
+/api/academic/semesters/[id],PATCH/DELETE,sí,sí,,cerrar
+/api/academic/years,GET/POST,sí,sí,,cerrar
+/api/academic/years/[id],PATCH/DELETE,sí,sí,,cerrar
+/api/auth/signout,POST,sí,sí,,cerrar
+/api/chat,POST,sí,sí,clave por cabecera,dejar fuera
+/api/chat/student,POST,sí,sí,,cerrar
+/api/contracts/instances/[id]/pdf,POST,sí,no,,revisar
+/api/contracts/send,POST,sí,sí,clave por cabecera,dejar fuera
+/api/contracts/sign/[token]/confirm,POST,sí,no,clave por cabecera · token en la URL,dejar fuera
+/api/contracts/sign/[token]/otp,POST,sí,no,clave por cabecera · token en la URL,dejar fuera
+/api/contracts/templates,GET/POST,sí,sí,,cerrar
+/api/contracts/templates/[id],GET/PATCH/DELETE,sí,sí,,cerrar
+/api/convenios/matriculas,GET/POST/DELETE,sí,sí,,cerrar
+/api/convenios,GET/POST/DELETE,sí,sí,,cerrar
+/api/convenios/upload,POST,sí,sí,,cerrar
+/api/flywire/webhook,POST,sí,no,,revisar
+/api/google/oauth/callback,GET,no,no,callback OAuth,dejar fuera
+/api/hr/capacitacion-participantes,GET/POST/DELETE,sí,sí,,cerrar
+/api/hr/capacitaciones,GET/POST/DELETE,sí,sí,,cerrar
+/api/inbox/survey,GET,no,sí,,cerrar
+/api/kpis/[periodId]/employee/[employeeId],GET/POST,sí,no,,revisar
+/api/kpis/[periodId]/summary,GET,no,no,,revisar
+/api/registrar/formats,GET,no,sí,,cerrar
+/api/settings/users/check,GET,no,no,,revisar
+/api/settings/users/sync-auth,GET/POST,sí,no,,revisar
+/api/sofia/debug,GET,no,no,,revisar
+/api/sofia/supervisor/report/[id],GET,no,sí,,cerrar
+/api/student/magic-link,POST,sí,sí,clave por cabecera,dejar fuera
+/api/students/check-email,GET,no,no,,revisar
+/api/sync/student-withdrawals,POST,sí,no,,revisar
+/api/whatsapp/status,POST,sí,no,,revisar
+/api/whatsapp/webhook,POST,sí,no,firma de webhook · clave por cabecera,dejar fuera
+/api/widget,GET,no,no,widget público,dejar fuera
+/api/zoho/books/callback,GET,no,no,callback OAuth,dejar fuera
+/api/zoho/books/connect,GET,no,sí,,cerrar
+/api/zoho/books/exchange,GET,no,no,,revisar
+/api/zoho/callback,GET,no,no,callback OAuth,dejar fuera
+/api/zoho/tickets/[id]/reply,POST,sí,no,,revisar
