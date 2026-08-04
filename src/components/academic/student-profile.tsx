@@ -286,7 +286,8 @@ const inp = 'w-full border border-gray-200 rounded-lg px-2.5 py-2 text-sm bg-whi
 function StudentEmailAccess({ studentId }: { studentId: string }) {
   const [st, setSt] = useState<{
     exists: boolean; everLoggedIn: boolean; lastLoginTime: string | null; suspended: boolean
-    recoveryEmail: string | null; recoveryPhone: string | null; personal_email: string | null
+    recoveryEmail: string | null; recoveryPhone: string | null
+    email: string; personal_email: string | null
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -307,7 +308,9 @@ function StudentEmailAccess({ studentId }: { studentId: string }) {
   async function emitir(accion: 'reenviar' | 'restablecer') {
     // Restablecer le quita la contraseña que está usando: se pregunta antes.
     if (accion === 'restablecer' && !confirm(
-      `Se le asignará una contraseña temporal NUEVA y la que usa hoy dejará de funcionar.\n\n`
+      `Correo estudiantil ${st?.email ?? '@blackwell.pro'}\n\n`
+      + `Se le asignará una contraseña temporal NUEVA y la que usa hoy dejará de funcionar.\n`
+      + `Su acceso al Campus Virtual (Moodle) NO cambia.\n\n`
       + `Las credenciales se enviarán a ${st?.personal_email ?? 'su correo personal'}.\n\n¿Continuar?`
     )) return
     setBusy(true); setMsg(null); setErr(null)
@@ -317,7 +320,7 @@ function StudentEmailAccess({ studentId }: { studentId: string }) {
     const d = await res.json()
     setBusy(false)
     if (!res.ok) { setErr(d.error ?? 'No se pudo emitir la contraseña'); return }
-    setMsg(`Contraseña temporal nueva enviada a ${d.sent_to}`)
+    setMsg(`Contraseña nueva de ${d.email} enviada a ${d.sent_to}`)
   }
 
   if (loading) return <p className="text-[11px] text-gray-400">Consultando estado de la cuenta…</p>
@@ -338,11 +341,12 @@ function StudentEmailAccess({ studentId }: { studentId: string }) {
             <button onClick={() => emitir('restablecer')} disabled={busy || !st.personal_email}
               className="text-[11px] font-medium text-amber-700 hover:underline disabled:opacity-40 disabled:no-underline"
               title={st.personal_email ? `Enviar a ${st.personal_email}` : 'No tiene correo personal donde enviarlo'}>
-              {busy ? 'Restableciendo…' : 'Restablecer contraseña'}
+              {busy ? 'Restableciendo…' : 'Restablecer contraseña del correo'}
             </button>
           </div>
           <p className="text-[10.5px] text-gray-400 leading-relaxed">
-            Le asigna una contraseña temporal nueva —la que usa hoy deja de funcionar— y se la envía a su correo personal.
+            Contraseña temporal nueva para su cuenta <b>@blackwell.pro</b> —la que usa hoy deja de funcionar—
+            enviada a su correo personal. No toca su acceso al Campus Virtual.
           </p>
         </>
       ) : (
@@ -352,11 +356,12 @@ function StudentEmailAccess({ studentId }: { studentId: string }) {
             <button onClick={() => emitir('reenviar')} disabled={busy || !st.personal_email}
               className="text-[11px] font-medium text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline"
               title={st.personal_email ? `Enviar a ${st.personal_email}` : 'No tiene correo personal donde enviarlo'}>
-              {busy ? 'Enviando…' : 'Reenviar credenciales'}
+              {busy ? 'Enviando…' : 'Enviar credenciales del correo'}
             </button>
           </div>
           <p className="text-[10.5px] text-gray-400 leading-relaxed">
-            Se emite una contraseña temporal nueva (la original no se guarda) y se envía a su correo personal.
+            Contraseña temporal nueva para su cuenta <b>@blackwell.pro</b> (la original no se guarda),
+            enviada a su correo personal. No toca su acceso al Campus Virtual.
           </p>
         </>
       )}
@@ -454,7 +459,7 @@ function MoodleAccount({ studentId }: { studentId: string }) {
         {st.tiene_cuenta && (
           <button onClick={() => actuar('reenviar')} disabled={busy}
             className="border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-lg px-2.5 py-1.5 text-xs transition-colors disabled:opacity-50">
-            {busy ? 'Enviando…' : 'Reenviar credenciales'}
+            {busy ? 'Enviando…' : 'Reenviar credenciales del campus'}
           </button>
         )}
       </div>
