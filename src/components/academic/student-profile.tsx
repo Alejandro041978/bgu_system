@@ -19,7 +19,22 @@ const PAISES: [string, string][] = [
   ['FRA', 'Francia'], ['DEU', 'Alemania'], ['GBR', 'Reino Unido'],
 ]
 
-const SITUACIONES = ['activo', 'egresado', 'IW', 'LOA', 'campus socio']
+// Los valores que REALMENTE guarda academic_students.situation — los que
+// escribe recomputeSituations() y los que leen los reportes, las campañas y el
+// requisito de situación de los trámites.
+//
+// Antes este selector ofrecía otro vocabulario ('IW', 'LOA', 'campus socio'),
+// el del dominio y no el de la base. Elegir "IW" a mano guardaba un valor que
+// ningún motor produce y que ninguna consulta busca: el estudiante quedaba
+// fuera de los reportes de retirados y, peor, fuera de su propio trámite de
+// reingreso. Etiqueta y valor no son lo mismo, y aquí se separan.
+const SITUACIONES: [string, string][] = [
+  ['activo', 'Activo'],
+  ['egresado', 'Egresado'],
+  ['retiro_permanente', 'Retiro permanente (IW)'],
+  ['retiro_temporal', 'Retiro temporal (LOA)'],
+  ['campus_socio', 'Campus socio'],
+]
 
 export const CODIGOS_TEL: [string, string][] = [
   ['+51', 'Perú'], ['+52', 'México'], ['+593', 'Ecuador'], ['+57', 'Colombia'], ['+56', 'Chile'],
@@ -225,8 +240,12 @@ export function StudentProfile() {
                 <div className="flex gap-1.5">
                   <select value={form.situation} onChange={e => set('situation', e.target.value)} className={inp}>
                     <option value="">—</option>
-                    {SITUACIONES.map(s => <option key={s} value={s}>{s}</option>)}
-                    {form.situation && !SITUACIONES.includes(form.situation) && <option value={form.situation}>{form.situation}</option>}
+                    {SITUACIONES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    {/* Un valor heredado que ya no está en la lista se sigue
+                        mostrando: ocultarlo lo cambiaría al guardar sin avisar. */}
+                    {form.situation && !SITUACIONES.some(([v]) => v === form.situation) && (
+                      <option value={form.situation}>{form.situation} (valor antiguo)</option>
+                    )}
                   </select>
                   {student.situation_source === 'manual' && (
                     <button onClick={situacionAuto} title="Volver a situación automática (los motores la recalculan)"
