@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { guardStaff } from '@/lib/api-guard'
 
 const admin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,10 +10,11 @@ const admin = () => createClient(
 // La identidad efectiva la resuelve createClient() (suplantación "ver como
 // colaborador" incluida): si hay suplantación activa, getUser() ya devuelve al
 // colaborador, así que aquí solo se leen los permisos del usuario resultante.
+// Sin guard de personal a propósito: esto devuelve los permisos DEL QUE
+// PREGUNTA, no los de otro. Bloquearla rompía el arranque del ERP —el
+// dashboard la necesita para saber qué mostrar— y a un estudiante le responde
+// una lista vacía, que es exactamente lo que le corresponde.
 export async function GET() {
-  const noAutorizado = await guardStaff()
-  if (noAutorizado) return noAutorizado
-
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ superadmin: false, permissions: {} })
