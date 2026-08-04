@@ -60,6 +60,7 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
   const [saving, setSaving] = useState(false)
   const [resending, setResending] = useState(false)
   const [resendStatus, setResendStatus] = useState<'idle' | 'ok' | 'error'>('idle')
+  const [resendError, setResendError] = useState<string | null>(null)
 
   async function handleResendInvite() {
     setResending(true)
@@ -70,8 +71,14 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
       body: JSON.stringify({ employee_id: e.id }),
     })
     setResending(false)
+    if (!res.ok) {
+      // El motivo importa: 'error' a secas no dice si falta la clave de Resend,
+      // si el dominio no está verificado o si el correo del colaborador es inválido.
+      const d = await res.json().catch(() => ({}))
+      setResendError(d.error ?? 'No se pudo enviar')
+    } else setResendError(null)
     setResendStatus(res.ok ? 'ok' : 'error')
-    setTimeout(() => setResendStatus('idle'), 4000)
+    setTimeout(() => { setResendStatus('idle'); setResendError(null) }, 8000)
   }
 
   const phoneSplit = splitPhone(e.phone)
@@ -334,6 +341,11 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
                 {resending ? 'Enviando...' : resendStatus === 'ok' ? 'Enviado ✓' : resendStatus === 'error' ? 'Error al enviar' : 'Reenviar invitación'}
               </button>
             </div>
+            {resendError && (
+              <p className="mt-1.5 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">
+                {resendError}
+              </p>
+            )}
             {e.active_position && <p className="text-sm text-gray-500 mt-1">{e.active_position}</p>}
           </div>
         </div>

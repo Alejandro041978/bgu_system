@@ -74,8 +74,17 @@ export function NewEmployeeForm() {
         phone: form.phone_number ? `${form.phone_prefix} ${form.phone_number}` : '',
       }),
       })
-      const data = await resp.json() as { id?: string; error?: string }
+      const data = await resp.json() as { id?: string; error?: string; inviteSent?: boolean; inviteError?: string | null }
       if (!resp.ok) throw new Error(data.error ?? 'Error al guardar')
+      // El colaborador quedó creado aunque el correo falle; avisarlo aquí evita
+      // que alguien lo dé por notificado y el otro se quede esperando.
+      if (form.send_invite && data.inviteError) {
+        alert(
+          'Colaborador creado, pero NO se pudo enviar el correo con las credenciales.\n\n'
+          + data.inviteError
+          + '\n\nUsa "Reenviar invitación" desde su ficha, o entrégaselas por otro canal.',
+        )
+      }
       router.push(`/hr/${data.id}`)
     } catch (err) {
       setError(String(err))

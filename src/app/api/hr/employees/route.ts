@@ -14,12 +14,21 @@ function generateTempPassword(): string {
   return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
-async function sendInviteEmail(to: string, fullName: string, tempPassword: string) {
+// Devuelve null si salió, o el motivo si no.
+//
+// resend.emails.send() NO lanza cuando la API rechaza el envío: devuelve
+// { data, error }. Sin mirar ese error, una clave vencida o un remitente sin
+// verificar pasaban en silencio y el ERP informaba "invitación enviada" a un
+// correo que nunca salió. El colaborador se quedaba esperando y nadie lo sabía
+// hasta que llamaba por teléfono.
+async function sendInviteEmail(to: string, fullName: string, tempPassword: string): Promise<string | null> {
+  if (!process.env.RESEND_API_KEY) return 'Falta RESEND_API_KEY'
+  if (!process.env.RESEND_FROM_EMAIL) return 'Falta RESEND_FROM_EMAIL'
   const resend = new Resend(process.env.RESEND_API_KEY!)
   const firstName = fullName.split(' ')[0]
   const loginUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://system.blackwell.university'
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to,
     subject: 'Tu acceso al sistema BGU ERP',
@@ -58,6 +67,7 @@ async function sendInviteEmail(to: string, fullName: string, tempPassword: strin
 </body>
 </html>`,
   })
+  return error ? (error.message ?? String(error)) : null
 }
 
 export async function POST(req: NextRequest) {
@@ -92,6 +102,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = supabaseAdmin()
     let authUserId: string | null = null
+    let inviteError: string | null = null
 
     if (body.send_invite) {
       const tempPassword = generateTempPassword()
@@ -123,7 +134,11 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      await sendInviteEmail(body.email, body.full_name, tempPassword)
+      // Si el correo falla, el colaborador igual se crea: ya tiene cuenta y se
+      // le puede reenviar desde su ficha. Lo que no se hace es mentir sobre el
+      // envío — el motivo viaja en la respuesta para que quien lo dio de alta
+      // sepa que tiene que avisarle por otro canal.
+      inviteError = await sendInviteEmail(body.email, body.full_name, tempPassword)
     }
 
     // Guardar en hr_employees
@@ -158,7 +173,12 @@ export async function POST(req: NextRequest) {
 
     if (error) throw new Error(error.message)
 
-    return NextResponse.json({ id: (data as { id: string }).id, inviteSent: body.send_invite && !!authUserId })
+    return NextResponse.json({
+      id: (data as { id: string }).id,
+      // 'enviado' es que SALIÓ, no que se intentó.
+      inviteSent: body.send_invite && !!authUserId && !inviteError,
+      inviteError,
+    })
   } catch (err) {
     console.error('HR employee create error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

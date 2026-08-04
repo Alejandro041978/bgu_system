@@ -67,9 +67,13 @@ export async function POST(req: NextRequest) {
 
     const loginUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://system.blackwell.university'
     const firstName = emp.full_name.split(' ')[0]
+    if (!process.env.RESEND_API_KEY) return NextResponse.json({ error: 'Falta RESEND_API_KEY' }, { status: 503 })
+    if (!process.env.RESEND_FROM_EMAIL) return NextResponse.json({ error: 'Falta RESEND_FROM_EMAIL' }, { status: 503 })
     const resend = new Resend(process.env.RESEND_API_KEY!)
 
-    await resend.emails.send({
+    // resend.emails.send() no lanza: devuelve { data, error }. Sin mirarlo, un
+    // fallo de envío se reportaba como 'Enviado ✓'.
+    const { error: mailError } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL!,
       to: emp.email,
       subject: 'Tu acceso al sistema BGU ERP',
@@ -109,7 +113,10 @@ export async function POST(req: NextRequest) {
 </html>`,
     })
 
-    return NextResponse.json({ ok: true })
+    if (mailError) {
+      return NextResponse.json({ error: 'No se pudo enviar el correo: ' + (mailError.message ?? String(mailError)) }, { status: 502 })
+    }
+    return NextResponse.json({ ok: true, sent_to: emp.email })
   } catch (err) {
     console.error('resend-invite error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
