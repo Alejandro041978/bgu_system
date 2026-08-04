@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
     sb.from('iap_calendar').select('*').eq('plan_id', plan.id).order('seq'),
     sb.from('strategic_objectives').select('id, code, name, status').eq('status', 'active').order('code'),
     sb.from('iap_measure_evidence').select('measure_id, label, url').order('label'),
-    sb.from('iap_status_catalog').select('*').order('seq'),
+    sb.from('assessment_status_catalog').select('*').order('seq'),
     sb.from('hr_employees').select('id, full_name'),
   ])
   const nombreEmp = new Map<string, string>((emps ?? []).map((e: { id: string; full_name: string }) => [e.id, e.full_name]))

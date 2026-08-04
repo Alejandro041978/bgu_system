@@ -85,3 +85,11 @@ union all select '  · con unidad responsable', count(*)::text from effectivenes
 union all select '  · con estado', count(*)::text from effectiveness_plan_kpis where estado is not null
 union all select 'KPIs con tipo de medida', count(*)::text from effectiveness_kpis where measure_type is not null
 union all select 'evidencia IAP sin documento adjunto', count(*)::text from iap_measure_evidence where pending;
+
+
+-- ── BLOQUE 6 (agregado) · La fuente del dato, en texto ─────────────────────
+-- La hoja de Efectividad describe el origen de cada KPI ("SIS/SMS; registros
+-- del Registrar", "Zoho Desk, Bitrix u otro sistema de tickets"). Es el mismo
+-- campo que iap_measures.data_source, y sin él no se puede cargar el reporte
+-- sin perder de dónde sale cada número.
+alter table effectiveness_kpis add column if not exists data_source text;
