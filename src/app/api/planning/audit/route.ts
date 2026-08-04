@@ -38,7 +38,7 @@ export async function GET() {
     { data: dims }, { data: acts }, { data: strats },
   ] = await Promise.all([
     sb.from('strategic_objectives').select('id, code, name, status, dimension_id'),
-    sb.from('effectiveness_kpis').select('id, code, name, level, source, formula_type'),
+    sb.from('effectiveness_kpis').select('id, code, name, level, source, formula_type, unit, owner_plan'),
     sb.from('effectiveness_plan_kpis').select('id, kpi_id, link_type, link_id, meta, meta_operator, resultado, responsible_id'),
     sb.from('iap_measures').select('id, code, name, source_binding, indicator_id, result_value, result_status, target_value, target_operator, owner_employee_id, effectiveness_kpi_codes, strategic_kpi_codes'),
     sb.from('iap_calendar').select('seq, period_label, measure_codes'),
@@ -50,6 +50,19 @@ export async function GET() {
     sb.from('strategic_actions').select('id, code, strategy_id, status'),
     sb.from('strategic_strategies').select('id, objective_id, status'),
   ])
+
+  // Curva, composición y resultados: existen desde el modelo v3 y abren
+  // controles que antes no se podían hacer.
+  const [{ data: metas }, { data: comp }, { data: results }] = await Promise.all([
+    sb.from('indicator_targets').select('indicator_id, academic_year_id, value, operator'),
+    sb.from('indicator_composition').select('parent_id, child_id'),
+    sb.from('indicator_results').select('indicator_id, academic_year_id, value, period'),
+  ])
+  const { data: spk } = await sb.from('strategic_plan_kpis').select('kpi_id, objective_id')
+
+  const hoy = new Date().toISOString().slice(0, 10)
+  const anioActual = (anios ?? []).find((y: { start_date: string; end_date: string }) => y.start_date <= hoy && hoy <= y.end_date)
+    ?? (anios ?? [])[(anios ?? []).length - 1] ?? null
 
   const h: Hallazgo[] = []
   const add = (x: Hallazgo) => { if (x.afectados.length) h.push(x) }
@@ -105,8 +118,11 @@ export async function GET() {
 
   // ── 4. Objetivos que nadie mide ──────────────────────────────────────────
   const objConMedida = new Set((alin ?? []).map((a: { objective_id: string }) => a.objective_id))
-  const objConKpi = new Set((enlaces ?? []).filter((e: { link_type: string }) => e.link_type === 'objetivo')
-    .map((e: { link_id: string }) => e.link_id))
+  // Un objetivo está medido si lo mide CUALQUIERA de los tres planes.
+  const objConKpi = new Set([
+    ...(enlaces ?? []).filter((e: { link_type: string }) => e.link_type === 'objetivo').map((e: { link_id: string }) => e.link_id),
+    ...(spk ?? []).filter((s2: { objective_id: string | null }) => s2.objective_id).map((s2: { objective_id: string }) => s2.objective_id),
+  ])
   add({
     id: 'objetivo-sin-medicion', sev: 'alta', grupo: 'Cobertura',
     titulo: 'Objetivos del plan estratégico que ningún plan mide',
@@ -239,6 +255,80 @@ export async function GET() {
       .filter((m: { owner_employee_id: string | null }) => !m.owner_employee_id)
       .map((m: { code: string; name: string }) => `${m.code} · ${m.name}`),
   })
+
+  // ── 13. El resultado se alejó de la curva comprometida ──────────────────
+  // Distinto de "no cumplió la meta del año": esto compara contra lo que el
+  // ciclo 2023-2028 prometió para ese año. Un plan puede cumplir su meta anual
+  // y estar igualmente atrasado respecto de su propio compromiso plurianual.
+  if (anioActual) {
+    const metaDe = new Map<string, { value: number; operator: string }>()
+    for (const t of metas ?? []) if (t.academic_year_id === anioActual.id) metaDe.set(t.indicator_id, { value: Number(t.value), operator: t.operator })
+    const atrasados: string[] = []
+    for (const r of results ?? []) {
+      if (r.academic_year_id !== anioActual.id || r.period !== 'anual') continue
+      const t = metaDe.get(r.indicator_id); if (!t) continue
+      const ok = t.operator === '<=' ? Number(r.value) <= t.value : Number(r.value) >= t.value
+      if (ok) continue
+      const k = kpiPorId.get(r.indicator_id) as { code?: string; name?: string; unit?: string } | undefined
+      atrasados.push(`${String(k?.code ?? '?').trim()} · ${k?.name ?? ''} — ${r.value} contra ${t.operator} ${t.value}${k?.unit ? ' ' + k.unit : ''}`)
+    }
+    add({
+      id: 'fuera-de-curva', sev: 'alta', grupo: 'Trayectoria',
+      titulo: 'Indicadores por debajo de la curva comprometida del ciclo',
+      detalle: 'El Plan Estratégico fijó una meta por año hasta 2028. Estos resultados quedaron por detrás de lo comprometido para el año en curso — que no es lo mismo que incumplir la meta anual de un plan.',
+      sugerencia: 'Revisar si la curva sigue siendo alcanzable o si hay que replantearla en la próxima revisión del ciclo.',
+      afectados: atrasados,
+    })
+  }
+
+  // ── 14. Indicadores compuestos que no se pueden reconstruir ──────────────
+  if (anioActual) {
+    const conResultado = new Set((results ?? [])
+      .filter((r: { academic_year_id: string }) => r.academic_year_id === anioActual.id)
+      .map((r: { indicator_id: string }) => r.indicator_id))
+    const hijosDe = new Map<string, string[]>()
+    for (const c of comp ?? []) {
+      if (!hijosDe.has(c.parent_id)) hijosDe.set(c.parent_id, [])
+      hijosDe.get(c.parent_id)!.push(c.child_id)
+    }
+    const rotos: string[] = []
+    for (const [padre, hijos] of hijosDe) {
+      if (!conResultado.has(padre)) continue
+      const faltan = hijos.filter(x => !conResultado.has(x))
+      if (!faltan.length) continue
+      const k = kpiPorId.get(padre) as { code?: string; name?: string } | undefined
+      const nombres = faltan.map(x => String((kpiPorId.get(x) as { code?: string } | undefined)?.code ?? '?').trim())
+      rotos.push(`${String(k?.code ?? '?').trim()} tiene resultado, pero le faltan ${nombres.join(', ')}`)
+    }
+    add({
+      id: 'composicion-incompleta', sev: 'media', grupo: 'Trazabilidad',
+      titulo: 'Indicadores compuestos cuyo número no se puede reconstruir',
+      detalle: 'Un indicador estratégico agrega varios de efectividad. Si el padre tiene resultado y alguno de sus componentes no, el número existe pero nadie puede explicar de dónde salió.',
+      sugerencia: 'Cargar el resultado de los componentes, o revisar si la composición declarada es la correcta.',
+      afectados: rotos,
+    })
+
+    // ── 15. Resultado sin meta contra la cual leerlo ──────────────────────
+    const conMeta = new Set((metas ?? [])
+      .filter((t: { academic_year_id: string }) => t.academic_year_id === anioActual.id)
+      .map((t: { indicator_id: string }) => t.indicator_id))
+    const enlazado = new Set((enlaces ?? []).filter((e: { meta: number | null }) => e.meta !== null)
+      .map((e: { kpi_id: string }) => e.kpi_id))
+    add({
+      id: 'resultado-sin-meta', sev: 'baja', grupo: 'Trayectoria',
+      titulo: 'Resultados cargados sin ninguna meta para el año',
+      detalle: 'Ni la curva del ciclo ni el plan anual les fijan un valor esperado, así que el número no se puede calificar.',
+      sugerencia: 'Definir la meta del año, o marcar el indicador como de solo monitoreo.',
+      afectados: (results ?? [])
+        .filter((r: { academic_year_id: string; indicator_id: string; period: string }) =>
+          r.academic_year_id === anioActual.id && r.period === 'anual' &&
+          !conMeta.has(r.indicator_id) && !enlazado.has(r.indicator_id))
+        .map((r: { indicator_id: string }) => {
+          const k = kpiPorId.get(r.indicator_id) as { code?: string; name?: string } | undefined
+          return `${String(k?.code ?? '?').trim()} · ${k?.name ?? ''}`
+        }),
+    })
+  }
 
   const orden: Record<Sev, number> = { alta: 0, media: 1, baja: 2 }
   h.sort((a, b) => orden[a.sev] - orden[b.sev] || a.grupo.localeCompare(b.grupo))
