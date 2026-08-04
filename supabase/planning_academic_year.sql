@@ -115,15 +115,39 @@ select pk.kpi_id, p.academic_year_id, 'anual', pk.resultado, 'manual',
 on conflict (indicator_id, academic_year_id, period) do nothing;
 
 
--- ── BLOQUE 4 · Verificación ────────────────────────────────────────────────
+-- ── BLOQUE 4 · Un solo ciclo estratégico activo ────────────────────────────
+-- Había dos ciclos 'active'. El bueno es "Strategic Plan" (2023-2028): tiene
+-- las 9 dimensiones vivas, los 9 objetivos, 24 acciones, 109 responsables y
+-- los 34 KPIs. El otro se creó el 08-07 y quedó completamente vacío.
+--
+-- No se borra: se archiva. Un ciclo es la unidad de comparación histórica del
+-- plan, y borrar filas de esa tabla es el tipo de limpieza que después nadie
+-- puede explicar. Renombrarlo deja dicho por qué está ahí.
+
+update strategic_plan_cycles
+   set status = 'superseded',
+       name   = name || ' (duplicado vacío — archivado)'
+ where id = '673a8c9d-0d13-4ad6-84fd-9393eb18ef63'
+   and not exists (select 1 from strategic_dimensions d where d.cycle_id = strategic_plan_cycles.id);
+
+
+-- ── BLOQUE 5 · Verificación ────────────────────────────────────────────────
 select 'planes de efectividad sin año académico' as control, count(*)::text as valor
   from effectiveness_plans where academic_year_id is null
 union all
 select 'ciclos estratégicos sin año académico de inicio', count(*)::text
   from strategic_plan_cycles where start_academic_year_id is null
 union all
-select 'ciclos estratégicos ACTIVOS (debería ser 1)', count(*)::text
+select 'ciclos estratégicos ACTIVOS (debe ser 1)', count(*)::text
   from strategic_plan_cycles where status = 'active'
+union all
+select 'dimensiones vigentes del ciclo activo', count(*)::text
+  from strategic_dimensions d
+  join strategic_plan_cycles c on c.id = d.cycle_id
+ where c.status = 'active' and d.status = 'active'
+union all
+select 'objetivos institucionales vigentes (O1-O9)', count(*)::text
+  from strategic_objectives where status = 'active'
 union all
 select 'indicadores en el catálogo', count(*)::text from effectiveness_kpis
 union all
