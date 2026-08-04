@@ -26,6 +26,7 @@ export function AssessmentMeasures() {
     filtro === 'todas' ? true
     : filtro === 'erp' ? m.binding === 'erp_formula'
     : filtro === 'externo' ? m.binding !== 'erp_formula'
+    : filtro === 'discrepa' ? m.discrepa
     : m.estado === filtro)
 
   const TABS = [
@@ -35,6 +36,7 @@ export function AssessmentMeasures() {
     { k: 'cumplido', txt: 'Cumplidas', n: c.cumplidos },
     { k: 'no_cumplido', txt: 'No cumplidas', n: c.no_cumplidos },
     { k: 'sin_datos', txt: 'Sin datos', n: c.sin_datos },
+    ...(c.discrepancias ? [{ k: 'discrepa', txt: 'Discrepan del ERP', n: c.discrepancias }] : []),
   ]
 
   const pctErp = c.medidas ? Math.round((c.del_erp * 100) / c.medidas) : 0
@@ -51,10 +53,12 @@ export function AssessmentMeasures() {
       </div>
 
       {!!c.discrepancias && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-[13px] text-amber-900">
+        <button onClick={() => setFiltro('discrepa')}
+          className="block w-full rounded-lg border border-amber-300 bg-amber-50 p-3 text-left text-[13px] text-amber-900 hover:bg-amber-100">
           <b>{c.discrepancias} medida(s)</b> tienen un valor reportado distinto del que calcula el ERP. Alguien tiene
           que decidir cuál vale antes de que el informe salga.
-        </div>
+          <span className="ml-1 font-medium underline">Ver cuáles</span>
+        </button>
       )}
 
       <div className="flex flex-wrap gap-1.5">
@@ -154,6 +158,25 @@ function FilaMedida({ m, abierta, toggle }: { m: Medida; abierta: boolean; toggl
       {abierta && (
         <tr className="border-t border-gray-100 bg-gray-50/60">
           <td colSpan={8} className="px-4 py-3">
+            {m.discrepa && (
+              <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
+                <p className="text-[12.5px] font-medium text-amber-900">Dos valores para el mismo indicador</p>
+                <div className="mt-1.5 grid gap-2 sm:grid-cols-2 text-[12.5px]">
+                  <p className="text-amber-900">
+                    Reportado en el IAP: <b className="tabular-nums">{m.resultado_texto ?? m.resultado}</b>
+                  </p>
+                  <p className="text-amber-900">
+                    Calculado en el ERP{m.indicador ? ` (${m.indicador.code})` : ''}:{' '}
+                    <b className="tabular-nums">{m.resultado_erp}</b>
+                  </p>
+                </div>
+                <p className="mt-1.5 text-[11.5px] text-amber-700">
+                  Suele significar que los dos planes definen la medida distinto —uno cuenta y el otro calcula una
+                  proporción—, no que alguien se equivocó al escribir. Hay que unificar la definición antes de que el
+                  informe salga.
+                </p>
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               <Campo t="¿Qué busca evaluar?" v={m.proposito} />
               <Campo t="Uso esperado de los resultados" v={m.uso_esperado} />
