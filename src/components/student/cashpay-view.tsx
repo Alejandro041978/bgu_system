@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, PiggyBank, AlertTriangle, CheckCircle2, Clock, Wallet, ArrowRight } from 'lucide-react'
+import { Loader2, PiggyBank, AlertTriangle, CheckCircle2, Clock, Wallet } from 'lucide-react'
 
 interface Cuota { external_id: string; amount: number; balance: number; due_date: string; concepto: string | null }
-interface Escenario {
-  label: string; charges: string[]; cuotas: number; months: number
+interface Oferta {
+  charges: string[]; cuotas: number; months: number
   discount_pct: number; gross: number; discount: number; net: number; hasta: string
 }
 interface Solicitud {
@@ -16,7 +16,7 @@ interface Solicitud {
 }
 interface Data {
   elegible: boolean; motivo: string | null; overdue: number
-  futuras: Cuota[]; escenarios: Escenario[]
+  futuras: Cuota[]; oferta: Oferta | null
   settings: { monthly_rate: number; max_discount: number; quote_valid_days: number }
   solicitud: Solicitud | null
 }
@@ -27,7 +27,6 @@ const fdate = (d: string | null) => d ? String(d).slice(0, 10).split('-').revers
 export function CashpayView() {
   const [d, setD] = useState<Data | null>(null)
   const [loading, setLoading] = useState(true)
-  const [sel, setSel] = useState<Escenario | null>(null)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
@@ -35,18 +34,15 @@ export function CashpayView() {
   async function load() {
     setLoading(true)
     const j = await fetch('/api/student/cashpay').then(r => r.json()).catch(() => null)
-    if (j && !j.error) { setD(j); setSel(j.escenarios?.[j.escenarios.length - 1] ?? null) }
+    if (j && !j.error) setD(j)
     else setError(j?.error ?? 'No se pudo cargar')
     setLoading(false)
   }
   useEffect(() => { load() }, [])
 
   async function solicitar() {
-    if (!sel) return
     setSending(true); setError(null); setOk(null)
-    const j = await fetch('/api/student/cashpay', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ charges: sel.charges }),
-    }).then(r => r.json())
+    const j = await fetch('/api/student/cashpay', { method: 'POST' }).then(r => r.json())
     setSending(false)
     if (j.error) { setError(j.error); return }
     setOk(`Solicitud enviada. Un asesor la revisará y se comunicará contigo. Tu cotización vale hasta el ${fdate(j.expires_at)}.`)
@@ -60,9 +56,9 @@ export function CashpayView() {
       <div>
         <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2"><PiggyBank className="w-5 h-5 text-emerald-600" />Cashpay · Adelanta y ahorra</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Si adelantas tus cuotas futuras, recibes un descuento por el tiempo que anticipas:
-          <b> {d?.settings.monthly_rate ?? 0.8}% por cada mes</b> de anticipación, hasta un máximo de <b>{d?.settings.max_discount ?? 20}%</b>.
-          Mientras más lejos llegues, mayor el beneficio.
+          Cancela de una sola vez <b>todas tus cuotas de pensión pendientes</b> y recibe un descuento por el
+          tiempo que anticipas: <b>{d?.settings.monthly_rate ?? 0.8}% por cada mes</b> de anticipación, hasta un
+          máximo de <b>{d?.settings.max_discount ?? 20}%</b>.
         </p>
       </div>
 
@@ -100,54 +96,50 @@ export function CashpayView() {
         </div>
       )}
 
-      {/* Escenarios */}
-      {d?.elegible && !d.solicitud && (
+      {/* La oferta: una sola, sin nada que elegir. */}
+      {d?.elegible && d.oferta && !d.solicitud && (
         <>
-          <div className="space-y-2">
-            {d.escenarios.map(e => (
-              <button key={e.label} onClick={() => setSel(e)}
-                className={`w-full text-left border rounded-xl p-4 transition-colors ${sel?.label === e.label ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-400' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">{e.label}</p>
-                    <p className="text-[11.5px] text-gray-500">{e.cuotas} cuota(s) · hasta {fdate(e.hasta)} · {e.months} meses de anticipación</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-emerald-600 tabular-nums">−{money(e.discount)}</p>
-                    <p className="text-[11px] text-gray-500">{e.discount_pct}% de descuento</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 mt-2 pt-2 border-t border-gray-100 text-xs text-gray-600">
-                  <span>Normal: <span className="line-through">{money(e.gross)}</span></span>
-                  <ArrowRight className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="font-semibold text-gray-900">Pagas: {money(e.net)}</span>
-                </div>
-              </button>
-            ))}
+          <div className="border border-emerald-300 bg-emerald-50/50 rounded-xl p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Tu beneficio</p>
+            <div className="flex items-end justify-between gap-3 flex-wrap mt-1">
+              <div>
+                <p className="text-2xl font-bold text-gray-900 tabular-nums">{money(d.oferta.net)}</p>
+                <p className="text-sm text-gray-500">
+                  en lugar de <span className="line-through">{money(d.oferta.gross)}</span>
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-emerald-600 tabular-nums">−{money(d.oferta.discount)}</p>
+                <p className="text-sm text-emerald-700">{d.oferta.discount_pct}% de descuento</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 mt-3 pt-3 border-t border-emerald-200">
+              Cancelas tus <b>{d.oferta.cuotas} cuota(s) de pensión</b> pendientes, hasta la del {fdate(d.oferta.hasta)}
+              {' '}— <b>{d.oferta.months} meses</b> de anticipación. Quedas sin deuda de pensión hasta el final de tu plan.
+            </p>
           </div>
 
-          <button onClick={solicitar} disabled={sending || !sel}
+          <button onClick={solicitar} disabled={sending}
             className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-sm font-semibold">
-            {sending ? <><Loader2 className="w-4 h-4 animate-spin" /> Enviando…</> : <>Solicitar este beneficio {sel && `· ahorra ${money(sel.discount)}`}</>}
+            {sending ? <><Loader2 className="w-4 h-4 animate-spin" /> Enviando…</> : <>Solicitar este beneficio · ahorra {money(d.oferta.discount)}</>}
           </button>
           <p className="text-[11px] text-gray-400 text-center">
             Al solicitarlo, un asesor revisará tu caso y te confirmará. El descuento se aplica en tu estado de cuenta al aprobarse.
           </p>
 
-          {/* Detalle de cuotas */}
+          {/* Detalle: entran todas, no hay nada que marcar. */}
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <p className="px-4 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100">Tus cuotas futuras ({d.futuras.length})</p>
+            <p className="px-4 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100">
+              Las {d.futuras.length} cuota(s) que estarías cancelando
+            </p>
             <div className="max-h-72 overflow-y-auto">
               <table className="w-full text-sm">
                 <tbody className="divide-y divide-gray-50">
                   {d.futuras.map(c => (
-                    <tr key={c.external_id} className={sel?.charges.includes(c.external_id) ? 'bg-emerald-50/40' : ''}>
+                    <tr key={c.external_id}>
                       <td className="px-4 py-2 text-xs text-gray-500">{fdate(c.due_date)}</td>
                       <td className="px-4 py-2 text-xs text-gray-700">{c.concepto ?? '—'}</td>
                       <td className="px-4 py-2 text-right tabular-nums text-sm">{money(c.balance)}</td>
-                      <td className="px-4 py-2 text-right text-[11px]">
-                        {sel?.charges.includes(c.external_id) ? <span className="text-emerald-600 font-medium">incluida</span> : <span className="text-gray-300">—</span>}
-                      </td>
                     </tr>
                   ))}
                 </tbody>
