@@ -192,6 +192,7 @@ const navigation: NavGroup[] = [
           { name: 'Dashboard', href: '/planning/assessment/dashboard', icon: Gauge, pageKey: 'assessment_dashboard' },
         ],
       },
+      { name: 'Auditor de Planeamiento', href: '/planning/audit', icon: ShieldCheck, pageKey: 'planning_audit' },
     ],
   },
   {

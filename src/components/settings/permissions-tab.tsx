@@ -104,6 +104,7 @@ const PAGE_GROUPS = [
       { key: 'assessment_plan', label: 'Plan de Evaluación · Cargar Plan' },
       { key: 'assessment_measures', label: 'Plan de Evaluación · Tablero de Medidas' },
       { key: 'assessment_dashboard', label: 'Plan de Evaluación · Dashboard' },
+      { key: 'planning_audit', label: 'Auditor de Planeamiento' },
     ],
   },
   {
