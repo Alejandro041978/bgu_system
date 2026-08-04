@@ -42,9 +42,11 @@ export default async function StudentGradesPage() {
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">Mis Notas</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Consulta tus calificaciones por período académico</p>
+        <p className="text-sm text-gray-500 mt-0.5">Consulta tus calificaciones por año académico</p>
       </div>
-      <GradesTable grades={grades} />
+      {/* Sin bloques: son herencia de SystemActiva y no corresponden a ningún
+          período real del estudiante. Ver el comentario en GradesTable. */}
+      <GradesTable grades={grades} agrupacion="anio" />
     </div>
   )
 }

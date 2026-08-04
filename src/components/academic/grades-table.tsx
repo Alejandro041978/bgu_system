@@ -42,7 +42,23 @@ function gradeInfo(g: Grade): { value: number | null; passed: boolean | null; la
   return { value, passed, label: passed === null ? '' : passed ? 'Aprobado' : 'Desaprobado' }
 }
 
-export function GradesTable({ grades, onEdit }: { grades: Grade[]; onEdit?: (g: Grade) => void }) {
+/**
+ * `agrupacion` decide el encabezado de cada bloque de la tabla.
+ *
+ *   'periodo' → Año + Bloque, como lo traía SystemActiva (vista del ERP)
+ *   'anio'    → solo el año (portal del estudiante)
+ *
+ * El bloque es herencia de Activa y no significa nada en el plan de estudios
+ * actual: llega vacío en las asignaturas nuevas —"Bloque —"— y con números
+ * sueltos en las viejas. Al estudiante le parte su historial en secciones que
+ * no corresponden a ningún período real suyo, así que en el portal se agrupa
+ * solo por año. En el ERP se conserva porque Registros todavía lo usa para
+ * rastrear de qué carga vino cada nota.
+ */
+export function GradesTable(
+  { grades, onEdit, agrupacion = 'periodo' }:
+  { grades: Grade[]; onEdit?: (g: Grade) => void; agrupacion?: 'periodo' | 'anio' },
+) {
   if (grades.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-dashed border-gray-300 py-16 text-center">
@@ -52,10 +68,12 @@ export function GradesTable({ grades, onEdit }: { grades: Grade[]; onEdit?: (g: 
     )
   }
 
-  // Agrupar por período (año + bloque), más reciente primero
+  // Agrupar por período, más reciente primero
   const groups = new Map<string, Grade[]>()
   for (const g of grades) {
-    const key = `${g.term_year ?? '—'}·${g.term_block ?? '—'}`
+    const key = agrupacion === 'anio'
+      ? `${g.term_year ?? 'Sin año'}`
+      : `${g.term_year ?? '—'}·${g.term_block ?? '—'}`
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(g)
   }
@@ -64,6 +82,9 @@ export function GradesTable({ grades, onEdit }: { grades: Grade[]; onEdit?: (g: 
     <div className="space-y-4">
       {Array.from(groups.entries()).map(([key, rows]) => {
         const [year, block] = key.split('·')
+        const titulo = agrupacion === 'anio'
+          ? (year === 'Sin año' ? 'Sin año registrado' : `Año ${year}`)
+          : `Año ${year} · Bloque ${block}`
         const withGrade = rows.filter(r => gradeInfo(r).value !== null)
         const avg = withGrade.length
           ? (withGrade.reduce((s, r) => s + (gradeInfo(r).value ?? 0), 0) / withGrade.length).toFixed(1)
@@ -72,7 +93,7 @@ export function GradesTable({ grades, onEdit }: { grades: Grade[]; onEdit?: (g: 
           <div key={key} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
               <Award className="w-4 h-4 text-blue-500" />
-              <p className="text-sm font-semibold text-gray-900">Año {year} · Bloque {block}</p>
+              <p className="text-sm font-semibold text-gray-900">{titulo}</p>
               {avg && <span className="ml-auto text-xs text-gray-500">Promedio: <span className="font-semibold text-gray-700">{avg}</span></span>}
             </div>
             <table className="w-full text-sm">
