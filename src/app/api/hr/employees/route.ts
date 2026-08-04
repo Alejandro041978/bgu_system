@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 import { guardStaff } from '@/lib/api-guard'
+import { correoDeOtroRol } from '@/lib/correo-rol'
 
 const supabaseAdmin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -101,6 +102,13 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = supabaseAdmin()
+
+    // Un correo es de un rol o del otro. Se comprueba antes de crear la cuenta
+    // de acceso: si no, quedaría un usuario de Supabase huérfano cuando el
+    // trigger de la base rechace el insert del colaborador.
+    const choque = await correoDeOtroRol(supabase, body.email, 'colaborador')
+    if (choque) return NextResponse.json({ error: choque }, { status: 409 })
+
     let authUserId: string | null = null
     let inviteError: string | null = null
 

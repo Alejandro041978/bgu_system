@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { guardStaff } from '@/lib/api-guard'
+import { correoDeOtroRol } from '@/lib/correo-rol'
 
 export const revalidate = 0
 
@@ -60,6 +61,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { data: curr } = await sb.from('academic_students').select('*').eq('id', id).maybeSingle()
   if (!curr) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
+
+  // Un correo pertenece a un solo rol. El trigger de la base lo garantiza; esto
+  // lo dice con nombre y apellido antes de que salte la excepción.
+  for (const campo of ['email', 'email_alt'] as const) {
+    if (b[campo] === undefined || b[campo] === curr[campo]) continue
+    const choque = await correoDeOtroRol(sb, b[campo], 'estudiante')
+    if (choque) return NextResponse.json({ error: choque }, { status: 409 })
+  }
 
   if (b.situacion_auto) {
     const { error } = await sb.from('academic_students').update({ situation_source: 'auto' }).eq('id', id)
