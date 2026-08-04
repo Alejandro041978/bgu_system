@@ -119,10 +119,17 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
   }
 
   async function saveCourseEdit(courseId: string) {
-    await fetch(`/api/academic/courses/${courseId}`, {
+    const res = await fetch(`/api/academic/courses/${courseId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...editCourseForm, credits: Number(editCourseForm.credits), hours: editCourseForm.hours != null && String(editCourseForm.hours) !== '' ? Number(editCourseForm.hours) : null, level: editCourseForm.level ? Number(editCourseForm.level) : null }),
     })
+    // Mismo problema que en el borrado: mostrar el cambio sin confirmarlo hace
+    // creer que se guardó algo que sigue igual en la base.
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({} as { error?: string }))
+      alert(d.error ?? 'No se pudieron guardar los cambios')
+      return
+    }
     setPrograms(prev => prev.map(p => p.id === selected
       ? { ...p, courses: p.courses.map(c => c.id === courseId ? { ...c, ...editCourseForm, credits: Number(editCourseForm.credits), hours: editCourseForm.hours != null && String(editCourseForm.hours) !== '' ? Number(editCourseForm.hours) : null, level: editCourseForm.level ? Number(editCourseForm.level) : null } : c) }
       : p
@@ -132,7 +139,16 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
 
   async function deleteCourse(courseId: string) {
     if (!confirm('¿Eliminar esta asignatura?')) return
-    await fetch(`/api/academic/courses/${courseId}`, { method: 'DELETE' })
+    const res = await fetch(`/api/academic/courses/${courseId}`, { method: 'DELETE' })
+    // Antes la fila se quitaba de la pantalla pasara lo que pasara. Como el
+    // borrado fallaba por las notas y matrículas que cuelgan de la asignatura,
+    // parecía funcionar: desaparecían las cinco, el borrado del programa
+    // seguía diciendo que tenía asignaturas, y al refrescar reaparecían todas.
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({} as { error?: string }))
+      alert(d.error ?? 'No se pudo eliminar la asignatura')
+      return
+    }
     setPrograms(prev => prev.map(p => p.id === selected
       ? { ...p, courses: p.courses.filter(c => c.id !== courseId) }
       : p
