@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { sameCourse } from '@/lib/course-match'
 import { applyGradeEdit, type GradeChanges } from '@/lib/grades-write'
+import { guardStaff } from '@/lib/api-guard'
 
 export const maxDuration = 60
 
@@ -15,6 +16,9 @@ const db = (): any => createClient(
 // GET ?q=...        → busca estudiantes por nombre o documento (lista distinta)
 // GET ?document=... → devuelve las notas de ese estudiante
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -104,6 +108,9 @@ export async function GET(req: NextRequest) {
 // Edita una nota. Pasa por grades-write: auditoría + marca de edición (que la
 // protege del sync) + recálculo inmediato del estudiante.
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

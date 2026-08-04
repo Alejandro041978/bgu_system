@@ -6,6 +6,7 @@ import { maybeMarkTramitePaid } from '@/lib/tramites'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchByIn } from '@/lib/grades-write'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -21,6 +22,9 @@ async function requireUser() {
 
 // GET → pagos sin cuota enlazada (la bandeja) + cuotas impagas candidatas por estudiante
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
 
@@ -152,6 +156,9 @@ export async function GET(req: NextRequest) {
 // PATCH { flywire_ref, student_id } → registra el pago Flywire sin registrar para ese estudiante
 // PATCH { flywire_ref, dismiss: true } → lo descarta (pruebas, no-estudiantes)
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as {
     payment_id?: string; charge_external_id?: string; no_charge?: boolean

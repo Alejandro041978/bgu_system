@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -7,6 +8,9 @@ export const revalidate = 0
 // EFECTIVOS de las variables públicas (env, recipient) que están corriendo en
 // este build, y si los secretos existen — SIN revelarlos. Solo con sesión.
 export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

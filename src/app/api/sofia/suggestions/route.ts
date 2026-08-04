@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { applySuggestion, type Suggestion } from '@/lib/apply-suggestion'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -17,6 +18,9 @@ async function requireUser() {
 
 // GET ?bot=&status= → sugerencias (por defecto pendientes)
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const bot = req.nextUrl.searchParams.get('bot')
@@ -42,6 +46,9 @@ export async function GET(req: NextRequest) {
 // cual metería ese error al prompt o a la base de conocimientos, y el bot lo
 // diría como cierto. Editar antes de aprobar es la compuerta humana.
 export async function PUT(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as {
@@ -81,6 +88,9 @@ export async function PUT(req: NextRequest) {
 // PATCH { id, action: 'approve' | 'reject' }
 //   approve → aplica la mejora (prompt o base) y marca 'approved'.
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const body = await req.json().catch(() => null) as { id?: string; action?: string } | null

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -15,6 +16,9 @@ async function requireUser() {
 
 // GET → tarifario completo (historial) + catálogos + créditos por programa
 export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const [{ data: rates }, { data: categories }, { data: programs }, { data: courses }] = await Promise.all([
@@ -34,6 +38,9 @@ export async function GET() {
 // POST { category_id | program_id, price_per_credit, effective_from?, note? }
 // → publica una VERSIÓN nueva del precio oficial (nunca se edita una existente)
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
@@ -58,6 +65,9 @@ export async function POST(req: NextRequest) {
 // DELETE ?id= → solo versiones con vigencia FUTURA (corrección antes de que
 // el precio entre en vigor; lo ya vigente es historia regulada e intocable)
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })

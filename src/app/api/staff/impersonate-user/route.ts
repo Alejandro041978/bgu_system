@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isSuperadmin } from '@/lib/student-identity'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -12,6 +13,9 @@ const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, pro
 // se está suplantando ahora. Usa el usuario real (impersonate:false) para que la
 // barra siga visible —y el "salir" disponible— aun estando dentro de la vista.
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const authClient = await createAuthClient({ impersonate: false })
   const { data: { user } } = await authClient.auth.getUser()
   if (!user || !(await isSuperadmin(user.id))) return NextResponse.json({ can_impersonate: false })
@@ -40,6 +44,9 @@ export async function GET(req: NextRequest) {
 // POST { user_id } → activa "ver como colaborador". { user_id: '' } → sale.
 // Solo superadmin real.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const authClient = await createAuthClient({ impersonate: false })
   const { data: { user } } = await authClient.auth.getUser()
   if (!user || !(await isSuperadmin(user.id))) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

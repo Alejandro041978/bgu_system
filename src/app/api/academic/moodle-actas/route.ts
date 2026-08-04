@@ -7,6 +7,7 @@ import { courseTotal, aulaPolicy, enrolledMap, importAula } from '@/lib/moodle-i
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -23,6 +24,9 @@ async function requireUser() {
 // GET               → inventario de aulas Moodle, con candidato de asignatura por código
 // GET ?courseid=N   → vista previa del acta: quién cruza, qué total trae, quién no
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no configurado' }, { status: 400 })
   const sb = db()
@@ -169,6 +173,9 @@ export async function GET(req: NextRequest) {
 // protege contra aulas que se limpian para reutilizarlas con otra cohorte.
 // El editor manual sigue pudiendo corregir, con auditoría.
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as { courseid?: number; action?: 'lock' | 'unlock' } | null
@@ -187,6 +194,9 @@ export async function PATCH(req: NextRequest) {
 // (mismo que usa el cron 4×/día); aquí solo autenticación, llamada y los
 // efectos globales inmediatos.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no configurado' }, { status: 400 })

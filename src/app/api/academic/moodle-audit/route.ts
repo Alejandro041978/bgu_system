@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { moodleCall, moodleConfigured, MOODLE_STUDENT_ROLEID } from '@/lib/moodle'
 import { randomBytes } from 'crypto'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -30,6 +31,9 @@ async function requireUser() {
 // GET  → última foto guardada + resumen
 // POST → barre Moodle aula por aula y guarda la foto (toma 1-3 minutos)
 export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -213,6 +217,9 @@ async function ensureAuditorUser(): Promise<number> {
 // pagar el barrido completo cada vez. Como el guardado es por tandas, una
 // corrida parcial NO borra lo auditado de las demás familias.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no configurado' }, { status: 400 })
   const sb = db()

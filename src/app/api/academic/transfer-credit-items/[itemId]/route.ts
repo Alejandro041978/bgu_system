@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { reflectItem, unreflectItem } from '@/lib/transfer-credit-server'
+import { guardStaff } from '@/lib/api-guard'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -14,6 +15,9 @@ async function requireAuth() {
 
 // PATCH → edita un ítem (típicamente la nota de origen) y recalcula la conversión
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ itemId: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { itemId } = await params
   const b = await req.json() as Record<string, unknown>
@@ -30,6 +34,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ it
 
 // DELETE → elimina el ítem y su reflejo en notas
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ itemId: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { itemId } = await params
   await unreflectItem(itemId)

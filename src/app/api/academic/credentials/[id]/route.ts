@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 const admin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 // DELETE → borra la evaluación completa: archivos en storage + registro (reporte,
 // documentación y estado). El docente vuelve a "pendiente / sin credencial".
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -15,6 +16,9 @@ async function requireAuth() {
 
 // GET → categorías con conteo de programas y convocatorias
 export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   // select('*') para tolerar que la columna sigla exista o no todavía
@@ -46,6 +50,9 @@ export async function GET() {
 
 // POST { name, sigla? } → crea una categoría
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as { name?: string; sigla?: string } | null
   const name = b?.name?.trim()

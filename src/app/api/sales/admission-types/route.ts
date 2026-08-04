@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -15,6 +16,9 @@ async function requireUser() {
 
 // POST { category_id, name, commission } → crea un tipo de admisión
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
   if (!b?.category_id || !b?.name?.trim()) return NextResponse.json({ error: 'Faltan categoría o nombre' }, { status: 400 })
@@ -28,6 +32,9 @@ export async function POST(req: NextRequest) {
 // PATCH { id, name?, commission?, active? } — cambiar la comisión NO toca las
 // ventas ya asignadas (llevan su snapshot); rige para las asignaciones nuevas.
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
   if (!b?.id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
@@ -42,6 +49,9 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE ?id= → solo si ningún registro de venta lo usa
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })

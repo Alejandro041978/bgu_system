@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { analyzeSupervisor } from '@/lib/supervisor-analysis'
+import { guardStaff } from '@/lib/api-guard'
 
 // El análisis de IA tarda ~1 min; sin esto la función se corta antes de terminar.
 export const maxDuration = 300
@@ -9,6 +10,9 @@ export const maxDuration = 300
 // autenticado). Ejecuta el análisis EN PROCESO (sin salto HTTP al cron), para
 // no apilar dos timeouts de función.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -15,6 +16,9 @@ async function requireUser() {
 
 // GET → planes + catálogos para el formulario (programas, convocatorias, conceptos de cuota)
 export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const [{ data: plans }, { data: programs }, { data: convocatorias }, { data: concepts }] = await Promise.all([
@@ -30,6 +34,9 @@ export async function GET() {
 
 // POST → upsert de un plan (por program_id + convocatoria_id)
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
   if (!b?.program_id || !b?.convocatoria_id) {
@@ -56,6 +63,9 @@ export async function POST(req: NextRequest) {
 
 // DELETE ?id= → elimina un plan
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })

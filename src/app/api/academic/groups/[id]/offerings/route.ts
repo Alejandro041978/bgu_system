@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -15,6 +16,9 @@ async function ok() {
 
 // POST { offering_id } → asignar la oferta a este grupo (set group_id)
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await ok())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
   const b = await req.json().catch(() => null)
@@ -26,6 +30,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 // DELETE ?offering_id= → quitar la oferta del grupo (group_id null)
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await ok())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
   const offeringId = req.nextUrl.searchParams.get('offering_id')

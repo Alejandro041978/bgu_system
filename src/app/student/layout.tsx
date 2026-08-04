@@ -15,7 +15,11 @@ export default async function StudentLayout({ children }: { children: React.Reac
   const student = await getEffectiveStudent({ id: user.id, email: user.email })
   const isRealStudent = !!student && !student.impersonating
   const impersonating = !!student && student.impersonating
-  const superadmin = await isSuperadmin(user.id)
+  // Un estudiante NO es superadmin, aunque isSuperadmin() diga que sí: esa
+  // función devuelve true para todo el que no está en hr_employees. Sin este
+  // "y no es alumno", la barra de "ver como estudiante" se le pintaba a cada
+  // estudiante del portal, con su buscador de compañeros incluido.
+  const superadmin = !isRealStudent && await isSuperadmin(user.id)
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

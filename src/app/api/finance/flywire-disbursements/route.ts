@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -36,6 +37,9 @@ const normRef = (s: string | null | undefined) => String(s ?? '').toUpperCase().
 // cruzaron exacto se les adjunta una SUGERENCIA: el depósito de Books más
 // cercano en fecha (±3 días) con la diferencia (comisión) — para asociar a mano.
 export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const disb = await fetchAll(sb, 'flywire_disbursements', '*').catch(() => [])
@@ -71,6 +75,9 @@ export async function GET() {
 // una operación de Books (para los casos con comisión donde el monto no calza
 // exacto). Registra la diferencia en la nota.
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as { disbursement_id?: string; operation_id?: string } | null
@@ -98,6 +105,9 @@ export async function PATCH(req: NextRequest) {
 // POST { rows: [{ disbursement_id, date, amount, currency }], commit? } →
 // preview (commit=false) o importa + cruza contra las operaciones de Zoho Books.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as {

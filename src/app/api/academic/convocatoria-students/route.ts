@@ -3,6 +3,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchByIn } from '@/lib/grades-write'
 import { provisionStudent } from '@/lib/moodle-provision'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -32,6 +33,9 @@ function candidatesFor(programId: string, groups: Group[]): Group[] {
 // colocación en carruseles: por cada matrícula (estudiante × programa), en qué
 // carrusel del programa está, o qué candidatos hay para colocarla.
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const convocatoriaId = req.nextUrl.searchParams.get('convocatoria_id')
@@ -145,6 +149,9 @@ export async function GET(req: NextRequest) {
 // POST { student_id, program_id, group_id } → coloca la matrícula en el
 // carrusel elegido: membresía activa + matrícula en las aulas Moodle del grupo.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const body = await req.json().catch(() => null)

@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { isSuperadmin } from '@/lib/student-identity'
+import { isSuperadmin, isStudentUser } from '@/lib/student-identity'
 
 // POST { document } → activa "ver como estudiante". { document: '' } → sale de la vista.
-// Solo superadmin.
+//
+// Solo superadmin, y superadmin de verdad: isSuperadmin() devuelve true para
+// cualquiera que no esté en hr_employees, y un estudiante tampoco lo está. Sin
+// el rechazo explícito, un alumno con sesión podía activar esta cookie con el
+// documento de otro y entrar a su portal — sus notas, su estado de cuenta y
+// sus trámites. El propio archivo de identidad advierte de esta trampa.
 export async function POST(req: NextRequest) {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
-  if (!user || !(await isSuperadmin(user.id))) {
+  if (!user || await isStudentUser(user) || !(await isSuperadmin(user.id))) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 

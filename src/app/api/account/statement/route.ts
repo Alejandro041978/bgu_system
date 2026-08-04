@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { getAccountStatement } from '@/lib/account-statement'
 import { isSuperadmin } from '@/lib/student-identity'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
 // GET → estado de cuenta por student_id (o document_number). Requiere sesión (staff).
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

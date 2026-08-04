@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { applyGradeEdit } from '@/lib/grades-write'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -16,6 +17,9 @@ async function requireUser() {
 
 // GET → Hoja de Control de exámenes (todas las solicitudes con su estudiante)
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const status = req.nextUrl.searchParams.get('status')
@@ -65,6 +69,9 @@ export async function GET(req: NextRequest) {
 
 // PATCH { id, action: 'notificado' | 'nota' | 'anular', grade? }
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as { id?: string; action?: string; grade?: number } | null

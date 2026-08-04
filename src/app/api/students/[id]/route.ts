@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -15,6 +16,9 @@ async function requireAuth() {
 
 // GET → ficha completa del estudiante + matrículas
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
   const sb = db()
@@ -45,6 +49,9 @@ const EDITABLE = ['first_name', 'last_name', 'second_last_name', 'document_type'
 // PATCH → edita la ficha. Cambiar la situación la marca como manual (los
 // motores de egreso/retiro no la pisan); ?situacion_auto=1 la devuelve a auto.
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
   const b = await req.json().catch(() => null)

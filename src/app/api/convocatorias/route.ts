@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -16,6 +17,9 @@ async function requireUser() {
 // GET → catálogos (categorías, años) y, si se pasa category_id + year_id,
 // los semestres del año con sus convocatorias de esa categoría.
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const sp = req.nextUrl.searchParams
@@ -68,6 +72,9 @@ async function firstDayGate(sb: any, semesterId: string, firstDay: string | null
 }
 
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
   if (!b?.academic_semester_id || !b?.category_id) {
@@ -89,6 +96,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH → editar una convocatoria (nombre + fechas)
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
   if (!b?.id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
@@ -109,6 +119,9 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE ?id= → eliminar convocatoria (falla si tiene matrículas vinculadas)
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })

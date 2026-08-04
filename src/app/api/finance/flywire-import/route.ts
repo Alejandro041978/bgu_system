@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { fetchByIn } from '@/lib/grades-write'
 import { initialsPaid, activateEnrollment } from '@/lib/enrollment-activation'
 import { refreshAccessForStudents } from '@/lib/moodle-access'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -32,6 +33,9 @@ interface Row {
 // delivered/guaranteed → pago; initiated/cancelled → solo informativo.
 // Idempotente por Transfer Reference (flywire_payment_id).
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado', v: 4 }, { status: 401 })

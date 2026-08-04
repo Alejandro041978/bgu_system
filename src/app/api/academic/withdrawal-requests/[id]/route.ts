@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { wdb, nextResolutionNumber, recomputeSituations } from '@/lib/withdrawals'
+import { guardStaff } from '@/lib/api-guard'
 
 export const maxDuration = 120
 
@@ -14,6 +15,9 @@ async function requireUser() {
 //   outcome='revertido'  → el estudiante se queda. NO se genera retiro.
 //   outcome='LOA' | 'IW_*' → se genera el retiro con su número de resolución.
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params

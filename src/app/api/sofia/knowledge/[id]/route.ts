@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { reindexArticle } from '../route'
+import { guardStaff } from '@/lib/api-guard'
 
 export const maxDuration = 60
 
@@ -18,6 +19,9 @@ async function requireAuth() {
 
 // GET — un artículo completo (con contenido) para editar
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireAuth()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
@@ -34,6 +38,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 // PUT — actualizar artículo (+ reindexar si cambió el contenido)
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireAuth()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
@@ -66,6 +73,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 // DELETE — borra artículo (los chunks caen por ON DELETE CASCADE)
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireAuth()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -15,6 +16,9 @@ async function requireUser() {
 
 // GET → catálogos (categorías, programas) y, con program_id, los grupos de ese programa.
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const programId = req.nextUrl.searchParams.get('program_id')
@@ -62,6 +66,9 @@ export async function GET(req: NextRequest) {
 
 // POST → crear grupo (asociado a programa)
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
   if (!b?.program_id || !(b?.name?.trim() || b?.abbreviation?.trim())) {
@@ -81,6 +88,9 @@ export async function POST(req: NextRequest) {
 // que sea del mismo programa, que no forme ciclo y que la cadena siga lineal
 // (dos carruseles no pueden desembocar en el mismo siguiente).
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)
   if (!b?.id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
@@ -124,6 +134,9 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE ?id= → eliminar grupo (desliga sus asignaturas; membresías por cascade)
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })

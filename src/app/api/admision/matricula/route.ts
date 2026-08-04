@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateChargesForEnrollment } from '@/lib/billing'
 import { checkEnrollmentPrereq } from '@/lib/enrollment-prereq'
 import { snapshotCreditRate } from '@/lib/credit-rates'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -20,6 +21,9 @@ async function requireUser() {
 // GET → catálogo de programas (con categoría, para filtrar por la convocatoria)
 // GET ?q= → busca estudiantes por nombre, documento o correo (máx. 20)
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const q = req.nextUrl.searchParams.get('q')?.trim()
@@ -70,6 +74,9 @@ export async function GET(req: NextRequest) {
 // (new_student), inserta la matrícula (programa + convocatoria) e intenta la
 // colocación automática en el carrusel de entrada del programa.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const body = await req.json().catch(() => null)

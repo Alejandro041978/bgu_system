@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -16,6 +17,9 @@ async function requireUser() {
 // GET ?convocatoria=<id> → ventas (matrículas) de la convocatoria con su
 // asignación de asesora/tipo + catálogos (convocatorias, asesoras, tipos)
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const convocatoriaId = req.nextUrl.searchParams.get('convocatoria')
@@ -91,6 +95,9 @@ export async function GET(req: NextRequest) {
 // POST { enrollment_id, advisor_id?, admission_type_id? } → asigna la venta.
 // La comisión se congela con el tipo elegido (snapshot del valor actual).
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null)

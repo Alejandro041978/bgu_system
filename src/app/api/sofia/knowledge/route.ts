@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { chunkText, embedTexts } from '@/lib/embeddings'
+import { guardStaff } from '@/lib/api-guard'
 
 export const maxDuration = 60
 
@@ -48,6 +49,9 @@ export async function reindexArticle(id: string, content: string): Promise<numbe
 
 // GET — lista de artículos (filtrada por bot)
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireAuth()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
@@ -64,6 +68,9 @@ export async function GET(req: NextRequest) {
 
 // POST — crear artículo (+ indexar)
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireAuth()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
+import { guardStaff } from '@/lib/api-guard'
 
 const supabaseAdmin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -60,6 +61,9 @@ async function sendInviteEmail(to: string, fullName: string, tempPassword: strin
 }
 
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   try {
     const authClient = await createAuthClient()
     const { data: { user } } = await authClient.auth.getUser()
@@ -162,6 +166,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const supabase = supabaseAdmin()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)

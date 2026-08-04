@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 export const maxDuration = 60
 
@@ -16,6 +17,9 @@ async function requireAuth() {
 // POST { documents: string[] } → aplica el esquema a todos los estudiantes de la lista,
 // resolviendo por número de documento. Inserta en lotes (soporta cientos de estudiantes).
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const user = await requireAuth()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params

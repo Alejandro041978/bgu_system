@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 // Autorización única: visitar logueado en el ERP, con la sesión de Google de
 // la cuenta a autorizar. Devuelve el refresh token para pegarlo en Vercel.
@@ -8,6 +9,9 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 //   ?scope=gmail      → gmail.readonly con helpdesk@blackwell.university
 //                       → GMAIL_HELPDESK_REFRESH_TOKEN (adjuntos del buzón)
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado: inicia sesión en el ERP primero' }, { status: 401 })

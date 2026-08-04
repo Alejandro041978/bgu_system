@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -18,6 +19,9 @@ const CATEGORIES = ['eventos', 'libros', 'viajes', 'otros']
 // Otros ingresos (no académicos, derivados de la bandeja Flywire).
 // GET ?year= → filas + totales por categoría y por año
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
   const year = req.nextUrl.searchParams.get('year')
@@ -48,6 +52,9 @@ export async function GET(req: NextRequest) {
 
 // PATCH { id, category?, note? } → editar la tabulación
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as { id?: string; category?: string; note?: string } | null
   if (!b?.id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
@@ -65,6 +72,9 @@ export async function PATCH(req: NextRequest) {
 // DELETE { id } → deshace la derivación: borra el ingreso y quita el evento de
 // resolución para que la referencia VUELVA a la bandeja de conciliación.
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as { id?: string } | null
   if (!b?.id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })

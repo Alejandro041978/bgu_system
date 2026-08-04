@@ -6,6 +6,7 @@ import { importGrades, resolveImportTarget, fetchByIn, stableUuid, type ImportRo
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
+import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -25,6 +26,9 @@ interface CsvRow { documento?: string; codigo?: string; asignatura?: string; ani
 // matriculado: código exacto o nombre (course-match). Nada se adivina fuera de
 // su malla.
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

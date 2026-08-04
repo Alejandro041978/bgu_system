@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { guardStaff } from '@/lib/api-guard'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -13,6 +14,9 @@ async function requireAuth() {
 
 // GET → esquema + ítems
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
   const sb = db()
@@ -26,6 +30,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 // DELETE → elimina el esquema (no borra las convalidaciones ya generadas)
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
   const { error } = await db().from('transfer_schemes').delete().eq('id', id)  // cascade borra scheme_items

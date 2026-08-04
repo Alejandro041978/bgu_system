@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { chunkText, embedTexts } from '@/lib/embeddings'
+import { guardStaff } from '@/lib/api-guard'
 
 export const maxDuration = 300
 
@@ -16,6 +17,9 @@ interface ImportRecord { title?: string; content?: string; category?: string | n
 // Importa en lote: inserta artículos, genera chunks + embeddings en batch, inserta chunks.
 // Omite artículos cuyo título ya existe (para que reimportar sea seguro).
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   const authClient = await createAuthClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

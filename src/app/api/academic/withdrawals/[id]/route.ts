@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { wdb, recomputeSituations } from '@/lib/withdrawals'
+import { guardStaff } from '@/lib/api-guard'
 
 export const maxDuration = 120
 
@@ -12,6 +13,9 @@ async function requireUser() {
 
 // PATCH → reincorporar un LOA, editar notas/fechas, corregir la resolución
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
   const body = await req.json().catch(() => null) as Record<string, unknown> | null
@@ -33,6 +37,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 // DELETE → anular un registro mal creado
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
   const sb = wdb()
