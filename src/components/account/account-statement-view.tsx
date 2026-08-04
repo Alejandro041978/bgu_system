@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { CampusAccessNotice } from './campus-access-notice'
 import { computeTuition } from '@/lib/account-statement'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
 import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil, Plus, Gift, Layers } from 'lucide-react'
@@ -81,6 +82,10 @@ export function AccountStatementView(
       )}
 
       <ProgramAccountView account={account} canGenerate={canGenerate} canDiscount={canDiscount} onChanged={onChanged} student={student} />
+
+      {/* Las reglas de acceso, al pie: es donde el estudiante mira cuando le
+          importa, y el mismo texto lo ve quien atiende desde el ERP. */}
+      <CampusAccessNotice />
     </div>
   )
 }
