@@ -171,6 +171,7 @@ const navigation: NavGroup[] = [
         name: 'Plan Estratégico', href: '/planning/plan', icon: Target, pageKey: 'planning_plan',
         children: [
           { name: 'Cargar Plan', href: '/planning/plan', icon: Target, pageKey: 'planning_plan' },
+          { name: 'Tablero de Indicadores', href: '/planning/indicators', icon: Gauge, pageKey: 'planning_indicators' },
           { name: 'Reportar Avances', href: '/planning/progress', icon: TrendingUp, pageKey: 'planning_progress' },
           { name: 'Dashboard', href: '/planning/dashboard', icon: Gauge, pageKey: 'planning_dashboard' },
         ],

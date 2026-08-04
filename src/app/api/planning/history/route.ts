@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardPlanning } from '@/lib/planning-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -12,6 +13,9 @@ const LEVELS: Record<string, { table: string; parentField: string }> = {
 
 // Elimina una versión superseded del historial (no permite borrar versiones activas)
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const { id, level } = await req.json() as { id: string; level: string }
   const conf = LEVELS[level]
   if (!conf || !id) return NextResponse.json({ error: 'id y level requeridos' }, { status: 400 })
@@ -30,6 +34,9 @@ export async function DELETE(req: NextRequest) {
 // Devuelve todas las versiones (activas y superadas) de una entidad, identificada
 // por su código dentro de un mismo padre, ordenadas cronológicamente.
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const level = req.nextUrl.searchParams.get('level') ?? ''
   const parentId = req.nextUrl.searchParams.get('parent_id')
   const code = req.nextUrl.searchParams.get('code')

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardPlanning } from '@/lib/planning-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const strategyId = req.nextUrl.searchParams.get('strategy_id')
   if (!strategyId) return NextResponse.json({ error: 'strategy_id requerido' }, { status: 400 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,6 +22,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const body = await req.json()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (db() as any)

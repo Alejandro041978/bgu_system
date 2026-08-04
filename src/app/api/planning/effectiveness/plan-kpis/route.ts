@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardPlanning } from '@/lib/planning-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const planId = req.nextUrl.searchParams.get('plan_id')
   if (!planId) return NextResponse.json({ error: 'plan_id requerido' }, { status: 400 })
 
@@ -73,6 +77,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const body = await req.json() as {
     plan_id: string; kpi_id: string; link_type?: string; link_id?: string;
     meta_operator?: string; meta?: number; responsible_id?: string; resultado?: number; resultado_updated_at?: string
@@ -101,6 +108,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const body = await req.json() as {
     id: string; meta_operator?: string | null; meta?: number | null; responsible_id?: string | null;
     resultado?: number | null; resultado_updated_at?: string | null;
@@ -129,6 +139,9 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const { id } = await req.json() as { id: string }
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

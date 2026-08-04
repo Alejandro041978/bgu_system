@@ -95,6 +95,7 @@ const PAGE_GROUPS = [
     label: 'Planeamiento',
     pages: [
       { key: 'planning_plan', label: 'Plan Estratégico · Cargar Plan' },
+      { key: 'planning_indicators', label: 'Plan Estratégico · Tablero de Indicadores' },
       { key: 'planning_progress', label: 'Plan Estratégico · Reportar Avances' },
       { key: 'planning_dashboard', label: 'Plan Estratégico · Dashboard' },
       { key: 'effectiveness_kpis', label: 'Plan de Efectividad · KPIs' },

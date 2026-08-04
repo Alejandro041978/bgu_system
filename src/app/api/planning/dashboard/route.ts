@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardPlanning } from '@/lib/planning-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -11,6 +12,9 @@ function avg(nums: number[]) {
 // Rollup de avance por Dimensión > Objetivo > Estrategia > Acción para un año dado,
 // calculado a partir de los reportes anuales de cada Acción por Responsable.
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const cycleId = req.nextUrl.searchParams.get('cycle_id')
   const year = req.nextUrl.searchParams.get('year')
   if (!cycleId || !year) return NextResponse.json({ error: 'cycle_id y year requeridos' }, { status: 400 })

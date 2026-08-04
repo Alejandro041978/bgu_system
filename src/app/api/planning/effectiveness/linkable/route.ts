@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardPlanning } from '@/lib/planning-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 // Returns strategic plan items valid for a given year (SCD Type 2 aware).
 // Falls back to the most recent version with valid_from_year <= plan_year if no exact match.
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const linkType = req.nextUrl.searchParams.get('link_type') ?? ''
   const planYear = parseInt(req.nextUrl.searchParams.get('plan_year') ?? '0')
   if (!planYear || !linkType) {

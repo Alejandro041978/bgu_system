@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardPlanning } from '@/lib/planning-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -7,6 +8,9 @@ type AnyDB = any
 
 // Returns { [formula_type]: number } for the given date range
 export async function GET(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const start = req.nextUrl.searchParams.get('start_date')
   const end = req.nextUrl.searchParams.get('end_date')
   if (!start || !end) return NextResponse.json({ error: 'start_date y end_date requeridos' }, { status: 400 })

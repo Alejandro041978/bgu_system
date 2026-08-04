@@ -50,6 +50,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/finance/debt-report', 'finance_debt_report'],
   ['/finance/recaudacion', 'finance_recaudacion'],
   ['/ia/sofia-supervisor', 'sofia_supervisor'],
+  ['/planning/indicators', 'planning_indicators'],
   ['/academic/retencion', 'academic_retention'],
   ['/academic/schedules', 'academic_schedules'],
   ['/collection/bonuses', 'collection_bonuses'],

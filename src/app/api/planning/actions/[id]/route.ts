@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardPlanning } from '@/lib/planning-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -8,6 +9,9 @@ const SELECT = '*, responsibles:strategic_action_responsibles(id, role, assigned
 // PATCH simple = ajustar estado/avance sin versionar (ej. progress_pct, status: completed/at_risk/overdue)
 // Para cambios de redacción (name/description/valid_from_year/strategy) usar PATCH con revise=true
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const { id } = await params
   const body = await req.json()
   const supabase = db()
@@ -59,6 +63,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+
   const { id } = await params
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (db() as any).from('strategic_actions').delete().eq('id', id)
