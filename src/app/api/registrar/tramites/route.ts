@@ -85,7 +85,7 @@ export async function PATCH(req: NextRequest) {
   }
   const sb = db()
   const { data: r } = await sb.from('tramite_requests')
-    .select('id, status, charge_external_id').eq('id', b.id).maybeSingle()
+    .select('id, status, charge_external_id, tramite_type_id, student_id').eq('id', b.id).maybeSingle()
   if (!r) return NextResponse.json({ error: 'Trámite no encontrado' }, { status: 404 })
   const now = new Date().toISOString()
 
@@ -103,7 +103,27 @@ export async function PATCH(req: NextRequest) {
       resolution_note: b.resolution_note?.trim() || null,
     }).eq('id', b.id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, status: 'atendido' })
+
+    // Un trámite que reincorpora (hoy, Re-entry) tiene que cerrar el retiro.
+    //
+    // Hasta ahora dependía de que alguien se acordara de apretar el botón
+    // manual en Retiros. Con 37 reingresos históricos falló dos veces: dos
+    // estudiantes pagaron, volvieron a matricularse y el sistema los siguió
+    // teniendo como retiro permanente — sin campus y contados como bajas.
+    //
+    // Va por bandera del catálogo y no por el nombre del trámite: mañana habrá
+    // otro que también reincorpore y no debería hacer falta un despliegue.
+    let reincorporados = 0
+    const { data: tipo } = await sb.from('tramite_types')
+      .select('reincorporates').eq('id', r.tramite_type_id).maybeSingle()
+    if (tipo?.reincorporates && r.student_id) {
+      const { data: cerrados } = await sb.from('student_withdrawals')
+        .update({ status: 'reincorporado' })
+        .eq('student_id', r.student_id).eq('status', 'vigente')
+        .select('id')
+      reincorporados = (cerrados ?? []).length
+    }
+    return NextResponse.json({ ok: true, status: 'atendido', reincorporados })
   }
 
   // anular
