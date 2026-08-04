@@ -48,19 +48,24 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
 }
 
-// POST → reenvía las credenciales al correo personal.
+// POST { accion?: 'reenviar' | 'restablecer' } → emite una contraseña temporal
+// nueva y la envía al correo personal.
 //
 // "Reenviar el correo original" no existe: la contraseña se genera al crear la
-// cuenta y no se guarda en ninguna parte. Así que esto emite una contraseña
-// temporal NUEVA y manda el mismo mensaje con ella.
+// cuenta y no se guarda en ninguna parte. Las dos acciones hacen lo mismo por
+// dentro; lo que cambia es a quién se le permite.
 //
-// Solo si el estudiante NUNCA ha entrado. Si ya entró, tiene su propia
-// contraseña y pisarla le quitaría el acceso — que es justo lo contrario de lo
-// que se busca.
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+//   reenviar    → solo si NUNCA entró. Es el caso inocuo: no hay contraseña
+//                 propia que pisar, así que no se pide confirmación.
+//   restablecer → también si ya entró. Le quita la contraseña que estaba
+//                 usando, y por eso hay que pedirlo explícitamente: es la
+//                 respuesta a "olvidé mi contraseña y no puedo recuperarla".
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const g = await guard()
   if (g.error) return g.error
   const { id } = await params
+  const body = await req.json().catch(() => null) as { accion?: string } | null
+  const restablecer = body?.accion === 'restablecer'
   const sb = db()
   const s = await loadStudent(sb, id)
   if (!s) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
@@ -76,7 +81,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 })
   }
   if (!st.exists) return NextResponse.json({ error: `La cuenta ${s.email_alt} no existe en Google Workspace` }, { status: 409 })
-  if (st.everLoggedIn) {
+  if (st.everLoggedIn && !restablecer) {
     return NextResponse.json({
       error: `El estudiante ya usó su cuenta (último acceso: ${new Date(st.lastLoginTime!).toLocaleString('es-PE')}). Reenviar generaría una contraseña nueva y le quitaría el acceso que ya tiene.`,
       ever_logged_in: true, last_login_time: st.lastLoginTime,
@@ -85,8 +90,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   try {
     const created = await resetStudentPassword(s.email_alt)
-    await notifyStudentEmail(s.email, [s.first_name, s.last_name].filter(Boolean).join(' '), created, langFor(s.country))
-    return NextResponse.json({ ok: true, sent_to: s.email, email: s.email_alt })
+    await notifyStudentEmail(
+      s.email, [s.first_name, s.last_name].filter(Boolean).join(' '),
+      created, langFor(s.country), restablecer ? 'reset' : 'alta',
+    )
+    return NextResponse.json({ ok: true, sent_to: s.email, email: s.email_alt, restablecida: restablecer })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }

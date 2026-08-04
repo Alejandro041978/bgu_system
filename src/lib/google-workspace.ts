@@ -129,6 +129,26 @@ export async function createStudentEmail(
   return { email: chosen, password }
 }
 
+// Cuando es un restablecimiento y no un alta, el mensaje cambia: decirle
+// "hemos creado para ti un correo" a quien lleva un año usándolo lo confunde y
+// hace que dude de si el correo es legítimo.
+const RESET = {
+  es: {
+    subject: 'Se restableció la contraseña de tu correo universitario',
+    title: 'Nueva contraseña de tu correo Universitario',
+    intro: 'Restablecimos la contraseña de tu correo universitario. Ingresa con la contraseña temporal que aparece abajo: el sistema te pedirá cambiarla apenas entres.',
+    credsTitle: 'Tus credenciales de acceso',
+    dear: (n: string) => `Estimado/a ${n}, si no pediste este cambio, avísanos de inmediato respondiendo a este correo.`,
+  },
+  en: {
+    subject: 'Your university email password has been reset',
+    title: 'New password for your University email',
+    intro: 'We have reset your university email password. Sign in with the temporary password below: the system will ask you to change it as soon as you enter.',
+    credsTitle: 'Your sign-in credentials',
+    dear: (n: string) => `Dear ${n}, if you did not request this change, please let us know immediately by replying to this email.`,
+  },
+}
+
 // Países hispanohablantes (ISO-3) → plantilla en español; el resto en inglés
 const ES_COUNTRIES = new Set(['PER', 'ECU', 'MEX', 'COL', 'CHL', 'ARG', 'BOL', 'CRI', 'CUB', 'DOM', 'SLV', 'ESP', 'GTM', 'HND', 'NIC', 'PAN', 'PRY', 'URY', 'VEN', 'PRI'])
 export const langFor = (country: string | null | undefined): 'es' | 'en' =>
@@ -165,8 +185,10 @@ const T = {
 // agrega SSL, cambiar aquí a https.
 const PORTAL = 'http://email.blackwell.pro/'
 
-function emailHtml(lang: 'es' | 'en', studentName: string, created: EmailCreation): string {
-  const t = T[lang]
+export type MailKind = 'alta' | 'reset'
+
+function emailHtml(lang: 'es' | 'en', studentName: string, created: EmailCreation, kind: MailKind = 'alta'): string {
+  const t = kind === 'reset' ? { ...T[lang], ...RESET[lang] } : T[lang]
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0">
 <tr><td align="center">
@@ -218,14 +240,14 @@ function emailHtml(lang: 'es' | 'en', studentName: string, created: EmailCreatio
 }
 
 // Notificación al correo personal vía Resend (idioma según país del estudiante)
-export async function notifyStudentEmail(personalEmail: string, studentName: string, created: EmailCreation, lang: 'es' | 'en' = 'es'): Promise<void> {
+export async function notifyStudentEmail(personalEmail: string, studentName: string, created: EmailCreation, lang: 'es' | 'en' = 'es', kind: MailKind = 'alta'): Promise<void> {
   if (!process.env.RESEND_API_KEY) throw new Error('Falta RESEND_API_KEY')
   const resend = new Resend(process.env.RESEND_API_KEY)
   const { error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to: personalEmail,
-    subject: T[lang].subject,
-    html: emailHtml(lang, studentName, created),
+    subject: (kind === 'reset' ? RESET[lang] : T[lang]).subject,
+    html: emailHtml(lang, studentName, created, kind),
   })
   if (error) throw new Error(`Resend: ${error.message}`)
 }

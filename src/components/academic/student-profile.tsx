@@ -304,13 +304,20 @@ function StudentEmailAccess({ studentId }: { studentId: string }) {
     return () => { vivo = false }
   }, [studentId])
 
-  async function reenviar() {
+  async function emitir(accion: 'reenviar' | 'restablecer') {
+    // Restablecer le quita la contraseña que está usando: se pregunta antes.
+    if (accion === 'restablecer' && !confirm(
+      `Se le asignará una contraseña temporal NUEVA y la que usa hoy dejará de funcionar.\n\n`
+      + `Las credenciales se enviarán a ${st?.personal_email ?? 'su correo personal'}.\n\n¿Continuar?`
+    )) return
     setBusy(true); setMsg(null); setErr(null)
-    const res = await fetch(`/api/students/${studentId}/student-email-access`, { method: 'POST' })
+    const res = await fetch(`/api/students/${studentId}/student-email-access`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion }),
+    })
     const d = await res.json()
     setBusy(false)
-    if (!res.ok) { setErr(d.error ?? 'No se pudo reenviar'); return }
-    setMsg(`Credenciales nuevas enviadas a ${d.sent_to}`)
+    if (!res.ok) { setErr(d.error ?? 'No se pudo emitir la contraseña'); return }
+    setMsg(`Contraseña temporal nueva enviada a ${d.sent_to}`)
   }
 
   if (loading) return <p className="text-[11px] text-gray-400">Consultando estado de la cuenta…</p>
@@ -320,17 +327,29 @@ function StudentEmailAccess({ studentId }: { studentId: string }) {
   return (
     <div className="space-y-1">
       {st.everLoggedIn ? (
-        <p className="text-[11px] text-gray-500">
-          ✓ Ya usó su cuenta{st.lastLoginTime ? ` (último acceso: ${new Date(st.lastLoginTime).toLocaleDateString('es-PE')})` : ''}.
-          {st.recoveryEmail || st.recoveryPhone
-            ? ' Si olvidó la contraseña, puede recuperarla él mismo.'
-            : ' Sin datos de recuperación: si olvida la contraseña, tiene que restablecerla un administrador de Google.'}
-        </p>
+        <>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] text-gray-500">
+              ✓ Ya usó su cuenta{st.lastLoginTime ? ` (último acceso: ${new Date(st.lastLoginTime).toLocaleDateString('es-PE')})` : ''}.
+              {st.recoveryEmail || st.recoveryPhone
+                ? ' Si olvidó la contraseña, puede recuperarla él mismo.'
+                : ' Sin datos de recuperación: no puede recuperarla solo.'}
+            </span>
+            <button onClick={() => emitir('restablecer')} disabled={busy || !st.personal_email}
+              className="text-[11px] font-medium text-amber-700 hover:underline disabled:opacity-40 disabled:no-underline"
+              title={st.personal_email ? `Enviar a ${st.personal_email}` : 'No tiene correo personal donde enviarlo'}>
+              {busy ? 'Restableciendo…' : 'Restablecer contraseña'}
+            </button>
+          </div>
+          <p className="text-[10.5px] text-gray-400 leading-relaxed">
+            Le asigna una contraseña temporal nueva —la que usa hoy deja de funcionar— y se la envía a su correo personal.
+          </p>
+        </>
       ) : (
         <>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] text-amber-600">Nunca ha entrado a su cuenta.</span>
-            <button onClick={reenviar} disabled={busy || !st.personal_email}
+            <button onClick={() => emitir('reenviar')} disabled={busy || !st.personal_email}
               className="text-[11px] font-medium text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline"
               title={st.personal_email ? `Enviar a ${st.personal_email}` : 'No tiene correo personal donde enviarlo'}>
               {busy ? 'Enviando…' : 'Reenviar credenciales'}
