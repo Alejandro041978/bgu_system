@@ -126,9 +126,13 @@ export async function POST(req: NextRequest) {
     student_id: pago.student_id,
     amount: r2(Number(a.amount)),
     paid_date: pago.paid_date,
-    // Misma referencia y mismo identificador de Flywire: es el mismo giro.
+    // Misma referencia y misma fecha: es el mismo giro, aplicado a otra cuota.
     transaction_reference: pago.transaction_reference,
-    flywire_payment_id: pago.flywire_payment_id,
+    // Pero NO el flywire_payment_id. Ese identifica al giro ante Flywire y solo
+    // puede llevarlo una fila —la base tiene un índice único sobre él—: la del
+    // pago de origen, que es la que lo encarna. Un abono no es un giro nuevo,
+    // así que no compite por esa identidad.
+    distributed_from_payment_id: pago.id,
     series_code: pago.series_code,
     payment_method: pago.payment_method,
     currency_from: pago.currency_from,

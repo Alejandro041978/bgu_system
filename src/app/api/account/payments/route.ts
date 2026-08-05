@@ -38,9 +38,29 @@ export async function DELETE(req: NextRequest) {
 
   // Solo se borran pagos LEGACY de SystemActiva (sin respaldo). Un pago
   // confirmado por Flywire o creado por Books NO se borra desde aquí.
-  const { data: pay } = await sb.from('account_payments')
-    .select('series_code, flywire_payment_id, transaction_reference').eq('id', b.id).maybeSingle()
+  const { data: pay } = await sb.from('account_payments').select('*').eq('id', b.id).maybeSingle()
   if (!pay) return NextResponse.json({ error: 'Pago no encontrado' }, { status: 404 })
+
+  // Deshacer una distribución: el importe VUELVE al pago de origen, no se
+  // destruye. Un abono no es dinero propio —es parte de un giro puesta en otra
+  // cuota—, así que quitarlo tiene que devolverlo a donde estaba, o el giro
+  // dejaría de sumar lo que Flywire mandó.
+  if (pay.distributed_from_payment_id) {
+    const { data: origen } = await sb.from('account_payments')
+      .select('id, amount').eq('id', pay.distributed_from_payment_id).maybeSingle()
+    if (origen) {
+      const { error: eDev } = await sb.from('account_payments')
+        .update({ amount: Math.round((Number(origen.amount) + Number(pay.amount)) * 100) / 100 }).eq('id', origen.id)
+      if (eDev) return NextResponse.json({ error: eDev.message }, { status: 500 })
+    }
+    const { error } = await sb.from('account_payments').delete().eq('id', b.id)
+    if (error) {
+      // Devolver el origen a su importe: mejor dejarlo como estaba.
+      if (origen) await sb.from('account_payments').update({ amount: Number(origen.amount) }).eq('id', origen.id).then(() => null, () => null)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, devuelto_a_origen: !!origen })
+  }
 
   // Excepción: los TROZOS que dejó la migración.
   //

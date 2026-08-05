@@ -176,9 +176,10 @@ export async function getAccountStatement(
     sb.from('account_charges')
       .select('id, external_id, enrollment_id, amount, due_date, charge_type, reference, convocatorias(name)')
       .eq('student_id', student.id),
-    sb.from('account_payments')
-      .select('id, amount, paid_date, receipt_number, transaction_reference, payment_type, charge_external_id, series_code, flywire_payment_id')
-      .eq('student_id', student.id),
+    // '*' a propósito: distributed_from_payment_id puede no existir todavía si
+    // no se corrió distribucion_excedente.sql, y una columna faltante en un
+    // select explícito rompe el estado de cuenta entero.
+    sb.from('account_payments').select('*').eq('student_id', student.id),
   ])
   // Defensa: si aún no se corrió account_charges_reference.sql, reintentar sin
   // la columna nueva (para no romper toda la página por una columna faltante).
@@ -272,8 +273,12 @@ export async function getAccountStatement(
     // así que esto no destapa ningún pago real. Debe coincidir con el candado
     // de /api/account/payments: si divergen, el botón miente.
     const esTrozo = /\(\d+\)\s*$/.test(String(p.transaction_reference ?? ''))
-    const deletable = !esDescuento && p.series_code !== 'FLYWIRE' && p.series_code !== 'BOOKS'
-      && (!p.flywire_payment_id || esTrozo)
+    // Un abono de distribución siempre se puede deshacer: borrarlo devuelve el
+    // importe al pago de origen, no lo destruye. Sin esto una distribución mal
+    // hecha sería irreversible.
+    const esAbono = !!p.distributed_from_payment_id
+    const deletable = !esDescuento && (esAbono
+      || (p.series_code !== 'FLYWIRE' && p.series_code !== 'BOOKS' && (!p.flywire_payment_id || esTrozo)))
     g.payments.push({
       id: p.id, charge_external_id: p.charge_external_id ?? null, amount, paid_date: p.paid_date,
       receipt_number: p.receipt_number, transaction_reference: p.transaction_reference, payment_type: p.payment_type,
