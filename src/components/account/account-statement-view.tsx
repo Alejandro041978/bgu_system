@@ -282,6 +282,12 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
                       {r.first && canGenerate && (
                         <DeleteChargeButton charge={c} disabled={c.paid > 0.005} onChanged={onChanged} />
                       )}
+                      {/* El excedente se reparte desde el pago concreto que lo
+                          dejó, no desde la cuota: con varios pagos encima, "de
+                          cuál sobra" solo lo sabe quien mira el giro. */}
+                      {p && !p.is_discount && c.balance < -0.005 && canGenerate && (
+                        <DistributeButton payment={p} charge={c} charges={account.charges} onChanged={onChanged} />
+                      )}
                     </span>
                   </td>
                 </tr>
@@ -297,6 +303,118 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
 // Aplicar descuento a una cuota (solo SUPERADMIN — el backend lo exige).
 // El descuento reduce el saldo como un pago, con serie DESCUENTO y código;
 // arriba suma en su propia tarjeta. Las becas seguirán esta estructura.
+// Repartir el saldo a favor de una cuota entre las cuotas que deben.
+//
+// El estudiante gira el total del programa cuando lo único facturado es la
+// matrícula. Ese dinero se queda sobre la matrícula como saldo a favor, y
+// según van naciendo las cuotas —la primera de tuition, meses después el cargo
+// del certificado— Cobranzas lo va aplicando. Puede hacerse en varias veces:
+// lo que no se reparte hoy sigue disponible mañana.
+function DistributeButton(
+  { payment, charge, charges, onChanged }:
+  { payment: PaymentRow; charge: ChargeRow; charges: ChargeRow[]; onChanged?: () => void }
+) {
+  const [abierto, setAbierto] = useState(false)
+  const [montos, setMontos] = useState<Record<string, string>>({})
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Tope real: no se puede mover más de lo que sobra en la cuota ni más de lo
+  // que trajo este pago.
+  const disponible = Math.round(Math.min(-charge.balance, payment.amount) * 100) / 100
+  const deben = charges.filter(c => c.external_id !== charge.external_id && c.balance > 0.005)
+    .sort((a, b) => (a.due_date ?? '9999').localeCompare(b.due_date ?? '9999'))
+
+  // Propuesta por defecto: las más antiguas primero, que es como se cobra.
+  const abrir = () => {
+    let queda = disponible
+    const prop: Record<string, string> = {}
+    for (const c of deben) {
+      const da = Math.round(Math.min(queda, c.balance) * 100) / 100
+      if (da > 0.005) { prop[c.external_id] = da.toFixed(2); queda = Math.round((queda - da) * 100) / 100 }
+    }
+    setMontos(prop); setError(null); setAbierto(true)
+  }
+
+  const repartido = Math.round(Object.values(montos).reduce((s, v) => s + (Number(v) || 0), 0) * 100) / 100
+  const sobra = Math.round((disponible - repartido) * 100) / 100
+
+  const guardar = async () => {
+    setGuardando(true); setError(null)
+    const res = await fetch('/api/account/distribute', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        payment_id: payment.id,
+        allocations: Object.entries(montos)
+          .map(([charge_external_id, v]) => ({ charge_external_id, amount: Number(v) || 0 }))
+          .filter(a => a.amount > 0),
+      }),
+    })
+    const d = await res.json().catch(() => ({}))
+    setGuardando(false)
+    if (!res.ok) { setError(d.error ?? 'No se pudo distribuir'); return }
+    setAbierto(false); onChanged?.()
+  }
+
+  return (
+    <>
+      <button onClick={abrir} title={`Distribuir ${money(disponible)} de saldo a favor`}
+        className="text-emerald-600 hover:text-emerald-800">
+        <Layers className="w-3.5 h-3.5" />
+      </button>
+      {abierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setAbierto(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-5" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-900">Distribuir saldo a favor</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Del pago {payment.transaction_reference ?? 'sin referencia'} de {money(payment.amount)} sobre{' '}
+              {charge.concept_name}. Disponible: <strong className="text-emerald-700">{money(disponible)}</strong>.
+            </p>
+
+            {deben.length === 0 ? (
+              <p className="text-sm text-gray-500 py-8 text-center">
+                No hay cuotas pendientes. El saldo queda a favor hasta que nazca la próxima.
+              </p>
+            ) : (
+              <div className="mt-4 space-y-1.5 max-h-72 overflow-y-auto">
+                {deben.map(c => (
+                  <div key={c.external_id} className="flex items-center gap-3 text-sm">
+                    <span className="flex-1 text-gray-700">
+                      {c.concept_name}
+                      <span className="text-gray-400"> · vence {fdate(c.due_date)} · debe {money(c.balance)}</span>
+                    </span>
+                    <input type="number" step="0.01" min="0" max={c.balance}
+                      value={montos[c.external_id] ?? ''}
+                      onChange={e => setMontos({ ...montos, [c.external_id]: e.target.value })}
+                      className="w-24 border rounded-lg px-2 py-1 text-right text-sm" placeholder="0.00" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 flex items-center justify-between text-sm border-t pt-3">
+              <span className="text-gray-500">
+                Repartes <strong className="text-gray-900">{money(repartido)}</strong>
+                {sobra > 0.005 && <> · quedan {money(sobra)} a favor</>}
+              </span>
+              {sobra < -0.005 && <span className="text-red-600 text-xs">Te pasas por {money(-sobra)}</span>}
+            </div>
+            {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setAbierto(false)} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900">Cancelar</button>
+              <button onClick={guardar} disabled={guardando || repartido <= 0.005 || sobra < -0.005}
+                className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg disabled:opacity-40 inline-flex items-center gap-1.5">
+                {guardando && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Distribuir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 function DiscountButton({ charge, onChanged }: { charge: ChargeRow; onChanged?: () => void }) {
   const [busy, setBusy] = useState(false)
   async function apply() {

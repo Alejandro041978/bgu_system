@@ -87,11 +87,23 @@ export async function POST(req: NextRequest) {
     const { data: exists } = await sb.from('account_payments')
       .select('id').eq('flywire_payment_id', paymentId).maybeSingle()
     if (!exists) {
-      // Saldo actual de la cuota (para marcarla pagada en pago de cuota completa)
+      // Se registra LO QUE LLEGÓ, no lo que cabe en la cuota.
+      //
+      // Antes esto tomaba el saldo de la cuota e ignoraba el importe del aviso:
+      // un giro de $400 contra una cuota de $150 entraba como $150 y los otros
+      // $250 desaparecían del ERP. Y desaparecían callando, porque la cuota
+      // quedaba Pagada y el estado de cuenta cuadraba consigo mismo.
+      //
+      // El excedente es legítimo y frecuente: el estudiante gira el total del
+      // programa cuando lo único facturado es la matrícula. Queda como saldo a
+      // favor sobre esa cuota y Cobranzas lo reparte a las cuotas que vayan
+      // naciendo (botón "Distribuir excedente" del estado de cuenta).
       const { data: pays } = await sb.from('account_payments').select('amount').eq('charge_external_id', externalRef)
       const paid = (pays ?? []).reduce((s: number, p: { amount: number }) => s + Number(p.amount ?? 0), 0)
       const balance = Math.round((Number(charge.amount ?? 0) - paid) * 100) / 100
-      const amount = balance > 0 ? balance : Number(charge.amount ?? 0)
+      const recibido = num(body?.amount_to)
+      const amount = recibido != null && recibido > 0 ? recibido
+        : (balance > 0 ? balance : Number(charge.amount ?? 0))
 
       await sb.from('account_payments').insert({
         external_id: crypto.randomUUID(),
