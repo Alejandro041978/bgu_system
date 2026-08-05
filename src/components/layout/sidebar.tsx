@@ -156,6 +156,7 @@ const navigation: NavGroup[] = [
         children: [
           { name: 'Años y Semestres', href: '/academic/years', icon: CalendarDays, pageKey: 'academic_years' },
           { name: 'Programas', href: '/academic/programs', icon: BookOpen, pageKey: 'academic_programs' },
+          { name: 'Sílabos', href: '/academic/syllabi', icon: FileText, pageKey: 'academic_syllabi' },
           { name: 'Oferta', href: '/academic/offer', icon: ClipboardList, pageKey: 'academic_offer' },
           { name: 'Grupos', href: '/academic/groups', icon: Users, pageKey: 'academic_groups' },
           { name: 'Carruseles', href: '/academic/carruseles', icon: Layers, pageKey: 'academic_carousels' },

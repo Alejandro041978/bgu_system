@@ -85,6 +85,7 @@ const PAGE_GROUPS = [
       // Gestión académica
       { key: 'academic_years', label: 'Años y Semestres' },
       { key: 'academic_programs', label: 'Programas' },
+      { key: 'academic_syllabi', label: 'Sílabos' },
       { key: 'academic_offer', label: 'Oferta académica' },
       { key: 'academic_groups', label: 'Grupos' },
       { key: 'academic_carousels', label: 'Carruseles' },
