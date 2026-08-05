@@ -89,11 +89,32 @@ export async function GET(req: NextRequest) {
   // Sección 2: pagos ENTREGADOS en Flywire que no existen como pago en el ERP
   // (sin estudiante resuelto, nombre ambiguo o excluidos a propósito al importar).
   // Viven en flywire_events; salen de aquí al registrarlos o descartarlos.
-  const flyIds = new Set<string>()
+  //
+  // Se compara por IMPORTE, no por presencia. Antes bastaba con que UNA fila
+  // llevara la referencia para dar el giro por registrado entero: un pago de
+  // $400 del que el ERP solo tenía $150 desaparecía de la bandeja con $250 sin
+  // asignar. Así se perdieron de vista 65 giros y unos $5.100 —los que Activa
+  // había troceado mal al migrar—, porque nadie los veía en ninguna pantalla.
+  //
+  // Las devoluciones no cuentan como registro: son la sombra del pago, no el
+  // pago. Si restaran aquí, un reembolso haría reaparecer el giro en la
+  // bandeja pidiendo que se vuelva a asignar el dinero devuelto.
+  // Y se cuenta por las DOS vías en que un pago puede llevar su referencia. Las
+  // filas que dejó la migración de Activa no tienen flywire_payment_id: llevan
+  // la referencia dentro de transaction_reference, con un sufijo "(1)", "(2)"
+  // por cada trozo. Contar solo el campo propio las dejaría fuera, el pendiente
+  // saldría inflado y Cobranzas registraría dinero que ya estaba.
+  const registradoPorRef = new Map<string, number>()
   for (let from = 0; ; from += 1000) {
     const { data } = await sb.from('account_payments')
-      .select('flywire_payment_id').not('flywire_payment_id', 'is', null).range(from, from + 999)
-    for (const p of (data ?? [])) flyIds.add(p.flywire_payment_id)
+      .select('flywire_payment_id, transaction_reference, amount, refund_of_payment_id').range(from, from + 999)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const p of ((data ?? []) as any[])) {
+      if (p.refund_of_payment_id) continue
+      const ref = p.flywire_payment_id ?? String(p.transaction_reference ?? '').match(/(ZBL[0-9A-Za-z]+)/)?.[1]
+      if (!ref) continue
+      registradoPorRef.set(ref, (registradoPorRef.get(ref) ?? 0) + Number(p.amount ?? 0))
+    }
     if ((data ?? []).length < 1000) break
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -114,16 +135,23 @@ export async function GET(req: NextRequest) {
     if (!curr || (e.status === 'delivered' && curr.status !== 'delivered')) bestByRef.set(e.payment_id, e)
   }
   const sinRegistrar = [...bestByRef.values()]
-    .filter(e => !flyIds.has(e.payment_id) && !descartados.has(e.payment_id))
-    .map(e => ({
-      reference: e.payment_id,
-      status: e.status,
-      name: [e.raw?.first_name, e.raw?.last_name].filter(Boolean).join(' ') || '(sin nombre)',
-      dni: e.raw?.dni || null,
-      amount: Number(e.raw?.amount) || 0,
-      method: e.raw?.method || null,
-      fecha: e.raw?.finished_date ? String(e.raw.finished_date).slice(0, 10) : null,
-    }))
+    .filter(e => !descartados.has(e.payment_id))
+    .map(e => {
+      const total = Number(e.raw?.amount) || 0
+      const registrado = Math.round((registradoPorRef.get(e.payment_id) ?? 0) * 100) / 100
+      return {
+        reference: e.payment_id,
+        status: e.status,
+        name: [e.raw?.first_name, e.raw?.last_name].filter(Boolean).join(' ') || '(sin nombre)',
+        dni: e.raw?.dni || null,
+        amount: total,
+        registrado,
+        pendiente: Math.round((total - registrado) * 100) / 100,
+        method: e.raw?.method || null,
+        fecha: e.raw?.finished_date ? String(e.raw.finished_date).slice(0, 10) : null,
+      }
+    })
+    .filter(e => e.pendiente > 0.01)
     .sort((a, b) => (a.fecha ?? '') < (b.fecha ?? '') ? -1 : 1)
 
   return NextResponse.json({
@@ -213,11 +241,26 @@ export async function PATCH(req: NextRequest) {
     if (!b.student_id) return NextResponse.json({ error: 'Falta student_id o dismiss' }, { status: 400 })
     const { data: stu } = await sb.from('academic_students').select('id').eq('id', b.student_id).maybeSingle()
     if (!stu) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
-    const { data: dup } = await sb.from('account_payments').select('id').eq('flywire_payment_id', b.flywire_ref).limit(1)
-    if ((dup ?? []).length) return NextResponse.json({ error: 'Esa referencia ya está registrada como pago' }, { status: 409 })
-
     const raw = ev.raw ?? {}
-    const amount = Number(raw.amount) || 0
+    // Se registra LO QUE FALTA de ese giro, no el giro entero.
+    //
+    // Una referencia puede estar registrada a medias —así llegaron los giros
+    // que Activa troceó mal—. Insertar el total duplicaría lo ya anotado; el
+    // pendiente lo completa exactamente hasta lo que Flywire dice que mandó.
+    // Por las dos vías: los trozos de Activa llevan la referencia dentro de
+    // transaction_reference ("ZBL… (1)"), no en flywire_payment_id.
+    const { data: yaHay } = await sb.from('account_payments')
+      .select('amount, refund_of_payment_id')
+      .or(`flywire_payment_id.eq.${b.flywire_ref},transaction_reference.ilike.%${b.flywire_ref}%`)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const registrado = ((yaHay ?? []) as any[])
+      .filter(p => !p.refund_of_payment_id)
+      .reduce((s, p) => s + Number(p.amount ?? 0), 0)
+    const total = Number(raw.amount) || 0
+    const amount = Math.round((total - registrado) * 100) / 100
+    if (amount <= 0.01) {
+      return NextResponse.json({ error: `Esa referencia ya está registrada por completo ($${registrado.toFixed(2)} de $${total.toFixed(2)})` }, { status: 409 })
+    }
     const paidDate = raw.finished_date ? String(raw.finished_date).slice(0, 10) : new Date().toISOString().slice(0, 10)
     // Cuota destino: elegida por el humano (charge_external_id), explícitamente
     // ninguna (no_link → queda en la bandeja de pagos sin cuota), o el
