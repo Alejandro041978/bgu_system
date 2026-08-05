@@ -112,3 +112,24 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
     summary: { ...summary, total: rows.length },
   }
 }
+
+// Créditos que el estudiante LLEVA de este programa.
+//
+// Lleva una asignatura la que tiene vida académica en su expediente:
+// convalidada, validada, aprobada, desaprobada o en proceso. Quedan fuera las
+// PENDIENTES, que son dos cosas distintas con el mismo nombre —las que retiró
+// y las que nunca abrió— y ninguna de las dos se paga.
+//
+// De aquí sale el precio oficial. Antes salía de sumar la malla entera, que
+// acierta solo con quien cursa las 40 asignaturas y cobra de más a todos los
+// demás: quien convalida veinte y se retira de seis no lleva un programa
+// completo, y su precio no puede decir que sí.
+//
+// Se calcula, no se guarda. Un retiro o una convalidación cambian lo que lleva
+// —a Milagros le cambió el precio con seis retiros de un martes por la tarde—,
+// y un número congelado habría quedado mintiendo desde ese mismo minuto.
+export function creditosQueLleva(acta: Acta): number {
+  return acta.courses
+    .filter(c => c.status !== 'pendiente')
+    .reduce((s, c) => s + Number(c.credits ?? 0), 0)
+}

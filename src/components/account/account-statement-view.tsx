@@ -142,8 +142,14 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
         const subTotal = ['precio oficial', ahorro > 0 ? 'ahorro' : null, 'beca', account.bonus_pct != null ? 'bonus' : null].filter(Boolean).join(' − ')
         return (
           <div className="flex flex-wrap gap-3">
+            {/* Los créditos son un dato, no una división. Antes se deducían de
+                lista ÷ tarifa, así que la tarjeta decía "102 cr" sin que
+                existiera ningún sitio con 102 créditos: era el rastro de un
+                precio mal calculado, disfrazado de cuenta exacta. */}
             <div className="flex-1 min-w-[160px]"><Card icon={<BadgeDollarSign className="w-4 h-4" />} label="Precio oficial" value={money(lista)} cls="text-blue-700"
-              sub={account.credit_rate ? `${Math.round(lista / account.credit_rate)} cr × ${money(account.credit_rate)}` : undefined} /></div>
+              sub={account.credit_rate
+                ? `${account.billable_credits ?? Math.round(lista / account.credit_rate)} cr que lleva × ${money(account.credit_rate)}`
+                : undefined} /></div>
             {ahorro > 0 && (
               <div className="flex-1 min-w-[160px]"><Card icon={<FileCheck className="w-4 h-4" />} label="Transfer Credit Savings" value={money(ahorro)} cls="text-teal-700"
                 sub={`${account.transfer_credits} cr convalidados × ${money(account.credit_rate!)}`} /></div>

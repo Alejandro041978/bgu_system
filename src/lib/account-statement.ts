@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { computeActa, creditosQueLleva } from './acta'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -39,10 +40,16 @@ export interface ProgramAccount {
   enrollment_id: string | null
   convocatoria_id: string | null
   program_name: string
-  // Precio oficial congelado en la matrícula (tarifario regulado):
-  // list_price = credit_rate × créditos del programa
+  // Precio oficial = credit_rate × créditos QUE LLEVA el estudiante.
+  //
+  // La tarifa sí queda congelada en la matrícula: es el tarifario regulado
+  // vigente en su fecha de ingreso y no cambia nunca. Lo que se calcula en vivo
+  // es el número de créditos, porque no es un precio: es un hecho académico que
+  // se mueve con cada retiro y cada convalidación.
   credit_rate: number | null
   list_price: number | null
+  // Créditos que sustentan ese precio, para poder mostrarlos sin dividir.
+  billable_credits: number | null
   // Beca activa: solo el PORCENTAJE es dato; el monto se deriva de la base
   scholarship_pct: number | null
   // Bono activo (%): se aplica sobre lo que resta DESPUÉS de la beca
@@ -207,9 +214,9 @@ export async function getAccountStatement(
 
   const today = new Date().toISOString().slice(0, 10)
   const groups = new Map<string, ProgramAccount>()
-  const newGroup = (enr: string | null, conv: string | null, name: string, rate: number | null = null, list: number | null = null, tcCredits: number | null = null): ProgramAccount => ({
+  const newGroup = (enr: string | null, conv: string | null, name: string, rate: number | null = null, list: number | null = null, tcCredits: number | null = null, billable: number | null = null): ProgramAccount => ({
     enrollment_id: enr, convocatoria_id: conv, program_name: name,
-    credit_rate: rate, list_price: list,
+    credit_rate: rate, list_price: list, billable_credits: billable,
     scholarship_pct: enr ? (scholarshipPct.get(enr) ?? null) : null,
     bonus_pct: enr ? (bonusPct.get(enr) ?? null) : null,
     bonus_amount: enr ? (bonusAmount.get(enr) ?? null) : null,
@@ -217,13 +224,31 @@ export async function getAccountStatement(
     totals: { charged: 0, paid: 0, discounts: 0, balance: 0, overdue: 0 }, charges: [], payments: [],
   })
 
-  // Un grupo por cada matrícula (aunque no tenga cuotas)
+  // Un grupo por cada matrícula (aunque no tenga cuotas).
+  //
+  // El precio oficial se CALCULA aquí, no se lee del snapshot. La tarifa sí
+  // viene congelada —es el tarifario de su fecha de ingreso—, pero los créditos
+  // salen del acta: son los que el estudiante lleva hoy. El snapshot list_price
+  // queda como respaldo para las matrículas sin acta calculable (sin programa,
+  // o sin asignaturas cargadas todavía).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const e of (enrData ?? []) as any[]) {
     const tc = e.program_id ? (transferCreditsByProgram.get(String(e.program_id)) ?? null) : null
+    const rate = e.credit_rate != null ? Number(e.credit_rate) : null
+
+    let creditos: number | null = null
+    if (e.program_id) {
+      try {
+        const acta = await computeActa(sb, student.id, String(e.program_id))
+        if (acta) creditos = creditosQueLleva(acta)
+      } catch { /* sin acta: se cae al snapshot */ }
+    }
+    const lista = rate != null && creditos != null && creditos > 0
+      ? Math.round(rate * creditos * 100) / 100
+      : (e.list_price != null ? Number(e.list_price) : null)
+
     groups.set(e.id, newGroup(e.id, e.convocatoria_id ?? null, e.academic_programs?.name ?? 'Programa',
-      e.credit_rate != null ? Number(e.credit_rate) : null, e.list_price != null ? Number(e.list_price) : null,
-      tc && tc > 0 ? tc : null))
+      rate, lista, tc && tc > 0 ? tc : null, creditos))
   }
   const ensureOrphan = () => {
     let g = groups.get('∅')
