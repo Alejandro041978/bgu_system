@@ -50,12 +50,19 @@ export async function emitCertificate(input: EmitInput): Promise<EmitResult> {
     return { ok: false, error: 'No se pudo conectar con SimpleCert: ' + (e as Error).message }
   }
 
-  const data = await res.json().catch(() => null)
+  const raw = await res.text()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let data: any = null
+  try { data = JSON.parse(raw) } catch { /* SimpleCert no siempre responde JSON */ }
   if (!res.ok) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const errs = (data as any)?.errors
-    const msg = Array.isArray(errs) ? errs.join('; ') : (data as { message?: string })?.message
-    return { ok: false, error: msg || `SimpleCert respondió ${res.status}` }
+    const msg = Array.isArray(errs) ? errs.join('; ')
+      : typeof errs === 'object' && errs ? JSON.stringify(errs)
+      : (data as { message?: string; error?: string })?.message ?? (data as { error?: string })?.error
+    // Sin cuerpo reconocible, "respondió 400" no dice nada y deja a Registros sin
+    // por dónde empezar. El cuerpo crudo, aunque sea feo, sí dice qué rechazó.
+    return { ok: false, error: msg || `SimpleCert respondió ${res.status}: ${raw.slice(0, 400) || '(sin cuerpo)'}` }
   }
 
   const certificateUrl = (data as { certificate_url?: string })?.certificate_url
