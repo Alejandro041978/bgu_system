@@ -71,6 +71,10 @@
     {
       "path": "/api/cron/moodle-access",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/document-payments",
+      "schedule": "50 * * * *"
     }
   ]
 }

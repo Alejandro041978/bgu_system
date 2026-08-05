@@ -75,6 +75,36 @@ export async function maybeMarkDocumentPaid(chargeExternalId: string): Promise<b
   return true
 }
 
+// Repasa TODAS las solicitudes que esperan pago y adelanta las que ya tienen la
+// cuota saldada.
+//
+// maybeMarkDocumentPaid es un gatillo: alguien tiene que tirar de él en el
+// momento del pago. Se había colgado de la conciliación manual, de los
+// descuentos y de Books, pero no de Flywire —que es por donde entra casi todo
+// el dinero—, así que un estudiante pagaba y su solicitud se quedaba en
+// "esperando pago" para siempre. Nadie se enteraba: la cuota salía Pagada en el
+// estado de cuenta y solo la solicitud sabía que seguía esperando.
+//
+// El barrido cierra ese hueco por el otro lado: en vez de acordarse de llamar
+// al gatillo desde cada ruta que registra pagos —hoy son quince—, comprueba el
+// resultado. Una ruta nueva que olvide el gatillo ya no deja a nadie atascado;
+// como mucho lo atiende con retraso.
+export async function sweepDocumentPayments(): Promise<{ revisadas: number; avanzadas: string[] }> {
+  const sb = db()
+  const { data: pend } = await sb.from('document_requests')
+    .select('id, charge_external_id').eq('status', 'payment').not('charge_external_id', 'is', null)
+
+  const avanzadas: string[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const r of ((pend ?? []) as any[])) {
+    // En serie a propósito: cada avance puede emitir un carné ISIC contra la
+    // CCDB, que admite 3 peticiones por segundo. Son decenas de filas al día.
+    try { if (await maybeMarkDocumentPaid(r.charge_external_id)) avanzadas.push(r.id) }
+    catch (e) { console.error('sweepDocumentPayments', r.id, e) }
+  }
+  return { revisadas: (pend ?? []).length, avanzadas }
+}
+
 // Cuántos días antes del vencimiento se abre la revalidación del carné. El
 // usuario lo pidió "a la víspera del vencimiento": un mes de margen para que el
 // estudiante alcance a pagar y no se quede sin carné ni un día.
