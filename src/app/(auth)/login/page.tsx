@@ -32,12 +32,16 @@ export default function LoginPage() {
       return
     }
     setLoading(true)
-    const supabase = createClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/update-password`,
-    })
+    // Por nuestro canal, no por el SMTP de Supabase: ese no se ve ni se
+    // registra, y con 48 solicitudes en un día nadie podía decir si salían.
+    // La ruta responde ok siempre —no revela si el correo tiene cuenta—, así
+    // que un error aquí solo puede ser de red o de formato.
+    const res = await fetch('/api/auth/recover', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).catch(() => null)
     setLoading(false)
-    if (error) {
+    if (!res || !res.ok) {
       setError('No pudimos enviar el correo de recuperación. Verifica tu email e intenta de nuevo.')
       return
     }
