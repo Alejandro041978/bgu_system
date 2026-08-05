@@ -29,9 +29,33 @@ export async function maybeMarkDocumentPaid(chargeExternalId: string): Promise<b
   const pagado = ((pays ?? []) as any[]).reduce((s, p) => s + Number(p.amount ?? 0), 0)
   if (pagado < Number(charge?.amount ?? 0) - 0.01) return false
 
-  const { data: type } = await sb.from('document_types').select('stages, is_final_degree, isic_card').eq('id', r.document_type_id).maybeSingle()
+  const { data: type } = await sb.from('document_types')
+    .select('stages, is_final_degree, isic_card, simplecert_project_id').eq('id', r.document_type_id).maybeSingle()
   const status = (type?.stages ?? []).length > 0 ? 'in_progress' : 'ready'
   await sb.from('document_requests').update({ paid: true, status, updated_at: new Date().toISOString() }).eq('id', r.id)
+
+  // Documento de SimpleCert sin etapas: el pago lo emite. Un trámite que no
+  // pide intervención manual no debe esperar a que alguien pulse un botón.
+  //
+  // Al CREAR la solicitud esto ya se hacía —un documento gratuito y sin etapas
+  // se emitía en el acto—, pero al PAGARLA no: el mismo documento se comportaba
+  // distinto según si costaba dinero, y justo el que cuesta se quedaba parado.
+  //
+  // emitDocument revalida el pago por su cuenta y deja la solicitud en
+  // 'delivered'; si falla, se queda en 'ready' con el botón de Registros, que
+  // es exactamente el comportamiento de antes.
+  if (type?.simplecert_project_id && !type?.isic_card && status === 'ready') {
+    try {
+      const res = await emitDocument(r.id)
+      if (!res.ok) {
+        await sb.from('document_requests').update({
+          notes: `Emisión automática pendiente: ${res.error ?? 'error desconocido'}`, updated_at: new Date().toISOString(),
+        }).eq('id', r.id)
+      }
+    } catch (e) {
+      console.error('emitDocument tras pago', e)
+    }
+  }
 
   // Carné internacional (ISIC): el pago lo emite solo. No hay PDF que generar
   // — se da de alta en la CCDB de ISIC y el estudiante recibe el enlace para
@@ -89,7 +113,13 @@ export async function maybeMarkDocumentPaid(chargeExternalId: string): Promise<b
 // al gatillo desde cada ruta que registra pagos —hoy son quince—, comprueba el
 // resultado. Una ruta nueva que olvide el gatillo ya no deja a nadie atascado;
 // como mucho lo atiende con retraso.
-export async function sweepDocumentPayments(): Promise<{ revisadas: number; avanzadas: string[] }> {
+//
+// La segunda vuelta recoge las que ya están listas pero nadie emitió. Solo
+// entra a los tipos SIN ETAPAS: esos nunca tuvieron un paso humano por diseño,
+// así que "listo" en ellos significa "esperando un botón que no debería hacer
+// falta". Los que sí tienen etapas se quedan como están — ahí el último clic de
+// Registros es la revisión, y automatizarlo sería saltarse el control.
+export async function sweepDocumentPayments(): Promise<{ revisadas: number; avanzadas: string[]; emitidas: string[] }> {
   const sb = db()
   const { data: pend } = await sb.from('document_requests')
     .select('id, charge_external_id').eq('status', 'payment').not('charge_external_id', 'is', null)
@@ -102,7 +132,26 @@ export async function sweepDocumentPayments(): Promise<{ revisadas: number; avan
     try { if (await maybeMarkDocumentPaid(r.charge_external_id)) avanzadas.push(r.id) }
     catch (e) { console.error('sweepDocumentPayments', r.id, e) }
   }
-  return { revisadas: (pend ?? []).length, avanzadas }
+
+  // Segunda vuelta: automáticos que se quedaron esperando un botón.
+  const { data: tipos } = await sb.from('document_types')
+    .select('id, stages, isic_card, simplecert_project_id').not('simplecert_project_id', 'is', null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const autos = ((tipos ?? []) as any[]).filter(t => !t.isic_card && (t.stages ?? []).length === 0).map(t => t.id)
+
+  const emitidas: string[] = []
+  if (autos.length) {
+    const { data: listas } = await sb.from('document_requests')
+      .select('id').eq('status', 'ready').in('document_type_id', autos)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of ((listas ?? []) as any[])) {
+      // emitDocument revalida el pago: una gratuita entra, una con cargo
+      // pendiente se rechaza sola y sigue esperando.
+      try { if ((await emitDocument(r.id)).ok) emitidas.push(r.id) }
+      catch (e) { console.error('sweepDocumentPayments emitir', r.id, e) }
+    }
+  }
+  return { revisadas: (pend ?? []).length, avanzadas, emitidas }
 }
 
 // Cuántos días antes del vencimiento se abre la revalidación del carné. El
