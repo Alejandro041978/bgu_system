@@ -38,10 +38,30 @@ export async function DELETE(req: NextRequest) {
 
   // Solo se borran pagos LEGACY de SystemActiva (sin respaldo). Un pago
   // confirmado por Flywire o creado por Books NO se borra desde aquí.
-  const { data: pay } = await sb.from('account_payments').select('series_code, flywire_payment_id').eq('id', b.id).maybeSingle()
+  const { data: pay } = await sb.from('account_payments')
+    .select('series_code, flywire_payment_id, transaction_reference').eq('id', b.id).maybeSingle()
   if (!pay) return NextResponse.json({ error: 'Pago no encontrado' }, { status: 404 })
-  if (pay.series_code === 'FLYWIRE' || pay.series_code === 'BOOKS' || pay.flywire_payment_id) {
+
+  // Excepción: los TROZOS que dejó la migración.
+  //
+  // Un giro de Flywire es un pago que se asocia una vez. SystemActiva lo
+  // partía en un pago por cuota, y la migración copió esos trozos poniéndoles
+  // el mismo flywire_payment_id y una referencia con sufijo — "ZBL899138886
+  // (1)", "(2)". El candado los tomaba por pagos confirmados de Flywire y no
+  // dejaba tocarlos, así que un giro mal troceado quedaba congelado: no se
+  // podía deshacer, y el giro entero tampoco reaparecía en el conciliador
+  // porque sus trozos ocupaban la referencia.
+  //
+  // El sufijo es la firma de la migración: ni el importador ni el webhook lo
+  // escriben nunca —ambos guardan la referencia a secas—, así que reconocerlo
+  // no abre la puerta a borrar un pago de verdad. Borrados los trozos, el giro
+  // vuelve a la bandeja completo y se asocia una sola vez.
+  const esTrozoDeMigracion = /\(\d+\)\s*$/.test(String(pay.transaction_reference ?? ''))
+  if (!esTrozoDeMigracion && (pay.series_code === 'FLYWIRE' || pay.series_code === 'BOOKS' || pay.flywire_payment_id)) {
     return NextResponse.json({ error: 'Este pago está respaldado por Flywire o Books: no se puede borrar (solo los heredados de SystemActiva)' }, { status: 409 })
+  }
+  if (esTrozoDeMigracion && (pay.series_code === 'FLYWIRE' || pay.series_code === 'BOOKS')) {
+    return NextResponse.json({ error: 'Este pago está respaldado por Flywire o Books: no se puede borrar' }, { status: 409 })
   }
 
   // Si este pago fue una asociación de Books, libera la operación de Books

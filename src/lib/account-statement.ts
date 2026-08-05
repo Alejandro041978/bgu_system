@@ -263,7 +263,17 @@ export async function getAccountStatement(
     const esDescuento = p.series_code === 'DESCUENTO'
     // Borrable = legacy SystemActiva sin respaldo: no FLYWIRE/BOOKS, sin
     // flywire_payment_id (no confirmado por Flywire) y no es un descuento.
-    const deletable = !esDescuento && p.series_code !== 'FLYWIRE' && p.series_code !== 'BOOKS' && !p.flywire_payment_id
+    //
+    // Y los TROZOS de la migración, que sí llevan flywire_payment_id: Activa
+    // partía un giro en un pago por cuota y la migración copió los pedazos con
+    // sufijo "(1)", "(2)" en la referencia. Un giro se asocia UNA vez; para
+    // rehacer uno mal troceado hay que poder borrar sus pedazos. El sufijo es
+    // la firma de la migración —ni el importador ni el webhook lo escriben—,
+    // así que esto no destapa ningún pago real. Debe coincidir con el candado
+    // de /api/account/payments: si divergen, el botón miente.
+    const esTrozo = /\(\d+\)\s*$/.test(String(p.transaction_reference ?? ''))
+    const deletable = !esDescuento && p.series_code !== 'FLYWIRE' && p.series_code !== 'BOOKS'
+      && (!p.flywire_payment_id || esTrozo)
     g.payments.push({
       id: p.id, charge_external_id: p.charge_external_id ?? null, amount, paid_date: p.paid_date,
       receipt_number: p.receipt_number, transaction_reference: p.transaction_reference, payment_type: p.payment_type,

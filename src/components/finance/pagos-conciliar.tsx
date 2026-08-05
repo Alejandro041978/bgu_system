@@ -10,7 +10,7 @@ interface Row {
 }
 interface SinRegistrar {
   reference: string; status: string; name: string; dni: string | null
-  amount: number; registrado: number; pendiente: number; method: string | null; fecha: string | null
+  amount: number; method: string | null; fecha: string | null
 }
 interface Found { id: string; name: string; document_number: string | null }
 
@@ -159,7 +159,7 @@ export function PagosConciliar() {
         <div className="bg-white border border-amber-200 rounded-xl overflow-hidden">
           <div className="px-4 py-3 bg-amber-50/60 border-b border-amber-100">
             <p className="text-sm font-medium text-amber-800">Pagos Flywire sin registrar ({sinRegistrar.length})</p>
-            <p className="text-[11px] text-amber-600">Entregados en Flywire y no registrados en el ERP, entera o parcialmente: sin estudiante identificado, excluidos al importar, o giros que Activa troceó de menos al migrar. Asigna el estudiante y regístralo, o descártalo (pruebas, pagadores externos). Si el importe supera la cuota, el sobrante queda a favor y se reparte desde el estado de cuenta.</p>
+            <p className="text-[11px] text-amber-600">Entregados en Flywire pero sin pago en el ERP: sin estudiante identificado o excluidos al importar. Asigna el estudiante y regístralo, o descártalo (pruebas, pagadores externos).</p>
           </div>
           <div className="divide-y divide-gray-50">
             {sinRegistrar.map(r => (
@@ -168,18 +168,7 @@ export function PagosConciliar() {
                   <span className="font-mono text-xs text-gray-500">{r.reference}</span>
                   <span className="text-gray-800">{r.name}</span>
                   {r.dni && <span className="text-xs text-gray-400">DNI: {r.dni}</span>}
-                  {/* Un giro registrado a medias no es un pago nuevo: se dice
-                      cuánto falta, para que nadie lo tome por otro cobro. */}
-                  {r.registrado > 0.01 ? (
-                    <span className="ml-auto text-right">
-                      <span className="font-medium tabular-nums text-amber-700">{fmt(r.pendiente)}</span>
-                      <span className="block text-[10px] text-gray-400">
-                        faltan de {fmt(r.amount)} · ya hay {fmt(r.registrado)}
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="font-medium tabular-nums ml-auto">{fmt(r.amount)}</span>
-                  )}
+                  <span className="font-medium tabular-nums ml-auto">{fmt(r.amount)}</span>
                   <span className="text-xs text-gray-500">{fdate(r.fecha)}</span>
                   <span className="bg-gray-100 text-gray-500 text-[10px] px-1.5 py-0.5 rounded-full">{r.method ?? r.status}</span>
                 </div>
@@ -189,10 +178,8 @@ export function PagosConciliar() {
                     placeholder="Buscar estudiante…"
                     className="border border-gray-200 rounded-lg px-2.5 py-1 text-xs w-56 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   <button onClick={() => buscar(r.reference)} className="text-xs text-blue-600 hover:text-blue-800 font-medium">Buscar</button>
-                  {/* El calce automático busca la cuota del PENDIENTE, no la del
-                      giro entero: el pendiente es lo que se va a registrar. */}
                   {(found[r.reference] ?? []).map(f => (
-                    <button key={f.id} onClick={() => elegir(r.reference, f, r.pendiente)}
+                    <button key={f.id} onClick={() => elegir(r.reference, f, r.amount)}
                       disabled={busy === r.reference}
                       className={`inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border ${sel[r.reference]?.id === f.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-100'}`}>
                       <Link2 className="w-3 h-3" /> {f.name} {f.document_number ? `(${f.document_number})` : ''}
