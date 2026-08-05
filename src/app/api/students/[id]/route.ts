@@ -26,17 +26,25 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { data: s } = await sb.from('academic_students').select('*').eq('id', id).maybeSingle()
   if (!s) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
 
+  // program_id y category llegan para poder ofrecer solo las convocatorias que
+  // sirven a la categoría del programa al mover la matrícula.
   const { data: enr } = await sb.from('academic_student_enrollments')
-    .select('id, enrollment_date, academic_programs(name), convocatorias(name)')
+    .select('id, enrollment_date, program_id, convocatoria_id, academic_programs(name, category_id), convocatorias(name)')
     .eq('student_id', id)
 
   return NextResponse.json({
     student: s,
-    enrollments: ((enr ?? []) as { id: string; enrollment_date: string | null; academic_programs: { name: string } | null; convocatorias: { name: string } | null }[])
+    enrollments: ((enr ?? []) as {
+      id: string; enrollment_date: string | null; program_id: string | null; convocatoria_id: string | null
+      academic_programs: { name: string; category_id: string | null } | null; convocatorias: { name: string } | null
+    }[])
       .map(e => ({
         id: e.id,
         program: e.academic_programs?.name ?? '(sin programa)',
+        program_id: e.program_id,
+        category_id: e.academic_programs?.category_id ?? null,
         convocatoria: e.convocatorias?.name ?? null,
+        convocatoria_id: e.convocatoria_id,
         fecha: e.enrollment_date,
       })),
   })

@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react'
 import { Loader2, Search, Save, RotateCcw, GraduationCap, User } from 'lucide-react'
 
 interface Found { id: string; name: string; document_number: string | null; email: string | null }
-interface Enrollment { id: string; program: string; convocatoria: string | null; fecha: string | null }
+interface Enrollment {
+  id: string; program: string; convocatoria: string | null; fecha: string | null
+  program_id: string | null; category_id: string | null; convocatoria_id: string | null
+}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type StudentRow = Record<string, any>
 
@@ -263,7 +266,7 @@ export function StudentProfile() {
             </div>
           </div>
 
-          {/* Matrículas (solo lectura) */}
+          {/* Matrículas */}
           <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
             <p className="text-xs text-gray-500 uppercase tracking-wide">Matrículas</p>
             {enrollments.length === 0 ? (
@@ -275,6 +278,7 @@ export function StudentProfile() {
                 <span className="text-xs text-gray-400 ml-auto">
                   {e.convocatoria ?? 'sin convocatoria'} · {fdate(e.fecha)}
                 </span>
+                <MoverConvocatoria enrollment={e} onMoved={() => open(student!.id)} />
               </div>
             ))}
             <p className="text-[11px] text-gray-400">Las matrículas se gestionan en Nueva Matrícula; las notas, en Calificaciones.</p>
@@ -486,5 +490,139 @@ function MoodleAccount({ studentId }: { studentId: string }) {
       {msg && <p className="text-xs text-green-700">{msg}</p>}
       {err && <p className="text-xs text-red-600">{err}</p>}
     </div>
+  )
+}
+
+// ── Mover una matrícula de convocatoria ────────────────────────────────────
+//
+// El caso: el estudiante se matricula y pide no empezar este mes sino más
+// adelante. No cambia lo que estudia ni lo que debe —cambia cuándo empieza—,
+// así que se corren los vencimientos pendientes al calendario del nuevo
+// llamado. Los importes no se tocan: para eso está Refacturar cuotas.
+//
+// Siempre en dos pasos. La vista previa dice qué fecha tendrá cada cuota y qué
+// cuotas NO se mueven (las que ya tienen pago, descuento o un trámite encima),
+// porque mover una matrícula sin ver eso antes es firmar a ciegas.
+interface Conv { id: string; name: string; first_day: string | null }
+interface Preview {
+  ok?: boolean; error?: string; de?: string; a?: string; regla?: string
+  mueve?: { external_id: string; amount: number; de: string; a: string }[]
+  quietas?: { external_id: string; amount: number; due_date: string | null; motivo: string }[]
+}
+
+function MoverConvocatoria({ enrollment, onMoved }: { enrollment: Enrollment; onMoved: () => void }) {
+  const [abierto, setAbierto] = useState(false)
+  const [years, setYears] = useState<{ id: string; name: string }[]>([])
+  const [yearId, setYearId] = useState('')
+  const [convs, setConvs] = useState<Conv[]>([])
+  const [destino, setDestino] = useState('')
+  const [prev, setPrev] = useState<Preview | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!abierto) return
+    fetch('/api/convocatorias').then(r => r.json())
+      .then(d => setYears(d.years ?? [])).catch(() => {})
+  }, [abierto])
+
+  // Las convocatorias salen del API por categoría y año — nunca de leer el
+  // nombre, que no es un dato estructurado.
+  useEffect(() => {
+    if (!yearId || !enrollment.category_id) { setConvs([]); return }
+    fetch(`/api/convocatorias?category_id=${enrollment.category_id}&year_id=${yearId}`)
+      .then(r => r.json())
+      .then(d => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const todas: Conv[] = (d.semesters ?? []).flatMap((s: any) => s.convocatorias ?? [])
+        setConvs(todas.filter(c => c.id !== enrollment.convocatoria_id))
+      }).catch(() => {})
+  }, [yearId, enrollment.category_id, enrollment.convocatoria_id])
+
+  async function pedir(apply: boolean) {
+    setBusy(true); setErr(null)
+    const d = await fetch('/api/admision/matricula/mover', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enrollment_id: enrollment.id, convocatoria_id: destino, apply }),
+    }).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
+    setBusy(false)
+    if (d.error) { setErr(d.error); setPrev(null); return }
+    if (apply) { setAbierto(false); setPrev(null); setDestino(''); onMoved(); return }
+    setPrev(d)
+  }
+
+  return (
+    <>
+      <button onClick={() => { setAbierto(true); setPrev(null); setErr(null) }}
+        title="Mover a otra convocatoria" className="text-blue-600 hover:text-blue-800 text-xs shrink-0">
+        Mover
+      </button>
+      {abierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setAbierto(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-xl p-5" onClick={ev => ev.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-900">Mover de convocatoria</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              {enrollment.program} · actualmente en <strong>{enrollment.convocatoria ?? 'sin convocatoria'}</strong>.
+              Los importes no cambian; se corren los vencimientos pendientes.
+            </p>
+
+            <div className="flex gap-2 mt-4">
+              <select value={yearId} onChange={ev => { setYearId(ev.target.value); setDestino(''); setPrev(null) }}
+                className="border rounded-lg px-2 py-1.5 text-sm flex-1">
+                <option value="">Año académico…</option>
+                {years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
+              </select>
+              <select value={destino} onChange={ev => { setDestino(ev.target.value); setPrev(null) }}
+                disabled={!convs.length} className="border rounded-lg px-2 py-1.5 text-sm flex-1 disabled:bg-gray-50">
+                <option value="">{yearId && !convs.length ? 'Sin convocatorias' : 'Convocatoria destino…'}</option>
+                {convs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+
+            {prev && (
+              <div className="mt-4 text-sm space-y-2 max-h-72 overflow-y-auto">
+                <p className="text-xs text-gray-500">{prev.regla}</p>
+                {(prev.mueve ?? []).length === 0
+                  ? <p className="text-gray-500">Ninguna cuota cambia de fecha.</p>
+                  : (prev.mueve ?? []).map(m => (
+                    <div key={m.external_id} className="flex items-center gap-2 text-xs">
+                      <span className="text-gray-700 w-20 tabular-nums">${m.amount.toFixed(2)}</span>
+                      <span className="text-gray-400">{fdate(m.de)}</span>
+                      <span className="text-gray-300">→</span>
+                      <span className="text-gray-900 font-medium">{fdate(m.a)}</span>
+                    </div>
+                  ))}
+                {(prev.quietas ?? []).length > 0 && (
+                  <div className="border-t pt-2 mt-2">
+                    <p className="text-[11px] text-amber-700 mb-1">No se mueven:</p>
+                    {(prev.quietas ?? []).map(q => (
+                      <p key={q.external_id} className="text-[11px] text-gray-500">
+                        ${q.amount.toFixed(2)} · {fdate(q.due_date)} — {q.motivo}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {err && <p className="text-xs text-red-600 mt-3">{err}</p>}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setAbierto(false)} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900">Cancelar</button>
+              {!prev ? (
+                <button onClick={() => pedir(false)} disabled={busy || !destino}
+                  className="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-lg disabled:opacity-40">
+                  {busy ? 'Calculando…' : 'Ver qué cambia'}
+                </button>
+              ) : (
+                <button onClick={() => pedir(true)} disabled={busy}
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg disabled:opacity-40">
+                  {busy ? 'Moviendo…' : 'Mover matrícula'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
