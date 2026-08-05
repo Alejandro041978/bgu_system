@@ -82,20 +82,51 @@ update student_graduations
  where program_id = '713c1547-647b-4393-a498-9aee277eaa08';
 
 
--- ── PASO 4 · Clinical Psychology: la matrícula de prueba ───────────────────
--- Una sola persona, de la oficina de e-learning, que se matriculó para ver el
--- programa recién creado. Sus 5 filas de nota están TODAS vacías, así que no
--- se pierde ningún dato académico. Se borran solo las vacías: si alguna
--- tuviera valor, quedaría y el paso 5 fallaría avisando.
-delete from academic_grades
- where course_id in (select id from academic_courses where program_id = '4d0df983-ed71-4358-9294-f67df2648ceb')
-   and final_grade is null and retake_grade is null;
+-- ── PASO 4 · Clinical Psychology: mover, no borrar ─────────────────────────
+-- La primera versión de este paso borraba la matrícula, con el supuesto de que
+-- era una inscripción de prueba de la oficina de e-learning. La base lo impidió
+-- con una clave foránea, y tenía razón: esa matrícula tiene TRES CARGOS DE $150
+-- PAGADOS —$450— traídos de SystemActiva. Hay una relación comercial detrás.
+--
+-- Sus 5 filas de nota están vacías y sin aula de origen: las creó la matrícula,
+-- no una importación. Pagó y no llegó a cursar. Se la trata igual que a los 20
+-- de MHP — se mueve al programa correcto, y los cargos la siguen porque cuelgan
+-- del id de la matrícula, que no cambia.
+update academic_grades g
+   set course_id = ok.id
+  from academic_courses mal
+  join academic_courses ok
+    on ok.program_id = 'a07f41ce-bd99-44ce-90c5-98c3bf246de6'
+   and trim(ok.code) = trim(mal.code)
+ where mal.program_id = '4d0df983-ed71-4358-9294-f67df2648ceb'
+   and g.course_id = mal.id;
 
-delete from academic_course_enrollments
- where course_id in (select id from academic_courses where program_id = '4d0df983-ed71-4358-9294-f67df2648ceb');
+update academic_course_enrollments ce
+   set course_id = ok.id
+  from academic_courses mal
+  join academic_courses ok
+    on ok.program_id = 'a07f41ce-bd99-44ce-90c5-98c3bf246de6'
+   and trim(ok.code) = trim(mal.code)
+ where mal.program_id = '4d0df983-ed71-4358-9294-f67df2648ceb'
+   and ce.course_id = mal.id;
 
-delete from academic_student_enrollments
+update academic_student_enrollments
+   set program_id    = 'a07f41ce-bd99-44ce-90c5-98c3bf246de6',
+       collection_id = '6a50a610-c1ac-4a98-9a80-8a99dc3acc67'   -- DCEA CPS (ES)
  where program_id = '4d0df983-ed71-4358-9294-f67df2648ceb';
+
+select 'notas aún en el CP duplicado (debe ser 0)' as control, count(*)::text as valor
+  from academic_grades g join academic_courses c on c.id = g.course_id
+ where c.program_id = '4d0df983-ed71-4358-9294-f67df2648ceb'
+union all
+select 'matrículas aún en el CP duplicado (debe ser 0)', count(*)::text
+  from academic_student_enrollments where program_id = '4d0df983-ed71-4358-9294-f67df2648ceb'
+union all
+select 'sus 3 cargos siguen enlazados (debe ser 3)', count(*)::text
+  from account_charges ch
+  join academic_student_enrollments e on e.id = ch.enrollment_id
+ where e.program_id = 'a07f41ce-bd99-44ce-90c5-98c3bf246de6'
+   and e.student_id = 'a8c55238-a04e-477f-8808-c980af9ecdc2';
 
 
 -- ── PASO 5 · Borrar los duplicados, ya vacíos ──────────────────────────────
