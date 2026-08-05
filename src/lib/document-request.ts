@@ -147,8 +147,22 @@ export async function sweepDocumentPayments(): Promise<{ revisadas: number; avan
     for (const r of ((listas ?? []) as any[])) {
       // emitDocument revalida el pago: una gratuita entra, una con cargo
       // pendiente se rechaza sola y sigue esperando.
-      try { if ((await emitDocument(r.id)).ok) emitidas.push(r.id) }
-      catch (e) { console.error('sweepDocumentPayments emitir', r.id, e) }
+      //
+      // El motivo del fallo se escribe en la solicitud. Un barrido que falla en
+      // silencio es peor que no tenerlo: la solicitud se queda igual de parada
+      // y encima nadie sabe por qué.
+      try {
+        const res = await emitDocument(r.id)
+        if (res.ok) emitidas.push(r.id)
+        else await sb.from('document_requests').update({
+          notes: `Emisión automática pendiente: ${res.error ?? 'error desconocido'}`, updated_at: new Date().toISOString(),
+        }).eq('id', r.id)
+      } catch (e) {
+        console.error('sweepDocumentPayments emitir', r.id, e)
+        await sb.from('document_requests').update({
+          notes: `Emisión automática pendiente: ${String(e)}`, updated_at: new Date().toISOString(),
+        }).eq('id', r.id).then(() => null, () => null)
+      }
     }
   }
   return { revisadas: (pend ?? []).length, avanzadas, emitidas }
