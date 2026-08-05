@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { checkRequirements, hasBlockingFailure, type ReqCheck } from './document-requirements'
 import { emitDocument } from './document-emit'
+import { isicEnvironment } from './isic'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -82,11 +83,18 @@ export const ISIC_REVALIDATION_WINDOW_DAYS = 30
 // ¿Ya tiene carné ISIC vigente? Un número de carné es intransferible y una
 // licencia cuesta dinero: quien ya tiene carné no vuelve a solicitarlo, lo
 // revalida. Devuelve el motivo del bloqueo, o null si puede solicitar.
+//
+// Solo cuenta el carné del ENTORNO ACTIVO. Un carné de staging vive en el
+// sandbox de ISIC y no existe para nadie fuera de él: dejar que bloquee una
+// emisión de producción impediría estrenar el entorno real a todo el que
+// hubiera participado en las pruebas. Y al revés vale igual — con la URL de
+// staging puesta, un carné real no debe estorbar una prueba.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function isicYaTieneCarne(sb: any, studentId: string): Promise<string | null> {
   const hoy = new Date().toISOString().slice(0, 10)
   const { data: card } = await sb.from('isic_cards')
     .select('card_number, valid_to').eq('student_id', studentId).eq('status', 'assigned')
+    .eq('environment', isicEnvironment())
     .gte('valid_to', hoy).order('valid_to', { ascending: false }).limit(1).maybeSingle()
   if (!card) return null
 
