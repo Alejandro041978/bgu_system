@@ -1,10 +1,11 @@
 -- ===========================================================================
 -- Fusionar los programas DCEA duplicados
 --
--- Mental Health and Psychiatry y Clinical Psychology se crearon dos veces: lo
--- que en realidad eran versiones en inglés de un mismo programa se dieron de
--- alta como programas aparte. Ahora que existen las colecciones, la versión en
--- inglés es una colección del programa correcto, no un programa nuevo.
+-- Mental Health and Psychiatry y Clinical Psychology se crearon dos veces. La
+-- sospecha inicial era que el duplicado fuese la versión en inglés; los datos
+-- dijeron otra cosa: las 98 notas de esos 20 estudiantes salen de las aulas
+-- 400-403, las españolas, y ninguno tiene una sola nota de las inglesas. Es un
+-- duplicado en español del mismo programa, no otra versión.
 --
 --   MHP duplicado  DCEA-S24-MHP  713c1547…  20 matrículas, 98 notas
 --   MHP correcto   DCEA-E25-MHP  105ab431…  tiene colecciones ES y EN
@@ -50,19 +51,23 @@ select 'matrículas de asignatura aún en el duplicado (debe ser 0)', count(*)::
  where c.program_id = '713c1547-647b-4393-a498-9aee277eaa08';
 
 
--- ── PASO 2 · Las 20 matrículas, al programa correcto y a la colección EN ───
+-- ── PASO 2 · Las 20 matrículas, al programa correcto y a la colección ES ───
+-- ES y no EN: sus 98 notas vienen de las aulas 400, 401, 402 y 403, que son
+-- las de la colección en español. Ninguno de los 20 tiene una sola nota de las
+-- aulas inglesas. El duplicado no era una versión en inglés del programa —era
+-- otro programa en español con los mismos alumnos.
 update academic_student_enrollments
-   set program_id   = '105ab431-08a5-4dc5-b3ef-28d28e8bf7ae',
-       collection_id = '6d32eb7d-0c9d-4bbe-969c-19d0356b7a12'   -- DCEA MHP EN
+   set program_id    = '105ab431-08a5-4dc5-b3ef-28d28e8bf7ae',
+       collection_id = '692fa4fb-7ff4-4fda-95d1-0ec0f28c8e2a'   -- DCEA MHP ES
  where program_id = '713c1547-647b-4393-a498-9aee277eaa08';
 
 select 'matrículas movidas a MHP correcto' as control, count(*)::text as valor
   from academic_student_enrollments
  where program_id = '105ab431-08a5-4dc5-b3ef-28d28e8bf7ae'
 union all
-select '  · con la colección EN', count(*)::text
+select '  · con la colección ES', count(*)::text
   from academic_student_enrollments
- where collection_id = '6d32eb7d-0c9d-4bbe-969c-19d0356b7a12';
+ where collection_id = '692fa4fb-7ff4-4fda-95d1-0ec0f28c8e2a';
 
 
 -- ── PASO 3 · El grupo y el egreso ──────────────────────────────────────────
@@ -108,8 +113,8 @@ union all
 select 'matrículas en MHP correcto (debe ser 23)', count(*)::text
   from academic_student_enrollments where program_id = '105ab431-08a5-4dc5-b3ef-28d28e8bf7ae'
 union all
-select '  · de ellas en la colección EN (debe ser 20)', count(*)::text
-  from academic_student_enrollments where collection_id = '6d32eb7d-0c9d-4bbe-969c-19d0356b7a12'
+select '  · de ellas en la colección ES (debe ser 20)', count(*)::text
+  from academic_student_enrollments where collection_id = '692fa4fb-7ff4-4fda-95d1-0ec0f28c8e2a'
 union all
 select 'notas con valor de esos estudiantes (debe seguir siendo 62)', count(*)::text
   from academic_grades g join academic_courses c on c.id = g.course_id
