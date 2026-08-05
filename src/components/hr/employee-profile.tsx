@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Mail, Phone, MapPin, FileText, CheckCircle2, AlertCircle, Clock, Pencil, X, Save, GraduationCap } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, MapPin, FileText, CheckCircle2, AlertCircle, Clock, Pencil, X, Save, GraduationCap, KeyRound } from 'lucide-react'
 import Link from 'next/link'
 
 type Employee = {
@@ -62,7 +62,15 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
   const [resendStatus, setResendStatus] = useState<'idle' | 'ok' | 'error'>('idle')
   const [resendError, setResendError] = useState<string | null>(null)
 
+  // Activar y reenviar son la misma llamada, pero no el mismo acto: una da de
+  // alta un acceso que no existía, la otra repite un correo. Activar se
+  // confirma; reenviar no lo necesita.
   async function handleResendInvite() {
+    if (!e.user_id && !confirm(
+      `¿Activar el usuario de ${e.full_name} en el ERP?\n\n` +
+      `Se le creará una cuenta con ${e.email} y recibirá una contraseña temporal por correo. ` +
+      `No todo colaborador necesita acceso al ERP.`
+    )) return
     setResending(true)
     setResendStatus('idle')
     const res = await fetch('/api/hr/employees/resend-invite', {
@@ -328,17 +336,29 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
               {hasAccess
                 ? <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">Acceso al sistema ✓</span>
                 : <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-full">Sin acceso al sistema</span>}
+              {/* Dos acciones distintas bajo la misma llamada.
+                  Sin cuenta: DAR DE ALTA el acceso — se anuncia en claro,
+                  porque estaba escondido detrás de "Reenviar invitación" y
+                  nadie adivinaba que ese botón creaba la cuenta. 84 de 108
+                  colaboradores estaban sin acceso y se descubría cuando uno
+                  pedía recuperar una contraseña que nunca existió.
+                  Con cuenta: repetir el correo, que es un gesto menor. */}
               <button
                 onClick={handleResendInvite}
                 disabled={resending}
-                className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-medium transition-colors disabled:opacity-50 ${
-                  resendStatus === 'ok' ? 'bg-green-50 text-green-600' :
-                  resendStatus === 'error' ? 'bg-red-50 text-red-600' :
-                  'bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+                className={`flex items-center gap-1.5 text-xs rounded-full font-medium transition-colors disabled:opacity-50 ${
+                  resendStatus === 'ok' ? 'bg-green-50 text-green-600 px-3 py-1' :
+                  resendStatus === 'error' ? 'bg-red-50 text-red-600 px-3 py-1' :
+                  hasAccess
+                    ? 'bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 px-3 py-1'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 px-3.5 py-1.5'
                 }`}
               >
-                <Mail className="w-3 h-3" />
-                {resending ? 'Enviando...' : resendStatus === 'ok' ? 'Enviado ✓' : resendStatus === 'error' ? 'Error al enviar' : 'Reenviar invitación'}
+                {hasAccess ? <Mail className="w-3 h-3" /> : <KeyRound className="w-3 h-3" />}
+                {resending ? (hasAccess ? 'Enviando…' : 'Activando…')
+                  : resendStatus === 'ok' ? (hasAccess ? 'Enviado ✓' : 'Usuario activado ✓')
+                  : resendStatus === 'error' ? 'Error al enviar'
+                  : hasAccess ? 'Reenviar credenciales' : 'Activar usuario ERP'}
               </button>
             </div>
             {resendError && (

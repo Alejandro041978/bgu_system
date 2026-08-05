@@ -19,6 +19,7 @@ type EmployeeRow = {
   latest_contract_end: string | null
   contract_count: number
   created_at: string
+  user_id: string | null
 }
 
 export default async function HRPage() {

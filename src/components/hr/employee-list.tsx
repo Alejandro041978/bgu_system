@@ -16,6 +16,7 @@ type EmployeeRow = {
   latest_contract_end: string | null
   contract_count: number
   created_at: string | null
+  user_id: string | null
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -139,7 +140,20 @@ export function EmployeeList({ employees }: { employees: EmployeeRow[] }) {
                     {TYPE_LABEL[e.employee_type]}
                   </span>
                 </td>
-                <td className="px-4 py-4"><StatusBadge employee={e} /></td>
+                {/* Tener contrato y tener acceso al ERP son cosas distintas, y
+                    la mayoría de colaboradores no necesita lo segundo. Lo que
+                    no puede pasar es que no se vea: se descubría cuando alguien
+                    pedía recuperar una contraseña que nunca existió. */}
+                <td className="px-4 py-4">
+                  <div className="flex items-center gap-1.5">
+                    <StatusBadge employee={e} />
+                    {e.user_id && (
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full" title="Tiene usuario del ERP">
+                        ERP
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-4 py-4 text-gray-500">{e.contract_count}</td>
                 <td className="px-4 py-4 text-xs text-gray-500">
                   {e.created_at ? (

@@ -116,7 +116,9 @@ export async function POST(req: NextRequest) {
     if (mailError) {
       return NextResponse.json({ error: 'No se pudo enviar el correo: ' + (mailError.message ?? String(mailError)) }, { status: 502 })
     }
-    return NextResponse.json({ ok: true, sent_to: emp.email })
+    // Se distingue activar de reenviar: para quien pulsa no es lo mismo dar de
+    // alta un acceso que no existía que repetir un correo.
+    return NextResponse.json({ ok: true, sent_to: emp.email, activated: !emp.user_id })
   } catch (err) {
     console.error('resend-invite error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
