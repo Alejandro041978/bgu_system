@@ -85,7 +85,8 @@ export async function POST(req: NextRequest) {
       first_names?: string
       last_names?: string
       email: string
-      phone?: string
+      phone_code?: string
+      phone_local?: string
       position?: string
       employee_type: 'direct' | 'contractor' | 'external'
       document_type?: string
@@ -158,7 +159,10 @@ export async function POST(req: NextRequest) {
       email: body.email,
       employee_type: body.employee_type,
     }
-    if (body.phone) insertData.phone = body.phone
+    // Partes, nunca el compuesto: el canónico (phone_number, y phone por
+    // compatibilidad) lo escribe el trigger erp_sync_phone_employee.
+    if (body.phone_code) insertData.phone_code = body.phone_code
+    if (body.phone_local) insertData.phone_local = body.phone_local
     if (body.position) insertData.position = body.position
     if (body.document_type) insertData.document_type = body.document_type
     if (body.document_number) insertData.document_number = body.document_number

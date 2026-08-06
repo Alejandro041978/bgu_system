@@ -12,6 +12,9 @@ type Employee = {
   last_names: string | null
   email: string
   phone: string | null
+  phone_code: string | null
+  phone_local: string | null
+  phone_number: string | null
   position: string | null
   employee_type: 'direct' | 'contractor' | 'external'
   document_type: string | null
@@ -89,7 +92,11 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
     setTimeout(() => { setResendStatus('idle'); setResendError(null) }, 8000)
   }
 
-  const phoneSplit = splitPhone(e.phone)
+  // Las partes son el dato, no algo que se adivine del canónico. splitPhone
+  // queda solo para las fichas viejas que todavía no se han vuelto a guardar.
+  const phoneSplit = e.phone_code && e.phone_local
+    ? { prefix: e.phone_code, number: e.phone_local }
+    : splitPhone(e.phone)
   // Si aún no están separados, derivamos del nombre completo (últimas 2 palabras = apellidos)
   const nameGuess = (() => {
     const t = (e.full_name ?? '').trim().split(/\s+/)
@@ -127,7 +134,11 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
         last_names: form.last_names,
         full_name: `${form.first_names} ${form.last_names}`.replace(/\s+/g, ' ').trim(),
         email: form.email,
-        phone: form.phone_number ? `${form.phone_prefix} ${form.phone_number}` : null,
+        // Se mandan las PARTES. El canónico lo deriva el trigger de la base:
+        // si lo compusiéramos aquí, este sería el sitio número trece donde
+        // alguien puede equivocarse al pegar el código.
+        phone_code: form.phone_number ? form.phone_prefix : null,
+        phone_local: form.phone_number ? form.phone_number.replace(/\D/g, '') : null,
         position: form.position || null,
         employee_type: form.employee_type,
         document_type: form.document_type || null,

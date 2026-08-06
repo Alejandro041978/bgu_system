@@ -71,7 +71,9 @@ export function NewEmployeeForm() {
         body: JSON.stringify({
         ...form,
         full_name: `${form.first_names} ${form.last_names}`.replace(/\s+/g, ' ').trim(),
-        phone: form.phone_number ? `${form.phone_prefix} ${form.phone_number}` : '',
+        // Las partes; el canónico lo deriva el trigger.
+        phone_code: form.phone_number ? form.phone_prefix : null,
+        phone_local: form.phone_number ? form.phone_number.replace(/\D/g, '') : null,
       }),
       })
       const data = await resp.json() as { id?: string; error?: string; inviteSent?: boolean; inviteError?: string | null }
