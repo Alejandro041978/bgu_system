@@ -1,3 +1,4 @@
+import { telefonoE164 } from '@/lib/telefono'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 
@@ -105,7 +106,10 @@ export async function analyzeSupervisor(botKey: string, dateParam?: string | nul
       const { data: st } = await db.from('academic_students').select('id, phone_code, phone_number').in('id', ids.slice(i, i + 300))
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const s of (st ?? []) as any[]) {
-        const tel = `${s.phone_code ?? ''}${s.phone_number ?? ''}`.replace(/\D/g, '')
+        // Mismo armador que el envío: si aquí se compusiera distinto, los
+        // últimos 9 dígitos podrían no coincidir y el supervisor no reconocería
+        // la conversación que él mismo provocó.
+        const tel = (telefonoE164(s) ?? '').replace(/\D/g, '')
         if (tel.length >= 8) campaignByPhone.set(tel.slice(-9), ultimaCampana.get(s.id)!.key)
       }
     }

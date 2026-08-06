@@ -7,7 +7,7 @@ interface Campaign {
   key: string; name: string; description: string | null
   priority: number; cooldown_days: number; active: boolean; legacy?: boolean
   eligible: number; sample: { student_id: string; name: string; reason: string }[]
-  sent_30d: number; converted_30d: number
+  sent_30d: number; converted_30d: number; failed_30d?: number
 }
 
 export function CampaignsBoard() {
@@ -77,6 +77,13 @@ export function CampaignsBoard() {
             <div className="flex items-center gap-4 text-xs">
               <span className="bg-blue-50 text-blue-700 rounded-full px-2.5 py-1 font-semibold tabular-nums">{c.eligible} elegibles hoy</span>
               <span className="text-gray-400 tabular-nums">{c.sent_30d} contactados (30d) · {c.converted_30d} convertidos</span>
+              {/* Un envío fallido no es un contacto, y callarlo fue lo que dejó
+                  a Camila una semana sin entregar un mensaje sin que se notara. */}
+              {!!c.failed_30d && (
+                <span className="text-red-600 bg-red-50 rounded-full px-2 py-0.5 tabular-nums" title="Intentos que Twilio rechazó">
+                  {c.failed_30d} fallidos
+                </span>
+              )}
               <label className="ml-auto flex items-center gap-1.5 text-gray-400">
                 cooldown
                 <input defaultValue={c.cooldown_days} disabled={c.legacy} onBlur={e => { const v = Number(e.target.value); if (v && v !== c.cooldown_days) patch(c.key, { cooldown_days: v }) }}

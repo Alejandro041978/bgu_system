@@ -42,14 +42,21 @@ export async function GET() {
     for (const s of (data ?? []) as any[]) names[s.id] = [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' ')
   }
 
-  // Contactos de los últimos 30 días por campaña
+  // Contactos de los últimos 30 días por campaña.
+  //
+  // Un intento fallido NO es un contacto. Esta pantalla los contaba juntos y
+  // decía "24 contactados" mientras el monitor decía 0: los dos tenían razón
+  // sobre cosas distintas, y entre las dos escondieron que Camila llevaba una
+  // semana sin entregar un solo mensaje —74 intentos, 74 fallos—. Ahora los
+  // fallidos se cuentan aparte y se muestran.
   const desde = new Date(Date.now() - 30 * 86400000).toISOString()
   const { data: recent } = await sb.from('campaign_contacts')
-    .select('campaign_key, outcome').gte('sent_at', desde)
-  const sent30: Record<string, { total: number; convertidos: number }> = {}
+    .select('campaign_key, outcome, status').gte('sent_at', desde)
+  const sent30: Record<string, { total: number; convertidos: number; fallidos: number }> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const c of (recent ?? []) as any[]) {
-    if (!sent30[c.campaign_key]) sent30[c.campaign_key] = { total: 0, convertidos: 0 }
+    if (!sent30[c.campaign_key]) sent30[c.campaign_key] = { total: 0, convertidos: 0, fallidos: 0 }
+    if (c.status === 'failed') { sent30[c.campaign_key].fallidos++; continue }
     sent30[c.campaign_key].total++
     if (c.outcome === 'convertido') sent30[c.campaign_key].convertidos++
   }
@@ -84,6 +91,7 @@ export async function GET() {
         sample: (byCampaign[c.key]?.sample ?? []).map(s => ({ ...s, name: names[s.student_id] ?? s.student_id })),
         sent_30d: sent30[c.key]?.total ?? 0,
         converted_30d: sent30[c.key]?.convertidos ?? 0,
+        failed_30d: sent30[c.key]?.fallidos ?? 0,
       })),
       legacy,
     ].sort((a, b) => a.priority - b.priority),

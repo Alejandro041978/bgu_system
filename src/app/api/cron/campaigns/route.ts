@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { resolveEligibility } from '@/lib/campaign-resolver'
+import { telefonoE164 } from '@/lib/telefono'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -107,7 +108,7 @@ async function run(dryRun: boolean) {
     const creds = { sid: bot.twilio_account_sid!, token: bot.twilio_auth_token!, from: bot.twilio_number! }
     for (const a of cola.slice(0, cupo)) {
       const s = stu.get(a.student_id)
-      const tel = `${s?.phone_code ?? ''}${s?.phone_number ?? ''}`.replace(/[^\d+]/g, '')
+      const tel = telefonoE164(s)
       const nombre = saludo(s?.first_name ?? null)
       if (!s || !tel || tel.length < 8 || !nombre) { resumen[camp.key].saltados++; continue }
 
