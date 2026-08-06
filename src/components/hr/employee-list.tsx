@@ -17,6 +17,7 @@ type EmployeeRow = {
   contract_count: number
   created_at: string | null
   user_id: string | null
+  is_faculty?: boolean
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -52,6 +53,7 @@ export function EmployeeList({ employees }: { employees: EmployeeRow[] }) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [hideFaculty, setHideFaculty] = useState(false)
 
   const filtered = employees.filter(e => {
     const matchSearch =
@@ -64,8 +66,13 @@ export function EmployeeList({ employees }: { employees: EmployeeRow[] }) {
       statusFilter === 'all' ||
       (statusFilter === 'active' && e.active_contract_id) ||
       (statusFilter === 'inactive' && !e.active_contract_id)
-    return matchSearch && matchType && matchStatus
+    // Se ocultan los faculty SIN usuario del ERP. Quien es docente y además
+    // colabora en la operación sí tiene usuario, y se queda: la marca de que
+    // alguien es algo más que faculty es precisamente tener acceso.
+    const matchFaculty = !hideFaculty || !(e.is_faculty && !e.user_id)
+    return matchSearch && matchType && matchStatus && matchFaculty
   })
+  const ocultos = employees.filter(e => e.is_faculty && !e.user_id).length
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -100,6 +107,20 @@ export function EmployeeList({ employees }: { employees: EmployeeRow[] }) {
           <option value="active">Activos</option>
           <option value="inactive">Inactivos / Vencidos</option>
         </select>
+
+        {/* El título dice exactamente a quién esconde. "Ocultar faculty" a
+            secas haría pensar que también se van los dos que son docentes y
+            colaboradores, y esos se quedan. */}
+        <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none"
+          title="Esconde a los docentes que no tienen usuario del ERP. Quien es faculty y además colabora sí lo tiene, y permanece en la lista.">
+          <button type="button" role="switch" aria-checked={hideFaculty}
+            onClick={() => setHideFaculty(v => !v)}
+            className={`relative w-9 h-5 rounded-full transition-colors ${hideFaculty ? 'bg-blue-600' : 'bg-gray-200'}`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${hideFaculty ? 'left-[1.125rem]' : 'left-0.5'}`} />
+          </button>
+          Ocultar faculty sin ERP
+          <span className="text-xs text-gray-400 tabular-nums">({ocultos})</span>
+        </label>
       </div>
 
       {/* Tabla */}

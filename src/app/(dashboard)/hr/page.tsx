@@ -20,6 +20,7 @@ type EmployeeRow = {
   contract_count: number
   created_at: string
   user_id: string | null
+  is_faculty?: boolean
 }
 
 export default async function HRPage() {
@@ -33,7 +34,12 @@ export default async function HRPage() {
     .select('*')
     .order('full_name') as { data: EmployeeRow[] | null }
 
-  const rows = employees ?? []
+  // is_faculty no está en la vista: se trae de la tabla y se une por id. Se
+  // hace aquí y no ampliando la vista para no tocar lo que ya la consume.
+  const { data: fac } = await supabase.from('hr_employees').select('id, is_faculty')
+  const esFaculty = new Map((fac ?? []).map((f: { id: string; is_faculty: boolean | null }) => [f.id, !!f.is_faculty]))
+
+  const rows = (employees ?? []).map(e => ({ ...e, is_faculty: esFaculty.get(e.id) ?? false }))
   const active = rows.filter(e => e.active_contract_id)
   const direct = rows.filter(e => e.employee_type === 'direct')
   const contractors = rows.filter(e => e.employee_type === 'contractor')
@@ -50,6 +56,9 @@ export default async function HRPage() {
             direct={direct.length}
             contractors={contractors.length}
             external={external.length}
+            erp={rows.filter(e => e.user_id).length}
+            faculty={rows.filter(e => e.is_faculty).length}
+            both={rows.filter(e => e.user_id && e.is_faculty).length}
           />
           <Link
             href="/hr/new"

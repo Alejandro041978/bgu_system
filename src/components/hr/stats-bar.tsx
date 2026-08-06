@@ -1,4 +1,4 @@
-import { Users, CheckCircle2, Briefcase, Handshake, Globe } from 'lucide-react'
+import { Users, CheckCircle2, Briefcase, Handshake, Globe, KeyRound, GraduationCap, UserCheck } from 'lucide-react'
 
 interface Props {
   total: number
@@ -6,15 +6,24 @@ interface Props {
   direct: number
   contractors: number
   external: number
+  erp: number
+  faculty: number
+  both: number
 }
 
-export function HRStatsBar({ total, active, direct, contractors, external }: Props) {
+export function HRStatsBar({ total, active, direct, contractors, external, erp, faculty, both }: Props) {
   const stats = [
     { label: 'Total colaboradores', value: total, icon: Users, color: 'text-gray-600', bg: 'bg-gray-100' },
     { label: 'Contratos activos', value: active, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'Empleados directos', value: direct, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Contratistas', value: contractors, icon: Handshake, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'Externos', value: external, icon: Globe, color: 'text-orange-600', bg: 'bg-orange-50' },
+    // Tener usuario del ERP y ser docente son cosas independientes: la mayoría
+    // del padrón es faculty que nunca entra al sistema, y hay quien es las dos
+    // cosas. Contarlas juntas escondía a los 60 que solo dan clase.
+    { label: 'Con usuario ERP', value: erp, icon: KeyRound, color: 'text-sky-600', bg: 'bg-sky-50' },
+    { label: 'Faculty', value: faculty, icon: GraduationCap, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Faculty + ERP', value: both, icon: UserCheck, color: 'text-teal-600', bg: 'bg-teal-50' },
   ]
 
   return (
