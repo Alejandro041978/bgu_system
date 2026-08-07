@@ -25,21 +25,42 @@ const supabaseAdmin = createClient(
 // número de caso, el SLA, la auto-asignación y el supervisor diario del buzón.
 // Se elimina aquí el cliente de Zoho (token, contactos, creación de tickets).
 
-// Herramienta que Claude usa para PROPONER un ticket (no crearlo — la confirmación la da el usuario en el frontend)
-const TICKET_TOOL: Anthropic.Tool = {
-  name: 'propose_ticket',
-  description: 'Úsala SOLO cuando el estudiante haya dado su acuerdo explícito para crear un ticket de soporte. Recopila previamente el asunto y descripción del problema en la conversación.',
-  input_schema: {
-    type: 'object' as const,
-    properties: {
-      subject: { type: 'string', description: 'Asunto breve del ticket (máx 100 caracteres)' },
-      description: { type: 'string', description: 'Descripción detallada del problema del estudiante' },
-      contactName: { type: 'string', description: 'Nombre completo del estudiante' },
-      contactEmail: { type: 'string', description: 'Correo electrónico del estudiante (obligatorio si no hay teléfono)' },
-      phone: { type: 'string', description: 'Teléfono del estudiante (obligatorio si no hay email)' },
+// Herramienta que Claude usa para PROPONER un ticket (no crearlo — la
+// confirmación la da el usuario en el frontend).
+//
+// Se arma según la conversación, y esa es la parte importante: cuando el
+// estudiante YA está identificado, la herramienta NO tiene campos de contacto.
+// Antes los tenía siempre, con un "obligatorio si no hay teléfono" que empujaba
+// al modelo a pedir correo y teléfono a alguien a quien acababa de saludar por
+// su nombre. El modelo no estaba fallando: estaba obedeciendo un formulario que
+// no sabía que ya tenía la respuesta.
+//
+// Quitar el campo es más fiable que pedirle en el prompt que no pregunte: no se
+// puede rellenar lo que no existe.
+function ticketTool(identificado: boolean): Anthropic.Tool {
+  const base = {
+    subject: { type: 'string' as const, description: 'Asunto breve del ticket (máx 100 caracteres)' },
+    description: { type: 'string' as const, description: 'Descripción detallada del problema del estudiante' },
+  }
+  return {
+    name: 'propose_ticket',
+    description: identificado
+      ? 'Úsala SOLO cuando el estudiante haya dado su acuerdo explícito para crear un ticket de soporte. '
+        + 'El estudiante YA está identificado: sus datos de contacto salen de su ficha. '
+        + 'NO le pidas correo, teléfono ni nombre — ya los tenemos. Solo necesitas el asunto y la descripción del problema.'
+      : 'Úsala SOLO cuando el estudiante haya dado su acuerdo explícito para crear un ticket de soporte. '
+        + 'Recopila previamente el asunto y la descripción del problema. Como no sabemos quién es, pide un correo o un teléfono para poder responderle.',
+    input_schema: {
+      type: 'object' as const,
+      properties: identificado ? base : {
+        ...base,
+        contactName: { type: 'string' as const, description: 'Nombre completo del estudiante' },
+        contactEmail: { type: 'string' as const, description: 'Correo electrónico del estudiante (obligatorio si no hay teléfono)' },
+        phone: { type: 'string' as const, description: 'Teléfono del estudiante (obligatorio si no hay email)' },
+      },
+      required: ['subject', 'description'],
     },
-    required: ['subject', 'description'],
-  },
+  }
 }
 
 export async function OPTIONS() {
@@ -68,6 +89,7 @@ export async function POST(req: NextRequest) {
       try {
         const ticket = await createInboxTicket({
           ...confirmTicket,
+          studentId: studentId ?? null,
           contactEmail,
           botKey,
         })
@@ -89,6 +111,10 @@ export async function POST(req: NextRequest) {
     // retiro, abre un expediente para la llamada humana.
     const isRetention = bot?.role === 'retencion'
 
+    // Identificado = la sesión sabe a quién atiende. En el portal siempre; en
+    // el widget público, cuando el correo resolvió una ficha.
+    const identificado = !!studentId || !!studentContext || !!contactEmail
+
     // Recuperar conocimiento relevante a la última pregunta del usuario (RAG)
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
     const knowledgeContext = await buildKnowledgeContext(lastUserMsg, botKey)
@@ -108,7 +134,7 @@ export async function POST(req: NextRequest) {
             max_tokens: 1024,
             system: systemPrompt,
             // Sofia (soporte) puede proponer tickets; ventas y retención no.
-            ...(isSales || isRetention ? {} : { tools: [TICKET_TOOL], tool_choice: { type: 'auto' as const } }),
+            ...(isSales || isRetention ? {} : { tools: [ticketTool(identificado)], tool_choice: { type: 'auto' as const } }),
             messages: messages.map(m => ({ role: m.role, content: m.content })),
           })
 

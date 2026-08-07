@@ -14,6 +14,7 @@ interface Message {
 interface Props {
   initialMessage?: string
   contactEmail?: string
+  studentId?: string
   studentContext?: string
   language?: string
   onReset?: () => void
@@ -28,6 +29,7 @@ const BASE_URL = typeof window !== 'undefined'
 export function ChatUI({
   initialMessage = 'Hola, soy Sofia, asistente virtual de BGU. ¿En qué puedo ayudarte hoy?',
   contactEmail,
+  studentId,
   studentContext,
   language = 'es',
   onReset,
@@ -65,6 +67,7 @@ export function ChatUI({
         body: JSON.stringify({
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           contactEmail,
+          studentId,
           studentContext,
           sessionId,
           source: compact ? 'widget' : 'web',
@@ -137,6 +140,9 @@ export function ChatUI({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [],
+          // La identidad viaja con la confirmación: es lo que engancha el
+          // ticket a la ficha sin depender de qué datos consiguiera el bot.
+          studentId,
           contactEmail: msg.ticketProposal.contactEmail ?? contactEmail,
           confirmTicket: {
             subject: msg.ticketProposal.subject,

@@ -5,6 +5,9 @@ import { createClient } from '@supabase/supabase-js'
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export interface StudentIdentity {
+  // id de academic_students. Falta en el caso de suplantación por acta (un
+  // documento que solo existe en academic_grades), de ahí que sea opcional.
+  id?: string | null
   document_number: string | null
   email: string | null
   name: string
@@ -48,16 +51,16 @@ export async function getEffectiveStudent(user: { id: string; email?: string } |
 
   // Entra por el personal o por el institucional: los estudiantes de bachelor,
   // master y doctorado tienen @blackwell.pro y 40 de ellos NO tienen personal.
-  const data = await findStudentByLoginEmail(sb, user.email, 'document_number, email, first_name, last_name, second_last_name')
-  if (data) return { document_number: data.document_number, email: data.email, name: fullName(data), impersonating: false }
+  const data = await findStudentByLoginEmail(sb, user.email, 'id, document_number, email, first_name, last_name, second_last_name')
+  if (data) return { id: data.id, document_number: data.document_number, email: data.email, name: fullName(data), impersonating: false }
 
   const cookieStore = await cookies()
   const doc = cookieStore.get('imp_student')?.value
   if (doc && await isSuperadmin(user.id)) {
     const { data } = await sb.from('academic_students')
-      .select('document_number, email, first_name, last_name, second_last_name')
+      .select('id, document_number, email, first_name, last_name, second_last_name')
       .eq('document_number', doc).maybeSingle()
-    if (data) return { document_number: data.document_number, email: data.email, name: fullName(data), impersonating: true }
+    if (data) return { id: data.id, document_number: data.document_number, email: data.email, name: fullName(data), impersonating: true }
     const { data: g } = await sb.from('academic_grades')
       .select('document_number, email, student_name').eq('document_number', doc).limit(1).maybeSingle()
     if (g) return { document_number: g.document_number, email: g.email, name: g.student_name, impersonating: true }

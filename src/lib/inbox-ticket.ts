@@ -22,6 +22,9 @@ const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 export interface TicketInput {
   subject: string
   description: string
+  // El estudiante YA identificado por la sesión. Cuando viene, manda: sus
+  // datos de contacto salen de la ficha y no hay que pedírselos a nadie.
+  studentId?: string | null
   contactName?: string
   contactEmail?: string
   phone?: string
@@ -71,9 +74,17 @@ export async function createInboxTicket(t: TicketInput): Promise<{ caseNumber: n
   // es un ticket que nadie mira.
   const assigned = await autoAssign(language, topic)
 
-  // Un ticket se responde por correo, así que sin correo nace muerto. Si el bot
-  // no lo trajo, se busca en la ficha del estudiante por teléfono o por correo.
-  const estudiante = await buscarEstudiante(sb, { phone: phone, email: t.contactEmail })
+  // Un ticket se responde por correo, así que sin correo nace muerto.
+  //
+  // Primero se mira quién ES: si la sesión ya identificó al estudiante, su
+  // ficha tiene el correo y el nombre, y no hay nada que preguntar. Solo
+  // cuando no hay identidad —el chat público, un WhatsApp de un número
+  // desconocido— se cae a buscarlo por el contacto que se haya conseguido.
+  const cols = 'id, first_name, last_name, second_last_name, email, email_alt, phone_number'
+  const porId = t.studentId
+    ? (await sb.from('academic_students').select(cols).eq('id', t.studentId).maybeSingle()).data
+    : null
+  const estudiante = porId ?? await buscarEstudiante(sb, { phone: phone, email: t.contactEmail })
   const correo = t.contactEmail ?? estudiante?.email ?? estudiante?.email_alt ?? null
   const nombre = t.contactName
     ?? (estudiante ? [estudiante.first_name, estudiante.last_name, estudiante.second_last_name].filter(Boolean).join(' ') : null)

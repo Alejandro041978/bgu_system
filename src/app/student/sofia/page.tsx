@@ -35,6 +35,7 @@ Instrucción: El estudiante ya está autenticado en el portal. Salúdalo por su 
       <ChatUI
         initialMessage={initialMessage}
         contactEmail={contactEmail}
+        studentId={student?.id ?? undefined}
         studentContext={studentContext || undefined}
       />
     </div>
