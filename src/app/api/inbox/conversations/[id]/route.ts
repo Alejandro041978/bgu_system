@@ -77,10 +77,41 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
-  const { action, to_user_id } = await req.json() as { action?: string; to_user_id?: string }
+  const { action, to_user_id, student_id } = await req.json() as { action?: string; to_user_id?: string; student_id?: string }
   const sb = db()
 
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+
+  // Enlazar el caso con la ficha del estudiante.
+  //
+  // Un ticket que llega por WhatsApp solo trae el teléfono, y se busca la ficha
+  // por ahí. Cuando la ficha no tiene teléfono —le pasa a muchos— el caso nace
+  // sin enlace y sin correo, y al responder salta "este caso no tiene correo
+  // del cliente" aunque el correo esté a la vista en su ficha. No faltaba el
+  // dato: faltaba el vínculo.
+  //
+  // Lo hace una persona a propósito. Emparejar por nombre sería adivinar, y
+  // adivinar aquí significa mandarle a un tercero la respuesta de otro.
+  if (action === 'vincular') {
+    if (!student_id) return NextResponse.json({ error: 'Falta student_id' }, { status: 400 })
+    const { data: est } = await sb.from('academic_students')
+      .select('id, first_name, last_name, second_last_name, email, email_alt').eq('id', student_id).maybeSingle()
+    if (!est) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
+    const correo = est.email ?? est.email_alt ?? null
+    const { data, error } = await sb.from('wa_conversations').update({
+      ...update,
+      student_id: est.id,
+      customer_name: [est.first_name, est.last_name, est.second_last_name].filter(Boolean).join(' '),
+      // El correo del caso sale de la ficha: no se teclea aparte, para que no
+      // haya dos versiones del mismo dato.
+      ...(correo ? { customer_email: correo } : {}),
+    }).eq('id', id).select('*').single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!correo) {
+      return NextResponse.json({ conversation: data, aviso: 'La ficha de este estudiante no tiene correo. Complétalo en su ficha para poder responderle.' })
+    }
+    return NextResponse.json({ conversation: data })
+  }
   if (action === 'claim') { update.assigned_to = user.id; update.assigned_name = await agentName(user.id, user.email) }
   else if (action === 'release') { update.assigned_to = null; update.assigned_name = null }
   else if (action === 'reassign') {

@@ -46,7 +46,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // nacieron sin él —Sofía no siempre lo pasaba— así que este rescate los
   // arregla al primer intento de respuesta y lo deja guardado.
   if (porCorreo && !conv.customer_email) {
-    const est = await buscarEstudiante(sb, { phone: conv.customer_phone, email: null })
+    // Si el caso YA está enlazado a una ficha, el correo sale de ahí sin
+    // buscar nada: el vínculo es más fiable que el teléfono, que es lo que
+    // falla cuando la ficha no lo tiene registrado.
+    let est = null
+    if (conv.student_id) {
+      const { data } = await sb.from('academic_students')
+        .select('id, email, email_alt').eq('id', conv.student_id).maybeSingle()
+      est = data
+    }
+    est = est ?? await buscarEstudiante(sb, { phone: conv.customer_phone, email: null })
     const rescatado = est?.email ?? est?.email_alt ?? null
     if (rescatado) {
       conv.customer_email = rescatado
@@ -56,7 +65,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
   }
   if (porCorreo && !conv.customer_email) {
-    return NextResponse.json({ error: 'Los tickets se responden por correo y este caso no tiene correo del cliente: complétalo primero en la ficha del caso.' }, { status: 400 })
+    // El mensaje dice qué hacer y dónde. "Complétalo en la ficha del caso"
+    // mandaba a un sitio que no existía: el caso no tenía dónde escribirlo.
+    return NextResponse.json({
+      error: conv.student_id
+        ? 'Este caso está enlazado a un estudiante cuya ficha no tiene correo. Complétalo en su ficha y vuelve a intentarlo.'
+        : 'Este caso no está enlazado a ninguna ficha, así que no sabemos a qué correo responder. Usa "Vincular estudiante" arriba para enlazarlo.',
+    }, { status: 400 })
   }
   if (!porCorreo && !conv.customer_phone) {
     return NextResponse.json({ error: 'Esta conversación de WhatsApp no tiene teléfono del cliente: no hay por dónde responderle.' }, { status: 400 })

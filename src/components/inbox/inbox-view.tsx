@@ -123,6 +123,8 @@ export function InboxView() {
   const [counts, setCounts] = useState<{ queue: number; mine: number; all: number }>({ queue: 0, mine: 0, all: 0 })
   const [selected, setSelected] = useState<Conversation | null>(null)
   const [agents, setAgents] = useState<{ user_id: string; full_name: string }[]>([])
+  const [buscaEst, setBuscaEst] = useState('')
+  const [hitsEst, setHitsEst] = useState<{ id: string; name: string; document_number: string | null }[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -206,6 +208,26 @@ export function InboxView() {
     if (!selected) return
     await fetch(`/api/inbox/conversations/${selected.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reopen' }) })
     await loadThread(selected.id); await loadList()
+  }
+  // Enlaza el caso con la ficha del estudiante y toma de ahí el correo. Lo
+  // decide una persona: emparejar por nombre sería adivinar, y aquí adivinar
+  // significa mandarle a un tercero la respuesta de otro.
+  async function vincular(studentId: string) {
+    if (!selected || !studentId) return
+    const d = await fetch(`/api/inbox/conversations/${selected.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'vincular', student_id: studentId }),
+    }).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
+    if (d.error) { alert(d.error); return }
+    if (d.aviso) alert(d.aviso)
+    setBuscaEst(''); setHitsEst([])
+    await loadThread(selected.id); await loadList()
+  }
+  async function buscarEstudiante(q: string) {
+    setBuscaEst(q)
+    if (q.trim().length < 2) { setHitsEst([]); return }
+    const d = await fetch(`/api/students/search?q=${encodeURIComponent(q.trim())}`).then(r => r.json()).catch(() => ({}))
+    setHitsEst(d.students ?? [])
   }
   // Los archivos se suben ANTES de enviar y se quedan guardados: así el agente
   // los ve, puede quitar el que se equivocó, y si el envío falla no hay que
@@ -417,6 +439,27 @@ export function InboxView() {
                   {selected.assigned_name ? ` · Atiende: ${selected.assigned_name}` : ' · Sin asignar'}</p>
               </div>
               <div className="flex items-center gap-2">
+                {/* Solo aparece cuando falta el correo, que es cuando importa:
+                    un caso sin correo no se puede responder, y el motivo casi
+                    siempre es que nunca se enlazó con su ficha. */}
+                {!selected.customer_email && (
+                  <div className="relative">
+                    <input value={buscaEst} onChange={e => buscarEstudiante(e.target.value)}
+                      placeholder="Vincular estudiante…"
+                      className="text-xs border border-amber-300 bg-amber-50 rounded-lg px-2.5 py-1.5 w-40 focus:outline-none focus:ring-1 focus:ring-amber-500" />
+                    {hitsEst.length > 0 && (
+                      <div className="absolute right-0 z-20 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-auto">
+                        {hitsEst.map(h => (
+                          <button key={h.id} onClick={() => vincular(h.id)}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                            <p className="text-xs text-gray-800">{h.name}</p>
+                            <p className="text-[11px] text-gray-400">{h.document_number ?? ''}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {agents.length > 0 && (
                   <select value="" onChange={e => { if (e.target.value) { reassign(e.target.value); e.target.value = '' } }}
                     className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[140px]">
