@@ -286,7 +286,11 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       term_year: termYear,
       term_block: null,
       final_grade: total,
-      passing_score: passing,
+      // El mínimo NO se guarda en la nota: es la regla de la categoría y se
+      // resuelve al leer. Guardarlo era lo que devolvía a la base los mínimos
+      // que acabábamos de vaciar —1.473 filas reescritas por el cron horario—
+      // y lo que dejaba conviviendo dos varas en la misma acta.
+      passing_score: null,
     }
     rows.push(fila)
 
@@ -384,7 +388,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
         term_year: termYear,
         term_block: null,
         final_grade: d.total,
-        passing_score: passing,
+        passing_score: null,   // regla de la categoría, no dato de la nota
         max_score: 100,
         grades: [{ n: 1, pct: 100, val: null, desc: 'Total' }],
         process_grades: d.process,
