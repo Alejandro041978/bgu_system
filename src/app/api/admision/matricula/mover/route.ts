@@ -1,3 +1,4 @@
+import { primeraCuota, vencimientoCuota } from '@/lib/billing-template'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { guardStaff } from '@/lib/api-guard'
@@ -123,20 +124,20 @@ export async function POST(req: NextRequest) {
   }
 
   // ── De dónde salen las fechas nuevas ─────────────────────────────────────
-  // La plantilla del destino manda: es el calendario oficial de ese llamado.
-  // Sin plantilla se corren en bloque por la diferencia entre los días de
-  // inicio, que conserva el ritmo pactado con el estudiante.
-  const { data: plan } = await sb.from('billing_plans')
-    .select('first_due_date, due_day').eq('program_id', enr.program_id).eq('convocatoria_id', destino.id).maybeSingle()
-
+  // Del INICIO DE CLASES del llamado destino, con la misma regla que usa la
+  // matrícula nueva: día 1 del mes siguiente a inicio + 20 días. Antes se leía
+  // de una plantilla por (programa, convocatoria) que casi nunca existía —345
+  // pares tenían estudiantes y ninguna plantilla—, así que el caso normal era
+  // el respaldo, no la regla.
   let regla: string
   let nuevas: { external_id: string; amount: number; de: string; a: string }[] = []
 
-  if (plan?.first_due_date) {
-    regla = `calendario de la plantilla de ${destino.name} (primer vencimiento ${String(plan.first_due_date).slice(0, 10)})`
+  if (destino.first_day) {
+    const primera = primeraCuota(destino.first_day)
+    regla = `calendario de ${destino.name}: clases desde el ${String(destino.first_day).slice(0, 10)}, primera cuota el ${primera}`
     nuevas = movibles.map((c, i) => ({
       external_id: c.external_id, amount: Number(c.amount), de: String(c.due_date),
-      a: vencimiento(String(plan.first_due_date).slice(0, 10), i, plan.due_day ?? null),
+      a: vencimientoCuota(primera, i),
     }))
   } else if (origen?.first_day && destino.first_day) {
     const dias = Math.round(

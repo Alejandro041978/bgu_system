@@ -1,3 +1,4 @@
+import { plantillaDe, inicioDeClases, primeraCuota, vencimientoCuota } from '@/lib/billing-template'
 import { createClient } from '@supabase/supabase-js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,10 +35,18 @@ export async function generateChargesForEnrollment(
     .eq('enrollment_id', enr.id)
   if ((count ?? 0) > 0) return { ok: false, error: 'La matrícula ya tiene cuotas generadas' }
 
-  const { data: plan } = await sb.from('billing_plans')
-    .select('*')
-    .eq('program_id', enr.program_id).eq('convocatoria_id', enr.convocatoria_id).maybeSingle()
-  if (!plan) return { ok: false, error: 'No hay plantilla para este programa y convocatoria' }
+  // La plantilla la da el PROGRAMA (o su categoría), no la convocatoria. De la
+  // convocatoria sale una sola cosa: el inicio de clases, del que se calcula el
+  // primer vencimiento.
+  const plan = await plantillaDe(sb, enr.program_id)
+  if (!plan) {
+    return { ok: false, error: 'No hay plantilla de facturación para este programa ni para su categoría' }
+  }
+  const inicio = await inicioDeClases(sb, enr.convocatoria_id)
+  if (!inicio && Number(plan.installments_count) > 0) {
+    return { ok: false, error: 'La convocatoria no tiene fecha de inicio de clases: sin ella no se pueden fechar las cuotas' }
+  }
+  const primera = inicio ? primeraCuota(inicio) : null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: any[] = []
@@ -54,12 +63,14 @@ export async function generateChargesForEnrollment(
   }
 
   const n = Number(plan.installments_count) || 0
-  if (n > 0 && Number(plan.installment_amount) > 0 && plan.first_due_date) {
+  if (n > 0 && Number(plan.installment_amount) > 0 && primera) {
     for (let i = 0; i < n; i++) {
       rows.push({
         ...base, external_id: crypto.randomUUID(),
         amount: Number(plan.installment_amount),
-        due_date: dueDate(String(plan.first_due_date).slice(0, 10), i, plan.due_day ?? null),
+        // Todas vencen el día 1: la primera se calcula del inicio de clases y
+        // las demás la siguen mes a mes.
+        due_date: vencimientoCuota(primera, i),
         charge_type: plan.installment_concept ?? null,
         // explícito: en inserts masivos PostgREST manda null si la clave falta
         is_initial: false,
