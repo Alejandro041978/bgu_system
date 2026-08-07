@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
   // (STA 460) en vez del número de orden con el que llegó de SystemActiva (207).
   const cursoByExt = new Map<string, string | null>()
   const estadoByExt = new Map<string, { estado: string | null; rendido: number | null }>()
+  const origenByExt = new Map<string, string | null>()
   // La NOTA oficial. academic_grade_details guarda su propia copia del número y
   // esa copia se quedó atrás en 467 filas: el Acta Detallada mostraba "—" en
   // asignaturas aprobadas. La fuente es academic_grades, que es la que usan el
@@ -56,6 +57,7 @@ export async function GET(req: NextRequest) {
         editableByExt.set(String(w.external_id), w.source === 'systemactiva' && !w.moodle_course_id)
         cursoByExt.set(String(w.external_id), w.course_id ?? null)
         estadoByExt.set(String(w.external_id), { estado: w.estado_academico ?? null, rendido: w.rendido_pct ?? null })
+        origenByExt.set(String(w.external_id), w.source ?? null)
         notaByExt.set(String(w.external_id), { final: w.final_grade ?? null, retake: w.retake_grade ?? null, passing: w.passing_score ?? null })
       }
     }
@@ -77,6 +79,10 @@ export async function GET(req: NextRequest) {
     course_code: codigoVisible(cursoByExt.get(String(d.external_id)), malla, d.course_code),
     program_name: d.enrollment_id ? (progByEnr.get(d.enrollment_id) ?? 'Sin programa') : 'Sin programa',
     editable: editableByExt.get(String(d.external_id)) ?? false,
+    // El ORIGEN real de la nota. La pantalla lo rotulaba "SystemActiva" a
+    // secas, así que una nota recién traída de Moodle seguía diciendo que
+    // venía del sistema apagado.
+    origen: origenByExt.get(String(d.external_id)) ?? null,
     estado_academico: estadoByExt.get(String(d.external_id))?.estado ?? null,
     rendido_pct: estadoByExt.get(String(d.external_id))?.rendido ?? null,
     final_grade: notaByExt.has(String(d.external_id)) ? notaByExt.get(String(d.external_id))!.final : d.final_grade,

@@ -11,6 +11,7 @@ interface Detail {
   final_grade: number | null; retake_grade: number | null; makeup_grade: number | null
   extra_points: number | null; passing_score: number | null; max_score: number | null
   grades: Slot[] | null; process_grades: Slot[] | null
+  origen?: string | null; rendido_pct?: number | null; estado_academico?: string | null
 }
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 
@@ -232,15 +233,27 @@ function DetailPanel({ d, onEdit }: { d: Detail; onEdit: () => void }) {
       )}
       <SlotTable title="Evaluaciones" slots={evaluaciones} />
       <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600 pt-1">
-        <span>Final <span className="text-gray-400">(SystemActiva)</span>: <b>{g(d.final_grade)}</b></span>
+        {/* El origen es un dato, no una etiqueta fija. Antes decía siempre
+            "SystemActiva", así que una nota recién traída del campus seguía
+            atribuyéndose a un sistema apagado hace meses. */}
+        <span>Final <span className="text-gray-400">({d.origen === 'moodle' ? 'Moodle'
+          : d.origen === 'systemactiva' ? 'SystemActiva'
+          : d.origen === 'csv' ? 'carga CSV' : 'registro'})</span>: <b>{g(d.final_grade)}</b></span>
         {(() => {
           const calc = calcAverage(d)
           if (calc == null) return null
+          // En Moodle el total es un ACUMULADO sobre el 100% del curso, no el
+          // promedio de lo rendido: mientras falte por calificar, el total
+          // estará por debajo y eso no es una discrepancia sino aritmética.
+          // Marcarlo "≠ difiere" hacía sospechar de un dato correcto.
+          const enCurso = d.origen === 'moodle' && d.rendido_pct != null && Number(d.rendido_pct) < 99.5
           const match = d.final_grade != null ? Math.abs(calc - Number(d.final_grade)) < 0.5 : null
           return (
-            <span>Promedio <span className="text-gray-400">(calculado)</span>: <b>{g(calc)}</b>
-              {match === true && <span className="ml-1 text-green-600">✓ coincide</span>}
-              {match === false && <span className="ml-1 text-amber-600">≠ difiere</span>}
+            <span>Promedio <span className="text-gray-400">(de lo rendido)</span>: <b>{g(calc)}</b>
+              {enCurso
+                ? <span className="ml-1 text-gray-400">— el total acumula sobre el 100% del curso</span>
+                : match === true ? <span className="ml-1 text-green-600">✓ coincide</span>
+                : match === false ? <span className="ml-1 text-amber-600">≠ difiere</span> : null}
             </span>
           )
         })()}
