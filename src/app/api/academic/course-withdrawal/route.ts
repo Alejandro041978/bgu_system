@@ -1,3 +1,4 @@
+import { passingByCourse, passingFor } from '@/lib/passing-score'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
@@ -132,7 +133,28 @@ export async function PATCH(req: NextRequest) {
     fg = n
   }
 
-  const patch = { final_grade: fg, retake_grade: null, edited_at: new Date().toISOString(), edited_by: user.id }
+  // El estado se recalcula aquí mismo.
+  //
+  // Antes solo se escribía la nota, y estado_academico se quedaba con el valor
+  // viejo. El acta prefiere ese estado guardado sobre comparar la nota, así que
+  // una asignatura recién vaciada seguía mostrándose "Desaprobado" con un
+  // guion donde debía ir la calificación — un estado sin nota que lo sostenga.
+  //
+  // Sin nota no hay veredicto: es un hueco esperando a que Moodle lo llene, y
+  // eso en el acta es "En curso".
+  const { data: fila } = await sb.from('academic_grades')
+    .select('course_id').eq('external_id', b.external_id).maybeSingle()
+  const min = passingFor({ course_id: fila?.course_id ?? null }, await passingByCourse(sb))
+  const estado = fg === null ? 'pendiente' : (min != null && fg >= min ? 'aprobado' : 'reprobado')
+
+  const patch = {
+    final_grade: fg, retake_grade: null,
+    edited_at: new Date().toISOString(), edited_by: user.id,
+    estado_academico: estado,
+    // Al vaciar se borran también las evaluaciones parciales, así que el
+    // porcentaje rendido que hubiera queda sin respaldo.
+    ...(fg === null ? { rendido_pct: null } : {}),
+  }
   const { error } = await sb.from('academic_grades').update(patch).eq('external_id', b.external_id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   // Reflejar en el Acta Detallada (misma inscripción por external_id). Al BORRAR
