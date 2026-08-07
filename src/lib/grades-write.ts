@@ -250,7 +250,7 @@ export async function importGrades(
   const ids = rows.map(r => r.external_id)
   for (let i = 0; i < ids.length; i += 200) {
     const { data } = await sb.from('academic_grades')
-      .select('external_id, final_grade, edited_at, locked_at').in('external_id', ids.slice(i, i + 200))
+      .select('external_id, final_grade, retake_grade, edited_at, locked_at').in('external_id', ids.slice(i, i + 200))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const g of (data ?? []) as any[]) existing.set(g.external_id, g)
   }
@@ -280,7 +280,13 @@ export async function importGrades(
     if (prev) {
       if (prev.locked_at) { out.locked_rows++; continue }     // acta cerrada: intocable por importación
       if (String(prev.final_grade ?? '') === String(r.final_grade ?? '')) { out.unchanged++; continue }
-      if (prev.edited_at) {
+      // Una fila VACIADA a mano no se protege: no hay corrección que defender.
+      // Registros la vacía precisamente para que la importación la llene, y
+      // saltarla aquí convertía ese gesto en lo contrario de lo que significa.
+      // Misma regla que el trigger protect_edited_grades (v4), pero este filtro
+      // vive en el código y actuaba ANTES de que la base pudiera opinar.
+      const teniaNota = prev.final_grade != null || prev.retake_grade != null
+      if (prev.edited_at && teniaNota) {
         const origen = lastOrigin.get(r.external_id)
         if (!origen || origen === 'editor') { out.protected_rows++; continue }  // corrección de Registros: intocable
         row = { ...r, shield: true }  // blindaje de importación: se actualiza y se re-blinda
