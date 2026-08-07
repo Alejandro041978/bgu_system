@@ -88,7 +88,10 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
     const withValue = matches.map(g => ({ g, v: (g.retake_grade ?? g.final_grade) as number | null })).filter(x => x.v != null)
     if (withValue.length) {
       const best = withValue.reduce((a, b) => (Number(b.v) > Number(a.v) ? b : a))
-      const passing = best.g.passing_score ?? categoryPassing
+      // La categoría MANDA. Antes era al revés y por eso el 75 heredado de
+      // Activa pisaba el 70 configurado: la regla de la institución solo se
+      // aplicaba a las notas que llegaban sin ella.
+      const passing = categoryPassing ?? best.g.passing_score
       // El estado calculado manda sobre comparar la nota contra el mínimo: la
       // nota del campus es un acumulado sobre el 100% del curso, así que un
       // 6,33 de quien rindió dos quizzes no es un reprobado sino alguien que

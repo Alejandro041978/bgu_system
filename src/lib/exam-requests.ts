@@ -1,3 +1,4 @@
+import { passingByCourse, passingFor } from '@/lib/passing-score'
 import { courseNameKey } from '@/lib/course-match'
 import { createClient } from '@supabase/supabase-js'
 
@@ -25,8 +26,11 @@ export async function eligibleCourses(sb: any, studentId: string, documentNumber
   if (!documentNumber) return []
 
   const { data: grades } = await sb.from('academic_grades')
-    .select('external_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
+    .select('external_id, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
     .eq('document_number', documentNumber)
+  // El mínimo lo pone la categoría del programa, no la fila. Si se leyera de la
+  // fila, al vaciar ese dato heredado ninguna asignatura sería elegible.
+  const porCurso = await passingByCourse(sb)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = ((grades ?? []) as any[]).filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
 
@@ -71,7 +75,7 @@ export async function eligibleCourses(sb: any, studentId: string, documentNumber
   const out: EligibleCourse[] = []
   for (const g of rows) {
     if (activas.has(g.external_id)) continue
-    const passing = g.passing_score != null ? Number(g.passing_score) : null
+    const passing = passingFor(g, porCurso)
     if (passing == null) continue
     const values = [g.final_grade, g.retake_grade].filter((v: number | null): v is number => v != null)
     if (!values.length) continue

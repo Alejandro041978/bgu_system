@@ -108,7 +108,7 @@ export async function computeGraduates(sb: any): Promise<{
       if (!values.length) continue
       const best = Math.max(...values)
       const bestRow = matches.find(g => Number(g.retake_grade ?? g.final_grade) === best)
-      const passing = bestRow?.passing_score ?? categoryPassing
+      const passing = categoryPassing ?? bestRow?.passing_score
       if (passing == null || best >= Number(passing)) covered++
     }
 
@@ -226,7 +226,7 @@ export async function recomputeStudentByDocument(sb: any, documentNumber: string
         if (!values.length) continue
         const best = Math.max(...values)
         const bestRow = matches.find(g => Number(g.retake_grade ?? g.final_grade) === best)
-        const passing = bestRow?.passing_score ?? categoryPassing
+        const passing = categoryPassing ?? bestRow?.passing_score
         if (passing == null || best >= Number(passing)) covered++
       }
 

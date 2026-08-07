@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
         term_block:      r.term_block,
         final_grade:     r.final_grade,
         retake_grade:    r.retake_grade,
-        passing_score:   r.passing_score,
+        // Regla del ERP, no dato del origen: ver sync/grade-details.
+        passing_score:   null,
         group_number:    r.group_number,
         updated_at:      r.updated_at,
         synced_at:       new Date().toISOString(),

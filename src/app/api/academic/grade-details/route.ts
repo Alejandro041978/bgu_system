@@ -1,3 +1,4 @@
+import { passingByCourse, passingFor } from '@/lib/passing-score'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
@@ -65,6 +66,10 @@ export async function GET(req: NextRequest) {
   for (const e of (enr ?? []) as any[]) progByEnr.set(e.id, e.academic_programs?.name ?? 'Programa')
 
   const malla = await codigosDeMalla(sb, [...cursoByExt.values()])
+  // La nota mínima que se muestra es la REGLA de la categoría del programa, no
+  // el número que vino pegado a la fila desde SystemActiva. Ese decía 75 en
+  // Bachelor mientras el ERP declara 70, y era el que aparecía en el acta.
+  const porCurso = await passingByCourse(sb)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = ((details ?? []) as any[]).filter(d => !withdrawn.has(String(d.external_id))).map(d => ({
@@ -76,7 +81,10 @@ export async function GET(req: NextRequest) {
     rendido_pct: estadoByExt.get(String(d.external_id))?.rendido ?? null,
     final_grade: notaByExt.has(String(d.external_id)) ? notaByExt.get(String(d.external_id))!.final : d.final_grade,
     retake_grade: notaByExt.has(String(d.external_id)) ? notaByExt.get(String(d.external_id))!.retake : d.retake_grade,
-    passing_score: notaByExt.get(String(d.external_id))?.passing ?? d.passing_score,
+    passing_score: passingFor(
+      { course_id: cursoByExt.get(String(d.external_id)) ?? null, passing_score: notaByExt.get(String(d.external_id))?.passing ?? d.passing_score },
+      porCurso,
+    ),
   }))
 
   return NextResponse.json({ details: rows })

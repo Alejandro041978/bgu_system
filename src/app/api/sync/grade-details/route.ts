@@ -74,7 +74,10 @@ export async function POST(req: NextRequest) {
       retake_grade: num(r.retake_grade),
       makeup_grade: num(r.makeup_grade),
       extra_points: num(r.extra_points),
-      passing_score: num(r.passing_score),
+      // El mínimo NO se importa: es una regla del ERP (la categoría del
+      // programa), no un dato de la nota. Traerlo era lo que hacía que Activa
+      // pisara la configuración con su propio 75.
+      passing_score: null,
       max_score: num(r.max_score),
       grades: r.grades ?? null,
       process_grades: r.process_grades ?? null,

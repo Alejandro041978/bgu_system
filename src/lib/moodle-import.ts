@@ -269,6 +269,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       gradesByDoc.get(String(stu.document_number ?? '')) ?? [],
       { code: destCourse.code, name: destCourse.name },
       stableUuid(`moodle:${courseid}:${ug.userid}`),
+      passing,
     )
     if (target.action === 'skip') { yaRegistradas++; continue }
     if (target.action === 'fill') rellenadas++

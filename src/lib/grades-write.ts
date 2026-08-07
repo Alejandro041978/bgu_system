@@ -192,6 +192,9 @@ export function resolveImportTarget(
   studentRows: any[],
   course: { code: string | null; name: string | null },
   fallbackExternalId: string,
+  // Mínimo de la CATEGORÍA del programa. El importador ya lo resuelve; antes
+  // aquí había un 70 fijo, que en Master y Doctorado daba por aprobado un 75.
+  categoryPassing: number | null = null,
 ): { action: 'skip' | 'fill' | 'new' | 'update'; external_id: string; shield: boolean; prev_value: number | null } {
   const matches = (studentRows ?? [])
     .filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
@@ -211,7 +214,8 @@ export function resolveImportTarget(
   const aprobada = (g: any): boolean => {
     if (g.source === 'moodle' || g.source === 'csv') return false
     const v = val(g)
-    return v != null && v >= Number(g.passing_score ?? 70)
+    const min = categoryPassing ?? (g.passing_score != null ? Number(g.passing_score) : null)
+    return v != null && min != null && v >= min
   }
   const historicOk = matches.find(aprobada)
   if (historicOk) return { action: 'skip', external_id: String(historicOk.external_id), shield: false, prev_value: val(historicOk) }

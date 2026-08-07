@@ -1,3 +1,4 @@
+import { passingByCourse, passingFor } from '@/lib/passing-score'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
@@ -56,7 +57,11 @@ export async function POST(req: NextRequest) {
   const t0 = Date.now()
 
   const notas = await todo(sb, 'academic_grades',
-    'external_id, source, final_grade, retake_grade, passing_score, locked_at, rendido_pct, estado_academico', 'external_id')
+    'external_id, course_id, source, final_grade, retake_grade, passing_score, locked_at, rendido_pct, estado_academico', 'external_id')
+  // El mínimo lo pone la categoría del programa. Antes aquí había un 70 fijo
+  // como respaldo, así que al faltar el dato de la fila un Master se habría
+  // recalculado con la vara de Bachelor.
+  const porCurso = await passingByCourse(sb)
   const detalles = await todo(sb, 'academic_grade_details', 'external_id, process_grades', 'id')
   const detOf = new Map<string, ItemProceso[] | null>()
   for (const d of detalles) detOf.set(String(d.external_id), Array.isArray(d.process_grades) ? d.process_grades : null)
@@ -74,10 +79,11 @@ export async function POST(req: NextRequest) {
     let estado: string
     if (!esMoodle && valor != null) {
       // Resultado final de un sistema apagado: no hay curso a medias que valer.
-      estado = Number(valor) >= Number(n.passing_score ?? 70) ? 'aprobado' : 'reprobado'
+      const min = passingFor(n, porCurso)
+      estado = min != null && Number(valor) >= min ? 'aprobado' : 'reprobado'
     } else {
       estado = estadoAcademico({
-        valor, passing_score: n.passing_score, rendido_pct: rend, cerrado: !!n.locked_at,
+        valor, passing_score: passingFor(n, porCurso), rendido_pct: rend, cerrado: !!n.locked_at,
       })
     }
 
@@ -85,7 +91,7 @@ export async function POST(req: NextRequest) {
     const o = String(n.source ?? 'sin origen')
     porOrigen[o] = porOrigen[o] ?? { aprobado: 0, reprobado: 0, pendiente: 0 }
     porOrigen[o][estado]++
-    if (estado === 'pendiente' && irrecuperable({ valor, passing_score: n.passing_score, rendido_pct: rend })) alerta++
+    if (estado === 'pendiente' && irrecuperable({ valor, passing_score: passingFor(n, porCurso), rendido_pct: rend })) alerta++
 
     const igual = String(n.estado_academico ?? '') === estado
       && String(n.rendido_pct ?? '') === String(rend ?? '')
