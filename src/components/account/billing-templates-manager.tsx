@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, Plus, Trash2, Pencil, AlertTriangle, CalendarClock } from 'lucide-react'
+import { Loader2, Plus, Trash2, Pencil, AlertTriangle, CalendarClock, FilePlus } from 'lucide-react'
 
 interface Template {
   id: string; name: string; currency: string
@@ -138,6 +138,8 @@ export function BillingTemplatesManager() {
           <p className="text-[11px] text-amber-700 mt-1">{huerfanos.slice(0, 8).map(h => h.name).join(' · ')}{huerfanos.length > 8 ? ` … y ${huerfanos.length - 8} más` : ''}</p>
         </div>
       )}
+
+      <PendientesDeCuotas />
 
       <div className="flex justify-end">
         <button onClick={() => { setForm({ ...VACIA }); setAbierto(true); setError(null) }}
@@ -282,6 +284,99 @@ export function BillingTemplatesManager() {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+// ── Matrículas sin cuotas ──────────────────────────────────────────────────
+//
+// Al matricular, las cuotas nacen solas. Pero si el programa aún no tenía
+// plantilla, la matrícula queda sin ninguna, y hasta ahora la única salida era
+// entrar al estado de cuenta de cada estudiante y pulsar el botón uno por uno.
+//
+// Vive en esta pantalla a propósito: quien acaba de crear una plantilla es
+// justo quien tiene que acordarse de rellenar hacia atrás. Ponerlo en otro
+// sitio garantiza que se olvide.
+interface Fila {
+  enrollment_id: string; estudiante: string; documento: string | null; programa: string
+  plantilla: string | null; origen: string | null; primera_cuota: string | null
+  cuotas: string | null; motivo: string | null
+}
+
+function PendientesDeCuotas() {
+  const [filas, setFilas] = useState<Fila[] | null>(null)
+  const [abierto, setAbierto] = useState(false)
+  const [corriendo, setCorriendo] = useState(false)
+  const [resultado, setResultado] = useState<string | null>(null)
+
+  const cargar = useCallback(async () => {
+    const d = await fetch('/api/billing/backfill').then(r => r.json()).catch(() => null)
+    setFilas(d?.filas ?? [])
+  }, [])
+  useEffect(() => { cargar() }, [cargar])
+
+  async function generar() {
+    const listas = (filas ?? []).filter(f => !f.motivo)
+    if (!listas.length) return
+    if (!confirm(`¿Generar las cuotas de ${listas.length} matrícula(s)? Se crearán con la plantilla de cada programa y las fechas de su convocatoria.`)) return
+    setCorriendo(true); setResultado(null)
+    const d = await fetch('/api/billing/backfill', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enrollment_ids: listas.map(f => f.enrollment_id) }),
+    }).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
+    setCorriendo(false)
+    setResultado(d.error ?? `${d.generadas} matrícula(s) con cuotas generadas${d.errores?.length ? ` · ${d.errores.length} con error` : ''}`)
+    cargar()
+  }
+
+  if (!filas || filas.length === 0) return null
+  const listas = filas.filter(f => !f.motivo)
+  const bloqueadas = filas.filter(f => f.motivo)
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-gray-800 flex-1">
+          <strong>{filas.length} matrícula(s) sin cuotas</strong>
+          {listas.length > 0 && <span className="text-gray-500"> — {listas.length} ya tienen plantilla y pueden generarse</span>}
+        </p>
+        <button onClick={() => setAbierto(!abierto)} className="text-xs text-blue-600 hover:text-blue-800">
+          {abierto ? 'ocultar' : 'ver detalle'}
+        </button>
+        <button onClick={generar} disabled={corriendo || listas.length === 0}
+          className="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-40">
+          {corriendo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FilePlus className="w-3.5 h-3.5" />}
+          Generar {listas.length > 0 ? `las ${listas.length}` : ''}
+        </button>
+      </div>
+      {resultado && <p className="text-xs text-green-700">{resultado}</p>}
+
+      {abierto && (
+        <div className="space-y-1 max-h-72 overflow-auto text-xs">
+          {listas.map(f => (
+            <div key={f.enrollment_id} className="flex items-center gap-2 text-gray-600">
+              <span className="w-52 truncate">{f.estudiante}</span>
+              <span className="w-56 truncate text-gray-400">{f.programa}</span>
+              <span className="text-gray-500">{f.cuotas}</span>
+              {f.primera_cuota && <span className="text-gray-400">· desde {f.primera_cuota.split('-').reverse().join('/')}</span>}
+              <span className="text-[10px] text-gray-300">({f.origen})</span>
+            </div>
+          ))}
+          {bloqueadas.length > 0 && (
+            <div className="border-t border-gray-100 pt-2 mt-2 space-y-1">
+              {/* El motivo va por fila: "no se puede" sin decir por qué obliga a
+                  investigar caso por caso. */}
+              {bloqueadas.map(f => (
+                <div key={f.enrollment_id} className="flex items-center gap-2 text-amber-700">
+                  <span className="w-52 truncate">{f.estudiante}</span>
+                  <span className="w-56 truncate text-amber-600/70">{f.programa}</span>
+                  <span>{f.motivo}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
