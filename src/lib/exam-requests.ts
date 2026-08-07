@@ -1,3 +1,4 @@
+import { courseNameKey } from '@/lib/course-match'
 import { createClient } from '@supabase/supabase-js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,14 +30,35 @@ export async function eligibleCourses(sb: any, studentId: string, documentNumber
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = ((grades ?? []) as any[]).filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
 
-  // Detalle de evaluaciones (ponderaciones) por asignatura
+  // Detalle de evaluaciones (ponderaciones) por asignatura.
+  //
+  // Se empareja por NOMBRE, no por código. El course_code de estos detalles
+  // trae, en la mayoría de las filas heredadas, el número de orden de Activa
+  // —'101', '103', '106'— en vez del código real de la asignatura. Emparejar
+  // por código dejaba fuera a casi todas: un estudiante con cuatro
+  // desaprobadas veía una sola solicitable, y no porque le faltara rendir
+  // evaluaciones sino porque no encontrábamos su detalle.
+  //
+  // courseNameKey es el mismo normalizador que usa el acta para cruzar notas
+  // con la malla, y existe justamente por esto.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: details } = await sb.from('academic_grade_details')
     .select('course_code, course_name, process_grades').eq('student_id', studentId)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const detailByCode = new Map<string, any>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const detailByName = new Map<string, any>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const d of (details ?? []) as any[]) {
-    if (d.course_code) detailByCode.set(String(d.course_code), d)
+    if (d.course_code) detailByCode.set(String(d.course_code).trim(), d)
+    const k = courseNameKey(d.course_name)
+    // El primero gana: si el mismo nombre aparece dos veces, quedarse con el
+    // que trae evaluaciones evita elegir una fila vacía por azar.
+    const evs = Array.isArray(d.process_grades) ? d.process_grades.length : 0
+    const prev = detailByName.get(k)
+    if (k && (!prev || evs > (Array.isArray(prev.process_grades) ? prev.process_grades.length : 0))) {
+      detailByName.set(k, d)
+    }
   }
 
   // Solicitudes activas (no duplicar)
@@ -56,7 +78,10 @@ export async function eligibleCourses(sb: any, studentId: string, documentNumber
     const best = Math.max(...values)
     if (best >= passing) continue                 // aprobada: no aplica
 
-    const det = g.course_code ? detailByCode.get(String(g.course_code)) : null
+    // Nombre primero —es lo que sí es fiable—, y el código como respaldo para
+    // las filas nuevas, que sí lo traen bien.
+    const det = detailByName.get(courseNameKey(g.course_name))
+      ?? (g.course_code ? detailByCode.get(String(g.course_code).trim()) : null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const evals = Array.isArray(det?.process_grades) ? det.process_grades as any[] : []
     if (!evals.length) continue
