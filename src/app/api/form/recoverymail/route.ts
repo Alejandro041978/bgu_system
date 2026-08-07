@@ -84,13 +84,27 @@ export async function POST(req: NextRequest) {
     }
 
     const codigo = nuevoCodigo()
-    const { data: req0 } = await sb.from('email_recovery_requests').insert({
+    const { data: req0, error: eGuardar } = await sb.from('email_recovery_requests').insert({
       ...fila,
       code_hash: hashCodigo(codigo, documento),
       channel: 'email',
       channel_hint: enmascararCorreo(personal),
       expires_at: new Date(Date.now() + VIGENCIA_MINUTOS * 60_000).toISOString(),
     }).select('id, channel_hint').single()
+
+    // Si no se pudo guardar, NO se manda el código.
+    //
+    // Un código que no está en la base no se puede verificar nunca: el
+    // estudiante lo recibe, lo teclea, y se le dice que venció a los treinta
+    // segundos. Enviarlo igual convierte un fallo de servidor en un misterio
+    // para quien está al otro lado, que es lo peor que puede hacer una página
+    // de recuperación.
+    if (eGuardar || !req0) {
+      console.error('recoverymail: no se pudo registrar la solicitud', eGuardar)
+      return NextResponse.json({
+        error: 'No podemos procesar solicitudes en este momento. Inténtalo más tarde o escribe a Servicios al Estudiante.',
+      }, { status: 503 })
+    }
 
     const nombre = String(est.first_name ?? '').split(' ')[0] || ''
     if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
@@ -131,11 +145,22 @@ export async function POST(req: NextRequest) {
   const codigo = String(b?.code ?? '').replace(/\D/g, '')
   if (codigo.length !== 6) return NextResponse.json({ error: 'El código tiene 6 dígitos' }, { status: 400 })
 
-  const { data: sol } = await sb.from('email_recovery_requests')
+  const { data: sol, error: eBuscar } = await sb.from('email_recovery_requests')
     .select('*').eq('document', documento).not('code_hash', 'is', null).is('verified_at', null)
     .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
-  if (!sol || !sol.expires_at || new Date(sol.expires_at) < new Date()) {
+  // Tres cosas distintas que antes decían todas "el código venció". Un
+  // estudiante al que se le dice que su código de hace treinta segundos
+  // caducó no vuelve a intentarlo: cree que el sistema está roto, y tiene
+  // razón, pero por otro motivo.
+  if (eBuscar) {
+    console.error('recoverymail: no se pudo leer la solicitud', eBuscar)
+    return NextResponse.json({ error: 'No podemos procesar solicitudes en este momento. Escribe a Servicios al Estudiante.' }, { status: 503 })
+  }
+  if (!sol) {
+    return NextResponse.json({ error: 'No encontramos una solicitud reciente para ese documento. Pide un código nuevo.' }, { status: 400 })
+  }
+  if (!sol.expires_at || new Date(sol.expires_at) < new Date()) {
     return NextResponse.json({ error: 'El código venció. Pide uno nuevo.' }, { status: 400 })
   }
   if ((sol.attempts ?? 0) >= MAX_INTENTOS_CODIGO) {
