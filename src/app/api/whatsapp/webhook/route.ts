@@ -104,17 +104,23 @@ const RETENTION_HUMAN_TOOL: Anthropic.Tool = {
   },
 }
 
+// Sin campos de contacto: por WhatsApp Sofía SIEMPRE habla con un estudiante ya
+// identificado contra su ficha, así que el nombre y el correo salen de ahí.
+// Tenerlos en la herramienta empujaba al modelo a pedirle correo y teléfono a
+// alguien a quien acababa de saludar por su nombre — y a guardar en el ticket
+// lo que el estudiante teclease en vez de lo que dice su ficha. No se puede
+// rellenar lo que no existe, que es más fiable que pedir en el prompt que no
+// pregunte.
 const TICKET_TOOL: Anthropic.Tool = {
   name: 'propose_ticket',
-  description: 'Úsala SOLO cuando el usuario haya dado su acuerdo explícito para crear un ticket de soporte.',
+  description: 'Úsala SOLO cuando el estudiante haya dado su acuerdo explícito para crear un ticket de soporte. '
+    + 'El estudiante YA está identificado: sus datos de contacto salen de su ficha. '
+    + 'NO le pidas nombre, correo ni teléfono — ya los tenemos. Solo necesitas el asunto y la descripción.',
   input_schema: {
     type: 'object' as const,
     properties: {
       subject:      { type: 'string', description: 'Asunto breve del ticket' },
       description:  { type: 'string', description: 'Descripción detallada del problema' },
-      contactName:  { type: 'string', description: 'Nombre completo del usuario' },
-      contactEmail: { type: 'string', description: 'Email del usuario' },
-      phone:        { type: 'string', description: 'Teléfono del usuario' },
     },
     required: ['subject', 'description'],
   },
@@ -123,12 +129,24 @@ const TICKET_TOOL: Anthropic.Tool = {
 // ── Session ───────────────────────────────────────────────────────────────────
 interface Message      { role: 'user' | 'assistant'; content: string }
 interface PendingTicket { subject: string; description: string; contactName?: string; contactEmail?: string; phone?: string }
-interface UserInfo      { name: string; role: string; student_id?: string }
+interface UserInfo {
+  name: string
+  role: string
+  student_id?: string        // documento / código, como texto legible
+  // La FICHA. Sin esto "identificado" solo quería decir "dijo un nombre", y el
+  // ticket nacía con los datos del WhatsApp en vez de con los del estudiante.
+  student_uuid?: string
+  verified_by?: 'telefono' | 'correo'
+}
+// Ficha reconocida por documento cuyo TELÉFONO no coincide con el que escribe.
+// Queda a la espera de una segunda prueba: el correo personal.
+interface PendingVerify { student_uuid: string; name: string; document: string | null }
 interface Session {
   messages: Message[]
   pendingTicket?: PendingTicket
   identified: boolean
   userInfo?: UserInfo
+  pendingVerify?: PendingVerify
 }
 
 const MAX_HISTORY = 20
@@ -137,17 +155,18 @@ async function getSession(phone: string, botKey: string): Promise<Session> {
   // Lee la fila más reciente (tolerante a duplicados si no hay constraint único)
   const { data } = await db()
     .from('whatsapp_sessions')
-    .select('messages, pending_ticket, identified, user_info')
+    .select('messages, pending_ticket, identified, user_info, pending_verify')
     .eq('phone', phone)
     .eq('bot_key', botKey)
     .order('updated_at', { ascending: false })
     .limit(1)
-  const row = (data?.[0] ?? null) as { messages?: Message[]; pending_ticket?: PendingTicket; identified?: boolean; user_info?: UserInfo } | null
+  const row = (data?.[0] ?? null) as { messages?: Message[]; pending_ticket?: PendingTicket; identified?: boolean; user_info?: UserInfo; pending_verify?: PendingVerify } | null
   return {
     messages:      row?.messages ?? [],
     pendingTicket: row?.pending_ticket ?? undefined,
     identified:    row?.identified ?? false,
     userInfo:      row?.user_info ?? undefined,
+    pendingVerify: row?.pending_verify ?? undefined,
   }
 }
 
@@ -162,6 +181,7 @@ async function saveSession(phone: string, botKey: string, session: Session) {
     pending_ticket: session.pendingTicket ?? null,
     identified:    session.identified,
     user_info:     session.userInfo ?? null,
+    pending_verify: session.pendingVerify ?? null,
     updated_at:    new Date().toISOString(),
   })
   if (error) console.error('saveSession error:', error.message)
@@ -408,7 +428,7 @@ async function runRetentionFlow(from: string, body: string, bot: Bot, media: Med
     if (session.pendingTicket) {
       const lower = body.toLowerCase().trim()
       if (['sí', 'si', 'yes', 'confirmo', 'confirmar', 'ok', 'dale', '👍'].includes(lower)) {
-        const t = await createInboxTicket({ ...session.pendingTicket, phone: from, botKey: bot.key })
+        const t = await createInboxTicket({ ...session.pendingTicket, studentId: session.userInfo?.student_uuid ?? null, phone: from, botKey: bot.key })
         const reply = `Listo, registré tu caso 📋 *Caso #${t.caseNumber ?? 'S/N'}*\n\nUn asesor te va a contactar. Mientras tanto, cuenta conmigo para lo que necesites.`
         session.pendingTicket = undefined
         session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: reply })
@@ -622,27 +642,33 @@ export async function POST(req: NextRequest) {
     // ── 0. Auto-identify by phone / email / código en academic_students ───────
     if (!session.identified) {
       // Buscar por teléfono (siempre) y por correo o documento si aparecen en el mensaje
+      // ── Identificación en DOS NIVELES ────────────────────────────────────
+      //
+      // Antes esto era un OR entre teléfono, correo y documento: bastaba
+      // acertar UNO. Quien escribía desde un teléfono cualquiera y tecleaba un
+      // documento quedaba identificado como su dueño, y a partir de ahí Sofía
+      // le hablaba por su nombre y le abría tickets a su nombre.
+      //
+      // El teléfono registrado es POSESIÓN: quien escribe desde él ya demostró
+      // algo. Un documento es CONOCIMIENTO: lo tiene cualquiera que conozca al
+      // estudiante. Por eso no valen lo mismo, y un documento desde un teléfono
+      // desconocido pide una segunda prueba: el correo personal de la ficha.
       const phoneDigits = from.replace(/\D/g, '').slice(-9)
       const emailMatch = body.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0]
-      const codeMatch = body.match(/\b\d{5,}\b/)?.[0] // número de documento: 5+ dígitos
+      const codeMatch = body.match(/\b[\w-]{5,}\b/)?.[0]
+      const cols = 'id, first_name, last_name, second_last_name, email, email_alt, document_number, phone_number'
+      const sbId = db()
 
-      const orConditions = [`phone_number.ilike.%${phoneDigits}%`]
-      if (emailMatch) orConditions.push(`email.ilike.${emailMatch}`)
-      if (codeMatch) orConditions.push(`document_number.ilike.%${codeMatch}%`)
-
-      const { data: rows } = await db()
-        .from('academic_students')
-        .select('first_name, last_name, second_last_name, email, document_number')
-        .or(orConditions.join(','))
-        .eq('disabled', false)
-        .limit(1)
-      const student = rows?.[0]
-
-      if (student) {
-        const fullName = [student.first_name, student.last_name, student.second_last_name].filter(Boolean).join(' ')
+      const bienvenida = async (s: { id: string; first_name: string | null; last_name: string | null; second_last_name: string | null; document_number: string | null }, via: 'telefono' | 'correo') => {
+        const fullName = [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' ')
         session.identified = true
-        session.userInfo = { name: fullName, role: 'estudiante', student_id: student.document_number ?? undefined }
-        const firstName = student.first_name ?? fullName.split(' ')[0]
+        session.pendingVerify = undefined
+        session.userInfo = {
+          name: fullName, role: 'estudiante',
+          student_id: s.document_number ?? undefined,
+          student_uuid: s.id, verified_by: via,
+        }
+        const firstName = s.first_name ?? fullName.split(' ')[0]
         const isEn = detectLang(body) === 'en'
         const welcome = isEn
           ? `✅ *Student identified*\n👤 ${fullName}\n\nHi, ${firstName}! I'm Sofia, BGU's virtual assistant. How can I help you today?`
@@ -650,7 +676,58 @@ export async function POST(req: NextRequest) {
         session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: welcome })
         await saveSession(from, botKey, session)
         await sendWhatsApp(from, welcome)
+      }
+
+      // ¿Está respondiendo a la segunda verificación? El correo debe ser el de
+      // ESA ficha; el de otra no sirve, aunque exista.
+      if (session.pendingVerify && emailMatch) {
+        const { data: v } = await sbId.from('academic_students').select(cols)
+          .eq('id', session.pendingVerify.student_uuid).maybeSingle()
+        const suyos = [v?.email, v?.email_alt].filter(Boolean).map(x => String(x).toLowerCase())
+        if (v && suyos.includes(emailMatch.toLowerCase())) {
+          await bienvenida(v, 'correo')
+          return twimlOk()
+        }
+        const isEn = detectLang(body) === 'en'
+        const no = isEn
+          ? 'That email is not the one registered for that student code. For your security I cannot continue here — please write to Student Services from your registered email.'
+          : 'Ese correo no coincide con el registrado para ese código. Por tu seguridad no puedo continuar por aquí: escribe a Servicios al Estudiante desde tu correo registrado.'
+        session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: no })
+        await saveSession(from, botKey, session)
+        await sendWhatsApp(from, no)
         return twimlOk()
+      }
+
+      // Nivel 1 — el teléfono desde el que escribe. Posesión: identifica solo.
+      const { data: porTel } = await sbId.from('academic_students').select(cols)
+        .ilike('phone_number', `%${phoneDigits}%`).eq('disabled', false).limit(1)
+      if (porTel?.[0]) { await bienvenida(porTel[0], 'telefono'); return twimlOk() }
+
+      // Nivel 1 bis — dio su correo desde un teléfono desconocido. El correo es
+      // un canal suyo, así que basta.
+      if (emailMatch) {
+        const { data: porMail } = await sbId.from('academic_students').select(cols)
+          .or(`email.ilike.${emailMatch},email_alt.ilike.${emailMatch}`).eq('disabled', false).limit(1)
+        if (porMail?.[0]) { await bienvenida(porMail[0], 'correo'); return twimlOk() }
+      }
+
+      // Nivel 2 — solo dio un código, y el teléfono no es el suyo.
+      if (codeMatch) {
+        const { data: porDoc } = await sbId.from('academic_students').select(cols)
+          .ilike('document_number', `%${codeMatch}%`).eq('disabled', false).limit(1)
+        const s = porDoc?.[0]
+        if (s) {
+          const fullName = [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' ')
+          session.pendingVerify = { student_uuid: s.id, name: fullName, document: s.document_number ?? null }
+          const isEn = detectLang(body) === 'en'
+          const pide = isEn
+            ? 'Thanks for your student code. I see it is not linked to the phone number you are writing from, so for your security I need a second check: please send me your personal email address as registered with the university.'
+            : 'Gracias por darme tu código, pero veo que no está asociado al teléfono desde el que me escribes. Por tu seguridad necesito una segunda verificación: por favor dame tu correo electrónico personal, el que tienes registrado en la universidad.'
+          session.messages.push({ role: 'user', content: body }, { role: 'assistant', content: pide })
+          await saveSession(from, botKey, session)
+          await sendWhatsApp(from, pide)
+          return twimlOk()
+        }
       }
     }
 
@@ -664,6 +741,11 @@ export async function POST(req: NextRequest) {
         // auto-asignación y el supervisor. Un ticket en Zoho era invisible para todo eso.
         const ticket = await createInboxTicket({
           ...session.pendingTicket,
+          // La identidad manda sobre el canal: el ticket se engancha a la ficha
+          // y toma de ella el correo y el nombre. Antes nacía con lo que
+          // trajera el WhatsApp, y si el número no estaba en ninguna ficha
+          // el caso quedaba huérfano y sin correo al que responder.
+          studentId: session.userInfo?.student_uuid ?? null,
           phone: from,
           botKey,
         })
