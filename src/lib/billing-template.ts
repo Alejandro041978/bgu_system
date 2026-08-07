@@ -48,20 +48,25 @@ export interface Plantilla {
   installments_count: number
   installment_amount: number
   installment_concept: number | null
-  origen: 'programa' | 'categoria'
+  origen: 'coleccion' | 'programa' | 'categoria'
 }
 
 /**
- * La plantilla que le toca a un programa. El PROGRAMA manda sobre la CATEGORÍA:
- * una categoría define el caso general y un programa puede tener el suyo, igual
- * que en el tarifario de precios regulados.
+ * La plantilla que le toca a una matrícula. Gana la más específica que exista:
+ *
+ *   COLECCIÓN → PROGRAMA → CATEGORÍA
+ *
+ * La colección es la variante que el estudiante cursa de verdad —idioma, campus
+ * socio—, y ahí el precio sí puede cambiar: un socio externo no cobra lo mismo.
+ * El programa es el caso habitual y la categoría el general, que cubre decenas
+ * de programas de una vez. Mismo criterio que el tarifario de precios regulados.
  */
-export async function plantillaDe(sb: SB, programId: string): Promise<Plantilla | null> {
+export async function plantillaDe(sb: SB, programId: string, collectionId?: string | null): Promise<Plantilla | null> {
   const { data: prog } = await sb.from('academic_programs')
     .select('id, category_id').eq('id', programId).maybeSingle()
   if (!prog) return null
 
-  const pick = async (col: 'program_id' | 'category_id', val: string): Promise<Plantilla | null> => {
+  const pick = async (col: 'collection_id' | 'program_id' | 'category_id', val: string): Promise<Plantilla | null> => {
     const { data } = await sb.from('billing_template_targets')
       .select('billing_templates(*)').eq(col, val).maybeSingle()
     const t = data?.billing_templates
@@ -73,11 +78,12 @@ export async function plantillaDe(sb: SB, programId: string): Promise<Plantilla 
       installments_count: Number(t.installments_count ?? 0),
       installment_amount: Number(t.installment_amount ?? 0),
       installment_concept: t.installment_concept ?? null,
-      origen: col === 'program_id' ? 'programa' : 'categoria',
+      origen: col === 'collection_id' ? 'coleccion' : col === 'program_id' ? 'programa' : 'categoria',
     }
   }
 
-  return (await pick('program_id', programId))
+  return (collectionId ? await pick('collection_id', collectionId) : null)
+    ?? (await pick('program_id', programId))
     ?? (prog.category_id ? await pick('category_id', prog.category_id) : null)
 }
 

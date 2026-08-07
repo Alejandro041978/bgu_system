@@ -8,9 +8,10 @@ interface Template {
   registration_fee: number; registration_concept: number | null
   installments_count: number; installment_amount: number; installment_concept: number | null
 }
-interface Target { id: string; template_id: string; program_id: string | null; category_id: string | null }
+interface Target { id: string; template_id: string; program_id: string | null; category_id: string | null; collection_id: string | null }
 interface Prog { id: string; name: string; category_id: string | null }
 interface Cat { id: string; name: string }
+interface Col { id: string; name: string; program_id: string; language: string | null; partner: string | null }
 interface Concept { type_code: number; abbr: string | null; name: string | null }
 
 const money = (n: number) => Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -18,7 +19,7 @@ const VACIA = {
   id: '', name: '', currency: 'USD',
   registration_fee: '', registration_concept: '',
   installments_count: '', installment_amount: '', installment_concept: '',
-  program_ids: [] as string[], category_ids: [] as string[],
+  program_ids: [] as string[], category_ids: [] as string[], collection_ids: [] as string[],
 }
 
 export function BillingTemplatesManager() {
@@ -26,6 +27,7 @@ export function BillingTemplatesManager() {
   const [targets, setTargets] = useState<Target[]>([])
   const [progs, setProgs] = useState<Prog[]>([])
   const [cats, setCats] = useState<Cat[]>([])
+  const [cols, setCols] = useState<Col[]>([])
   const [concepts, setConcepts] = useState<Concept[]>([])
   const [huerfanos, setHuerfanos] = useState<{ id: string; name: string }[]>([])
   const [form, setForm] = useState({ ...VACIA })
@@ -40,7 +42,7 @@ export function BillingTemplatesManager() {
   const cargar = useCallback(async () => {
     const d = await fetch('/api/billing/templates').then(r => r.json())
     setTemplates(d.templates ?? []); setTargets(d.targets ?? [])
-    setProgs(d.programs ?? []); setCats(d.categories ?? [])
+    setProgs(d.programs ?? []); setCats(d.categories ?? []); setCols(d.collections ?? [])
     setConcepts(d.concepts ?? []); setHuerfanos(d.huerfanos ?? [])
     setCargando(false)
   }, [])
@@ -63,6 +65,7 @@ export function BillingTemplatesManager() {
       installment_concept: String(t.installment_concept ?? ''),
       program_ids: mios.filter(x => x.program_id).map(x => x.program_id!),
       category_ids: mios.filter(x => x.category_id).map(x => x.category_id!),
+      collection_ids: mios.filter(x => x.collection_id).map(x => x.collection_id!),
     })
     setAbierto(true); setError(null)
   }
@@ -78,7 +81,7 @@ export function BillingTemplatesManager() {
         installments_count: Number(form.installments_count || 0),
         installment_amount: Number(form.installment_amount || 0),
         installment_concept: form.installment_concept ? Number(form.installment_concept) : null,
-        program_ids: form.program_ids, category_ids: form.category_ids,
+        program_ids: form.program_ids, category_ids: form.category_ids, collection_ids: form.collection_ids,
       }),
     }).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
     setGuardando(false)
@@ -216,6 +219,30 @@ export function BillingTemplatesManager() {
             </div>
           </div>
 
+          <div>
+            {/* Lo más específico de todo: la variante que el estudiante cursa
+                de verdad. Aquí es donde el precio cambia por un campus socio o
+                por el idioma, sin tener que duplicar el programa entero. */}
+            <p className="text-xs font-medium text-gray-700 mb-1">
+              Colecciones <span className="font-normal text-gray-400">— gana sobre el programa y sobre la categoría</span>
+            </p>
+            <div className="max-h-40 overflow-auto border border-gray-100 rounded-lg p-2 space-y-1">
+              {cols.length === 0 && <p className="text-xs text-gray-400">No hay colecciones registradas.</p>}
+              {progs.filter(p => cols.some(c => c.program_id === p.id)).map(p => (
+                <div key={p.id} className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] text-gray-400 w-48 shrink-0 truncate" title={p.name}>{p.name}</span>
+                  {cols.filter(c => c.program_id === p.id).map(c => (
+                    <button key={c.id} onClick={() => setForm({ ...form, collection_ids: toggle(form.collection_ids, c.id) })}
+                      className={`text-xs px-2.5 py-1 rounded-full border ${form.collection_ids.includes(c.id)
+                        ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'}`}>
+                      {c.name}{c.partner ? ` · ${c.partner}` : ''}{c.language ? ` · ${c.language.toUpperCase()}` : ''}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
           {error && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex justify-end gap-2">
             <button onClick={() => { setAbierto(false); setForm({ ...VACIA }) }} className="px-3 py-1.5 text-sm text-gray-600">Cancelar</button>
@@ -233,13 +260,14 @@ export function BillingTemplatesManager() {
           const mios = targets.filter(x => x.template_id === t.id)
           const nProg = mios.filter(x => x.program_id).length
           const nCat = mios.filter(x => x.category_id).length
+          const nCol = mios.filter(x => x.collection_id).length
           return (
             <div key={t.id} className="px-4 py-3 flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-900">{t.name}</p>
                 <p className="text-xs text-gray-400">
-                  {nCat > 0 && <>{nCat} categoría(s)</>}{nCat > 0 && nProg > 0 && ' · '}{nProg > 0 && <>{nProg} programa(s)</>}
-                  {nCat === 0 && nProg === 0 && <span className="text-amber-600">sin asignar — no se aplica a nadie</span>}
+                  {[nCat > 0 ? ` categoría(s)` : null, nProg > 0 ? ` programa(s)` : null, nCol > 0 ? ` colección(es)` : null].filter(Boolean).join(' · ')}
+                  {nCat === 0 && nProg === 0 && nCol === 0 && <span className="text-amber-600">sin asignar — no se aplica a nadie</span>}
                 </p>
               </div>
               <span className="text-sm text-gray-700 tabular-nums">

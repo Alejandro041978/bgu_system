@@ -24,7 +24,7 @@ export async function generateChargesForEnrollment(
   const sb = admin()
 
   const { data: enr } = await sb.from('academic_student_enrollments')
-    .select('id, student_id, program_id, convocatoria_id')
+    .select('id, student_id, program_id, convocatoria_id, collection_id')
     .eq('id', enrollmentId).maybeSingle()
   if (!enr) return { ok: false, error: 'Matrícula no encontrada' }
   if (!enr.convocatoria_id) return { ok: false, error: 'La matrícula no tiene convocatoria' }
@@ -38,7 +38,7 @@ export async function generateChargesForEnrollment(
   // La plantilla la da el PROGRAMA (o su categoría), no la convocatoria. De la
   // convocatoria sale una sola cosa: el inicio de clases, del que se calcula el
   // primer vencimiento.
-  const plan = await plantillaDe(sb, enr.program_id)
+  const plan = await plantillaDe(sb, enr.program_id, enr.collection_id ?? null)
   if (!plan) {
     return { ok: false, error: 'No hay plantilla de facturación para este programa ni para su categoría' }
   }

@@ -36,19 +36,38 @@ create table if not exists billing_templates (
   updated_at           timestamptz not null default now()
 );
 
--- A qué se aplica cada plantilla. Una fila = un programa O una categoría.
+-- A qué se aplica cada plantilla. Una fila = UNA de tres cosas:
+--
+--   colección  lo más específico: la variante del programa que cursa el
+--              estudiante (idioma, campus socio). Ahí el precio sí puede
+--              cambiar de verdad — un socio externo no cobra lo mismo.
+--   programa   el caso habitual
+--   categoría  el caso general: cubre decenas de programas de una vez
+--
+-- Gana la más específica que exista, igual que en el tarifario regulado.
 create table if not exists billing_template_targets (
-  id          uuid primary key default gen_random_uuid(),
-  template_id uuid not null references billing_templates(id) on delete cascade,
-  program_id  uuid references academic_programs(id) on delete cascade,
-  category_id uuid references academic_programs_category(id) on delete cascade,
-  created_at  timestamptz not null default now(),
-  constraint uno_u_otro check ((program_id is not null) <> (category_id is not null))
+  id            uuid primary key default gen_random_uuid(),
+  template_id   uuid not null references billing_templates(id) on delete cascade,
+  collection_id uuid references moodle_collections(id) on delete cascade,
+  program_id    uuid references academic_programs(id) on delete cascade,
+  category_id   uuid references academic_programs_category(id) on delete cascade,
+  created_at    timestamptz not null default now()
 );
 
--- Un programa (o una categoría) NO puede tener dos plantillas: si las tuviera,
--- "cuál se aplica" dejaría de tener respuesta y la elegiría el azar del orden
--- de la consulta.
+-- Por si la tabla ya existía sin colecciones.
+alter table billing_template_targets add column if not exists collection_id uuid references moodle_collections(id) on delete cascade;
+alter table billing_template_targets drop constraint if exists uno_u_otro;
+alter table billing_template_targets add constraint uno_de_tres check (
+  (case when collection_id is not null then 1 else 0 end)
++ (case when program_id    is not null then 1 else 0 end)
++ (case when category_id   is not null then 1 else 0 end) = 1
+);
+
+-- Una colección, un programa o una categoría NO pueden tener dos plantillas: si
+-- las tuvieran, "cuál se aplica" dejaría de tener respuesta y la elegiría el
+-- azar del orden de la consulta.
+create unique index if not exists billing_target_collection_idx
+  on billing_template_targets (collection_id) where collection_id is not null;
 create unique index if not exists billing_target_program_idx
   on billing_template_targets (program_id) where program_id is not null;
 create unique index if not exists billing_target_category_idx
@@ -89,6 +108,8 @@ grant all on table billing_template_targets to service_role;
 
 -- ── Verificación ───────────────────────────────────────────────────────────
 select 'plantillas creadas' as control, count(*)::text as valor from billing_templates
+union all
+select 'colecciones atadas', count(*)::text from billing_template_targets where collection_id is not null
 union all
 select 'programas atados', count(*)::text from billing_template_targets where program_id is not null
 union all

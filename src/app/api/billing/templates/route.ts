@@ -19,11 +19,12 @@ export async function GET() {
   if (noAutorizado) return noAutorizado
   const sb = db()
 
-  const [{ data: templates }, { data: targets }, { data: progs }, { data: cats }, { data: concepts }] = await Promise.all([
+  const [{ data: templates }, { data: targets }, { data: progs }, { data: cats }, { data: cols }, { data: concepts }] = await Promise.all([
     sb.from('billing_templates').select('*').order('name'),
     sb.from('billing_template_targets').select('*'),
     sb.from('academic_programs').select('id, name, category_id').order('name'),
     sb.from('academic_programs_category').select('id, name').order('name'),
+    sb.from('moodle_collections').select('id, name, program_id, language, partner').order('name'),
     sb.from('account_concepts').select('type_code, abbr, name').eq('kind', 'charge').order('type_code'),
   ])
 
@@ -38,7 +39,7 @@ export async function GET() {
 
   return NextResponse.json({
     templates: templates ?? [], targets: targets ?? [],
-    programs: progs ?? [], categories: cats ?? [], concepts: concepts ?? [],
+    programs: progs ?? [], categories: cats ?? [], collections: cols ?? [], concepts: concepts ?? [],
     huerfanos,
   })
 }
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
     id?: string; name?: string; currency?: string
     registration_fee?: number; registration_concept?: number | null
     installments_count?: number; installment_amount?: number; installment_concept?: number | null
-    program_ids?: string[]; category_ids?: string[]
+    program_ids?: string[]; category_ids?: string[]; collection_ids?: string[]
   } | null
   if (!b?.name?.trim()) return NextResponse.json({ error: 'Ponle un nombre a la plantilla' }, { status: 400 })
   const sb = db()
@@ -76,8 +77,9 @@ export async function POST(req: NextRequest) {
   // diff, y son pocos.
   await sb.from('billing_template_targets').delete().eq('template_id', t.id)
   const filas = [
-    ...(b.program_ids ?? []).map(program_id => ({ template_id: t.id, program_id, category_id: null })),
-    ...(b.category_ids ?? []).map(category_id => ({ template_id: t.id, program_id: null, category_id })),
+    ...(b.collection_ids ?? []).map(collection_id => ({ template_id: t.id, collection_id, program_id: null, category_id: null })),
+    ...(b.program_ids ?? []).map(program_id => ({ template_id: t.id, collection_id: null, program_id, category_id: null })),
+    ...(b.category_ids ?? []).map(category_id => ({ template_id: t.id, collection_id: null, program_id: null, category_id })),
   ]
   if (filas.length) {
     const { error: e2 } = await sb.from('billing_template_targets').insert(filas)
