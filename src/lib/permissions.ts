@@ -64,6 +64,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/academic/concepts', 'academic_concepts'],
   ['/academic/examenes', 'academic_exams'],
   ['/academic/programs', 'academic_programs'],
+  ['/academic/course-sync', 'academic_course_sync'],
   ['/academic/students', 'academic_student_profile'],
   ['/academic/syllabi', 'academic_syllabi'],
   ['/finance/conciliar', 'finance_conciliar'],
