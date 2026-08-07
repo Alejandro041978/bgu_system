@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sweepDocumentPayments } from '@/lib/document-request'
+import { barrerPagosPendientes } from '@/lib/payment-gates'
 
 export const maxDuration = 300
 
-// Red de seguridad de las solicitudes de documento.
+// Red de seguridad de TODO lo que espera un pago: documentos, trámites y
+// exámenes. Empezó cubriendo solo documentos y por eso José Armando Castillo
+// apareció al día siguiente con su re-entry pagado y su trámite en "Iniciado":
+// se enganchó un gatillo y se olvidaron los otros dos.
 //
 // Avanzar una solicitud cuando su cuota queda saldada es un gatillo que hay que
 // tirar desde donde se registra el pago. Quince rutas escriben en
@@ -19,7 +22,7 @@ export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
-    return NextResponse.json(await sweepDocumentPayments())
+    return NextResponse.json(await barrerPagosPendientes())
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

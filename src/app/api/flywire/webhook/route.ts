@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { verifyFlywireSignature, FLYWIRE_PAID_STATUSES } from '@/lib/flywire'
 import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 import { refreshStudentAccess } from '@/lib/moodle-access'
-import { maybeMarkDocumentPaid } from '@/lib/document-request'
+import { aplicarGatillosDePago } from '@/lib/payment-gates'
 import { observar } from '@/lib/api-observe'
 
 export const revalidate = 0
@@ -118,10 +118,10 @@ export async function POST(req: NextRequest) {
       // Si este pago cubrió los conceptos iniciales, la matrícula se activa
       // sola (correo estudiantil, acta, carrusel y Moodle).
       try { await maybeActivateOnPayment(externalRef) } catch { /* la importación/el botón Activar recuperan */ }
-      // Si la cuota era de una solicitud de documento, el pago la hace avanzar
-      // (y, si es el carné ISIC, lo emite). Sin esto la solicitud se quedaba
-      // en "esperando pago" aunque el estado de cuenta la diera por Pagada.
-      try { await maybeMarkDocumentPaid(externalRef) } catch { /* el barrido diario recupera */ }
+      // Documento, trámite o examen: los tres esperan a que el estudiante
+      // pague, y los tres se olvidaban por aquí. Van juntos para que enganchar
+      // uno no signifique olvidar los otros dos.
+      try { await aplicarGatillosDePago(externalRef) } catch { /* el barrido horario recupera */ }
       // Reactiva Moodle si el pago dejó al estudiante sin vencido
       if (charge.student_id) { try { await refreshStudentAccess(sb, charge.student_id) } catch { /* best-effort */ } }
     }

@@ -432,13 +432,14 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) { errors.push('barrido de activación: ' + String(err)) }
 
-  // Mismo caso que la activación, con las solicitudes de documento: el import
-  // registraba el pago y nadie avanzaba la solicitud, que se quedaba en
-  // "esperando pago" con su cuota ya Pagada. También es autocurativo.
-  let documentos = 0
+  // Mismo caso que la activación, con las solicitudes que esperan pago: el
+  // import registraba el pago y nadie las avanzaba. Las TRES —documento,
+  // trámite y examen—, porque enganchar una y olvidar las otras dos es
+  // exactamente lo que pasó entre el 06 y el 07 de agosto.
+  let solicitudes = { documentos: 0, tramites: 0, examenes: 0, revisadas: 0 }
   try {
-    const { sweepDocumentPayments } = await import('@/lib/document-request')
-    documentos = (await sweepDocumentPayments()).avanzadas.length
+    const { barrerPagosPendientes } = await import('@/lib/payment-gates')
+    solicitudes = await barrerPagosPendientes()
   } catch (err) { errors.push('barrido de solicitudes: ' + String(err)) }
 
   // Reactiva Moodle a los estudiantes suspendidos cuyo pago recién importado los
@@ -448,5 +449,5 @@ export async function POST(req: NextRequest) {
     await refreshAccessForStudents(sb, paidStudents)
   } catch (err) { errors.push('reactivación Moodle: ' + String(err)) }
 
-  return NextResponse.json({ ok: true, counts, inserted, excluded: excludedCount, updated, enriched, associated, linked_to_charge: linked, events_logged: eventsLogged, matriculas_activadas: activadas, solicitudes_avanzadas: documentos, errors })
+  return NextResponse.json({ ok: true, counts, inserted, excluded: excludedCount, updated, enriched, associated, linked_to_charge: linked, events_logged: eventsLogged, matriculas_activadas: activadas, solicitudes_avanzadas: solicitudes, errors })
 }
