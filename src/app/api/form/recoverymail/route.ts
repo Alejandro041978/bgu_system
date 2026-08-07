@@ -145,8 +145,19 @@ export async function POST(req: NextRequest) {
   const codigo = String(b?.code ?? '').replace(/\D/g, '')
   if (codigo.length !== 6) return NextResponse.json({ error: 'El código tiene 6 dígitos' }, { status: 400 })
 
+  // Se busca la solicitud ABIERTA (sin desenlace), no la "no verificada".
+  //
+  // El paso de la fecha de nacimiento es una segunda llamada a esta misma
+  // ruta, y filtrar por verified_at is null hacía que la solicitud dejara de
+  // encontrarse a sí misma en cuanto el código era correcto: el estudiante
+  // acertaba el código, se le pedía la fecha, y al mandarla se le decía que no
+  // había ninguna solicitud. Cerrar el paso 1 borraba el camino al paso 2.
+  //
+  // outcome es el marcador correcto: mientras no haya desenlace, la solicitud
+  // sigue viva. Y cuando lo hay, deja de encontrarse — que es lo que impide
+  // reusar un código ya gastado.
   const { data: sol, error: eBuscar } = await sb.from('email_recovery_requests')
-    .select('*').eq('document', documento).not('code_hash', 'is', null).is('verified_at', null)
+    .select('*').eq('document', documento).not('code_hash', 'is', null).is('outcome', null)
     .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
   // Tres cosas distintas que antes decían todas "el código venció". Un
