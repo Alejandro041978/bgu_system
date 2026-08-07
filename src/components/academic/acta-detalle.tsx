@@ -99,14 +99,28 @@ export function ActaDetalle() {
     setOpen(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
   }
 
-  // Agrupar por programa -> período
-  const byProgram = new Map<string, Map<string, Detail[]>>()
+  // Agrupar por PROGRAMA y nada más.
+  //
+  // Antes se agrupaba por "term_year · term_block", y esos dos campos son dos
+  // herencias distintas pegadas: term_block trae unas veces el bloque de Activa
+  // ('1', '2') y otras el código de semestre de Moodle
+  // ('AY_25-26_SUMMER_2026'), mientras term_year viene por su cuenta. En 6.505
+  // notas el año del campo CONTRADICE al año del nombre del bloque, y solo en
+  // 2.235 coinciden; otras 12.611 no tienen bloque legible. De ahí salían
+  // encabezados como "2025 · AY_25-26_SUMMER_2026", que es un año de un sistema
+  // junto al nombre de otro.
+  //
+  // Un período inventado a partir de datos que se contradicen es peor que no
+  // mostrar período: el acta es un documento académico y ahí una fecha falsa
+  // pesa. Se ordena por asignatura, como el acta personal.
+  const byProgram = new Map<string, Detail[]>()
   for (const d of details) {
-    const term = `${d.term_year ?? '—'} · ${d.term_block ?? '—'}`
-    if (!byProgram.has(d.program_name)) byProgram.set(d.program_name, new Map())
-    const terms = byProgram.get(d.program_name)!
-    if (!terms.has(term)) terms.set(term, [])
-    terms.get(term)!.push(d)
+    if (!byProgram.has(d.program_name)) byProgram.set(d.program_name, [])
+    byProgram.get(d.program_name)!.push(d)
+  }
+  for (const lista of byProgram.values()) {
+    lista.sort((a, b) => String(a.course_code ?? '').localeCompare(String(b.course_code ?? ''))
+      || String(a.course_name ?? '').localeCompare(String(b.course_name ?? '')))
   }
 
   return (
@@ -137,14 +151,12 @@ export function ActaDetalle() {
         <p className="text-sm text-gray-400 py-10 text-center">Sin detalle de calificaciones para este estudiante.</p>
       )}
 
-      {!loading && [...byProgram.entries()].map(([prog, terms]) => (
+      {!loading && [...byProgram.entries()].map(([prog, courses]) => (
         <div key={prog} className="space-y-3">
           <h2 className="text-base font-semibold text-gray-900">{prog}</h2>
-          {[...terms.entries()].map(([term, courses]) => (
-            <div key={term} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">{term}</div>
-              <div className="divide-y divide-gray-50">
-                {courses.map(d => {
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="divide-y divide-gray-50">
+              {courses.map(d => {
                   const st = statusOf(d)
                   const val = d.retake_grade ?? d.final_grade
                   const isOpen = open.has(d.id)
@@ -162,10 +174,9 @@ export function ActaDetalle() {
                       {isOpen && <DetailPanel d={d} onEdit={() => editGrade(d)} />}
                     </div>
                   )
-                })}
-              </div>
+              })}
             </div>
-          ))}
+          </div>
         </div>
       ))}
     </div>
