@@ -38,7 +38,11 @@ export async function updateSession(request: NextRequest) {
   // /portal es la entrada pública de estudiantes (mismo tratamiento que /login)
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/portal')
   const isApiRoute = pathname.startsWith('/api')
-  const isPublicRoute = pathname.startsWith('/sign/') || pathname.startsWith('/auth/')
+  // /form/* son formularios de cara al estudiante SIN sesión: quien viene a
+  // recuperar su correo institucional no puede iniciar sesión, que es
+  // precisamente su problema. OJO al añadir páginas aquí: todo lo que cuelgue
+  // de /form nace público.
+  const isPublicRoute = pathname.startsWith('/sign/') || pathname.startsWith('/auth/') || pathname.startsWith('/form/')
   const isStudentRoute = pathname.startsWith('/student')
 
   if (!user && !isAuthRoute && !isApiRoute && !isPublicRoute) {
