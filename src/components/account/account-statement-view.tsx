@@ -608,19 +608,26 @@ function RebillButton(
   const [plans, setPlans] = useState<PlanRow[]>([])
   const [sinInicio, setSinInicio] = useState(false)
 
-  // Concepto por defecto: el más repetido. La matrícula aparece una sola vez,
-  // así que el ganador es siempre la cuota recurrente — la que se quiere
-  // refasear. (El servidor excluye la inicial de todas formas.)
-  const conceptoSugerido = (() => {
-    const cuenta = new Map<string, number>()
+  // Conceptos presentes en la cuenta, con cuánto de cada uno se puede
+  // realmente reemplazar: una cuota con cualquier pago o descuento queda
+  // intocable, así que sumarla aquí sería prometer lo que no se va a cumplir.
+  const conceptos = (() => {
+    const m = new Map<string, { abbr: string; name: string; total: number; libres: number; monto: number }>()
     for (const c of charges) {
       const k = String(c.charge_type ?? '')
-      cuenta.set(k, (cuenta.get(k) ?? 0) + 1)
+      const e = m.get(k) ?? { abbr: c.concept_abbr, name: c.concept_name, total: 0, libres: 0, monto: 0 }
+      e.total++
+      if (Number(c.paid ?? 0) <= 0.005) { e.libres++; e.monto += Number(c.amount ?? 0) }
+      m.set(k, e)
     }
-    let mejor = '', max = 0
-    for (const [k, v] of cuenta) if (v > max) { mejor = k; max = v }
-    return mejor
+    return [...m.entries()].map(([k, v]) => ({ key: k, ...v })).sort((a, b) => b.monto - a.monto || b.total - a.total)
   })()
+
+  // Por defecto, el concepto con MÁS dinero reemplazable. Antes era el más
+  // repetido, y con una matrícula pagada y una sola cuota de pensión el empate
+  // lo ganaba la matrícula: el diálogo intentaba refacturar cuotas pagadas y
+  // respondía "ninguna cuota se puede reemplazar" sin decir por qué.
+  const conceptoSugerido = conceptos.find(c => c.monto > 0)?.key ?? conceptos[0]?.key ?? ''
 
   const [concept, setConcept] = useState(conceptoSugerido)
   const [count, setCount] = useState('')
@@ -650,7 +657,11 @@ function RebillButton(
     setAmount(String(p.installment_amount ?? ''))
     setFirstDue(p.first_due_date ? String(p.first_due_date).slice(0, 10) : '')
     setDueDay(p.due_day != null ? String(p.due_day) : '')
-    if (p.installment_concept != null) setConcept(String(p.installment_concept))
+    // El concepto de la plantilla solo se copia si esa cuenta lo tiene: si no,
+    // el desplegable quedaría apuntando a un concepto sin cuotas.
+    if (p.installment_concept != null && conceptos.some(c => c.key === String(p.installment_concept))) {
+      setConcept(String(p.installment_concept))
+    }
     setPrev(null)
   }
 
@@ -717,6 +728,23 @@ function RebillButton(
                 )}
               </label>
             )}
+
+            {/* El concepto decide QUÉ cuotas se reemplazan. Estaba oculto y se
+                adivinaba, así que cuando la adivinanza fallaba el error no
+                tenía arreglo visible. */}
+            <label className="block">
+              <span className="block text-xs text-gray-500 mb-1">Concepto a refacturar</span>
+              <select value={concept} onChange={e => { setConcept(e.target.value); setPrev(null) }}
+                className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {conceptos.map(c => (
+                  <option key={c.key} value={c.key}>
+                    {c.abbr} · {c.name} — {c.libres > 0
+                      ? `${c.libres} de ${c.total} cuota(s) reemplazable(s), ${money(c.monto)}`
+                      : `sin cuotas reemplazables (${c.total} con pagos o descuentos)`}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <label className="block"><span className="block text-xs text-gray-500 mb-1">Nº de cuotas</span>

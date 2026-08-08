@@ -213,7 +213,15 @@ export async function rebillEnrollment(opts: {
   }
 
   if (!replace.length) {
-    return { ...vacio, keep, error: 'Ninguna cuota se puede reemplazar: todas tienen pagos, descuentos o trámites vinculados' }
+    // Decir cuál es el concepto y qué le pasa a cada cuota: el error genérico
+    // dejaba a quien refactura sin saber si se equivocó de concepto o si
+    // realmente no hay nada que tocar.
+    const detalle = keep.map(k => `${Number(k.amount).toFixed(2)} (${k.reason})`).join(', ')
+    return {
+      ...vacio, keep,
+      error: `Ninguna cuota del concepto elegido se puede reemplazar: ${detalle}. `
+        + 'Si querías refacturar otro concepto, cámbialo arriba.',
+    }
   }
 
   const totalReplaced = round2(replace.reduce((s, c) => s + Number(c.amount ?? 0), 0))
