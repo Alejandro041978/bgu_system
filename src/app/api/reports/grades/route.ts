@@ -95,11 +95,11 @@ export async function POST(req: NextRequest) {
   if (!alguno) return NextResponse.json({ error: 'Elige al menos un filtro: sin ninguno la consulta sería toda la base' }, { status: 400 })
 
   const sb = db()
-  const [progs, courses, sems, convs, studs, enrs, grades, porCurso] = await Promise.all([
+  const [progs, courses, anios, sems, studs, enrs, grades, porCurso] = await Promise.all([
     todo(sb, 'academic_programs', 'id, name, category_id'),
     todo(sb, 'academic_courses', 'id, name, code, program_id'),
+    todo(sb, 'academic_years', 'id, name, start_date'),
     todo(sb, 'academic_semesters', 'id, name, academic_year_id'),
-    todo(sb, 'convocatorias', 'id, name, academic_semester_id'),
     todo(sb, 'academic_students', 'id, document_number, first_name, last_name, second_last_name, situation'),
     todo(sb, 'academic_student_enrollments', 'student_id, program_id, convocatoria_id'),
     todo(sb, 'academic_grades', 'external_id, document_number, course_id, course_name, final_grade, retake_grade, passing_score, estado_academico, term_year, term_block, source, withdrawn_at'),
@@ -117,23 +117,39 @@ export async function POST(req: NextRequest) {
 
   // ── 2. Periodo ────────────────────────────────────────────────────────────
   // El semestre manda sobre el año; la convocatoria arrastra su semestre.
+  //
+  // Una nota se atribuye a un año académico por dos vías, y las dos valen:
+  //   · su term_block nombra un semestre (sólo el 41% de las notas), o
+  //   · su term_year, que en SystemActiva es el año de ARRANQUE del año
+  //     académico. Verificado sobre las 8.712 notas que traen las dos cosas:
+  //     coinciden en el 100%, sea el semestre Fall, Spring o Summer.
+  //
+  // Sin la segunda vía, "Master Program · AY 2023-2024" devolvía 3 notas de
+  // 4.740: las de SystemActiva llevan "1", "2" o "3" en term_block —el bloque
+  // dentro del programa, no un semestre del calendario— y las de Moodle no
+  // llevan nada. El año, en cambio, lo tienen todas.
+  //
+  // Un SEMESTRE concreto sólo puede resolverse por nombre: quien únicamente
+  // tiene el año no se puede colocar en Fall o en Spring sin inventar.
+  //
+  // Convocatoria y carrusel NO acotan el periodo: acotan a QUIÉNES. Preguntar
+  // por una convocatoria es preguntar por sus estudiantes —con todas sus
+  // notas—, no sólo por lo que rindieron el mismo semestre en que entraron.
+  // Si además se quiere acotar el tiempo, para eso está el año.
   let bloques: Set<string> | null = null
+  let anioArranque: number | null = null
+  let soloSemestre = false
   if (f.semester_id) {
     const s = sems.find(x => x.id === f.semester_id)
     bloques = new Set(s ? [clave(s.name)] : [])
-  } else if (f.convocatoria_id) {
-    // La convocatoria acota por sus estudiantes; su semestre acota las notas
-    // sólo si no se pidió uno explícito.
-    const c = convs.find(x => x.id === f.convocatoria_id)
-    const s = c ? sems.find(x => x.id === c.academic_semester_id) : null
-    bloques = new Set(s ? [clave(s.name)] : [])
+    soloSemestre = true
   } else if (f.year_id) {
+    const y = anios.find(a => a.id === f.year_id)
     const delAnio = sems.filter(s => s.academic_year_id === f.year_id)
-    // Un año sin semestres cargados no filtra nada, filtra TODO: devolvería
-    // cero y parecería que no hay notas. Mejor decirlo.
-    if (!delAnio.length) {
+    anioArranque = y ? Number(String(y.start_date).slice(0, 4)) : null
+    if (!delAnio.length && anioArranque == null) {
       return NextResponse.json({
-        error: 'Ese año académico todavía no tiene semestres cargados, así que no hay periodo con el que cruzar las notas.',
+        error: 'Ese año académico no tiene semestres cargados ni fecha de inicio: no hay periodo con el que cruzar las notas.',
       }, { status: 400 })
     }
     bloques = new Set(delAnio.map(s => clave(s.name)))
@@ -157,6 +173,8 @@ export async function POST(req: NextRequest) {
   const stuDe = new Map(studs.map(s => [String(s.document_number ?? ''), s]))
   const cursoDe = new Map(courses.map(c => [c.id, c]))
   let sinPeriodo = 0
+  let porSemestre = 0
+  let porAnio = 0
 
   const filas = []
   for (const g of grades) {
@@ -167,10 +185,12 @@ export async function POST(req: NextRequest) {
     if (docsPermitidos && !docsPermitidos.has(String(g.document_number ?? ''))) continue
     if (bloques) {
       const b = clave(g.term_block)
-      if (!bloques.has(b)) {
-        // Sin periodo atribuible: ni la queríamos descartar por otro semestre,
-        // es que esa nota no dice a cuál pertenece.
-        if (!b.startsWith('AY')) sinPeriodo++
+      if (bloques.has(b)) porSemestre++
+      else if (!soloSemestre && anioArranque != null && Number(g.term_year) === anioArranque) porAnio++
+      else {
+        // No se descarta por pertenecer a otro periodo: es que esa nota no
+        // dice a cuál pertenece.
+        if (!b.startsWith('AY') && g.term_year == null) sinPeriodo++
         continue
       }
     }
@@ -220,6 +240,9 @@ export async function POST(req: NextRequest) {
       : null,
     notas_promediadas: conNota.length,
     sin_periodo: sinPeriodo,
+    por_semestre: porSemestre,
+    por_anio: porAnio,
+    solo_semestre: soloSemestre,
   }
 
   const detalle = estudiantes <= TOPE_DETALLE
