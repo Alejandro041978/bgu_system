@@ -6,7 +6,7 @@ import { Search, User, Loader2, FileText, LogOut, Pencil } from 'lucide-react'
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 interface Program { id: string; name: string }
 interface Row { external_id: string; course_code: string | null; course_name: string; credits: number | null; term: string; status: string; grade: number | null; has_grade: boolean; withdrawn: boolean; editable: boolean; final_grade: number | null; retake_grade: number | null }
-interface Data { program: string; enrollment: { id: string; list_price: number | null; credit_rate: number | null } | null; creditos_activos: number; rows: Row[] }
+interface Data { program: string; enrollment: { id: string; list_price: number | null; credit_rate: number | null } | null; creditos_activos: number; creditos_que_lleva: number | null; rows: Row[] }
 
 const money = (n: number) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -139,6 +139,10 @@ export function CurricularRecord() {
           {/* Resumen */}
           <div className="flex flex-wrap gap-3">
             <Stat label="Créditos activos" value={String(data.creditos_activos)} />
+            {/* El precio sale de TODO lo que lleva (convalidadas incluidas), no
+                solo de lo que se ve en esta tabla: si no se dice, el Total
+                Tuition parece no cuadrar con la tarifa por crédito. */}
+            {data.creditos_que_lleva != null && <Stat label="Créditos que lleva (con convalidadas)" value={String(data.creditos_que_lleva)} />}
             {data.enrollment?.credit_rate != null && <Stat label="Tarifa por crédito" value={money(data.enrollment.credit_rate)} />}
             <Stat label="Total Tuition (precio oficial)" value={data.enrollment?.list_price != null ? money(data.enrollment.list_price) : '—'} accent />
           </div>

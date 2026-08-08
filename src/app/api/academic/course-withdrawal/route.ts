@@ -1,3 +1,4 @@
+import { computeActa, creditosQueLleva } from '@/lib/acta'
 import { passingByCourse, passingFor } from '@/lib/passing-score'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -96,10 +97,27 @@ export async function GET(req: NextRequest) {
 
   const creditosActivos = rows.filter(r => !r.withdrawn).reduce((s, r) => s + (r.credits ?? 0), 0)
 
+  // El precio oficial se CALCULA, igual que en el estado de cuenta: tarifa
+  // congelada × créditos que el estudiante lleva. El snapshot list_price decía
+  // 23.040 —la malla entera— a una estudiante con 20 convalidadas y 10 en
+  // curso, así que esta pantalla y su estado de cuenta se contradecían.
+  let listPrice: number | null = enr?.list_price != null ? Number(enr.list_price) : null
+  let creditosQueLlevaTotal: number | null = null
+  if (enr?.credit_rate != null) {
+    try {
+      const acta = await computeActa(sb, studentId, programId)
+      if (acta) {
+        creditosQueLlevaTotal = creditosQueLleva(acta)
+        if (creditosQueLlevaTotal > 0) listPrice = Math.round(Number(enr.credit_rate) * creditosQueLlevaTotal * 100) / 100
+      }
+    } catch { /* sin acta calculable se cae al snapshot */ }
+  }
+
   return NextResponse.json({
     program: program?.name ?? '',
-    enrollment: enr ? { id: enr.id, list_price: enr.list_price != null ? Number(enr.list_price) : null, credit_rate: enr.credit_rate != null ? Number(enr.credit_rate) : null } : null,
+    enrollment: enr ? { id: enr.id, list_price: listPrice, credit_rate: enr.credit_rate != null ? Number(enr.credit_rate) : null } : null,
     creditos_activos: creditosActivos,
+    creditos_que_lleva: creditosQueLlevaTotal,
     rows,
   })
 }
