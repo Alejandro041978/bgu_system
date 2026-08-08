@@ -73,6 +73,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/planning/progress', 'planning_progress'],
   ['/registrar/degrees', 'registrar_degrees'],
   ['/reports/egresados', 'report_graduates'],
+  ['/reports/grades', 'report_grades'],
   ['/ventas/prospectos', 'sales_prospectos'],
   ['/academic/account', 'academic_account'],
   ['/academic/faculty', 'academic_faculty'],

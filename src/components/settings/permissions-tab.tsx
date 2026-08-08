@@ -19,6 +19,8 @@ const PAGE_GROUPS = [
       { key: 'report_campus_audit', label: 'Reportes · Auditor del Campus' },
       { key: 'report_portal_logins', label: 'Reportes · Accesos al Portal' },
       { key: 'report_graduates', label: 'Reportes · Egresados' },
+      { key: 'report_grades', label: 'Reportes · Calificaciones' },
+      { key: 'academic_curricular_coverage', label: 'Académico · Cobertura del registro' },
       { key: 'academic_acta_course', label: 'Académico · Acta de Asignatura' },
       { key: 'academic_convocatorias_report', label: 'Comercial · Matrículas por Convocatoria' },
       { key: 'academic_convocatoria_students', label: 'Comercial · Estudiantes por Convocatoria' },

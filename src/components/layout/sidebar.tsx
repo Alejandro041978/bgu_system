@@ -44,6 +44,7 @@ const navigation: NavGroup[] = [
           { name: 'Auditor del Campus', href: '/reports/auditor-campus', icon: Shield, pageKey: 'report_campus_audit' },
           { name: 'Estado del Campus', href: '/reports/moodle-status', icon: Gauge, pageKey: 'report_moodle_status' },
           { name: 'Accesos al Portal', href: '/reports/accesos-portal', icon: LogIn, pageKey: 'report_portal_logins' },
+          { name: 'Calificaciones', href: '/reports/grades', icon: Award, pageKey: 'report_grades' },
           { name: 'Egresados', href: '/reports/egresados', icon: GraduationCap, pageKey: 'report_graduates' },
           { name: 'Recaudación', href: '/finance/recaudacion', icon: Banknote, pageKey: 'finance_recaudacion' },
           { name: 'Reporte de Deuda', href: '/finance/debt-report', icon: FileWarning, pageKey: 'finance_debt_report' },
