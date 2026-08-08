@@ -3,7 +3,7 @@ import { passingByCourse, passingFor } from '@/lib/passing-score'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { sameCourse } from '@/lib/course-match'
+import { sameCourse, courseNameKey } from '@/lib/course-match'
 import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
@@ -53,7 +53,8 @@ export async function GET(req: NextRequest) {
     categoryPassing = cat?.passing_score ?? null
   }
 
-  const { data: courses } = await sb.from('academic_courses').select('id, code, name, credits').eq('program_id', programId)
+  const { data: courses } = await sb.from('academic_courses').select('id, code, name, credits, level').eq('program_id', programId)
+    .order('level', { ascending: true, nullsFirst: false }).order('code')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const malla = (courses ?? []) as any[]
   const belongs = (g: { course_code: string | null; course_name: string | null }) =>
@@ -88,8 +89,55 @@ export async function GET(req: NextRequest) {
       // Solo se editan/borran notas importadas de SystemActiva (no las de Moodle)
       editable: g.source === 'systemactiva' && !g.moodle_course_id,
       final_grade: g.final_grade, retake_grade: g.retake_grade,
+      kind: 'inscripcion' as const,
     }
-  }).sort((a, b) => String(a.course_name).localeCompare(String(b.course_name)))
+  })
+
+  // El registro curricular es TODO el registro. Las convalidadas son parte de
+  // él —no se pueden retirar, pero existir existen— y las asignaturas de la
+  // malla sin ninguna fila también: un bachiller matriculado tiene 40
+  // asignaturas, aunque diez todavía no se le hayan inscrito. Ocultarlas hacía
+  // parecer que su plan de estudios era de 10.
+  const { data: tcs } = await sb.from('transfer_credits')
+    .select('id').eq('student_id', studentId).eq('dest_program_id', programId).eq('status', 'active')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let convItems: any[] = []
+  if ((tcs ?? []).length) {
+    const { data: its } = await sb.from('transfer_credit_items')
+      .select('id, transfer_credit_id, dest_course_id, dest_course_name, origin_course_name, converted_grade')
+      .in('transfer_credit_id', (tcs ?? []).map((t: { id: string }) => t.id))
+    convItems = its ?? []
+  }
+
+  const convRows = convItems.map(i => {
+    const c = malla.find((x: { id: string; name: string }) => x.id === i.dest_course_id || sameCourse(i.dest_course_name, x.name))
+    return {
+      external_id: `conv:${i.id}`,
+      course_code: c?.code ?? null, course_name: c?.name ?? i.dest_course_name,
+      credits: c?.credits != null ? Number(c.credits) : null,
+      term: i.origin_course_name ? `Convalidada · ${i.origin_course_name}` : 'Convalidada',
+      status: 'convalidado', grade: i.converted_grade != null ? Number(i.converted_grade) : null,
+      has_grade: true, withdrawn: false, editable: false,
+      final_grade: i.converted_grade ?? null, retake_grade: null,
+      kind: 'convalidacion' as const,
+    }
+  })
+
+  // Lo que la malla tiene y el estudiante no: ni nota ni convalidación.
+  const conFila = new Set([...rows, ...convRows].map(r => courseNameKey(r.course_name)))
+  const faltantes = malla.filter(c => !conFila.has(courseNameKey(c.name))).map(c => ({
+    external_id: `falta:${c.id}`, course_code: c.code, course_name: c.name,
+    credits: c.credits != null ? Number(c.credits) : null, term: '',
+    status: 'sin_registrar', grade: null, has_grade: false, withdrawn: false, editable: false,
+    final_grade: null, retake_grade: null, kind: 'sin_registrar' as const,
+  }))
+
+  // Se devuelve en el orden de la malla (nivel, código); lo que no está en la
+  // malla —notas sueltas de la carga histórica— va al final.
+  const orden = new Map(malla.map((c, i) => [courseNameKey(c.name), i]))
+  const todas = [...rows, ...convRows, ...faltantes]
+    .sort((a, b) => (orden.get(courseNameKey(a.course_name)) ?? 9999) - (orden.get(courseNameKey(b.course_name)) ?? 9999)
+      || String(a.course_name).localeCompare(String(b.course_name)))
 
   const { data: enr } = await sb.from('academic_student_enrollments')
     .select('id, list_price, credit_rate, credit_rate_source').eq('student_id', studentId).eq('program_id', programId)
@@ -118,7 +166,11 @@ export async function GET(req: NextRequest) {
     enrollment: enr ? { id: enr.id, list_price: listPrice, credit_rate: enr.credit_rate != null ? Number(enr.credit_rate) : null } : null,
     creditos_activos: creditosActivos,
     creditos_que_lleva: creditosQueLlevaTotal,
-    rows,
+    // Cobertura del registro: un matriculado no retirado debería tener las
+    // asignaturas de su malla completas, aunque muchas sigan sin empezar.
+    malla_total: malla.length,
+    sin_registrar: faltantes.length,
+    rows: todas,
   })
 }
 

@@ -5,14 +5,16 @@ import { Search, User, Loader2, FileText, LogOut, Pencil } from 'lucide-react'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 interface Program { id: string; name: string }
-interface Row { external_id: string; course_code: string | null; course_name: string; credits: number | null; term: string; status: string; grade: number | null; has_grade: boolean; withdrawn: boolean; editable: boolean; final_grade: number | null; retake_grade: number | null }
-interface Data { program: string; enrollment: { id: string; list_price: number | null; credit_rate: number | null } | null; creditos_activos: number; creditos_que_lleva: number | null; rows: Row[] }
+interface Row { external_id: string; course_code: string | null; course_name: string; credits: number | null; term: string; status: string; grade: number | null; has_grade: boolean; withdrawn: boolean; editable: boolean; final_grade: number | null; retake_grade: number | null; kind: 'inscripcion' | 'convalidacion' | 'sin_registrar' }
+interface Data { program: string; enrollment: { id: string; list_price: number | null; credit_rate: number | null } | null; creditos_activos: number; creditos_que_lleva: number | null; malla_total: number; sin_registrar: number; rows: Row[] }
 
 const money = (n: number) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const STATUS: Record<string, { label: string; cls: string }> = {
   aprobado: { label: 'Aprobado', cls: 'bg-green-50 text-green-700' },
   desaprobado: { label: 'Desaprobado', cls: 'bg-red-50 text-red-700' },
   en_proceso: { label: 'En proceso', cls: 'bg-amber-50 text-amber-700' },
+  convalidado: { label: 'Convalidado', cls: 'bg-violet-50 text-violet-700' },
+  sin_registrar: { label: 'Sin registrar', cls: 'bg-gray-100 text-gray-500' },
 }
 
 export function CurricularRecord() {
@@ -147,6 +149,16 @@ export function CurricularRecord() {
             <Stat label="Total Tuition (precio oficial)" value={data.enrollment?.list_price != null ? money(data.enrollment.list_price) : '—'} accent />
           </div>
 
+          {/* Un matriculado debería tener su malla entera en el registro; solo
+              un IW justifica que falten. Se avisa aquí y no en un informe
+              aparte porque quien lo puede arreglar está en esta pantalla. */}
+          {data.sin_registrar > 0 && (
+            <p className="text-sm px-3 py-2 rounded-lg bg-amber-50 text-amber-800">
+              Su registro tiene {data.malla_total - data.sin_registrar} de {data.malla_total} asignaturas de la malla:
+              faltan {data.sin_registrar} por inscribir.
+            </p>
+          )}
+
           {/* Inscripciones activas */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">
@@ -164,7 +176,7 @@ export function CurricularRecord() {
                 {activos.map(r => {
                   const st = STATUS[r.status] ?? STATUS.en_proceso
                   return (
-                    <tr key={r.external_id} className="hover:bg-gray-50/50">
+                    <tr key={r.external_id} className={`hover:bg-gray-50/50 ${r.kind === 'sin_registrar' ? 'bg-gray-50/40' : ''}`}>
                       <td className="px-5 py-2.5">
                         <p className="font-medium text-gray-800">{r.course_name}</p>
                         {r.course_code && <p className="text-xs text-gray-400">{r.course_code}</p>}
@@ -174,7 +186,9 @@ export function CurricularRecord() {
                       <td className="px-3 py-2.5 text-center">{r.grade != null ? <span className={`font-semibold ${r.status === 'desaprobado' ? 'text-red-600' : 'text-gray-800'}`}>{r.grade}</span> : <span className="text-gray-300">—</span>}</td>
                       <td className="px-3 py-2.5"><span className={`text-xs font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span></td>
                       <td className="px-3 py-2.5 text-right">
-                        {busy === r.external_id ? <Loader2 className="w-3.5 h-3.5 animate-spin inline text-gray-400" /> : r.has_grade ? (
+                        {/* Convalidadas y no registradas se ven, pero no se
+                            retiran: no son inscripciones de este programa. */}
+                        {r.kind !== 'inscripcion' ? null : busy === r.external_id ? <Loader2 className="w-3.5 h-3.5 animate-spin inline text-gray-400" /> : r.has_grade ? (
                           r.editable ? (
                             <button onClick={() => editGrade(r)}
                               className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
