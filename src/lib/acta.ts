@@ -16,6 +16,11 @@ export interface ActaRow {
   code: string | null; name: string; credits: number | null
   status: 'transfer' | 'validation' | 'aprobado' | 'desaprobado' | 'en_proceso' | 'pendiente'
   grade: number | null
+  // ¿Está en su registro curricular? Una asignatura puede figurar como
+  // 'pendiente' por dos razones opuestas: la tiene registrada y aún no la
+  // empieza, o no la tiene (se retiró de ella). Lo primero se paga; lo
+  // segundo no. Sin este dato el precio no puede distinguirlas.
+  registrada: boolean
 }
 export interface ActaSummary {
   transfer: number; validation: number; aprobado: number
@@ -45,14 +50,16 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
     .select('id, code, name, credits').eq('program_id', programId).order('code')
 
   // Notas reales (excluye convalidación y validación, que se resuelven aparte).
+  // Las filas de plan SÍ entran: son parte del registro y de ellas depende que
+  // una asignatura no empezada se distinga de una retirada.
   // Defensa: si aún no se corrió course_withdrawal.sql, reintenta sin el filtro
   // de retiradas para no romper el acta.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let grades: any[] | null = []
   if (document) {
     const base = () => sb.from('academic_grades')
-      .select('course_code, course_name, final_grade, retake_grade, passing_score, estado_academico')
-      .eq('document_number', document).neq('source', 'convalidacion').neq('source', 'validacion').neq('source', 'plan')
+      .select('course_code, course_name, final_grade, retake_grade, passing_score, estado_academico, source')
+      .eq('document_number', document).neq('source', 'convalidacion').neq('source', 'validacion')
     const r = await base().is('withdrawn_at', null)
     grades = r.error ? (await base()).data : r.data
   }
@@ -76,7 +83,7 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: ActaRow[] = (courses ?? []).map((c: any) => {
-    const base = { code: c.code, name: c.name, credits: c.credits }
+    const base = { code: c.code, name: c.name, credits: c.credits, registrada: true }
     if (transferMap.has(c.id)) {
       const tm = transferMap.get(c.id)!
       if (tm.kind === 'validacion') { summary.validation++; return { ...base, status: 'validation' as const, grade: tm.grade } }
@@ -85,7 +92,10 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
     }
     const matches = gradeRows.filter(g =>
       (c.code && g.course_code && String(g.course_code) === String(c.code)) || sameCourse(g.course_name, c.name))
-    const withValue = matches.map(g => ({ g, v: (g.retake_grade ?? g.final_grade) as number | null })).filter(x => x.v != null)
+    // Una fila de plan no es actividad académica: la asignatura sigue
+    // 'pendiente' para el estudiante, pero está EN su registro.
+    const empezadas = matches.filter(g => g.source !== 'plan')
+    const withValue = empezadas.map(g => ({ g, v: (g.retake_grade ?? g.final_grade) as number | null })).filter(x => x.v != null)
     if (withValue.length) {
       const best = withValue.reduce((a, b) => (Number(b.v) > Number(a.v) ? b : a))
       // La categoría MANDA. Antes era al revés y por eso el 75 heredado de
@@ -104,8 +114,11 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
       if (passed) { summary.aprobado++; return { ...base, status: 'aprobado' as const, grade: best.v } }
       summary.desaprobado++; return { ...base, status: 'desaprobado' as const, grade: best.v }
     }
-    if (matches.length) { summary.en_proceso++; return { ...base, status: 'en_proceso' as const, grade: null } }
-    summary.pendiente++; return { ...base, status: 'pendiente' as const, grade: null }
+    if (empezadas.length) { summary.en_proceso++; return { ...base, status: 'en_proceso' as const, grade: null } }
+    summary.pendiente++
+    // registrada=false sólo si NO tiene ninguna fila: o se retiró de ella, o
+    // nunca entró a su registro (un IW, que sí puede llevar menos).
+    return { ...base, status: 'pendiente' as const, grade: null, registrada: matches.length > 0 }
   })
 
   return {
@@ -118,21 +131,21 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
 
 // Créditos que el estudiante LLEVA de este programa.
 //
-// Lleva una asignatura la que tiene vida académica en su expediente:
-// convalidada, validada, aprobada, desaprobada o en proceso. Quedan fuera las
-// PENDIENTES, que son dos cosas distintas con el mismo nombre —las que retiró
-// y las que nunca abrió— y ninguna de las dos se paga.
+// Lleva TODO lo que está en su registro curricular (regla del usuario
+// 2026-08-08): convalidadas, aprobadas, desaprobadas, en proceso y también las
+// que aún no ha empezado. Un matriculado tiene la malla entera registrada y
+// paga el programa entero.
 //
-// De aquí sale el precio oficial. Antes salía de sumar la malla entera, que
-// acierta solo con quien cursa las 40 asignaturas y cobra de más a todos los
-// demás: quien convalida veinte y se retira de seis no lleva un programa
-// completo, y su precio no puede decir que sí.
+// Lo único que NO cuenta es lo que salió de su registro: las asignaturas
+// retiradas —el retiro baja el precio, esa es su razón de ser— y, en un IW, las
+// que nunca llegaron a registrársele. Ambas caen en 'pendiente' sin fila, que
+// es justo lo que distingue `registrada`.
 //
 // Se calcula, no se guarda. Un retiro o una convalidación cambian lo que lleva
 // —a Milagros le cambió el precio con seis retiros de un martes por la tarde—,
 // y un número congelado habría quedado mintiendo desde ese mismo minuto.
 export function creditosQueLleva(acta: Acta): number {
   return acta.courses
-    .filter(c => c.status !== 'pendiente')
+    .filter(c => c.registrada)
     .reduce((s, c) => s + Number(c.credits ?? 0), 0)
 }
