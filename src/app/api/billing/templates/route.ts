@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { guardStaff } from '@/lib/api-guard'
-import { primeraCuota } from '@/lib/billing-template'
+import { primeraCuota, inicioDeClases, plantillaDe } from '@/lib/billing-template'
 
 export const revalidate = 0
 
@@ -14,10 +14,17 @@ const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 // convocatoria (día 1 del mes siguiente a inicio + 20 días). Por eso una misma
 // plantilla sirve para todos los llamados de un programa.
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const noAutorizado = await guardStaff()
   if (noAutorizado) return noAutorizado
   const sb = db()
+
+  // ?enrollment_id= → lista compacta para Refacturar cuotas: las plantillas con
+  // su primer vencimiento YA calculado para esa matrícula. Las plantillas no
+  // llevan fecha (sale del inicio de clases de la convocatoria), así que sin
+  // este cálculo el diálogo no tendría qué copiar en "primer vencimiento".
+  const enrollmentId = req.nextUrl.searchParams.get('enrollment_id')
+  if (enrollmentId) return paraRefacturar(sb, enrollmentId)
 
   const [{ data: templates }, { data: targets }, { data: progs }, { data: cats }, { data: cols }, { data: concepts }] = await Promise.all([
     sb.from('billing_templates').select('*').order('name'),
@@ -41,6 +48,54 @@ export async function GET() {
     templates: templates ?? [], targets: targets ?? [],
     programs: progs ?? [], categories: cats ?? [], collections: cols ?? [], concepts: concepts ?? [],
     huerfanos,
+  })
+}
+
+// Plantillas listas para copiar en Refacturar cuotas, con la fecha resuelta.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function paraRefacturar(sb: any, enrollmentId: string) {
+  const { data: enr } = await sb.from('academic_student_enrollments')
+    .select('id, program_id, collection_id, convocatoria_id').eq('id', enrollmentId).maybeSingle()
+  if (!enr) return NextResponse.json({ error: 'Matrícula no encontrada' }, { status: 404 })
+
+  const [{ data: templates }, { data: targets }, { data: progs }, { data: cats }, { data: cols }] = await Promise.all([
+    sb.from('billing_templates').select('*').order('name'),
+    sb.from('billing_template_targets').select('*'),
+    sb.from('academic_programs').select('id, name, category_id'),
+    sb.from('academic_programs_category').select('id, name'),
+    sb.from('moodle_collections').select('id, name'),
+  ])
+  const nombreProg = new Map((progs ?? []).map((p: { id: string; name: string }) => [p.id, p.name]))
+  const nombreCat = new Map((cats ?? []).map((c: { id: string; name: string }) => [c.id, c.name]))
+  const nombreCol = new Map((cols ?? []).map((c: { id: string; name: string }) => [c.id, c.name]))
+
+  const inicio = await inicioDeClases(sb, enr.convocatoria_id)
+  const primera = inicio ? primeraCuota(inicio) : null
+  // Cuál es LA que le corresponde a esta matrícula (colección → programa →
+  // categoría). Se marca para que quien refactura no tenga que deducirlo.
+  const suya = await plantillaDe(sb, enr.program_id, enr.collection_id ?? null)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const destinos = (t: any) => (targets ?? [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((x: any) => x.template_id === t.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((x: any) => nombreCol.get(x.collection_id) ?? nombreProg.get(x.program_id) ?? nombreCat.get(x.category_id) ?? '—')
+
+  return NextResponse.json({
+    // Mismos nombres de campo que el diálogo ya usaba, para que copiar un plan
+    // siga siendo copiar un plan.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    plans: (templates ?? []).map((t: any) => ({
+      id: t.id, name: t.name,
+      installments_count: t.installments_count, installment_amount: t.installment_amount,
+      installment_concept: t.installment_concept,
+      first_due_date: primera, due_day: null,
+      destinos: destinos(t),
+      es_la_suya: suya?.id === t.id,
+    })),
+    primera_cuota: primera,
+    sin_inicio_de_clases: !inicio,
   })
 }
 

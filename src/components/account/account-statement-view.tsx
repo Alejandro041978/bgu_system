@@ -590,10 +590,14 @@ interface RebillPreview {
   totalReplaced: number; totalNew: number
   tuitionTarget?: number | null; scholarshipPct?: number | null; matchesTarget?: boolean
 }
+// Plantilla de facturación tal como la ve este diálogo. La fecha no vive en la
+// plantilla —sale del inicio de clases de la convocatoria— así que el servidor
+// la calcula para ESTA matrícula y la manda ya resuelta.
 interface PlanRow {
-  id: string; program_id: string; convocatoria_id: string
+  id: string; name: string
   installments_count: number; installment_amount: number
   installment_concept: number | null; first_due_date: string | null; due_day: number | null
+  destinos: string[]; es_la_suya: boolean
 }
 
 function RebillButton(
@@ -602,8 +606,7 @@ function RebillButton(
 ) {
   const [open, setOpen] = useState(false)
   const [plans, setPlans] = useState<PlanRow[]>([])
-  const [convNames, setConvNames] = useState<Record<string, string>>({})
-  const [progNames, setProgNames] = useState<Record<string, string>>({})
+  const [sinInicio, setSinInicio] = useState(false)
 
   // Concepto por defecto: el más repetido. La matrícula aparece una sola vez,
   // así que el ganador es siempre la cuota recurrente — la que se quiere
@@ -631,16 +634,14 @@ function RebillButton(
 
   useEffect(() => {
     if (!open) return
-    fetch('/api/billing/plans').then(r => r.json()).then(d => {
+    // Las plantillas vigentes son las de billing_templates (programa/categoría/
+    // colección). Antes esto leía billing_plans, el modelo viejo por
+    // convocatoria: el diálogo ofrecía planes que ya nadie mantenía.
+    fetch(`/api/billing/templates?enrollment_id=${enrollmentId}`).then(r => r.json()).then(d => {
       setPlans(d.plans ?? [])
-      const cn: Record<string, string> = {}
-      for (const c of d.convocatorias ?? []) cn[c.id] = c.name
-      setConvNames(cn)
-      const pn: Record<string, string> = {}
-      for (const p of d.programs ?? []) pn[p.id] = p.name
-      setProgNames(pn)
+      setSinInicio(!!d.sin_inicio_de_clases)
     }).catch(() => null)
-  }, [open])
+  }, [open, enrollmentId])
 
   function usarPlan(id: string) {
     const p = plans.find(x => x.id === id)
@@ -696,16 +697,24 @@ function RebillButton(
 
             {plans.length > 0 && (
               <label className="block">
-                <span className="block text-xs text-gray-500 mb-1">Copiar de una plantilla existente</span>
+                <span className="block text-xs text-gray-500 mb-1">Copiar de una plantilla de facturación</span>
                 <select onChange={e => usarPlan(e.target.value)} defaultValue=""
                   className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="">Escribir los valores a mano…</option>
                   {plans.filter(p => Number(p.installments_count) > 0).map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.installments_count} × {Number(p.installment_amount).toFixed(2)} · {progNames[p.program_id] ?? 'programa'} · {convNames[p.convocatoria_id] ?? 'convocatoria'}
+                      {p.installments_count} × {Number(p.installment_amount).toFixed(2)} · {p.name}
+                      {p.es_la_suya ? ' · la de este programa' : ''}
+                      {p.destinos.length ? ` (${p.destinos.slice(0, 3).join(', ')}${p.destinos.length > 3 ? '…' : ''})` : ''}
                     </option>
                   ))}
                 </select>
+                {sinInicio && (
+                  <span className="block text-[11px] text-amber-700 mt-1">
+                    Su convocatoria no tiene fecha de inicio de clases, así que el primer vencimiento no se puede
+                    calcular: al copiar una plantilla tendrás que escribirlo tú.
+                  </span>
+                )}
               </label>
             )}
 
