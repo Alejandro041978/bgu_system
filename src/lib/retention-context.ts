@@ -12,6 +12,7 @@
 // ---------------------------------------------------------------------------
 
 import { sameCourse } from './course-match'
+import { esIntento } from './grade-sources'
 
 export interface RetentionContext {
   studentId: string
@@ -94,7 +95,7 @@ export async function buildRetentionContext(sb: any, studentId: string): Promise
       .select('course_code, course_name, final_grade, retake_grade, passing_score, source')
       .eq('document_number', s.document_number)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const gradeRows = ((grades ?? []) as any[]).filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
+    const gradeRows = ((grades ?? []) as any[]).filter(g => esIntento(g))
 
     const { data: tcs } = await sb.from('transfer_credits').select('id').eq('student_id', studentId).in('dest_program_id', programIds)
     const tcIds = (tcs ?? []).map((t: { id: string }) => t.id)

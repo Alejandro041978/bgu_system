@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { sameCourse, courseNameKey } from '@/lib/course-match'
+import { esFilaDePlan } from '@/lib/grade-sources'
 import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
@@ -20,6 +21,9 @@ async function requireUser() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function gradeStatus(g: any, passing: number | null): { status: string; grade: number | null; has_grade: boolean } {
   const v = (g.retake_grade ?? g.final_grade) as number | null
+  // La fila de plan ocupa su lugar en el registro sin fingir actividad: la
+  // asignatura está inscrita en su malla, pero no empezada.
+  if (esFilaDePlan(g)) return { status: 'no_iniciada', grade: null, has_grade: false }
   if (v == null) return { status: 'en_proceso', grade: null, has_grade: false }
   // El estado calculado manda: la nota del campus es un acumulado sobre el
   // 100% del curso, no un promedio de lo rendido.
@@ -89,7 +93,7 @@ export async function GET(req: NextRequest) {
       // Solo se editan/borran notas importadas de SystemActiva (no las de Moodle)
       editable: g.source === 'systemactiva' && !g.moodle_course_id,
       final_grade: g.final_grade, retake_grade: g.retake_grade,
-      kind: 'inscripcion' as const,
+      kind: (esFilaDePlan(g) ? 'sin_registrar' : 'inscripcion') as 'inscripcion' | 'sin_registrar',
     }
   })
 
@@ -128,7 +132,7 @@ export async function GET(req: NextRequest) {
   const faltantes = malla.filter(c => !conFila.has(courseNameKey(c.name))).map(c => ({
     external_id: `falta:${c.id}`, course_code: c.code, course_name: c.name,
     credits: c.credits != null ? Number(c.credits) : null, term: '',
-    status: 'sin_registrar', grade: null, has_grade: false, withdrawn: false, editable: false,
+    status: 'no_iniciada', grade: null, has_grade: false, withdrawn: false, editable: false,
     final_grade: null, retake_grade: null, kind: 'sin_registrar' as const,
   }))
 
@@ -254,6 +258,9 @@ export async function POST(req: NextRequest) {
     .select('external_id, document_number, credits, final_grade, retake_grade, withdrawn_at, source').eq('external_id', b.external_id).maybeSingle()
   if (!g) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
   if (g.source === 'convalidacion' || g.source === 'validacion') return NextResponse.json({ error: 'Una convalidación/validación no se retira aquí' }, { status: 400 })
+  // De una asignatura no empezada no hay nada que retirar: no ocupa crédito ni
+  // entra en el precio. Sacarla del registro sería dejar la malla incompleta.
+  if (esFilaDePlan(g)) return NextResponse.json({ error: 'Esa asignatura todavía no está empezada: no hay nada que retirar' }, { status: 400 })
   if (g.withdrawn_at) return NextResponse.json({ error: 'Esta asignatura ya está retirada' }, { status: 409 })
   // Compuerta: solo si NO hay calificaciones — ni final/recuperación...
   if (g.final_grade != null || g.retake_grade != null) {

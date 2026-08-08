@@ -1,4 +1,5 @@
 import { passingByCourse, passingFor } from '@/lib/passing-score'
+import { esIntento } from '@/lib/grade-sources'
 import { courseNameKey } from '@/lib/course-match'
 import { createClient } from '@supabase/supabase-js'
 
@@ -32,7 +33,7 @@ export async function eligibleCourses(sb: any, studentId: string, documentNumber
   // fila, al vaciar ese dato heredado ninguna asignatura sería elegible.
   const porCurso = await passingByCourse(sb)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = ((grades ?? []) as any[]).filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
+  const rows = ((grades ?? []) as any[]).filter(g => esIntento(g))
 
   // Detalle de evaluaciones (ponderaciones) por asignatura.
   //

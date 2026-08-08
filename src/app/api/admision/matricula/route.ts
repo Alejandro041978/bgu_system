@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { completarRegistroDeMatricula } from '@/lib/curricular-plan'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateChargesForEnrollment } from '@/lib/billing'
@@ -215,6 +216,11 @@ export async function POST(req: NextRequest) {
   // Snapshot del tarifario oficial: la tarifa por crédito vigente HOY se
   // congela con la matrícula (precios regulados: los futuros no lo alcanzan).
   await snapshotCreditRate(sb, enrollmentId, program_id)
+
+  // Su registro curricular nace completo: las asignaturas de la malla que no
+  // tiene entran como "No iniciada". Si falla, no se cae la matrícula — la
+  // página Cobertura del registro las recupera.
+  try { await completarRegistroDeMatricula(sb, sid, program_id) } catch (e) { console.error('plan curricular', e) }
 
   const charges = await generateChargesForEnrollment(enrollmentId)
 

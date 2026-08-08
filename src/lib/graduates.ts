@@ -1,4 +1,5 @@
 import { readAll } from './withdrawals'
+import { esIntento } from '@/lib/grade-sources'
 import { sameCourse } from './course-match'
 
 // ---------------------------------------------------------------------------
@@ -52,7 +53,7 @@ export async function computeGraduates(sb: any): Promise<{
   const gradesByDoc = new Map<string, GradeRow[]>()
   for (const g of grades as (GradeRow & { source: string })[]) {
     // Las convalidaciones/validaciones se cuentan por transfer_credit_items, no aquí
-    if (g.source === 'convalidacion' || g.source === 'validacion') continue
+    if (!esIntento(g)) continue
     if (!g.document_number) continue
     const k = g.document_number
     if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
@@ -176,7 +177,7 @@ export async function recomputeStudentByDocument(sb: any, documentNumber: string
     .select('course_code, course_name, final_grade, retake_grade, passing_score, source')
     .eq('document_number', documentNumber)
   const gradeRows = ((grades ?? []) as (GradeRow & { source: string })[])
-    .filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
+    .filter(g => esIntento(g))
 
   for (const stu of studs as { id: string; situation: string; situation_source: string }[]) {
     const { data: enr } = await sb.from('academic_student_enrollments')

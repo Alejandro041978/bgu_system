@@ -71,7 +71,7 @@ export async function checkRequirements(
       // Notas reales (excluye convalidación y validación)
       const { data: grades } = await sb.from('academic_grades')
         .select('course_code, course_name, final_grade, retake_grade, passing_score')
-        .eq('document_number', stu.document_number).neq('source', 'convalidacion').neq('source', 'validacion')
+        .eq('document_number', stu.document_number).neq('source', 'convalidacion').neq('source', 'validacion').neq('source', 'plan')
 
       // Convalidaciones/validaciones del estudiante para este programa (dest_course_id)
       const { data: tcs } = await sb.from('transfer_credits').select('id').eq('student_id', studentId).eq('dest_program_id', programId)

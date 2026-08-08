@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { esIntento } from '@/lib/grade-sources'
 import { sameCourse } from './course-match'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,7 +53,7 @@ async function remainingCourses(sb: any, studentId: string, programId: string, d
       .select('course_code, course_name, final_grade, retake_grade, passing_score, source')
       .eq('document_number', documentNumber)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    grades = ((data ?? []) as any[]).filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
+    grades = ((data ?? []) as any[]).filter(g => esIntento(g))
   }
 
   let aprobadas = 0

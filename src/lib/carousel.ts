@@ -1,4 +1,5 @@
 import { readAll } from './withdrawals'
+import { esIntento } from '@/lib/grade-sources'
 import { sameCourse } from './course-match'
 import { provisionStudent } from './moodle-provision'
 
@@ -101,7 +102,7 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
       .in('document_number', part)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const g of (data ?? []) as any[]) {
-      if (g.source === 'convalidacion' || g.source === 'validacion') continue
+      if (!esIntento(g)) continue
       const k = String(g.document_number)
       if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
       gradesByDoc.get(k)!.push(g)

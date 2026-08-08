@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { esIntento } from '@/lib/grade-sources'
 import { createClient } from '@supabase/supabase-js'
 import { moodleCall, moodleConfigured } from '@/lib/moodle'
 import { sameCourse } from '@/lib/course-match'
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
       const max = Number(t?.grademax ?? 100)
       if (moodleVal != null && isFinite(max) && max > 0 && max !== 100) moodleVal = (moodleVal / max) * 100
       const erpRows = (gradesByDoc.get(String(stu.document_number)) ?? [])
-        .filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
+        .filter(g => esIntento(g))
         .filter(g => (course.code && g.course_code && String(g.course_code) === String(course.code)) || sameCourse(g.course_name, course.name))
       const erpVals = erpRows.map(g => g.retake_grade ?? g.final_grade).filter((v: number | null): v is number => v != null)
       const erpVal = erpVals.length ? Math.max(...erpVals) : null

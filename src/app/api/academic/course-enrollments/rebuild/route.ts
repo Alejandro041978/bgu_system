@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { esFilaDePlan } from '@/lib/grade-sources'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isStudentUser } from '@/lib/student-identity'
@@ -57,9 +58,12 @@ export async function POST(req: NextRequest) {
   const courses = await todo(sb, 'academic_courses', 'id, program_id, name, code', 'id') as CursoMalla[]
   const programs = await todo(sb, 'academic_programs', 'id, name', 'id')
   const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
-  const grades = await todo(sb, 'academic_grades',
+  const todasLasNotas = await todo(sb, 'academic_grades',
     'external_id, document_number, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, withdrawn_at, synced_at, source, course_enrollment_id',
     'external_id') as (NotaMin & { course_enrollment_id: string | null })[]
+  // Las filas de plan no son intentos: numerarlas convertiría la asignatura que
+  // el estudiante aún no empieza en su intento 1 y la real en el 2.
+  const grades = todasLasNotas.filter(n => !esFilaDePlan(n))
 
   const idx = indexarMalla(courses)
   const stuByDoc = new Map<string, { id: string }>()
