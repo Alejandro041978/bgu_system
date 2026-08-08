@@ -1,522 +1,105 @@
 -- ===========================================================================
--- Backfill del periodo de las notas de Moodle.
+-- Backfill del periodo de las notas de Moodle.  EN 5 PASOS.
 --
--- term_year se escribia como el año de la CORRIDA del importador: las 1.704
--- notas de Moodle decian 2026 y ninguna traia semestre. El periodo real sale
--- de la oferta del aula (semester_offerings → semestre → año academico).
+-- Corre cada paso por separado en el SQL Editor y mira el resultado antes de
+-- seguir. El paso 1 no escribe nada en las notas.
 --
--- Solo se tocan las notas cuyo periodo es DEDUCIBLE SIN AMBIGUEDAD:
---   · 433 porque su aula tiene una sola oferta
---   · 58 porque su ultima evaluacion en Moodle cae dentro de una
---     unica ventana de semestre
--- Las demas se quedan como estan: un aula reutilizada entre cohortes no dice
--- por si sola en que semestre la curso cada estudiante, y elegir una a dedo
--- seria volver a fabricar el dato.
+-- Por que hace falta: term_year se escribia como el año de la CORRIDA del
+-- importador, asi que las 1.704 notas de Moodle decian 2026 y ninguna traia
+-- semestre. El periodo real sale de la oferta del aula (semester_offerings →
+-- semestre → año academico).
 --
--- protect_edited_grades congela term_year y term_block en las filas con
--- edited_at (425 de estas lo tienen). Por eso el trigger se apaga aqui: es un
--- cambio de PERIODO, no de calificacion — ninguna nota se toca.
+-- Solo se tocan las notas cuyo periodo es DEDUCIBLE SIN AMBIGUEDAD: su aula
+-- tiene una sola oferta, o su ultima evaluacion en Moodle cae dentro de una
+-- unica ventana de semestre. Las aulas se reutilizan entre cohortes, y elegir
+-- una oferta a dedo seria volver a fabricar el dato que se esta corrigiendo.
 -- ===========================================================================
 
+
+-- ── PASO 1 ─────────────────────────────────────────────────────────────────
+-- Calcula el periodo deducible y lo deja en una tabla de trabajo.
+-- No toca ninguna nota. Debe devolver alrededor de 491 filas.
+
+drop table if exists bf_periodo;
+
+create table bf_periodo as
+with sem_de_aula as (
+  select distinct
+         o.moodle_course_id::text                     as aula,
+         s.id                                         as sem_id,
+         s.name                                       as semestre,
+         extract(year from y.start_date)::int         as anio,
+         s.start_date,
+         s.end_date
+    from semester_offerings o
+    join academic_semesters s on s.id = o.semester_id
+    join academic_years     y on y.id = s.academic_year_id
+   where o.moodle_course_id is not null
+),
+unica as (                    -- el aula se dicto en un solo semestre
+  select aula, min(semestre) as semestre, min(anio) as anio
+    from (select distinct aula, sem_id, semestre, anio from sem_de_aula) t
+   group by aula
+  having count(*) = 1
+),
+nota as (
+  select g.external_id,
+         g.moodle_course_id::text as aula,
+         g.last_evaluated_at
+    from academic_grades g
+   where g.source = 'moodle'
+     and g.withdrawn_at is null
+     and g.moodle_course_id is not null
+),
+por_fecha as (                -- el aula tiene varias, pero la fecha decide
+  select n.external_id, min(d.semestre) as semestre, min(d.anio) as anio
+    from nota n
+    join sem_de_aula d on d.aula = n.aula
+   where n.last_evaluated_at is not null
+     and n.last_evaluated_at::date between d.start_date and d.end_date
+   group by n.external_id
+  having count(distinct d.sem_id) = 1
+)
+select n.external_id,
+       coalesce(u.anio, f.anio)                                   as anio,
+       replace(coalesce(u.semestre, f.semestre), ' ', '_')        as bloque
+  from nota n
+  left join unica     u on u.aula        = n.aula
+  left join por_fecha f on f.external_id = n.external_id
+ where coalesce(u.anio, f.anio) is not null;
+
+select count(*) as filas_a_escribir from bf_periodo;
+
+
+-- ── PASO 2 ─────────────────────────────────────────────────────────────────
+-- Respaldo de lo que hay hoy, para poder revertir (ver el ultimo paso).
+
+drop table if exists bf_periodo_bak;
+
+create table bf_periodo_bak as
+  select g.external_id, g.term_year, g.term_block
+    from academic_grades g
+   where g.external_id in (select external_id from bf_periodo);
+
+select count(*) as filas_respaldadas from bf_periodo_bak;
+
+
+-- ── PASO 3 ─────────────────────────────────────────────────────────────────
+-- La escritura. El trigger protect_edited_grades congela term_year y
+-- term_block en las filas editadas a mano (425 de estas lo estan), asi que se
+-- apaga durante el UPDATE y se vuelve a encender en la misma transaccion: si
+-- algo falla, no queda apagado. Ninguna calificacion se toca.
+--
+-- Si sale "must be owner of relation academic_grades", corre antes, en esta
+-- misma pestaña:   set role postgres;
+
 begin;
-
-create temp table bf_periodo(external_id uuid primary key, anio int, bloque text) on commit drop;
-insert into bf_periodo(external_id, anio, bloque) values
-  ('019f397e-5ec1-7d13-a238-948b22d02aa2'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('d1d6d938-e53f-4f12-9427-6e3444646610'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c62cf724-4063-451a-b181-58e494be89c8'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('019f3987-03c8-7981-90f2-f7dc155faea4'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('18fc775a-77b3-4668-846f-3625651aaeac'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('f729638f-d9e7-4014-9623-516e32bb06aa'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('70ab390a-e4ab-4921-a35a-c75ad66ca7a3'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('6e96fce2-bc69-483b-b8b7-0815dc8b1a0e'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('aa4639a1-16ed-4c54-b047-f77c96c4a76c'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('e9d231fa-99c2-4c05-a70e-d52fc840cae7'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('fafa90a8-4660-47e6-b6de-0b4b3642aac0'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('ced8db14-ecea-4bf8-bb11-1a397a3cdf35'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('0ecbc5f4-8f8e-4a9d-b25c-d76906c8fa17'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7a1a093e-05da-47cb-91d3-c180234275a2'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('89a2ab05-e6af-460b-8035-6d98ef35b09f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('2144c64f-8e6e-412c-bea5-ff945a53811f'::uuid, 2025, 'AY_25-26_SPRING_2026'),
-  ('1cfc5cb8-202f-4468-b525-5501af0bb74e'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('731c7282-b217-45cd-a5e5-c469c955c4ed'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('9626b142-2825-4ac7-90d8-119aa5efcaaa'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('8c84a5f6-28f4-4682-9b48-d85b4e41edd8'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('43dd23e2-c87f-431d-98f0-219a06554dcc'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('b093b8bc-8fa3-4b4a-ac02-8cba6cb19f71'::uuid, 2024, 'AY_24-25_SUMMER_2025'),
-  ('3842d66b-1195-4b09-ae33-040784b6c35c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('952f43c9-3dfc-4853-8b91-c50744e90d49'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7919b388-5fa5-43f9-9398-6331f89edf19'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('885eeec9-05e3-4787-8391-3117edd36d20'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('72fef04c-5df8-49f4-a664-07c0d170522a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5584c87d-8808-4094-8f58-accc4101739a'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('761840fe-f82c-4e95-96dc-b376b9a2732b'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('31c9b58c-6abc-4c72-a9fe-787b3a9b86a8'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('328073c4-3ee1-4d41-ae3e-c19d92b71228'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('3834aeb4-9aca-47b5-8283-c34836040b1c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('60b6eaa1-9dda-4c2f-97d0-0c11adb63d51'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a515f8de-45b1-4260-854f-00e7e464842e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5e0d7816-2813-4e9e-a93a-29d95c685e4c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a66c44b8-ada5-489e-a259-7e2b89415f74'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('88be02a7-2862-43b1-93f5-58bca1ad024f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('cf0f9ebb-37e8-489e-a8a9-13ff7500af77'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('019c7289-5e8c-780f-8936-4af92798ca96'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e3a53e52-acc9-4bab-9d16-3e09ab7e1dac'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('2f96cc10-004b-4f35-aa3a-06f1f8e08bdb'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019d8c72-fab5-7cde-ab1b-0d834ca94ae0'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('790de354-f8d6-47c4-a5e0-26a468e2f885'::uuid, 2025, 'AY_25-26_SPRING_2026'),
-  ('2f9c5ef0-d202-4fe0-8299-e516d3362cc5'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('f3f5d886-7922-4b76-a897-6d1191dc5c74'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a386e936-5125-4d7e-98d1-a2a445e146f4'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('77923156-adb8-44dc-9e47-2b5cdf38685f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('af97d6dd-3cfc-4077-85f5-2801010b3a1f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e4a17654-fb2f-4f0f-84c5-859f9effa0cf'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('019d0279-8dec-7e65-9f14-4ebcb9a57d90'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('8b0a9671-48f0-4a3c-8c5b-b142e73dc353'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('9070e089-e400-4532-ba80-00dd7ae64abf'::uuid, 2025, 'AY_25-26_SPRING_2026'),
-  ('720e5f4a-3fce-4c67-956c-e46193321602'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5f29b0c5-3bd8-48d3-95cd-57b9258bd857'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('083d762d-a0ea-4fda-b258-3c16761b199e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('96a6730e-ef68-43b6-b49c-6d09e4fb84ed'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019f3980-3411-798e-8857-754eb80b129e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d57dc58e-6fd4-4f44-be44-8858362c8572'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7b1eb2ac-88c4-4fc1-a5f2-372ec02d6a8a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('cc9338dd-e35a-4c9a-8d06-b280d1388e3e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e6d957aa-59a8-457e-b8b4-383f7fbeb232'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('2ad033e2-0dfb-4d10-9070-0941c41b8c9e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('39846be0-6ac9-4638-9289-35e9c08121ce'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5622b989-5fc2-4407-b365-87af6fb03a98'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('4ef03e23-7e84-4c16-8953-a42f020ab43d'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('00466633-fd6b-4a10-b9b8-881f3dace31b'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('41649f5f-4ded-472d-9471-0f2268888fdc'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('59d3421c-6890-4fc5-a46d-eb79e086ad73'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('59a170a7-fbd2-41a7-a788-b8b5f63fe734'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('435fe30c-68f4-482e-84bd-15b011e175c0'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('6183f0eb-ee42-4848-910c-a4009b72b159'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('8c81fce8-e511-4f8a-bed5-f0c7fb23fc62'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('9edcfb73-5acb-42b7-bd4a-05ba3887ddcb'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('8b3d6874-dc91-42bf-bb5c-a79cee413058'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('92ef4197-f0b6-4194-bbad-bf6a52494547'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a6378b23-4757-470d-b415-d474c4aa139a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a04c90c3-22cf-49fc-85cf-4dff4d875944'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('48a13f90-fb69-4629-a080-b9843d01fc9e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('4e1d4625-bc10-4a61-a013-db125ae765c5'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('8378456b-36e5-44bf-9758-6bcccc044803'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a8a7be0c-baa9-49b2-9f58-7661eaee7d65'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('8502fdf5-994d-4dbf-96e1-7773520fd94e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('6d142abd-2d48-4582-b7bd-3d4fccae7aeb'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a4db6533-7315-491e-a4ae-16df752a0292'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a2b9d7ea-20dc-435f-9f8a-cc2794c57526'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7398c3b2-a186-4b99-a86f-5d50a6e5f0f5'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('75b20730-d4b9-4391-ba3c-69e50d8a37a3'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7ad2d1bd-1699-4437-9390-51b3de245b71'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ad57f407-48e3-4fe5-af10-9137cc45708f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('8f6124b5-8646-43a7-b561-ec08f2228b0b'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ae6866e1-bf59-4acb-bbdb-05f7f55fb984'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('9788b473-8ceb-43a1-a7cc-fc64c935b445'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('921999a9-fc81-459b-bef2-7866e86a5281'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('93ae06fb-5c1a-4a05-88c0-ef5106e79978'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a7b99a60-b5dd-4d0d-bf49-f4ca24fa2b6a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a79fa511-034b-4b35-94ba-b77e3971345c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('fc9da07f-4abd-4b67-b314-9dc825403569'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('fece2892-fdfc-42d1-b247-2cbf0407b558'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('de9101c2-be08-41bc-b4cb-750ff0e2d647'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d718cc3a-2c35-4d08-9d59-8bc62e2efb40'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('f951be23-6bed-4a61-ae1c-adc68411f122'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e3e223f5-f4f9-4a2f-bade-5f768e9a52d2'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('cb2f4025-4b49-4b96-90f4-7993349eee7e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('cbe4407d-d451-4a26-8bfd-29da5ac87754'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019f3980-3452-71b5-b275-b034ed2d92ea'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('66979880-e990-417f-bcad-b620c6bd3fab'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('b1dfc445-845e-4285-80e5-3b7bd2be4409'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('b65bcf51-2158-46e5-ac65-18e50f12a978'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('27cf3a36-a553-4253-b4d6-f10170479ff8'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('e22b71cb-379e-417c-922e-c46d7981c383'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('fb01a304-4d0a-4d94-a664-6283aaed4146'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('06107ad7-91c0-47dc-b1a3-bad79ac76517'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('68344830-86cf-48bc-81d3-e2d3d1a3a72b'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('96b90b24-198f-4619-96c1-9d2b0ed41160'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('9ea8900e-bba6-4d5e-b504-f4cb2f2b6804'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('5a21dceb-b493-4915-aae7-0b609f8bf658'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('8d9c002b-e879-4501-abcc-56b035ad96c5'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('934bb1a1-3018-4750-afa4-bb46be4f8100'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('95ca6092-aee3-4d93-99f2-e6c9388a7649'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('1af996f2-2126-4632-9ea5-8e18a03a1e84'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('1b123a9c-25a8-4a97-b433-e16cf28e21f7'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('69a9634a-2b6e-4a9b-b802-7dce952ad36c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('08b94c7d-32eb-4e1c-9cf0-7e0d3d6ade12'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('7028c1d3-bf26-4588-a15a-47c5b83ebd45'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5dbe0056-c59c-4724-aca8-4d7a4bddbaab'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('8126a5f3-8b69-4e76-8bcc-3959c171cb53'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019c7265-a8be-7db2-9f65-e8542594f738'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('019f397f-4906-727d-88f4-5ceef315b2b1'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019f3980-33e1-7202-acc9-5d076a21b5b7'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('1709da37-a138-4ee2-ae65-83dcff4cd876'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('18c94015-19e9-496e-a1f3-f11e09894a71'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('35ab7a04-c5c2-4e54-82e2-28a809c077b4'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019f3980-3431-7ab0-8fb9-0fac240a8aba'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('50480c83-75a0-4e31-8ffe-334b880944b1'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('77e522d2-edad-444f-b2b0-89b17097a226'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('86405c69-732b-4098-a7a8-2975dc9ff2d2'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('879c7ddf-32a5-494a-b010-e1ad7819c197'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('996f457c-ca5d-4f1a-87a6-1ff0092e535f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a0273fda-c986-42fa-85fb-12e60f8be849'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('98f81199-a35d-4f34-891e-50bde0293f9d'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('873597fd-07ea-4576-9793-0b0525a39511'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019eb7da-e781-7e4c-9aec-710362d120fa'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('eccd4977-45a6-44d7-b510-c26b5b64df51'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('f8df1923-9f70-4c4e-9f12-23ee4c41e312'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('babc4f6b-8a56-4c56-b84f-cbe07550d7d1'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('c7db5752-6cfe-4dcd-935e-ab69a32ba9f3'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('d1193f66-b49c-4bcd-ae0e-6a8bb69ba185'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('8db8389d-d805-4e98-b8e7-7f6f89cb3a4e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('1fbe5e3c-b8c0-4c73-9e45-3bd818e07f31'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('49d36916-0d18-45eb-aa5a-ceafbf283544'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('f86c18a4-39f9-4a4f-b1f0-64fd45b1622d'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('f5c00b36-d87d-4015-a7e0-bd08715d256a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('6a2458a9-443f-4512-928c-fbfd701a680b'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('f7e96c5c-de23-4472-aa41-f1304cad0305'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('56208de8-d0b4-4140-bb81-49234968a183'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7fbfe558-19ad-488d-b06c-419b90aae285'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('aa127935-3894-454d-aad3-c2f31ffaf47f'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('1693e19b-bdee-4706-abc6-9d3a3c9e2808'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('9891077b-9292-4495-8c96-39c15ec64d9b'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('749d463a-963f-4f50-ab93-77709e5c3807'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('315ee441-0592-4911-94c7-1a18dd9e6474'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ef090c28-9b52-49cd-b64e-4417cbb3f732'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('688ac669-97e9-4b5a-b78b-6fb641248411'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a8feec7f-0350-4c44-8da4-46dd5bdbb1a0'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('9d5153b8-7c2a-41d9-a234-270be21fd3c8'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('9f2dd638-331a-448a-80bd-5ac4f98eecb8'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('7ce998d4-aa4e-4948-a35c-b1b9d37f0703'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('0ace907d-ed4f-438c-9bc6-c527d3ed931f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('0410e3f1-97c5-4643-a538-94ff0ff087c1'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('2214ede2-51ff-4ab6-99e4-162f82585c0c'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('0f0bc6d7-07db-43ec-a725-0a6c49f8ba06'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('6658a1f9-b7fa-411d-847f-3966e6e2bd34'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('714d37f7-3edb-4d00-9c08-e141a87382dd'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('0438f21d-f09e-4599-a18d-279b598e0ae0'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('423cc454-96e9-4fa2-a98b-72a9ef7df75d'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('63797a13-173b-4bae-8191-c5a0b042a321'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7889d3a2-2b1e-4fec-8294-89ae908b01f6'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('14d7a461-64eb-45f4-9cb1-756ca587e308'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('b9f59bfd-4282-4c01-98d1-00d99193cfe3'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e75c2e49-6222-41b0-8c9b-0d4b92f67161'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('b10c5604-8769-4480-8ff7-8b0633850c96'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d524417e-d940-4d45-858c-b7cb774f995c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('69360542-8def-4041-b5ef-9a7c061b6a28'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('082e863a-179d-481b-b406-2f8e55a59265'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ad828aac-fe3b-43d2-a0e7-53ddea0da4fa'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('956a5e8a-c6d7-4df4-875f-d79a95557bd8'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a9d51c88-e493-4abd-9a72-5e15d2ed9a84'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('362b5db7-cc60-44a1-9919-c0ef4a9fccdf'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('8a52d93c-b8b1-4804-9bb3-d1e1f52657eb'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('1d63f98d-fbf3-4819-b264-517c8ea01389'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('ea4735b3-fb20-4932-b041-73eabba23422'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('fb2b7e1d-1637-4e5d-a9f1-0a0c1ef6b18b'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('113f2072-5b69-4b0e-b49d-b1a1d4d0a997'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d779824a-e15b-443f-9649-55d7b5f76eed'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('0148563d-0b34-4e44-bcf3-c10f2eed3d32'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e481f213-cdc3-4688-a08f-6996dbf36b51'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('0781d1b7-b2c5-4582-b33a-2949bbef08d6'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c82de3d6-955d-41ec-9b84-8bbfed636c82'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('dde1556d-d8c5-4f0b-82b7-068522ed30bf'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('651382c8-bb7f-41cf-880a-b7711362895f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('83418ed1-4f1c-4f00-9a5f-4e258afc132c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('4725e982-492b-43e2-9cfb-ee57bc22d449'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7715e5fd-3343-44b5-9f05-a7876dd3e466'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('b7ab0af7-3aff-407a-a886-29d96cd34ca5'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('106fb381-5e4d-4b16-9e1c-c1e55cb6a74d'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('4c87e6d9-aba5-4657-ab73-27ef8b3eb66a'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('026c87ae-52cd-4406-96e6-0278e77fe351'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('651182c8-2046-48bb-b7d3-24681c8bbb1b'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e6c823a7-4aa7-408c-ac91-bcbc5d9d092f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('f92c5eb5-22c8-43f5-8224-140438fc114c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('0fdda1c3-f6e9-49ae-8d9c-ae809379d2fd'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a77b231f-0ced-4819-961a-4bbbce9c6a52'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d4b6025c-b8b9-4fc6-9fc6-a9d22cc856db'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('21f6b802-dee5-499f-b404-2fe1f31c1960'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c84a88e5-bfa9-46f3-bfff-2415c9affe57'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('24c5f1b5-8f6c-4d9c-b9ec-4eae52efdd27'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('da46f5ee-cf95-4484-bc4c-5eabf8833889'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('fa06bf8e-9e87-4fbe-b0e0-3af07503ba0f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('840559d3-8c14-4457-a741-775100b0a47a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('2a08e04b-08ae-4b38-ab82-66409131c889'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('3cd4e52f-4c77-4156-9ba0-2e5f20e302d6'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e29ce403-56b3-482d-b8a5-48f018b9312c'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('e4028d1b-650d-49bd-ae9a-f3f2feb8e8e8'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('3f43e756-129d-4056-87c2-2c61fa5271c8'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ac29fc48-0516-4f72-bcb6-1fb8f9e1f661'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('b3b4e219-9680-446c-afd8-691a7465c390'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d4580711-9bcf-4388-a702-eb78b5a7bf20'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('b97392aa-0d5d-4229-8ed0-5828676c18ed'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('0c7a2f5b-ea7e-48f7-9264-694af680b27a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('65ffa8d9-e18e-491b-8fe2-b8804aeefdf6'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c0295149-7e18-4e0d-9d69-b8d4e0553393'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c0b103fe-642a-4700-b87a-4a4ee8f9fef4'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('f986c510-8172-457c-ba5f-625974fb0b3a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('eb2ab39c-ccc5-4ec0-8a06-3bfe725203d2'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('96d192a1-b9a1-46bf-9e70-433112e4979c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ec06f2bc-bc1b-4c46-915a-086c31b5deb6'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a14a3e30-415a-4c2b-806d-5884d6bd50b5'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('75e02206-cfe5-4ad9-b443-085ca43b7339'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e35b7844-af03-4444-9bab-e186eb6e4944'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('fa6a2bea-1a4a-4f0f-9e02-10fe04e40b34'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a66554be-01eb-4da6-9a51-74ad6cbe8ddf'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('9c10b50e-e80d-41a0-b909-d70620968849'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('9fb2bb52-42fa-46da-9c78-e6348bfd2c13'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('40219f5b-fddd-4d53-9bd4-9f43658ac81c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('b619ce59-9fbf-4e87-ae36-ad02a687d6f2'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('72f65084-9542-4330-a832-a2b029b9d578'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7ecfe589-c625-470d-b304-39d35e17467c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('1a82f735-428e-46ab-8896-092e8f7a0c6e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('29896e8c-b6ae-4655-bb1a-a14c60a4e09b'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ea7ebd83-2391-4372-89a6-903eefdbeab1'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('97133b75-a189-40a9-8372-2e6c45f72288'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('281cf786-ee0c-4470-8dc7-6631a9355374'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('46554aca-28e8-4160-beeb-5c4d17b0f4e2'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('624bcb07-e384-483c-a2a4-8ec4de023b47'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('71de41ef-1735-4617-ad90-099e5c0df75d'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('29e3fa01-1ed3-4575-a877-3a2c3863cb32'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('dd277441-ea58-4e57-a023-c86bb12b50f4'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('2f9d8ede-5ebd-4a45-8f5c-f43be2420c35'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c3524a1c-667d-447e-9423-f1ef4e215c3f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('1695641c-3092-42b1-9cdb-a0ad7af493e4'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('380ea887-c917-4117-a1bd-c1b053eb5734'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('2b95be33-f0e4-4a5b-8985-ac8319cd649b'::uuid, 2024, 'AY_24-25_SUMMER_2025'),
-  ('4b66b343-59ef-405d-9eed-bc5054cce13f'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('a0442f50-3f3e-4a15-abbf-95e5dd34aff3'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('7ba428b2-ae4d-4a8f-9aa2-74c3e52f6b67'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('fab012b4-9961-4be8-a57f-b51cf530d540'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('ab0f0041-fbcb-4ffa-9744-23d3f258e6e2'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('6d84ee99-75ce-44a5-8c92-7a9b190787e7'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('107a8e5c-079f-4412-bd0b-5c01fd893b99'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('f60d1cfc-5f7d-4f43-8b0d-af7e3b420b82'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('bd1430b3-f378-4c69-9ab3-ebf7cb0b4a32'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('6178bd0d-eee2-4b4f-89b5-0285e5c2c856'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('2e5306dd-77eb-4d5b-a6df-e522300e51a6'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('90001947-a130-44be-91e8-2274a772c135'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('8098c5fa-d305-4eb2-9060-890129ae7e96'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a9c3434f-2ed0-4ba2-a547-f6fc0223bfa1'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('b43a0808-ddfb-4157-954f-38077c2f392c'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('6a5d9704-321a-4489-b0de-f68a925616be'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('4c839166-50de-469e-93b5-7e73f5d338b1'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('96952163-7f03-4c9b-b251-726009534a59'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('cff01776-0277-41a6-80ff-7f5eb48b6c8f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e94cfe4b-a838-486a-9a7f-a442ba099cc2'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('fbb2576b-0f8e-40f5-b51c-0b2729e45eb3'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('ef53e218-c6de-454a-8ca2-5289855aa1ec'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('19333a63-531b-402e-9df8-138e6f1c9923'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('671ce457-bea1-48b2-bb94-2b9c6e091fc7'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('b094b942-00c5-47a4-8db6-074ffa4781ea'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('58577af0-920d-487b-8561-e268906982c4'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('8a7f6927-35d1-42c3-8dbf-6546e48ec10c'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('2bfe6a03-afdb-4be1-8bed-d13cdab6bf75'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('5afa7419-c6db-44d2-a30e-a0275adaacc2'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('f9a5e6f3-a6ee-4898-9695-d30a1f1e1a68'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d00c6790-8d77-4663-b17c-cdf05472b682'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('469ef90d-3337-468a-8390-3cc987677952'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('74051161-4f67-452c-9b24-6110f782fc86'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('2eb05570-183c-4fe1-b9a8-51be4e2564dd'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('42380296-4df8-4031-8f06-7d306cfbfc5f'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('1ba2de7e-a3d8-4774-9736-445180d9c1d5'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('019c918e-4775-73b8-b78a-4d5534e17ad1'::uuid, 2025, 'AY_25-26_SPRING_2026'),
-  ('cbea336f-135d-4f6f-a387-7a4b78b38aaf'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('b7928d00-8ccd-4644-9a58-7282ac23b004'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('e7c0c1ff-b042-44b8-8cd9-7d5b50708613'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d6e5a4b1-e0b4-4dc1-855a-bc357e50816c'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('eb60d551-4c11-4a0c-9153-ce306e9a42d5'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('d9c1f36c-962c-4409-90d8-31eedb9f7ee2'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019c918e-46c2-730b-a74f-d3ff1a34261a'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('406c1c75-5fac-496c-80a7-a358f37cea56'::uuid, 2025, 'AY_25-26_SPRING_2026'),
-  ('6de36cdd-08ed-4e78-a0c7-889edcf89248'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('16499a9b-e605-4c76-9525-1f3d9d9a313f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('192ff90a-ddd6-4268-9b79-cfe2fe24c46e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('916ff1be-c5fe-4a75-b18f-d3b93d78735b'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('f7598b0b-79ee-4015-a816-590fbdea1def'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('f97339bd-768e-4c09-a7be-cb1fb7bd0cb7'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('9fd6396c-c963-45b4-94d0-12b6f9cdbdb4'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e856a79d-95b4-4f91-b25a-d70f15beed97'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('eaf5911e-aa25-4810-863e-857f25afe670'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e3cdec7c-8e34-4c99-a524-4fe7f8c3ab6f'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('245ded14-2235-49ca-b8b9-03cc9339edf8'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('59abc072-184d-4897-91e7-0cd314ba869f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ade73fd1-a665-47a2-b2f8-b80f88c4d535'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('7663e777-5ec1-4ffd-abbf-c6dfbca422a4'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('48645fee-ab82-48f9-8c79-c757a37940c2'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('640c072a-b16d-4fa2-ac4c-1d77c15a86d9'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('7ebeca57-e1a7-45b2-8790-15f7676a51b0'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('c6110746-a66e-4141-a77c-bf69e194a7d6'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('94d5c67c-0435-4e10-9a12-84a114a5cc0f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('cccc48a7-e68e-49d6-b16e-43eaf5bd8ef0'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('c210a53f-f794-4071-af23-17a2b99b9bf5'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019c7265-a891-79bd-a2e8-8a764c7cb1db'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('019c7265-a8fd-7358-bee2-9e52c170598f'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('1935bf23-a070-4783-aa4d-45277a2d77bf'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ee0e5d6e-fff6-4d46-a42d-69e92ea22861'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('bc371fe4-c45b-4990-addc-e5983d4c6b6a'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('b3ce732d-0ecd-4d9a-a337-b12fc11f465c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019c7289-5f13-79f0-95f9-faae62e43bd8'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019c7289-5ee3-7910-bf6f-3c495035544e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('0a368c51-cf3b-45d6-a43c-79bc4e6e8e5b'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('6cc1c914-42c3-4bd5-a4fd-75bf50c9ad42'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('f62c8b02-a530-4099-9182-ad497e82db6a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5911eacb-11a1-4b13-b46f-e4838a031db8'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('109e813e-39b3-4530-b4b3-1a6f9441ed33'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5ca6aaff-2447-42e4-8633-6ab0e713dc9b'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('444ef20c-f879-45b0-9648-4226714b34f2'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c08072ca-1405-4f6c-860c-d6dfb5dc168d'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('a877d7ac-c994-4ce3-897c-83daef3f15ef'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c2a4ce4b-7542-4bf5-a518-bed5d7d7a43c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('30ae1568-e7ec-4106-a894-9848228aac26'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c35ac9a5-4899-4c7e-99e7-4025e51c12ad'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('95e66e2a-c002-4611-afea-cf176b12a3f7'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('88afb228-34e7-461b-bfb0-c385e5be2549'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a43e04bd-5d56-441e-9969-8810e25e2b01'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('57d98824-d6ac-419a-b86d-f74d508f37ae'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('2eed8b0c-ae34-41e0-b6ab-b3b2fda8cf22'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('14c89cf2-3b70-40bc-a24f-8807c12b3218'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('20db0d1a-190a-476c-8ad9-01173108a538'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('439ee09b-757f-48dd-b846-47576573f259'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7a9dfb0d-320b-4692-a4b9-bdd91347457e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019d2c18-8ec6-71d7-9669-4e15b6d2ae5c'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('8dfc4b7a-1e97-49d3-bf65-a7aaf7e45eab'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('019eb7da-e774-7c7f-8d48-9ea205c837e0'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e8ea328e-c026-4b78-be57-1b35e322589a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019d2f98-14a2-7f3c-93dc-df12af349cba'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('ee3ae77d-2fee-45e9-986e-d7053f3eaa00'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d935f640-c47b-4a06-b78b-e27fdd3253fa'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('8cef13f6-fad6-413f-bec9-e214241f719d'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('f25f8297-9ca3-4c16-9f80-4b32a441a678'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('bb8120d7-9b64-4ab1-acfd-57a8688ee2b1'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d7edd83f-1749-4414-a1c8-d7ac16e86ad2'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('fd11a68b-b8b8-4629-a276-c3b59eea9f18'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7b32aca9-e458-4bc3-870c-a636a2474b88'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('dd1bb182-7665-454d-ac6b-1e398a05ee33'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('36ea1871-4c9f-4425-abd2-8f7d5776baef'::uuid, 2024, 'AY_24-25_SUMMER_2025'),
-  ('decab8c8-4dfc-4af9-a84e-d1207c3211d1'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('4bcbee72-55b4-4e21-83ad-160aaa037328'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('41b38d82-ae77-4c23-b966-e9efe459bd11'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('563e88be-6e88-458a-bdfa-b46862b37325'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5a5646b4-ee37-40a0-addf-2628ef80ad26'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('529fe6e6-bdfb-428c-baac-ef3cb6547175'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('1009c992-97cf-4b4d-b093-5ffd9ccf37e6'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('346d22e0-f341-417a-8214-0589567abc97'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('5b80d16e-36be-4b22-99ee-71a3c2497a12'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('2695282c-a02b-4a4b-8e74-1568c8160516'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('992acb46-440d-4918-96a5-96490ea6c6c3'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('be5356a6-654d-4f4b-a313-0a9e36fc047d'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a238bf07-6f92-443c-8c10-4f062d2b6e15'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('f2ef50fa-a072-4b0a-a520-920b733ed210'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('70779513-d9b5-4d64-a5f5-80993e75ec07'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('bc3ef8d8-723e-48ff-ad54-ae069a97551a'::uuid, 2025, 'AY_25-26_SPRING_2026'),
-  ('019bdd73-7875-77cd-86a1-fb324e02118a'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('abf67b2c-db79-4c7d-8f4c-69f88b8f4720'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('6edd4332-73c2-4f52-ae92-2d09f0153cf9'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('51264860-ed31-44eb-9e05-47ed4d25b7cb'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5cd22db8-c7e4-4b31-9fed-f17439fb98c7'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('599b6667-422a-4069-a4c8-fb5e70c3acd9'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7c0a030a-6f93-4f27-b52a-fcbca0fa7eb8'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('2de378ef-ebf3-4526-9e69-8c4ecb9bc13c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7df5be3d-65fb-4aeb-983a-402999d81b00'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('b8b6e24e-7abd-4ab7-bd58-73fc0205b979'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('0679db52-ed33-47b4-a585-8d3c90694e78'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('019eb7da-e797-7880-a3fa-79e9ca586d8d'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('019d8c72-fa58-7640-b98c-4e9369ccf002'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('0451ff6d-6085-4464-8111-8c8d40909a11'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('bcdce8ed-7492-4f11-85a5-98cb5c4d5f15'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('c4baf382-4240-4ac7-beb9-36092503e22c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('76a2c502-85f6-48ea-af6b-9a4553eaad03'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5041bbed-6516-4229-ad7f-8e85dc1bffc7'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e8f6b475-c85e-457f-99e9-f6609e0f8c44'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('8bc899dd-2211-49fb-bee9-76ca24dfc5ad'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ba5e494e-3ee6-4b8a-abaa-4cbd8a888c65'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c676742a-cdbe-4e01-989f-df0ba8bacb6e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('516990fc-7b25-4b6b-b1f2-c2b8d1c960c6'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('21908add-65b4-41d0-9e6f-31e6832b51b9'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e9d10072-d381-499d-abc2-ccee3478a0c0'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5cbd5d80-ce92-4083-bd85-ec27bda7f002'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('381970e2-9156-4d6a-94c7-14839e0b1067'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ff465e14-3fd3-483e-8f5a-9cdaf0d142de'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('86db51c4-217e-4235-a24e-83379f2fc247'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('72b3400d-0a08-4322-b158-ef40216c3e0a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('4fb194aa-6c14-4a54-abba-24535b5724e0'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('b8ad7752-9aef-4aa2-9045-e847b05aacbf'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c6fb4b67-081c-40df-95a0-bacc7d109547'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('289b39d2-355e-4eb1-9134-27c093510282'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('6288189a-1da5-47a2-b22b-7e048b16687a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('96539885-129a-4b01-8830-ad093cd2662c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('1b984215-eb8b-48a8-894d-751334c7428e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('351379ff-f658-4b2a-9dc6-e25bb1a75235'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c7c02f2f-795c-4b9b-9818-79972a519387'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e6902371-6ff9-40ea-a0aa-5b0efd7ed297'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('461f1c0e-10d7-4826-ba64-c77545f8c49c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d1770b02-daed-4f58-8fb4-a57824dd166e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('790fde25-1cf8-4f6a-8774-9f787e5331c0'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('94a58a79-94c3-4db1-9bbd-4facc2ff9b7f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('258f5767-2ede-41ad-ac74-36a0155d161f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('0f198292-89d6-4b98-88c1-568f3de10fef'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('866cea21-5ab5-4a72-89b6-ec10633feac5'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d38ef71e-58f2-443c-8b76-6d0a21aeef77'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('cb1716e2-5733-4098-91d5-84564aa81c5d'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('da711d16-822a-4973-abd7-bddd88150f02'::uuid, 2025, 'AY_25-26_SPRING_2026'),
-  ('5f583e32-4a41-4f82-bed8-fbc80e0762db'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('dc405ced-a05a-43bd-8852-7c3028671a0c'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e8c170f5-520e-4f66-bf4f-98a2404d5c33'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('a228003c-df88-45ab-8558-20a0c6c1f6b7'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('e56b90fd-0a77-47ab-b2af-5af092e7b400'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('775b9733-697f-412c-9e79-f58a8fe6757f'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('e747815d-848a-4bc5-8b4c-147b98ac46e6'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('0cb7985e-2456-4c30-972d-52dc21fe4a11'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('7376a1e1-4f03-4aac-bd5c-7f994da4d86d'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('90d3b372-c916-4e1d-9222-cf301b1baa85'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('b1d9c08c-a78a-4da2-ba1b-82c0eae47d0e'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('019c7265-a8dc-7a24-a523-0d695552ca83'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('3dcb3633-c3bc-4b17-9910-9982c506a463'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('2dda8cb5-b5b2-443f-a71e-4245a80e086a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7dbc1c9c-5e6c-47e1-9284-92a3bac495fa'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5421b2b0-0150-4635-b467-13a818566350'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('84930845-a9c1-42eb-b5e1-bcaa417b9fdc'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('a427c77f-48ed-44e5-a771-15b06ec2a08f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('620c952e-2ae6-44cb-bd55-d15e97aad6f5'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('c9f0a941-ac71-4084-a9b9-b23527097395'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ca4ab8e4-21c9-45c2-a9de-cedd2571f670'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('15e7385f-9037-4438-ad28-e1e072151c51'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('b8aed09f-f60a-49a0-89f4-3f7d3db8f168'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ccc67807-d0ee-4e55-bfb8-767200c61a96'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('5c1ec9f0-eb72-4c4f-86c3-bed7597d6c06'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('41590d33-8fbf-42d0-91c7-6ceb890b4dc0'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d4398ec0-8c1a-4623-abb0-7582d1ac8522'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('ec0da7ce-76ab-42a4-8b3a-8121ff811396'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('6872521a-e00c-4206-ba7f-ce28367eccde'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7aa1dd7a-c0ad-41ab-8c4a-f246d0af8184'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('be60f4e8-5123-448c-a0fc-6533081d7639'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d3105c30-a8a6-42d1-803c-84cd0cb75446'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('fe5dc488-2e15-4156-a580-272622de6b0a'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('73a2e1e7-3e99-4ade-8c92-ef5f90f7ad49'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('7d8900f1-5ce4-412a-8d97-a8ddfdcf06e9'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('136ec0c5-a9fc-479a-b696-85ad44e2ef60'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('9984e587-01cb-4c7c-948c-52fb42954b13'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('1f229b6d-fb02-4d47-83b9-a2c891424e1d'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('956cac40-7e79-4f03-85a2-458ce0ccea0e'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('5809562d-f7a4-43a7-83f3-19ea2604ba9c'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('80b55337-373e-4931-9612-4853a66c8f9b'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('d20e93ff-f282-4c50-afca-1c3cdc6b6d0e'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('6daa0a04-bd5a-4f0b-a0ef-8de05c48ee22'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('434e758e-4298-4b5c-a89e-88c6641ddc9f'::uuid, 2026, 'AY_26_-_27_FALL_2026'),
-  ('3dcf300a-cf99-4254-9cff-4c33e5b35ac3'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('6c4ad428-73af-4fdb-9b2c-5f7995c45554'::uuid, 2025, 'AY_25-26_SUMMER_2026'),
-  ('019c9189-b588-7193-9d4f-fa95457d8e81'::uuid, 2025, 'AY_25-26_FALL_2025'),
-  ('057ae615-8d85-4ec3-b118-dfb7941eb00b'::uuid, 2025, 'AY_25-26_FALL_2025');
-
-create table if not exists bf_periodo_moodle_bak_20260808 as
-  select external_id, term_year, term_block from academic_grades
-   where external_id in (select external_id from bf_periodo);
 
 alter table academic_grades disable trigger protect_edited_grades_trg;
 
 update academic_grades g
-   set term_year = b.anio, term_block = b.bloque
+   set term_year  = b.anio,
+       term_block = b.bloque
   from bf_periodo b
  where g.external_id = b.external_id;
 
@@ -525,30 +108,47 @@ alter table academic_grades enable trigger protect_edited_grades_trg;
 -- El Acta Detallada agrupa por term_block: si se queda con el viejo, la misma
 -- asignatura aparece en dos periodos distintos segun la pantalla.
 update academic_grade_details d
-   set term_year = b.anio, term_block = b.bloque
+   set term_year  = b.anio,
+       term_block = b.bloque
   from bf_periodo b
  where d.external_id = b.external_id;
 
 commit;
 
--- ── VERIFICACION ──────────────────────────────────────────────────────────
--- La primera fila DEBE ser igual a la segunda. Si no, algun guardian descarto
--- el UPDATE en silencio (ya paso con aplicar_politica_notas v1) y hay que
--- mirarlo antes de dar el backfill por bueno.
-select 'filas que debian cambiar', count(*)::text from bf_periodo_moodle_bak_20260808
-union all
-select 'filas efectivamente cambiadas', count(*)::text
-  from academic_grades g join bf_periodo_moodle_bak_20260808 k using (external_id)
- where g.term_block is distinct from k.term_block or g.term_year is distinct from k.term_year
+
+-- ── PASO 4 ─────────────────────────────────────────────────────────────────
+-- Verificacion. "cambiadas" debe ser ~486 (las otras 5 ya estaban bien).
+-- Si diera 0, algun guardian descarto el UPDATE en silencio: avisame antes de
+-- dar esto por bueno.
+
+select 'cambiadas' as control, count(*)::text as valor
+  from academic_grades g
+  join bf_periodo_bak k on k.external_id = g.external_id
+ where g.term_year  is distinct from k.term_year
+    or g.term_block is distinct from k.term_block
 union all
 select 'Moodle con semestre', count(*)::text
   from academic_grades where source = 'moodle' and term_block is not null
 union all
 select 'Moodle sin semestre (aula ambigua o sin oferta)', count(*)::text
-  from academic_grades where source = 'moodle' and term_block is null;
+  from academic_grades where source = 'moodle' and term_block is null
+union all
+select 'Moodle por año: ' || coalesce(term_year::text, 'sin año'), count(*)::text
+  from academic_grades where source = 'moodle' group by term_year;
 
--- ── REVERSA ────────────────────────────────────────────────────────────────
+
+-- ── PASO 5 ─────────────────────────────────────────────────────────────────
+-- Limpieza, cuando el paso 4 se vea bien.
+
+drop table if exists bf_periodo;
+drop table if exists bf_periodo_bak;
+
+
+-- ── REVERSA (solo si hace falta, ANTES del paso 5) ──────────────────────────
+-- begin;
 -- alter table academic_grades disable trigger protect_edited_grades_trg;
--- update academic_grades g set term_year = k.term_year, term_block = k.term_block
---   from bf_periodo_moodle_bak_20260808 k where g.external_id = k.external_id;
+-- update academic_grades g
+--    set term_year = k.term_year, term_block = k.term_block
+--   from bf_periodo_bak k where g.external_id = k.external_id;
 -- alter table academic_grades enable trigger protect_edited_grades_trg;
+-- commit;
