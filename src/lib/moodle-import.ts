@@ -105,7 +105,24 @@ export async function loadStudentsByExternal(sb: any): Promise<Map<string, any>>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function importAula(sb: any, courseid: number, userId: string, pre?: { byExternal?: Map<string, any>; deadlineMs?: number }): Promise<ImportAulaResult> {
-  const termYear = new Date().getFullYear()
+  // El periodo de la nota sale de la OFERTA del aula —semester_offerings dice
+  // en qué semestre se dictó— y de ahí a su año académico.
+  //
+  // Antes era `new Date().getFullYear()`: el año de la corrida del importador.
+  // Las 1.703 notas de Moodle decían todas 2026, y 924 de ellas son de cursos
+  // dictados en 2023, 2024 o 2025. Peor: cada re-importación las volvía a
+  // sellar con el año en curso, así que el dato migraba solo.
+  //
+  // Si el aula no tiene oferta, se deja en blanco. Un periodo desconocido es
+  // un dato que falta; inventarlo lo convierte en un dato falso, que es lo que
+  // nadie puede detectar después.
+  const { data: oferta } = await sb.from('semester_offerings')
+    .select('semester:academic_semesters(name, year:academic_years(start_date))')
+    .eq('moodle_course_id', String(courseid)).limit(1).maybeSingle()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sem = (oferta as any)?.semester ?? null
+  const termYear: number | null = sem?.year?.start_date ? Number(String(sem.year.start_date).slice(0, 4)) : null
+  const termBlock: string | null = sem?.name ? String(sem.name).trim().replace(/\s+/g, '_') : null
   // Presupuesto para las llamadas pesadas a Moodle (el reporte de un aula de
   // 500+ estudiantes tarda minutos). Sin deadline (importación manual): 240s.
   const heavyTimeout = () => {
@@ -284,7 +301,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       course_name: destCourse.name,
       credits: destCourse.credits ?? null,
       term_year: termYear,
-      term_block: null,
+      term_block: termBlock,
       final_grade: total,
       // El mínimo NO se guarda en la nota: es la regla de la categoría y se
       // resuelve al leer. Guardarlo era lo que devolvía a la base los mínimos
@@ -386,7 +403,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
         course_code: destCourse.code,
         course_name: destCourse.name,
         term_year: termYear,
-        term_block: null,
+        term_block: termBlock,
         final_grade: d.total,
         passing_score: null,   // regla de la categoría, no dato de la nota
         max_score: 100,
