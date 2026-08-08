@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { convertGrade } from './grade-convert'
+import { completarRegistroDeMatricula } from './curricular-plan'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -95,4 +96,14 @@ export async function reflectItem(itemId: string): Promise<number | null> {
 /** Borra el reflejo en academic_grades de un ítem (al eliminarlo). */
 export async function unreflectItem(itemId: string): Promise<void> {
   await db().from('academic_grades').delete().eq('external_id', itemId)
+}
+
+// Al quitar una convalidación, la asignatura que ésta cubría desaparece del
+// registro y deja un hueco. Se repone como "No iniciada": el estudiante sigue
+// matriculado en ese programa y la asignatura sigue siendo suya, sólo que
+// vuelve a estar por cursar.
+export async function reponerRegistroTrasBorrar(studentId: string | null, programId: string | null): Promise<void> {
+  if (!studentId || !programId) return
+  try { await completarRegistroDeMatricula(db(), studentId, programId) }
+  catch (e) { console.error('reponer registro tras borrar convalidación', e) }
 }

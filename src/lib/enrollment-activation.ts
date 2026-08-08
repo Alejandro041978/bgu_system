@@ -1,8 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { placeStudentInEntry } from './carousel'
 import { createStudentEmail, notifyStudentEmail, googleConfigured, langFor } from './google-workspace'
-import { sameCourse } from './course-match'
-import { stableUuid } from './grades-write'
+import { completarRegistroDeMatricula } from './curricular-plan'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -46,43 +45,15 @@ export async function initialsPaid(sb: any, enrollmentId: string): Promise<{ pai
   return { paid: pendientes === 0, pendientes }
 }
 
-// Registra la malla completa del programa en el acta: filas sin nota (source
-// 'registro'), saltando asignaturas que ya tienen fila (histórico, convalidada
-// o registro previo). external_id determinístico = idempotente.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function registerCurriculum(sb: any, enr: any, stu: any): Promise<number> {
-  const { data: courses } = await sb.from('academic_courses')
-    .select('id, code, name, credits').eq('program_id', enr.program_id)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const malla = (courses ?? []) as any[]
-  if (!malla.length) return 0
-
-  const doc = String(stu.document_number ?? '')
-  if (!doc) return 0
-  const { data: existing } = await sb.from('academic_grades')
-    .select('course_code, course_name').eq('document_number', doc)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const have = (existing ?? []) as any[]
-  const hasCourse = (c: { code: string | null; name: string | null }) => have.some(g =>
-    (c.code && g.course_code && String(g.course_code) === String(c.code)) || sameCourse(g.course_name, c.name))
-
-  const name = [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' ')
-  const rows = malla.filter(c => !hasCourse(c)).map(c => ({
-    external_id: stableUuid(`registro|${enr.id}|${c.id}`),
-    document_number: doc,
-    email: stu.email ?? null,
-    student_name: name,
-    course_code: c.code ?? null,
-    course_name: c.name ?? null,
-    credits: c.credits ?? null,
-    final_grade: null,
-    source: 'registro',
-  }))
-  if (!rows.length) return 0
-  const { error } = await sb.from('academic_grades').upsert(rows, { onConflict: 'external_id' })
-  if (error) throw new Error(`acta: ${error.message}`)
-  return rows.length
-}
+// El registro de la malla completa lo hace completarRegistroDeMatricula, que es
+// el MISMO camino que usa la matrícula, el cron y la página de cobertura.
+//
+// Antes vivía aquí una copia (source 'registro') que emparejaba por nombre
+// contra TODAS las notas del estudiante, sin acotar al programa: a quien ya
+// había cursado "Introduction to Psychology" en otro programa se la daba por
+// registrada en el nuevo. Y sólo corría en la activación: si la malla todavía
+// estaba vacía ese día —pasó con los programas de Formación Continua, que se
+// arman sobre la marcha—, registraba cero y nunca reintentaba.
 
 // Correo institucional (mismas reglas del hook de matrícula: solo B/M/D, no bloqueante)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -130,8 +101,11 @@ export async function activateEnrollment(enrollmentId: string, activatedBy: stri
   if (!stu) { result.errors.push('Estudiante no encontrado'); return result }
 
   // 1. Malla completa en el acta
-  try { result.acta_registradas = await registerCurriculum(sb, enr, stu) }
-  catch (e) { result.errors.push(e instanceof Error ? e.message : String(e)) }
+  try {
+    const r = await completarRegistroDeMatricula(sb, enr.student_id, enr.program_id)
+    result.acta_registradas = r.creadas
+    if (r.error) result.errors.push(`acta: ${r.error}`)
+  } catch (e) { result.errors.push(e instanceof Error ? e.message : String(e)) }
 
   // 2. Correo institucional (no bloqueante)
   try { result.correo = await ensureStudentEmail(sb, enr, stu, enr.academic_programs?.category?.name ?? '') }

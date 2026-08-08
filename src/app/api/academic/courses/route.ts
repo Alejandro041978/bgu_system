@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { guardStaff } from '@/lib/api-guard'
+import { completarCobertura } from '@/lib/curricular-plan'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -22,5 +23,15 @@ export async function POST(req: NextRequest) {
     })
     .select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+
+  // La asignatura nueva entra al registro de quienes ya están matriculados en
+  // el programa. Si no, cada vez que se amplía una malla nacen tantos registros
+  // incompletos como estudiantes tenga —y nadie se entera hasta que alguien
+  // cuenta las asignaturas de una ficha.
+  let alcanzados = 0
+  try {
+    const r = await completarCobertura(db(), m => m.program_id === body.program_id)
+    alcanzados = r.matriculas
+  } catch (e) { console.error('registro de asignatura nueva', e) }
+  return NextResponse.json({ ...data, registros_completados: alcanzados })
 }

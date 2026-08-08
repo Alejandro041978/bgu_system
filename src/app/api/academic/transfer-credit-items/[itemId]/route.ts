@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { reflectItem, unreflectItem } from '@/lib/transfer-credit-server'
+import { reflectItem, unreflectItem, reponerRegistroTrasBorrar } from '@/lib/transfer-credit-server'
 import { guardStaff } from '@/lib/api-guard'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,8 +39,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { itemId } = await params
+  // Se lee ANTES de borrar: después ya no hay a quién reponerle el hueco.
+  const { data: item } = await db().from('transfer_credit_items')
+    .select('transfer_credit_id').eq('id', itemId).maybeSingle()
+  const { data: tc } = item
+    ? await db().from('transfer_credits').select('student_id, dest_program_id').eq('id', item.transfer_credit_id).maybeSingle()
+    : { data: null }
+
   await unreflectItem(itemId)
   const { error } = await db().from('transfer_credit_items').delete().eq('id', itemId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await reponerRegistroTrasBorrar(tc?.student_id ?? null, tc?.dest_program_id ?? null)
   return NextResponse.json({ ok: true })
 }
