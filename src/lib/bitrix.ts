@@ -174,7 +174,10 @@ export async function usuariosBitrix(): Promise<UsuarioBitrix[]> {
   // Los dos listados: activos y desactivados. Una cuenta de bot es justo el
   // tipo de usuario que alguien deja desactivado, y user.get sin filtro no la
   // devuelve — buscarla solo entre los activos era buscarla donde no está.
-  for (const filtro of [{}, { ACTIVE: 'N' }]) {
+  // Bitrix separa a los usuarios por tipo y user.get solo devuelve empleados:
+  // una cuenta de bot (USER_TYPE 'bot') no aparece por mucho que se pagine, y
+  // por eso el listado salia vacio teniendo el CRM un "Bot Bitrix".
+  for (const filtro of [{}, { ACTIVE: 'N' }, { USER_TYPE: 'bot' }, { USER_TYPE: 'extranet' }]) {
     for (let start = 0; start < 1000; start += 50) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let pagina: any[] = []
@@ -254,18 +257,27 @@ export async function crearNegociacionReferido(r: AltaReferido): Promise<{ conta
   }))
 
   const primera = destino.etapas[0]?.status_id
-  const deal_id = Number(await bitrix('crm.deal.add', {
-    fields: {
-      TITLE: `Free Degree · ${[r.nombre, r.apellidos].filter(Boolean).join(' ')}`,
-      CONTACT_ID: contact_id,
-      CATEGORY_ID: destino.id,
-      ...(primera ? { STAGE_ID: primera } : {}),
-      COMMENTS: detalle,
-      ...(bot ? { ASSIGNED_BY_ID: bot } : {}),
-      OPENED: 'Y',
-    },
-    params: { REGISTER_SONET_EVENT: 'N' },
-  }))
+  const campos = {
+    TITLE: `Free Degree · ${[r.nombre, r.apellidos].filter(Boolean).join(' ')}`,
+    CONTACT_ID: contact_id,
+    CATEGORY_ID: destino.id,
+    ...(primera ? { STAGE_ID: primera } : {}),
+    COMMENTS: detalle,
+    OPENED: 'Y',
+  }
+  // La cuenta del bot no es un empleado corriente, y hay configuraciones donde
+  // Bitrix no acepta asignarle una negociación. Si la rechaza, se crea igual
+  // sin responsable antes que perder el referido por un detalle de permisos.
+  let deal_id: number
+  try {
+    deal_id = Number(await bitrix('crm.deal.add', {
+      fields: { ...campos, ...(bot ? { ASSIGNED_BY_ID: bot } : {}) },
+      params: { REGISTER_SONET_EVENT: 'N' },
+    }))
+  } catch (e) {
+    if (!bot) throw e
+    deal_id = Number(await bitrix('crm.deal.add', { fields: campos, params: { REGISTER_SONET_EVENT: 'N' } }))
+  }
 
   return { contact_id, deal_id, embudo: destino.nombre }
 }
