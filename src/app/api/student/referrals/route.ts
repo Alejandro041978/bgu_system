@@ -81,10 +81,16 @@ export async function GET() {
     for (const l of ls ?? []) leads.set(l.id, l)
   }
 
+  // Solo se ofrecen los programas del beneficio: Bachelor, Master y Doctorado.
+  // Antes salía el catálogo entero y el estudiante podía recomendar un curso de
+  // Formación Continua, que no da derecho a Free Degree — una promesa que el
+  // sistema no iba a cumplir.
   const { data: progs } = await sb.from('academic_programs')
     .select('id, name, category:academic_programs_category(name)').order('name')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const catalogo = ((progs ?? []) as any[]).map(p => ({ id: p.id, name: p.name }))
+  const catalogo = ((progs ?? []) as any[])
+    .filter(p => categoriaElegible(p.category?.name))
+    .map(p => ({ id: p.id, name: p.name, categoria: p.category?.name ?? '' }))
 
   const credito = await creditoDe(sb, stu.id)
 

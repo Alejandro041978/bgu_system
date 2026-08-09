@@ -11,7 +11,7 @@ interface Data {
   elegible: boolean; motivo?: string
   credito?: { inscritos: number; ganado: number; aplicado: number; disponible: number; faltan_referidos: number }
   costo_degree?: number; por_referido?: number
-  programas?: { id: string; name: string }[]
+  programas?: { id: string; name: string; categoria: string }[]
   referidos?: Referido[]
 }
 
@@ -25,7 +25,8 @@ const EST: Record<string, { label: string; cls: string }> = {
   duplicado:       { label: 'Ya estaba referido',         cls: 'bg-gray-100 text-gray-500' },
 }
 const money = (n: number) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-const inp = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+const base = 'border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'
+const inp = `w-full ${base}`
 
 // Códigos más frecuentes de la base; el resto se escribe a mano.
 const CODIGOS = ['+51', '+52', '+57', '+58', '+591', '+593', '+56', '+54', '+507', '+1', '+34']
@@ -106,18 +107,32 @@ export function FreeDegree() {
             <input className={inp} value={f.last_name} onChange={e => setF({ ...f, last_name: e.target.value })} /></label>
           <label className="block"><span className="block text-xs text-gray-500 mb-1">Correo</span>
             <input className={inp} type="email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></label>
-          {/* Código y número SIEMPRE en la misma línea, el código primero. */}
+          {/* Código y número SIEMPRE en la misma línea, el código primero.
+              El select NO lleva la clase `inp`: incluye w-full, que en Tailwind
+              gana a w-24 —se emite después— y dejaba al código ocupando toda la
+              línea con el número reducido a una rendija invisible. */}
           <label className="block"><span className="block text-xs text-gray-500 mb-1">Celular</span>
             <div className="flex gap-2">
-              <select className={`${inp} w-24 shrink-0`} value={f.phone_code} onChange={e => setF({ ...f, phone_code: e.target.value })}>
+              <select className={`${base} w-[5.5rem] shrink-0`} value={f.phone_code} onChange={e => setF({ ...f, phone_code: e.target.value })}>
                 {CODIGOS.map(c2 => <option key={c2} value={c2}>{c2}</option>)}
               </select>
-              <input className={inp} inputMode="numeric" value={f.phone_local} onChange={e => setF({ ...f, phone_local: e.target.value })} />
+              <input className={`${base} flex-1 min-w-0`} inputMode="numeric" placeholder="999 888 777"
+                value={f.phone_local} onChange={e => setF({ ...f, phone_local: e.target.value })} />
             </div></label>
           <label className="block sm:col-span-2"><span className="block text-xs text-gray-500 mb-1">¿Qué programa podría interesarle?</span>
             <select className={inp} value={f.program_id} onChange={e => setF({ ...f, program_id: e.target.value })}>
               <option value="">Todavía no lo sé</option>
-              {(d?.programas ?? []).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {/* Agrupadas por nivel: el estudiante reconoce antes "Master" que
+                  el nombre completo de un programa que no conoce. */}
+              {['Bachelor', 'Master', 'Doctoral'].map(nivel => {
+                const grupo = (d?.programas ?? []).filter(p => new RegExp(nivel, 'i').test(p.categoria))
+                if (!grupo.length) return null
+                return (
+                  <optgroup key={nivel} label={grupo[0].categoria}>
+                    {grupo.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </optgroup>
+                )
+              })}
             </select></label>
         </div>
         <label className="flex items-start gap-2 text-xs text-gray-600">
