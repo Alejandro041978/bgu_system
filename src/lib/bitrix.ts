@@ -17,8 +17,14 @@
 const PREFIJO_EMBUDO = process.env.BITRIX_PIPELINE_PREFIX || 'BGU'
 const ETAPA_UMBRAL = process.env.BITRIX_STAGE_UMBRAL || 'Buscando Decisión'
 const USUARIO_BOT = process.env.BITRIX_BOT_USER || 'Bot Bitrix'
-/** Embudo donde nacen las negociaciones de referidos. Por omisión, el primer BGU. */
-const EMBUDO_REFERIDOS = process.env.BITRIX_PIPELINE_REFERRALS || ''
+/**
+ * Embudo donde nacen las negociaciones de referidos.
+ *
+ * Fijo a propósito: seis de los ocho embudos BGU llevan una fecha en el nombre
+ * ("31 AGOSTO") y rotan. Escribir en "el primero de la lista" habría acabado
+ * metiendo referidos en un embudo cerrado sin que nadie lo notara.
+ */
+export const EMBUDO_REFERIDOS = process.env.BITRIX_PIPELINE_REFERRALS || 'BGU FREE DEGREE'
 
 export const bitrixConfigurado = (): boolean => !!process.env.BITRIX_WEBHOOK_URL
 
@@ -212,8 +218,10 @@ export interface AltaReferido {
  */
 export async function crearNegociacionReferido(r: AltaReferido): Promise<{ contact_id: number; deal_id: number; embudo: string }> {
   const embudos = await embudosBGU()
-  if (!embudos.length) throw new Error(`No hay embudos que empiecen por "${PREFIJO_EMBUDO}" en el CRM`)
-  const destino = (EMBUDO_REFERIDOS && embudos.find(e => e.nombre === EMBUDO_REFERIDOS)) || embudos[0]
+  const destino = embudos.find(e => e.nombre.trim().toUpperCase() === EMBUDO_REFERIDOS.trim().toUpperCase())
+  // Si el embudo no existe se falla en voz alta. Caer al "primero de la lista"
+  // sería escribir en el embudo de otra campaña y que nadie se entere.
+  if (!destino) throw new Error(`No existe el embudo "${EMBUDO_REFERIDOS}" en el CRM: créalo desde el diagnóstico`)
   const bot = await usuarioBot()
 
   const detalle = `Referido por ${r.referente}${r.referenteDoc ? ` (${r.referenteDoc})` : ''}, estudiante de Blackwell.`
@@ -251,3 +259,62 @@ export async function crearNegociacionReferido(r: AltaReferido): Promise<{ conta
 }
 
 export const ETIQUETA_UMBRAL = ETAPA_UMBRAL
+
+// ---------------------------------------------------------------------------
+// Alta del embudo de referidos.
+//
+// Se crea desde aquí y no a mano en el CRM para que quede una sola definición:
+// el nombre del embudo y el de la etapa umbral tienen que coincidir con lo que
+// lee la regla, y dos personas escribiéndolos por separado los escriben
+// distinto tarde o temprano.
+//
+// Es idempotente: si el embudo ya existe lo reutiliza, y si ya tiene la etapa
+// umbral no la duplica.
+// ---------------------------------------------------------------------------
+export async function crearEmbudoReferidos(): Promise<{
+  id: number; nombre: string; creado: boolean; etapa_umbral: string | null; etapas: string[]
+}> {
+  const existentes = await embudosBGU()
+  let emb = existentes.find(e => e.nombre.trim().toUpperCase() === EMBUDO_REFERIDOS.trim().toUpperCase())
+  let creado = false
+
+  if (!emb) {
+    let id: number
+    try {
+      const r = await bitrix('crm.category.add', { entityTypeId: 2, fields: { name: EMBUDO_REFERIDOS } })
+      id = Number(r?.category?.id ?? r?.id)
+    } catch {
+      id = Number(await bitrix('crm.dealcategory.add', { fields: { NAME: EMBUDO_REFERIDOS, SORT: 500 } }))
+    }
+    if (!Number.isFinite(id)) throw new Error('El CRM no devolvió el id del embudo creado')
+    creado = true
+    cache = null                       // el catálogo cacheado ya no vale
+    emb = (await embudosBGU()).find(e => e.id === id) ?? { id, nombre: EMBUDO_REFERIDOS, etapas: [] }
+  }
+
+  // La etapa umbral: si el embudo nació con las etapas por defecto de Bitrix,
+  // no la trae, y sin ella la regla se queda solo con los 3 meses.
+  const actual = emb
+  let umbral = actual.etapas.find(e => e.nombre.trim().toLowerCase() === ETAPA_UMBRAL.trim().toLowerCase())?.status_id ?? null
+  if (!umbral) {
+    // Va antes de las etapas de cierre: es una etapa de proceso.
+    const proceso = actual.etapas.filter(e => e.semantica !== 'S' && e.semantica !== 'F')
+    const sort = proceso.length ? Math.round(proceso[proceso.length - 1].orden + 5) : 20
+    const statusId = actual.id === 0 ? 'UC_FREEDEG' : `C${actual.id}:UC_FREEDEG`
+    try {
+      await bitrix('crm.status.add', {
+        fields: {
+          ENTITY_ID: actual.id === 0 ? 'DEAL_STAGE' : `DEAL_STAGE_${actual.id}`,
+          STATUS_ID: statusId, NAME: ETAPA_UMBRAL, SORT: sort,
+        },
+      })
+      umbral = statusId
+      cache = null
+    } catch (e) {
+      throw new Error(`Embudo creado, pero no se pudo añadir la etapa "${ETAPA_UMBRAL}": ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
+
+  const fresco = (await embudosBGU()).find(e => e.id === actual.id) ?? actual
+  return { id: fresco.id, nombre: fresco.nombre, creado, etapa_umbral: umbral, etapas: fresco.etapas.map(e => e.nombre) }
+}
