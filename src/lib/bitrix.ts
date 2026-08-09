@@ -341,7 +341,7 @@ const ETAPAS_REFERIDOS = [
   'Confirmando Pago',
 ]
 
-export async function ordenarEtapasReferidos(): Promise<{ renombradas: string[]; etapas: string[] }> {
+export async function ordenarEtapasReferidos(): Promise<{ renombradas: string[]; etapas: string[]; etapa_umbral: string | null }> {
   const emb = (await embudosBGU()).find(e => e.nombre.trim().toUpperCase() === EMBUDO_REFERIDOS.trim().toUpperCase())
   if (!emb) throw new Error(`No existe el embudo "${EMBUDO_REFERIDOS}"`)
 
@@ -363,6 +363,10 @@ export async function ordenarEtapasReferidos(): Promise<{ renombradas: string[];
   await renombrar(perdida, 'No interesado')
 
   cache = null
-  const fresco = (await embudosBGU()).find(e => e.id === emb.id)
-  return { renombradas, etapas: (fresco ?? emb).etapas.map(e => e.nombre) }
+  const fresco = (await embudosBGU()).find(e => e.id === emb.id) ?? emb
+  // El umbral se relee DESPUES de renombrar: al crear el embudo se informaba
+  // el status_id de la etapa que entonces se llamaba asi, y el renombrado la
+  // mueve de sitio. Un dato informativo que miente es peor que no darlo.
+  const umbral = fresco.etapas.find(e => e.nombre.trim().toLowerCase() === ETAPA_UMBRAL.trim().toLowerCase())
+  return { renombradas, etapas: fresco.etapas.map(e => e.nombre), etapa_umbral: umbral?.status_id ?? null }
 }

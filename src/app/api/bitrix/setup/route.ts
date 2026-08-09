@@ -30,7 +30,7 @@ export async function POST() {
     // el vocabulario del programa y el umbral queda en su lugar.
     const orden = await ordenarEtapasReferidos()
     return NextResponse.json({
-      ok: true, ...r, etapas: orden.etapas, renombradas: orden.renombradas,
+      ok: true, ...r, etapas: orden.etapas, renombradas: orden.renombradas, etapa_umbral: orden.etapa_umbral,
       nota: r.creado
         ? `Embudo "${r.nombre}" creado. Las negociaciones de referidos nacerán aquí.`
         : `El embudo "${r.nombre}" ya existía; se reutiliza.`,
