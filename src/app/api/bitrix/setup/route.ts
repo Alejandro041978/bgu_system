@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isSuperadmin, isStudentUser } from '@/lib/student-identity'
-import { bitrixConfigurado, crearEmbudoReferidos, EMBUDO_REFERIDOS } from '@/lib/bitrix'
+import { bitrixConfigurado, crearEmbudoReferidos, ordenarEtapasReferidos, EMBUDO_REFERIDOS } from '@/lib/bitrix'
 
 export const revalidate = 0
 
@@ -26,8 +26,11 @@ export async function POST() {
 
   try {
     const r = await crearEmbudoReferidos()
+    // Recién creado, el embudo trae las etapas genéricas de Bitrix: se les pone
+    // el vocabulario del programa y el umbral queda en su lugar.
+    const orden = await ordenarEtapasReferidos()
     return NextResponse.json({
-      ok: true, ...r,
+      ok: true, ...r, etapas: orden.etapas, renombradas: orden.renombradas,
       nota: r.creado
         ? `Embudo "${r.nombre}" creado. Las negociaciones de referidos nacerán aquí.`
         : `El embudo "${r.nombre}" ya existía; se reutiliza.`,

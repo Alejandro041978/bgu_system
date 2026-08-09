@@ -50,7 +50,7 @@ export async function bitrix(metodo: string, params: Record<string, any> = {}): 
 // ── Catálogos ───────────────────────────────────────────────────────────────
 // Se piden una vez por instancia y se guardan 10 minutos: son configuración,
 // no dato vivo, y pedirlos en cada referido triplicaría las llamadas.
-export interface Etapa { status_id: string; nombre: string; orden: number; semantica: string | null }
+export interface Etapa { id: number; status_id: string; nombre: string; orden: number; semantica: string | null }
 export interface Embudo { id: number; nombre: string; etapas: Etapa[] }
 
 let cache: { at: number; embudos: Embudo[] } | null = null
@@ -84,6 +84,7 @@ export async function embudosBGU(): Promise<Embudo[]> {
     embudos.push({
       id, nombre: String(c.NAME ?? ''),
       etapas: etapas.map((e, i) => ({
+        id: Number(e.ID),
         status_id: String(e.STATUS_ID),
         nombre: String(e.NAME ?? ''),
         orden: Number(e.SORT ?? i * 10),
@@ -317,4 +318,51 @@ export async function crearEmbudoReferidos(): Promise<{
 
   const fresco = (await embudosBGU()).find(e => e.id === actual.id) ?? actual
   return { id: fresco.id, nombre: fresco.nombre, creado, etapa_umbral: umbral, etapas: fresco.etapas.map(e => e.nombre) }
+}
+
+// ---------------------------------------------------------------------------
+// Vocabulario del embudo de referidos.
+//
+// Bitrix crea todo embudo nuevo con sus etapas por defecto —"Crear documentos",
+// "Factura", "Analizar la falla"—, que no describen nada de lo que pasa con un
+// referido. Peor: la etapa umbral se añade al final de las de proceso, así que
+// "Buscando Decisión" quedaba DESPUÉS de "Factura final" y el corte de la regla
+// caía en el sitio equivocado.
+//
+// Se renombran en su orden real, una a una. No se borra ninguna: renombrar no
+// mueve negociaciones, borrar sí las dejaría huérfanas.
+// ---------------------------------------------------------------------------
+const ETAPAS_REFERIDOS = [
+  'Referido nuevo',
+  'Contactado',
+  'En conversación',
+  ETAPA_UMBRAL,          // el umbral, en su lugar lógico
+  'Buscando Pago',
+  'Confirmando Pago',
+]
+
+export async function ordenarEtapasReferidos(): Promise<{ renombradas: string[]; etapas: string[] }> {
+  const emb = (await embudosBGU()).find(e => e.nombre.trim().toUpperCase() === EMBUDO_REFERIDOS.trim().toUpperCase())
+  if (!emb) throw new Error(`No existe el embudo "${EMBUDO_REFERIDOS}"`)
+
+  const proceso = emb.etapas.filter(e => e.semantica !== 'S' && e.semantica !== 'F').sort((a, b) => a.orden - b.orden)
+  const ganada = emb.etapas.find(e => e.semantica === 'S')
+  const perdida = emb.etapas.filter(e => e.semantica === 'F').sort((a, b) => a.orden - b.orden)[0]
+
+  const renombradas: string[] = []
+  const renombrar = async (et: Etapa | undefined, nombre: string) => {
+    if (!et || et.nombre === nombre) return
+    await bitrix('crm.status.update', { id: et.id, fields: { NAME: nombre } })
+    renombradas.push(`${et.nombre} → ${nombre}`)
+  }
+
+  for (let i = 0; i < Math.min(proceso.length, ETAPAS_REFERIDOS.length); i++) {
+    await renombrar(proceso[i], ETAPAS_REFERIDOS[i])
+  }
+  await renombrar(ganada, 'Inscrito')
+  await renombrar(perdida, 'No interesado')
+
+  cache = null
+  const fresco = (await embudosBGU()).find(e => e.id === emb.id)
+  return { renombradas, etapas: (fresco ?? emb).etapas.map(e => e.nombre) }
 }
