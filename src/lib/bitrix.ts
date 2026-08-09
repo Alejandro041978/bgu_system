@@ -164,27 +164,38 @@ let botCache: { at: number; id: number | null } | null = null
 export interface UsuarioBitrix { id: number; nombre: string; activo: boolean; email: string | null }
 
 /**
- * Usuarios cuyo nombre contiene "bot". Se recorre el listado en vez de filtrar
+ * Usuarios del CRM. Se recorre el listado en vez de filtrar
  * por NAME/LAST_NAME: el filtro de Bitrix exige el campo exacto, y un usuario
  * llamado "Bot Bitrix24" o con el nombre entero en NAME no aparece nunca —
  * fallaba en silencio y las negociaciones habrían nacido sin responsable.
  */
-export async function usuariosBot(): Promise<UsuarioBitrix[]> {
+export async function usuariosBitrix(): Promise<UsuarioBitrix[]> {
   const out: UsuarioBitrix[] = []
-  for (let start = 0; start < 500; start += 50) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let pagina: any[] = []
-    try { pagina = await bitrix('user.get', { start, ADMIN_MODE: true }) } catch { break }
-    if (!pagina?.length) break
-    for (const u of pagina) {
-      const nombre = [u.NAME, u.LAST_NAME].filter(Boolean).join(' ').trim()
-      if (/bot/i.test(nombre)) {
-        out.push({ id: Number(u.ID), nombre, activo: u.ACTIVE !== false && u.ACTIVE !== 'N', email: u.EMAIL ?? null })
+  // Los dos listados: activos y desactivados. Una cuenta de bot es justo el
+  // tipo de usuario que alguien deja desactivado, y user.get sin filtro no la
+  // devuelve — buscarla solo entre los activos era buscarla donde no está.
+  for (const filtro of [{}, { ACTIVE: 'N' }]) {
+    for (let start = 0; start < 1000; start += 50) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let pagina: any[] = []
+      try { pagina = await bitrix('user.get', { start, ADMIN_MODE: true, filter: filtro }) } catch { break }
+      if (!pagina?.length) break
+      for (const u of pagina) {
+        const id = Number(u.ID)
+        if (out.some(x => x.id === id)) continue
+        out.push({
+          id, nombre: [u.NAME, u.LAST_NAME].filter(Boolean).join(' ').trim() || `(usuario ${id})`,
+          activo: u.ACTIVE !== false && u.ACTIVE !== 'N', email: u.EMAIL ?? null,
+        })
       }
+      if (pagina.length < 50) break
     }
-    if (pagina.length < 50) break
   }
-  return out
+  return out.sort((a, b) => a.id - b.id)
+}
+
+export async function usuariosBot(): Promise<UsuarioBitrix[]> {
+  return (await usuariosBitrix()).filter(u => /bot/i.test(u.nombre))
 }
 
 /** Id del usuario "Bot Bitrix", a quien se asignan las negociaciones de referidos. */

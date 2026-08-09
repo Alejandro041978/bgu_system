@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { guardStaff } from '@/lib/api-guard'
-import { bitrixConfigurado, bitrix, embudosBGU, usuarioBot, usuariosBot, ETIQUETA_UMBRAL } from '@/lib/bitrix'
+import { bitrixConfigurado, bitrix, embudosBGU, usuarioBot, usuariosBot, usuariosBitrix, ETIQUETA_UMBRAL } from '@/lib/bitrix'
 
 export const revalidate = 0
 
@@ -9,7 +9,7 @@ export const revalidate = 0
 // sería registrar un referido de verdad y mirar qué pasó.
 //
 // No revela la URL del webhook: es una credencial.
-export async function GET() {
+export async function GET(req: Request) {
   const noAutorizado = await guardStaff()
   if (noAutorizado) return noAutorizado
 
@@ -43,8 +43,17 @@ export async function GET() {
 
   out.usuario_bot = await usuarioBot()
   // Los candidatos, para poder fijar BITRIX_BOT_USER_ID sin adivinar.
-  try { out.usuarios_con_bot_en_el_nombre = await usuariosBot() } catch { /* sin permiso de usuarios */ }
-  if (!out.usuario_bot) out.usuario_bot_nota = 'No se encontró el usuario; las negociaciones nacerían sin responsable asignado'
+  try {
+    out.usuarios_con_bot_en_el_nombre = await usuariosBot()
+    // ?usuarios=1 → el listado completo, para elegir el id a mano cuando no
+    // hay ninguna cuenta que se llame "bot".
+    if (new URL(req.url).searchParams.get('usuarios') === '1') out.usuarios = await usuariosBitrix()
+  } catch { /* sin permiso de usuarios */ }
+  if (!out.usuario_bot) {
+    // Sin ASSIGNED_BY_ID, Bitrix asigna la negociación al dueño del webhook:
+    // no quedan sin responsable, quedan a nombre de quien lo creó.
+    out.usuario_bot_nota = 'No se encontró la cuenta del bot: las negociaciones quedarían a nombre del usuario del webhook. Abre /api/bitrix/diag?usuarios=1 para ver los ids y fija BITRIX_BOT_USER_ID.'
+  }
 
   return NextResponse.json(out)
 }
