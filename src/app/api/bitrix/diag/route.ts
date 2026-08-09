@@ -1,0 +1,46 @@
+import { NextResponse } from 'next/server'
+import { guardStaff } from '@/lib/api-guard'
+import { bitrixConfigurado, bitrix, embudosBGU, usuarioBot, ETIQUETA_UMBRAL } from '@/lib/bitrix'
+
+export const revalidate = 0
+
+// Diagnóstico de la conexión con Bitrix24. Sin esto, la única forma de saber si
+// el webhook, los embudos BGU, la etapa umbral y el usuario del bot están bien
+// sería registrar un referido de verdad y mirar qué pasó.
+//
+// No revela la URL del webhook: es una credencial.
+export async function GET() {
+  const noAutorizado = await guardStaff()
+  if (noAutorizado) return noAutorizado
+
+  if (!bitrixConfigurado()) {
+    return NextResponse.json({ configurado: false, nota: 'Falta BITRIX_WEBHOOK_URL en el entorno' })
+  }
+
+  const out: Record<string, unknown> = { configurado: true, etapa_umbral_buscada: ETIQUETA_UMBRAL }
+  try {
+    const perfil = await bitrix('profile')
+    out.conecta_como = { id: perfil?.ID, nombre: [perfil?.NAME, perfil?.LAST_NAME].filter(Boolean).join(' '), admin: perfil?.ADMIN }
+  } catch (e) {
+    return NextResponse.json({ ...out, error: e instanceof Error ? e.message : String(e) }, { status: 502 })
+  }
+
+  try {
+    const embudos = await embudosBGU()
+    out.embudos_bgu = embudos.map(e => ({
+      id: e.id, nombre: e.nombre, etapas: e.etapas.length,
+      // Si esto sale null, la regla de los 3 meses no tiene umbral en ese
+      // embudo y TODO por debajo de "ganada" contaría como frío.
+      umbral: e.etapas.find(x => x.nombre.trim().toLowerCase() === ETIQUETA_UMBRAL.trim().toLowerCase())?.status_id ?? null,
+      nombres_de_etapas: e.etapas.map(x => x.nombre),
+    }))
+    out.embudo_donde_se_crean = embudos[0]?.nombre ?? null
+  } catch (e) {
+    out.embudos_error = e instanceof Error ? e.message : String(e)
+  }
+
+  out.usuario_bot = await usuarioBot()
+  if (!out.usuario_bot) out.usuario_bot_nota = 'No se encontró el usuario; las negociaciones nacerían sin responsable asignado'
+
+  return NextResponse.json(out)
+}

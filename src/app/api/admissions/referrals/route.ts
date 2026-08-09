@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { guardStaff } from '@/lib/api-guard'
 import {
-  estadoVisible, CREDITO_POR_REFERIDO, COSTO_DEGREE, CONCEPTO_DEGREE,
+  estadoVisible, refrescarCalificados, CREDITO_POR_REFERIDO, COSTO_DEGREE, CONCEPTO_DEGREE,
 } from '@/lib/referrals'
 
 export const revalidate = 0
@@ -38,6 +38,7 @@ export async function GET() {
   const noAutorizado = await guardStaff()
   if (noAutorizado) return noAutorizado
   const sb = db()
+  try { await refrescarCalificados(sb) } catch (e) { console.error('refrescar referidos', e) }
 
   const [refs, studs, progs, leads, cargos] = await Promise.all([
     todo(sb, 'referrals', 'id, referrer_student_id, first_name, last_name, email, phone_number, program_id, status, lead_id, qualified_at, lead_previo, lead_previo_nota, created_at'),

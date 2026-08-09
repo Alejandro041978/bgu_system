@@ -67,6 +67,34 @@ export function esDelEquipo(lead: LeadMin, ahora = new Date()): { delEquipo: boo
   }
 }
 
+// La misma regla, contra una negociación de Bitrix. El CRM del equipo es
+// Bitrix, no el embudo interno de Antonella: aquel es donde de verdad se ve si
+// un asesor lleva semanas trabajando a esa persona.
+export function esDelEquipoBitrix(
+  neg: { etapa_nombre: string; etapa_orden: number; semantica: string | null; ultima_actividad: string | null },
+  ordenUmbral: number | null,
+  ahora = new Date(),
+): { delEquipo: boolean; motivo: string } {
+  // Ganada o perdida no es "en proceso": una negociación cerrada no es trabajo
+  // vivo del equipo.
+  if (neg.semantica === 'S') return { delEquipo: true, motivo: `ya está ganada en el CRM ("${neg.etapa_nombre}")` }
+  if (neg.semantica !== 'F' && ordenUmbral != null && neg.etapa_orden >= ordenUmbral) {
+    return { delEquipo: true, motivo: `el equipo la tiene en "${neg.etapa_nombre}"` }
+  }
+  const corte = new Date(ahora)
+  corte.setMonth(corte.getMonth() - MESES_SIN_CONTACTO)
+  const ultima = neg.ultima_actividad ? new Date(neg.ultima_actividad) : null
+  if (ultima && ultima > corte) {
+    return { delEquipo: true, motivo: `el equipo la movió el ${String(neg.ultima_actividad).slice(0, 10)}` }
+  }
+  return {
+    delEquipo: false,
+    motivo: ultima
+      ? `sin actividad desde el ${String(neg.ultima_actividad).slice(0, 10)} y en "${neg.etapa_nombre}"`
+      : `sin actividad registrada y en "${neg.etapa_nombre}"`,
+  }
+}
+
 // ── Estado visible del referido ─────────────────────────────────────────────
 //
 // Solo se guardan los estados que son una DECISION (registrado, del_equipo,
@@ -113,6 +141,49 @@ export interface Credito {
   disponible: number
   /** Lo que le falta para cubrir el Degree entero. */
   faltan_referidos: number
+}
+
+// ---------------------------------------------------------------------------
+// Marcar los referidos que ya se matricularon.
+//
+// El bono NO lo decide el CRM: lo decide el dinero. Un referido califica cuando
+// aparece como estudiante nuestro Y tiene pagado su cargo de Enrollment. Una
+// etapa "ganada" en Bitrix es una intención; el pago es un hecho.
+//
+// Corre al abrir el portal o la hoja de control: es trabajo acotado —solo los
+// referidos que aún no calificaron— y evita depender de un cron para que el
+// estudiante vea sus 100 dólares.
+// ---------------------------------------------------------------------------
+export async function refrescarCalificados(sb: SB): Promise<number> {
+  const { data: pend } = await sb.from('referrals')
+    .select('id, email, phone_number, enrolled_student_id')
+    .is('qualified_at', null).neq('status', 'duplicado')
+  if (!(pend ?? []).length) return 0
+
+  let marcados = 0
+  for (const r of pend ?? []) {
+    let sid: string | null = r.enrolled_student_id ?? null
+    if (!sid) {
+      const filtros = [`email.eq.${r.email}`]
+      if (r.phone_number) filtros.push(`phone_number.eq.${r.phone_number}`)
+      const { data: stu } = await sb.from('academic_students').select('id').or(filtros.join(',')).limit(1)
+      sid = (stu ?? [])[0]?.id ?? null
+      if (sid) await sb.from('referrals').update({ enrolled_student_id: sid }).eq('id', r.id)
+    }
+    if (!sid) continue
+
+    const { data: cargos } = await sb.from('account_charges')
+      .select('external_id').eq('student_id', sid).eq('charge_type', CONCEPTO_ENROLLMENT)
+    const ids = (cargos ?? []).map((c: { external_id: string }) => c.external_id)
+    if (!ids.length) continue
+    const { data: pagos } = await sb.from('account_payments').select('amount').in('charge_external_id', ids)
+    const pagado = (pagos ?? []).reduce((s: number, p: { amount: number }) => s + Number(p.amount ?? 0), 0)
+    if (pagado <= 0.005) continue
+
+    await sb.from('referrals').update({ qualified_at: new Date().toISOString() }).eq('id', r.id)
+    marcados++
+  }
+  return marcados
 }
 
 export async function creditoDe(sb: SB, studentId: string): Promise<Credito> {

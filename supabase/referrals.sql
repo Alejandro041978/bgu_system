@@ -66,3 +66,12 @@ create unique index if not exists referrals_phone_unico
 
 alter table referrals enable row level security;
 grant all on table referrals to service_role;
+
+-- ── Bitrix24 ────────────────────────────────────────────────────────────────
+-- El CRM donde trabaja el equipo de admision. Cuando el referido pasa al
+-- estudiante y no existia alli, se le crea contacto y negociacion a nombre del
+-- usuario "Bot Bitrix": sin eso, ese mismo prospecto puede entrar manana por
+-- otra via y un asesor lo trabaja sin saber que ya lo estan atendiendo.
+alter table referrals add column if not exists bitrix_contact_id bigint;
+alter table referrals add column if not exists bitrix_deal_id    bigint;
+create index if not exists referrals_bitrix_deal_idx on referrals (bitrix_deal_id);
