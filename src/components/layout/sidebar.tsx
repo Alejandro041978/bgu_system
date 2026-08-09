@@ -65,6 +65,7 @@ const navigation: NavGroup[] = [
           { name: 'Nueva Matrícula', href: '/admision/nueva-matricula', icon: UserPlus, pageKey: 'admision_nueva_matricula' },
           { name: 'Ventas por Convocatoria', href: '/admissions/sales', icon: BadgeDollarSign, pageKey: 'admissions_sales' },
           { name: 'Comisiones', href: '/admissions/commissions', icon: BadgeDollarSign, pageKey: 'admissions_commissions' },
+          { name: 'Free Degree · Referidos', href: '/admissions/referrals', icon: Gift, pageKey: 'admissions_referrals' },
           { name: 'Documentos de Postulación', href: '/admissions/documents', icon: FileCheck, pageKey: 'admissions_documents' },
         ],
       },

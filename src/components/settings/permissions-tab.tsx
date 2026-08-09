@@ -141,6 +141,7 @@ const PAGE_GROUPS = [
       { key: 'finance_credit_rates', label: 'Finanzas · Credit Rate' },
       { key: 'admissions_sales', label: 'Admisión · Ventas de Admisión' },
       { key: 'admissions_commissions', label: 'Admisión · Comisiones' },
+      { key: 'admissions_referrals', label: 'Admisión · Free Degree (referidos)' },
       { key: 'admissions_documents', label: 'Admisión · Documentos de Postulación' },
       { key: 'collection_scholarships', label: 'Collection · Becas' },
       { key: 'collection_bonuses', label: 'Collection · Bonos' },

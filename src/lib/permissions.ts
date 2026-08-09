@@ -49,6 +49,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/academic/curricular', 'academic_curricular'],
   ['/academic/curricular-coverage', 'academic_curricular_coverage'],
   ['/admision/matriculas', 'admision_matriculas'],
+  ['/admissions/referrals', 'admissions_referrals'],
   ['/contracts/templates', 'contracts_templates'],
   ['/finance/debt-report', 'finance_debt_report'],
   ['/finance/recaudacion', 'finance_recaudacion'],
