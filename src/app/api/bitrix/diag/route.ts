@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { guardStaff } from '@/lib/api-guard'
-import { bitrixConfigurado, bitrix, embudosBGU, usuarioBot, ETIQUETA_UMBRAL } from '@/lib/bitrix'
+import { bitrixConfigurado, bitrix, embudosBGU, usuarioBot, usuariosBot, ETIQUETA_UMBRAL } from '@/lib/bitrix'
 
 export const revalidate = 0
 
@@ -34,12 +34,16 @@ export async function GET() {
       umbral: e.etapas.find(x => x.nombre.trim().toLowerCase() === ETIQUETA_UMBRAL.trim().toLowerCase())?.status_id ?? null,
       nombres_de_etapas: e.etapas.map(x => x.nombre),
     }))
-    out.embudo_donde_se_crean = embudos[0]?.nombre ?? null
+    const destino = process.env.BITRIX_PIPELINE_REFERRALS ? embudos.find(e => e.nombre === process.env.BITRIX_PIPELINE_REFERRALS) : null
+    out.embudo_donde_se_crean = (destino ?? embudos[0])?.nombre ?? null
+    out.embudos_sin_etapa_umbral = embudos.filter(e => !e.etapas.some(x => x.nombre.trim().toLowerCase() === ETIQUETA_UMBRAL.trim().toLowerCase())).map(e => e.nombre)
   } catch (e) {
     out.embudos_error = e instanceof Error ? e.message : String(e)
   }
 
   out.usuario_bot = await usuarioBot()
+  // Los candidatos, para poder fijar BITRIX_BOT_USER_ID sin adivinar.
+  try { out.usuarios_con_bot_en_el_nombre = await usuariosBot() } catch { /* sin permiso de usuarios */ }
   if (!out.usuario_bot) out.usuario_bot_nota = 'No se encontró el usuario; las negociaciones nacerían sin responsable asignado'
 
   return NextResponse.json(out)

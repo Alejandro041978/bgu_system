@@ -154,19 +154,45 @@ export async function ordenUmbral(nombreEmbudo: string): Promise<number | null> 
 // ── Escritura: dejar la negociación creada ──────────────────────────────────
 let botCache: { at: number; id: number | null } | null = null
 
+export interface UsuarioBitrix { id: number; nombre: string; activo: boolean; email: string | null }
+
+/**
+ * Usuarios cuyo nombre contiene "bot". Se recorre el listado en vez de filtrar
+ * por NAME/LAST_NAME: el filtro de Bitrix exige el campo exacto, y un usuario
+ * llamado "Bot Bitrix24" o con el nombre entero en NAME no aparece nunca —
+ * fallaba en silencio y las negociaciones habrían nacido sin responsable.
+ */
+export async function usuariosBot(): Promise<UsuarioBitrix[]> {
+  const out: UsuarioBitrix[] = []
+  for (let start = 0; start < 500; start += 50) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let pagina: any[] = []
+    try { pagina = await bitrix('user.get', { start, ADMIN_MODE: true }) } catch { break }
+    if (!pagina?.length) break
+    for (const u of pagina) {
+      const nombre = [u.NAME, u.LAST_NAME].filter(Boolean).join(' ').trim()
+      if (/bot/i.test(nombre)) {
+        out.push({ id: Number(u.ID), nombre, activo: u.ACTIVE !== false && u.ACTIVE !== 'N', email: u.EMAIL ?? null })
+      }
+    }
+    if (pagina.length < 50) break
+  }
+  return out
+}
+
 /** Id del usuario "Bot Bitrix", a quien se asignan las negociaciones de referidos. */
 export async function usuarioBot(): Promise<number | null> {
+  // El id explícito manda: es la salida cuando el nombre no se puede adivinar.
+  const fijo = Number(process.env.BITRIX_BOT_USER_ID ?? '')
+  if (Number.isFinite(fijo) && fijo > 0) return fijo
+
   if (botCache && Date.now() - botCache.at < TTL) return botCache.id
   let id: number | null = null
   try {
-    const partes = USUARIO_BOT.trim().split(/\s+/)
-    const r = await bitrix('user.get', { filter: { NAME: partes[0], LAST_NAME: partes.slice(1).join(' ') || undefined } })
-    id = (r ?? [])[0]?.ID ? Number(r[0].ID) : null
-    if (!id) {
-      // Algunas cuentas lo tienen todo en NAME.
-      const r2 = await bitrix('user.get', { filter: { NAME: USUARIO_BOT } })
-      id = (r2 ?? [])[0]?.ID ? Number(r2[0].ID) : null
-    }
+    const bots = await usuariosBot()
+    const buscado = USUARIO_BOT.trim().toLowerCase()
+    const exacto = bots.find(u => u.nombre.toLowerCase() === buscado)
+    id = (exacto ?? bots.find(u => u.activo) ?? bots[0])?.id ?? null
   } catch { id = null }
   botCache = { at: Date.now(), id }
   return id
