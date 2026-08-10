@@ -55,9 +55,22 @@ export async function POST(req: NextRequest) {
   })
   // Correo sin cuenta: se responde ok igual. Es el caso normal de quien se
   // equivoca de dirección, y no hay nada que contarle a quien está probando.
-  if (error || !data?.properties?.action_link) return ok
+  if (error || !data?.properties?.hashed_token) return ok
 
-  const enlace = String(data.properties.action_link)
+  // ── El enlace se arma con hashed_token, NO con action_link ────────────────
+  //
+  // action_link apunta al /auth/v1/verify de Supabase, que tras verificar
+  // redirige a nuestra URL con los tokens en el FRAGMENTO (#access_token=…).
+  // El fragmento no viaja al servidor, y /auth/callback es una ruta de
+  // servidor: no veía nada, no encontraba ni code ni token_hash, y terminaba
+  // mandando a /login?error=auth. El correo llegaba, el enlace "no funcionaba"
+  // y no había ningún error que mirar.
+  //
+  // Con hashed_token el enlace entra directo a nuestro callback, que lo canjea
+  // con verifyOtp —el camino para el que ya estaba escrito—, deja la sesión en
+  // las cookies y lleva a elegir la contraseña nueva.
+  const enlace = `${base}/auth/callback?token_hash=${encodeURIComponent(String(data.properties.hashed_token))}`
+    + `&type=recovery&next=${encodeURIComponent('/update-password')}`
   const nombre = String(data.user?.user_metadata?.full_name ?? '').split(' ')[0] || ''
 
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
