@@ -6,6 +6,7 @@ import { generateChargesForEnrollment } from '@/lib/billing'
 import { checkEnrollmentPrereq } from '@/lib/enrollment-prereq'
 import { snapshotCreditRate } from '@/lib/credit-rates'
 import { guardStaff } from '@/lib/api-guard'
+import { parDeConvocatoria, validarPar } from '@/lib/convocatoria-setup'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -106,6 +107,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'El programa no pertenece a la categoría de la convocatoria' }, { status: 400 })
   }
 
+  // ── Colección y carrusel: los declara la CONVOCATORIA ─────────────────────
+  //
+  // El carrusel dice qué se cursa y en qué orden; la colección, en cuál de las
+  // aulas de cada asignatura entra este estudiante. Los dos se heredan del par
+  // configurado en la convocatoria, y lo que venga del formulario solo manda
+  // si viene con valor (excepción declarada por quien matricula).
+  //
+  // Antes la colección era un campo suelto que había que acordarse de llenar:
+  // 23 de 1.104 matrículas activas lo tenían. Las demás caían al respaldo de
+  // julio —una sola aula por asignatura para todo el mundo—, así que el
+  // estudiante del campus socio y el de la colección regular terminaban en la
+  // misma aula sin que nadie lo notara.
+  const par = await parDeConvocatoria(sb, convocatoria_id, program_id)
+  const coleccionFinal = collection_id || par.collection_id
+  const carruselFinal = entry_group_id || par.group_id
+  const malPar = await validarPar(sb, program_id, coleccionFinal, carruselFinal)
+  if (malPar) return NextResponse.json({ error: malPar }, { status: 400 })
+
   // Resolver el estudiante
   let sid = student_id ?? null
   let created = false
@@ -174,16 +193,22 @@ export async function POST(req: NextRequest) {
   // de SystemActiva), se subsana asignándole la elegida — conservando su fecha
   // original. Con convocatoria ya asignada, sí es un duplicado y se rechaza.
   const { data: existing } = await sb.from('academic_student_enrollments')
-    .select('id, convocatoria_id').eq('student_id', sid).eq('program_id', program_id).limit(1)
-  const prev = (existing ?? [])[0] as { id: string; convocatoria_id: string | null } | undefined
+    .select('id, convocatoria_id, collection_id, entry_group_id').eq('student_id', sid).eq('program_id', program_id).limit(1)
+  const prev = (existing ?? [])[0] as { id: string; convocatoria_id: string | null; collection_id: string | null; entry_group_id: string | null } | undefined
   let enrollmentId: string
   let repaired = false
   if (prev) {
     if (prev.convocatoria_id) {
       return NextResponse.json({ error: 'El estudiante ya tiene una matrícula en este programa, con convocatoria asignada' }, { status: 409 })
     }
+    // Se aprovecha la subsanación para completar lo que falte del par, sin
+    // pisar lo que ya tuviera elegido.
     const { error: updErr } = await sb.from('academic_student_enrollments')
-      .update({ convocatoria_id }).eq('id', prev.id)
+      .update({
+        convocatoria_id,
+        collection_id: prev.collection_id ?? coleccionFinal,
+        entry_group_id: prev.entry_group_id ?? carruselFinal,
+      }).eq('id', prev.id)
     if (updErr) return NextResponse.json({ error: `No se pudo subsanar la matrícula: ${updErr.message}` }, { status: 500 })
     enrollmentId = prev.id
     repaired = true
@@ -199,8 +224,8 @@ export async function POST(req: NextRequest) {
       // estudiante; el carrusel, por dónde empieza. Van en la matrícula y no en
       // el estudiante porque quien cursa dos programas puede estar en la
       // colección regular de uno y en la del campus asociado del otro.
-      collection_id: collection_id || null,
-      entry_group_id: entry_group_id || null,
+      collection_id: coleccionFinal,
+      entry_group_id: carruselFinal,
     })
     if (enrErr) return NextResponse.json({ error: `No se pudo crear la matrícula: ${enrErr.message}` }, { status: 500 })
   }

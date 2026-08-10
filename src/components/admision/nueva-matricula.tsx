@@ -52,6 +52,7 @@ export function NuevaMatricula() {
   const [carruseles, setCarruseles] = useState<{ id: string; name: string; abbreviation: string | null }[]>([])
   const [collectionId, setCollectionId] = useState('')
   const [entryGroupId, setEntryGroupId] = useState('')
+  const [heredado, setHeredado] = useState<{ hay: boolean } | null>(null)
   const [yearId, setYearId] = useState('')
   const [convId, setConvId] = useState('')
   const [programId, setProgramId] = useState('')
@@ -105,24 +106,39 @@ export function NuevaMatricula() {
     setSearching(false)
   }
 
+  // Colección y carrusel se HEREDAN de la convocatoria. Se siguen mostrando y
+  // se pueden cambiar —hay excepciones— pero el valor por defecto ya no
+  // depende de que alguien se acuerde: lo declara el intake.
   useEffect(() => {
-    setColecciones([]); setCarruseles([]); setCollectionId(''); setEntryGroupId('')
+    setColecciones([]); setCarruseles([]); setCollectionId(''); setEntryGroupId(''); setHeredado(null)
     if (!programId) return
     fetch('/api/academic/moodle-collections')
       .then(r => r.json())
       .then(d => {
         const suyas = (d.colecciones ?? []).filter((c: { program_id: string }) => c.program_id === programId)
         setColecciones(suyas)
-        if (suyas.length === 1) setCollectionId(suyas[0].id)
+        if (suyas.length === 1) setCollectionId(prev => prev || suyas[0].id)
       }).catch(() => { /* el bloqueo de abajo avisa */ })
     fetch(`/api/academic/groups?program_id=${programId}`)
       .then(r => r.json())
       .then(d => {
         const gs = (Array.isArray(d) ? d : d.groups ?? []) as { id: string; name: string; abbreviation: string | null }[]
         setCarruseles(gs)
-        if (gs.length === 1) setEntryGroupId(gs[0].id)
+        if (gs.length === 1) setEntryGroupId(prev => prev || gs[0].id)
       }).catch(() => { /* opcional: si falla, se coloca después */ })
-  }, [programId])
+    if (!convId) return
+    fetch(`/api/convocatorias/setup?convocatoria_id=${convId}`)
+      .then(r => r.json())
+      .then(d => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const p = (d.programas ?? []).find((x: any) => x.id === programId)
+        const s = p?.setup
+        if (!s || (!s.collection_id && !s.group_id)) { setHeredado({ hay: false }); return }
+        if (s.collection_id) setCollectionId(s.collection_id)
+        if (s.group_id) setEntryGroupId(s.group_id)
+        setHeredado({ hay: true })
+      }).catch(() => { /* sin herencia se elige a mano, como antes */ })
+  }, [programId, convId])
 
   const catPrograms = programs.filter(p => p.category_id === categoryId)
   const studentReady = !!selected || (creating && newStudent.first_name.trim() && newStudent.last_name.trim() && newStudent.document_number.trim())
@@ -333,6 +349,16 @@ export function NuevaMatricula() {
               {carruseles.map(c => <option key={c.id} value={c.id}>{c.abbreviation ? c.abbreviation + ' · ' : ''}{c.name}</option>)}
             </select>
           </label>
+          {/* De dónde salió lo que está preseleccionado. Un valor que aparece
+              solo, sin decir quién lo puso, es lo que hizo que la colección se
+              quedara vacía en mil matrículas sin que nadie lo notara. */}
+          {programId && convId && !esExterno && heredado && (
+            <p className={`sm:col-span-2 text-xs px-3 py-2 rounded-lg ${heredado.hay ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-800'}`}>
+              {heredado.hay
+                ? 'Colección y carrusel heredados de la convocatoria. Cámbialos solo si esta matrícula es una excepción.'
+                : 'Esta convocatoria no tiene colección ni carrusel configurados para este programa: elígelos aquí, o déjalos definidos en Convocatorias para que las siguientes matrículas los hereden.'}
+            </p>
+          )}
           <label>
             <span className="block text-xs text-gray-500 mb-1">Fecha de matrícula</span>
             <input type="date" value={enrollDate} onChange={e => setEnrollDate(e.target.value)} className={inp} />
