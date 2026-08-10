@@ -48,6 +48,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/academic/carruseles', 'academic_carousels'],
   ['/academic/curricular', 'academic_curricular'],
   ['/academic/curricular-coverage', 'academic_curricular_coverage'],
+  ['/academic/collection-backfill', 'academic_collection_backfill'],
   ['/admision/matriculas', 'admision_matriculas'],
   ['/admissions/referrals', 'admissions_referrals'],
   ['/contracts/templates', 'contracts_templates'],

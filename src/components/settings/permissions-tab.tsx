@@ -21,6 +21,7 @@ const PAGE_GROUPS = [
       { key: 'report_graduates', label: 'Reportes · Egresados' },
       { key: 'report_grades', label: 'Reportes · Calificaciones' },
       { key: 'academic_curricular_coverage', label: 'Académico · Cobertura del registro' },
+      { key: 'academic_collection_backfill', label: 'Académico · Colección por matrícula' },
       { key: 'academic_acta_course', label: 'Académico · Acta de Asignatura' },
     ],
   },
