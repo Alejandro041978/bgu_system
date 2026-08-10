@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { verifyFlywireSignature, FLYWIRE_PAID_STATUSES } from '@/lib/flywire'
+import { verifyFlywireSignature, FLYWIRE_PAID_STATUSES, desdeSubunidades } from '@/lib/flywire'
 import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 import { refreshStudentAccess } from '@/lib/moodle-access'
 import { aplicarGatillosDePago } from '@/lib/payment-gates'
@@ -101,7 +101,9 @@ export async function POST(req: NextRequest) {
       const { data: pays } = await sb.from('account_payments').select('amount').eq('charge_external_id', externalRef)
       const paid = (pays ?? []).reduce((s: number, p: { amount: number }) => s + Number(p.amount ?? 0), 0)
       const balance = Math.round((Number(charge.amount ?? 0) - paid) * 100) / 100
-      const recibido = num(body?.amount_to)
+      // amount_to viene en SUBUNIDADES (40000 = 400.00 USD). En el log crudo se
+      // guarda tal como llegó —es la auditoría— y aquí se convierte.
+      const recibido = desdeSubunidades(num(body?.amount_to), body?.currency_to)
       const amount = recibido != null && recibido > 0 ? recibido
         : (balance > 0 ? balance : Number(charge.amount ?? 0))
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { CreditCard } from 'lucide-react'
+import { aSubunidades } from '@/lib/flywire'
 
 const ENV = process.env.NEXT_PUBLIC_FLYWIRE_ENV || 'demo'
 const RECIPIENT = process.env.NEXT_PUBLIC_FLYWIRE_RECIPIENT
@@ -43,7 +44,10 @@ export function FlywirePayButton(
     const [firstName, ...rest] = (studentName ?? '').trim().split(/\s+/)
     const params = new URLSearchParams({
       recipient: RECIPIENT!,
-      amount: String(Math.round(amount * 100)), // centavos (el portal es USD, subunidad 100)
+      // El portal ZBL es de monto único y en USD (confirmado por Flywire), y el
+      // importe va en subunidades. La conversión sale del mismo sitio que la
+      // del webhook: una sola regla para las dos direcciones.
+      amount: String(aSubunidades(amount, 'USD')),
       // Referencia de la cuota. `id_cuota` es un campo oculto del portal y
       // viaja de vuelta en la notificación (el portal publica los campos del
       // recipiente en los callbacks): es la llave real de conciliación.
@@ -53,6 +57,13 @@ export function FlywirePayButton(
       // hace entrando al portal de Flywire por su cuenta.
       payment_source: 'ERP',
       read_only: READ_ONLY,
+      // Callback POR TRANSACCIÓN, que es la vía que recomienda Flywire: el
+      // destino de la notificación lo fija quien inicia el pago, no la
+      // configuración del portal. Así demo y producción avisan cada uno a su
+      // entorno sin pedirle a Flywire que toque nada, y el callback estático
+      // del portal queda solo como respaldo.
+      callback_url: `${window.location.origin}/api/flywire/webhook`,
+      callback_version: '2',
     })
     if (firstName) params.set('student_first_name', firstName)
     if (rest.length) params.set('student_last_name', rest.join(' '))
