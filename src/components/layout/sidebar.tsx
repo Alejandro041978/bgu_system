@@ -63,10 +63,11 @@ const navigation: NavGroup[] = [
           { name: 'Contactos', href: '/crm', icon: Users, pageKey: 'crm' },
           { name: 'Convenios', href: '/convenios', icon: Handshake, pageKey: 'convenios' },
           { name: 'Nueva Matrícula', href: '/admision/nueva-matricula', icon: UserPlus, pageKey: 'admision_nueva_matricula' },
-          { name: 'Ventas por Convocatoria', href: '/admissions/sales', icon: BadgeDollarSign, pageKey: 'admissions_sales' },
+          // Comisiones se queda: configura las tasas por CATEGORÍA, no por
+          // convocatoria. Es la regla detrás de Ventas por Convocatoria, no una
+          // vista de un llamado concreto.
           { name: 'Comisiones', href: '/admissions/commissions', icon: BadgeDollarSign, pageKey: 'admissions_commissions' },
           { name: 'Free Degree · Referidos', href: '/admissions/referrals', icon: Gift, pageKey: 'admissions_referrals' },
-          { name: 'Documentos de Postulación', href: '/admissions/documents', icon: FileCheck, pageKey: 'admissions_documents' },
         ],
       },
       {
@@ -78,11 +79,17 @@ const navigation: NavGroup[] = [
       },
       { name: 'Redes Sociales', href: '/social', icon: Share2, pageKey: 'social' },
       {
+        // Todo lo que se mira POR CONVOCATORIA vive aquí. Estaba repartido
+        // entre Admisión y Convocatorias, así que para seguir un llamado había
+        // que saltar de sección: sus matrículas en un sitio, sus ventas en
+        // otro y sus expedientes en un tercero.
         name: 'Convocatorias', href: '/academic/convocatorias', icon: ClipboardList,
         children: [
           { name: 'Gestión', href: '/academic/convocatorias', icon: ClipboardList, pageKey: 'academic_convocatorias' },
           { name: 'Matrículas por Convocatoria', href: '/academic/convocatorias-matriculas', icon: Users, pageKey: 'academic_convocatorias_report' },
           { name: 'Estudiantes por Convocatoria', href: '/academic/estudiantes-convocatoria', icon: Users, pageKey: 'academic_convocatoria_students' },
+          { name: 'Ventas por Convocatoria', href: '/admissions/sales', icon: BadgeDollarSign, pageKey: 'admissions_sales' },
+          { name: 'Documentos de Postulación', href: '/admissions/documents', icon: FileCheck, pageKey: 'admissions_documents' },
         ],
       },
     ],

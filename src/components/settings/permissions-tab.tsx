@@ -22,8 +22,6 @@ const PAGE_GROUPS = [
       { key: 'report_grades', label: 'Reportes · Calificaciones' },
       { key: 'academic_curricular_coverage', label: 'Académico · Cobertura del registro' },
       { key: 'academic_acta_course', label: 'Académico · Acta de Asignatura' },
-      { key: 'academic_convocatorias_report', label: 'Comercial · Matrículas por Convocatoria' },
-      { key: 'academic_convocatoria_students', label: 'Comercial · Estudiantes por Convocatoria' },
     ],
   },
   {
@@ -39,7 +37,14 @@ const PAGE_GROUPS = [
       { key: 'sales_funnels', label: 'Configuración de embudos' },
       // Redes Sociales
       { key: 'social', label: 'Métricas sociales' },
-      { key: 'academic_convocatorias', label: 'Convocatorias' },
+      // Convocatorias: el mismo grupo y el mismo orden que el sidebar, para
+      // que dar permiso a un llamado no obligue a buscar sus páginas por tres
+      // secciones distintas.
+      { key: 'academic_convocatorias', label: 'Convocatorias · Gestión' },
+      { key: 'academic_convocatorias_report', label: 'Convocatorias · Matrículas' },
+      { key: 'academic_convocatoria_students', label: 'Convocatorias · Estudiantes' },
+      { key: 'admissions_sales', label: 'Convocatorias · Ventas' },
+      { key: 'admissions_documents', label: 'Convocatorias · Documentos de Postulación' },
     ],
   },
   {
@@ -140,10 +145,8 @@ const PAGE_GROUPS = [
       { key: 'finance_other_income', label: 'Finanzas · Otros Ingresos' },
       { key: 'finance_debt_report', label: 'Finanzas · Reporte de Deuda' },
       { key: 'finance_credit_rates', label: 'Finanzas · Credit Rate' },
-      { key: 'admissions_sales', label: 'Admisión · Ventas de Admisión' },
       { key: 'admissions_commissions', label: 'Admisión · Comisiones' },
       { key: 'admissions_referrals', label: 'Admisión · Free Degree (referidos)' },
-      { key: 'admissions_documents', label: 'Admisión · Documentos de Postulación' },
       { key: 'collection_scholarships', label: 'Collection · Becas' },
       { key: 'collection_bonuses', label: 'Collection · Bonos' },
       { key: 'moodle_access', label: 'Collection · Acceso a Moodle' },
