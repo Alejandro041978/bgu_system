@@ -56,6 +56,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/ia/sofia-supervisor', 'sofia_supervisor'],
   ['/planning/indicators', 'planning_indicators'],
   ['/planning/audit', 'planning_audit'],
+  ['/planning/overview', 'planning_overview'],
   ['/planning/assessment', 'assessment_plan'],
   ['/academic/retencion', 'academic_retention'],
   ['/academic/schedules', 'academic_schedules'],

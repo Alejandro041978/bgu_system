@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target, Gift, ShieldCheck, ShieldOff, PiggyBank,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone, CreditCard, RefreshCw, ListChecks,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone, CreditCard, RefreshCw, ListChecks, LayoutGrid,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -179,6 +179,9 @@ const navigation: NavGroup[] = [
   {
     label: 'Planeamiento',
     items: [
+      // Va primero: es la vista que cruza los tres planes, y donde alguien
+      // que llega a Planeamiento quiere empezar.
+      { name: 'Panorama Institucional', href: '/planning/overview', icon: LayoutGrid, pageKey: 'planning_overview' },
       {
         name: 'Plan Estratégico', href: '/planning/plan', icon: Target, pageKey: 'planning_plan',
         children: [
