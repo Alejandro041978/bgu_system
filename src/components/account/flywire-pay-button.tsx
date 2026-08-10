@@ -40,6 +40,20 @@ export function FlywirePayButton(
 ) {
   if (!RECIPIENT) return null
 
+  // ── El dominio manda sobre la variable ────────────────────────────────────
+  //
+  // NEXT_PUBLIC_FLYWIRE_ENV es global: ponerla en 'demo' para probar apunta el
+  // botón de TODOS los estudiantes a la pasarela de pruebas. El estudiante
+  // paga, ve "We have received your payment", y no se mueve un dólar — y no
+  // deja rastro, porque el portal Demo no notifica a producción.
+  //
+  // Pasó el 10/08/2026 y no lo detectó nadie: se descubrió preguntando. Así
+  // que en el dominio real el modo demo no se sirve, se bloquea y se avisa.
+  // Para probar de verdad está el despliegue de vista previa, donde la
+  // variable puede valer 'demo' sin arrastrar a nadie.
+  const enDominioReal = typeof window !== 'undefined' && window.location.hostname === 'system.blackwell.university'
+  const modoPruebaEnProduccion = enDominioReal && ENV !== 'production'
+
   function pay() {
     const [firstName, ...rest] = (studentName ?? '').trim().split(/\s+/)
     const params = new URLSearchParams({
@@ -92,6 +106,16 @@ export function FlywirePayButton(
     const top = Math.max(0, (window.screen.availHeight - h) / 2)
     const feats = `popup=yes,width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,status=no,resizable=yes,scrollbars=yes,noopener,noreferrer`
     window.open(`${BASE}?${params.toString()}`, 'flywire_pay', feats)
+  }
+
+  if (modoPruebaEnProduccion) {
+    return (
+      <span
+        title="La pasarela está configurada en modo prueba (NEXT_PUBLIC_FLYWIRE_ENV=demo). Un pago aquí no cobraría nada. Avisa a Sistemas."
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-amber-100 text-amber-800 cursor-not-allowed">
+        <CreditCard className="w-3.5 h-3.5" /> Pago no disponible
+      </span>
+    )
   }
 
   return (

@@ -24,7 +24,11 @@ export async function GET() {
     has_shared_secret: !!process.env.FLYWIRE_SHARED_SECRET,
     has_client_id: !!process.env.ZOHO_CLIENT_ID, // referencia; no aplica a Flywire
     // Señales de coherencia
+    // El aviso que importa: en el dominio real, cualquier valor distinto de
+    // 'production' manda a los estudiantes a la pasarela de pruebas.
     env_ok: process.env.NEXT_PUBLIC_FLYWIRE_ENV === 'production',
+    aviso: process.env.NEXT_PUBLIC_FLYWIRE_ENV === 'production' ? null
+      : 'MODO PRUEBA: el boton Pagar del dominio real esta bloqueado para que ningun estudiante pague en la pasarela demo',
     recipient_len: rec ? rec.length : 0,
     build_sha: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local',
   })
