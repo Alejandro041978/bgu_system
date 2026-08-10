@@ -57,13 +57,14 @@ export function FlywirePayButton(
       // hace entrando al portal de Flywire por su cuenta.
       payment_source: 'ERP',
       read_only: READ_ONLY,
-      // NO se manda callback_url por transacción, aunque Flywire lo recomiende.
+      // El callback por transacción SOLO en Demo.
       //
-      // Se probó el 10/08/2026: las notificaciones del callback ESTÁTICO del
-      // portal llegan con firma válida; la del pago iniciado con callback_url
-      // propio llegó con firma inválida —mismo secreto, mismo endpoint— y el
-      // webhook la rechazó con 401. Hasta que Flywire aclare con qué secreto
-      // firma los callbacks dinámicos, manda el estático, que sí valida.
+      // En producción el callback estático del portal funciona y sus avisos
+      // llegan con firma válida, así que añadir uno propio solo duplicaría.
+      // En Demo, en cambio, un pago sin callback_url no notifica nada: se
+      // probó el 10/08/2026 y no llegó ni un aviso en cinco minutos. Sin esto
+      // el entorno de pruebas es inservible.
+      ...(ENV === 'production' ? {} : { callback_url: `${window.location.origin}/api/flywire/webhook` }),
     })
     if (firstName) params.set('student_first_name', firstName)
     if (rest.length) params.set('student_last_name', rest.join(' '))

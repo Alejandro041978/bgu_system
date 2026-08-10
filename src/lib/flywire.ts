@@ -2,15 +2,29 @@ import crypto from 'crypto'
 
 // Verifica la firma de la notificación Flywire (header X-Flywire-Digest):
 // base64( HMAC-SHA256( cuerpo_crudo, shared_secret ) ).
-export function verifyFlywireSignature(rawBody: string, digestHeader: string | null): boolean {
-  const secret = process.env.FLYWIRE_SHARED_SECRET
-  if (!secret || !digestHeader) return false
-  const expected = crypto.createHmac('sha256', secret).update(rawBody, 'utf8').digest('base64')
-  try {
-    return crypto.timingSafeEqual(Buffer.from(digestHeader), Buffer.from(expected))
-  } catch {
-    return false
+//
+// Se prueban VARIAS claves y se devuelve cuál validó. Motivo: el 10/08/2026 las
+// notificaciones de producción validaban y las de Demo no, con el mismo
+// secreto configurado. Hay dos explicaciones posibles —Demo firma con otra
+// clave, o los callbacks definidos por transacción no se firman igual— y
+// discutirlas sin datos no lleva a ninguna parte. Guardando qué clave validó,
+// la siguiente notificación lo dice sola.
+const CLAVES = (): { nombre: string; valor: string }[] => [
+  { nombre: 'principal', valor: process.env.FLYWIRE_SHARED_SECRET ?? '' },
+  { nombre: 'demo', valor: process.env.FLYWIRE_SHARED_SECRET_DEMO ?? '' },
+].filter(c => c.valor)
+
+export function verifyFlywireSignature(
+  rawBody: string, digestHeader: string | null,
+): { valid: boolean; key: string | null } {
+  if (!digestHeader) return { valid: false, key: null }
+  for (const c of CLAVES()) {
+    const esperado = crypto.createHmac('sha256', c.valor).update(rawBody, 'utf8').digest('base64')
+    try {
+      if (crypto.timingSafeEqual(Buffer.from(digestHeader), Buffer.from(esperado))) return { valid: true, key: c.nombre }
+    } catch { /* longitudes distintas: no es esta clave */ }
   }
+  return { valid: false, key: null }
 }
 
 // Estados de Flywire que consideramos "cobrado" (se refleja el pago en el estado de cuenta).

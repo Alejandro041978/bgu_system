@@ -19,7 +19,8 @@ export async function POST(req: NextRequest) {
 
   const raw = await req.text()
   const digest = req.headers.get('x-flywire-digest')
-  const valid = verifyFlywireSignature(raw, digest)
+  const firma = verifyFlywireSignature(raw, digest)
+  const valid = firma.valid
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let body: any = null
@@ -83,11 +84,14 @@ export async function POST(req: NextRequest) {
     payment_id: paymentId, external_reference: externalRef, status, event_type: eventType,
     amount_from: num(d?.amount_from), currency_from: d?.currency_from ?? null,
     amount_to: num(d?.amount_to), currency_to: d?.currency_to ?? null,
-    signature_valid: valid, raw: body ?? { raw },
+    signature_valid: valid, signature_key: firma.key, raw: body ?? { raw },
   })
 
   // 2) Firma inválida → no actuamos (Flywire reintentará)
-  if (!valid) return NextResponse.json({ error: 'Firma inválida' }, { status: 401 })
+  // Se responde 401 para que Flywire reintente. Si el problema fuera nuestro
+  // —clave mal configurada— el reintento no arregla nada, pero al menos la
+  // notificación no se da por entregada.
+  if (!valid) return NextResponse.json({ error: 'Firma inválida', digest_recibido: !!digest }, { status: 401 })
   if (!externalRef) return NextResponse.json({ ok: true, note: 'sin external_reference' })
 
   // 3) Ubicar la cuota
