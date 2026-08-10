@@ -250,6 +250,7 @@ const navigation: NavGroup[] = [
           { name: 'Bonos', href: '/collection/bonuses', icon: Gift, pageKey: 'collection_bonuses' },
           { name: 'Cargar Pagos Flywire', href: '/finance/flywire', icon: Upload, pageKey: 'finance_flywire_import' },
           { name: 'Pagos por Conciliar', href: '/finance/conciliar', icon: Link2, pageKey: 'finance_conciliar' },
+          { name: 'Flywire · Sin conciliar', href: '/finance/flywire-unmatched', icon: FileWarning, pageKey: 'finance_flywire_unmatched' },
           { name: 'Auditor de Conciliación', href: '/finance/reconciliation', icon: ShieldCheck, pageKey: 'finance_reconciliation' },
           { name: 'Otros Ingresos', href: '/finance/otros-ingresos', icon: Package, pageKey: 'finance_other_income' },
           { name: 'Acceso a Moodle', href: '/academic/moodle-access', icon: ShieldOff, pageKey: 'moodle_access' },

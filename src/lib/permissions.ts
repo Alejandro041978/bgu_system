@@ -70,6 +70,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/academic/students', 'academic_student_profile'],
   ['/academic/syllabi', 'academic_syllabi'],
   ['/finance/conciliar', 'finance_conciliar'],
+  ['/finance/flywire-unmatched', 'finance_flywire_unmatched'],
   ['/hr/capacitaciones', 'hr_capacitaciones'],
   ['/planning/progress', 'planning_progress'],
   ['/registrar/degrees', 'registrar_degrees'],

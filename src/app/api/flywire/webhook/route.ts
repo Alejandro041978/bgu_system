@@ -5,6 +5,7 @@ import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 import { refreshStudentAccess } from '@/lib/moodle-access'
 import { aplicarGatillosDePago } from '@/lib/payment-gates'
 import { observar } from '@/lib/api-observe'
+import { emparejarPorDocumento } from '@/lib/flywire-match'
 
 export const revalidate = 0
 
@@ -111,17 +112,32 @@ export async function POST(req: NextRequest) {
       formato: clasico ? 'callback clásico (no es Notifications v2)' : 'notifications v2',
     }, { status: 401 })
   }
-  if (!externalRef) return NextResponse.json({ ok: true, note: 'sin external_reference' })
+  // 2b) Sin referencia de cuota: el pago viene del portal de Flywire.
+  //
+  // Si el documento del pagador corresponde a un estudiante nuestro, se coloca
+  // en su cuota vencida más antigua — lo mismo que haría Cobranzas a mano. Si
+  // no lo reconocemos (suele ser un postulante que aún no existe en el ERP),
+  // se responde 200 y queda en la bandeja de sin conciliar: es una decisión de
+  // Admisión, no un fallo.
+  let refFinal: string | null = externalRef
+  let notaEmparejado: string | null = null
+  if (!refFinal && FLYWIRE_PAID_STATUSES.has(status)) {
+    const m = await emparejarPorDocumento(sb, d?.fields, d?.fields?.student_email)
+    if (m.ok && m.charge_external_id) { refFinal = m.charge_external_id; notaEmparejado = m.motivo }
+    else return NextResponse.json({ ok: true, note: 'sin conciliar: ' + m.motivo })
+  }
+  if (!refFinal) return NextResponse.json({ ok: true, note: 'sin external_reference' })
+  const externalRefFinal = refFinal
 
   // 3) Ubicar la cuota
   const { data: charge } = await sb.from('account_charges')
     .select('external_id, student_id, enrollment_id, convocatoria_id, amount')
-    .eq('external_id', externalRef).maybeSingle()
+    .eq('external_id', externalRefFinal).maybeSingle()
   if (!charge) return NextResponse.json({ ok: true, note: 'cuota no encontrada' })
 
   // Reflejar el estado Flywire en la cuota
   await sb.from('account_charges').update({ flywire_status: status, flywire_payment_id: paymentId })
-    .eq('external_id', externalRef)
+    .eq('external_id', externalRefFinal)
 
   if (FLYWIRE_PAID_STATUSES.has(status) && paymentId) {
     // Idempotencia: no duplicar el pago si ya lo registramos
@@ -139,7 +155,7 @@ export async function POST(req: NextRequest) {
       // programa cuando lo único facturado es la matrícula. Queda como saldo a
       // favor sobre esa cuota y Cobranzas lo reparte a las cuotas que vayan
       // naciendo (botón "Distribuir excedente" del estado de cuenta).
-      const { data: pays } = await sb.from('account_payments').select('amount').eq('charge_external_id', externalRef)
+      const { data: pays } = await sb.from('account_payments').select('amount').eq('charge_external_id', externalRefFinal)
       const paid = (pays ?? []).reduce((s: number, p: { amount: number }) => s + Number(p.amount ?? 0), 0)
       const balance = Math.round((Number(charge.amount ?? 0) - paid) * 100) / 100
       // amount_to viene en SUBUNIDADES (40000 = 400.00 USD). En el log crudo se
@@ -150,21 +166,21 @@ export async function POST(req: NextRequest) {
 
       await sb.from('account_payments').insert({
         external_id: crypto.randomUUID(),
-        charge_external_id: externalRef,
+        charge_external_id: externalRefFinal,
         student_id: charge.student_id ?? null,
         amount,
         paid_date: new Date().toISOString().slice(0, 10),
-        transaction_reference: `Flywire ${paymentId}`,
+        transaction_reference: [`Flywire ${paymentId}`, notaEmparejado ? `conciliado por documento (${notaEmparejado})` : null].filter(Boolean).join(String.fromCharCode(32,183,32)),
         flywire_payment_id: paymentId,
       })
 
       // Si este pago cubrió los conceptos iniciales, la matrícula se activa
       // sola (correo estudiantil, acta, carrusel y Moodle).
-      try { await maybeActivateOnPayment(externalRef) } catch { /* la importación/el botón Activar recuperan */ }
+      try { await maybeActivateOnPayment(externalRefFinal) } catch { /* la importación/el botón Activar recuperan */ }
       // Documento, trámite o examen: los tres esperan a que el estudiante
       // pague, y los tres se olvidaban por aquí. Van juntos para que enganchar
       // uno no signifique olvidar los otros dos.
-      try { await aplicarGatillosDePago(externalRef) } catch { /* el barrido horario recupera */ }
+      try { await aplicarGatillosDePago(externalRefFinal) } catch { /* el barrido horario recupera */ }
       // Reactiva Moodle si el pago dejó al estudiante sin vencido
       if (charge.student_id) { try { await refreshStudentAccess(sb, charge.student_id) } catch { /* best-effort */ } }
     }
