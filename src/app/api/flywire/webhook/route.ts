@@ -25,9 +25,25 @@ export async function POST(req: NextRequest) {
   let body: any = null
   try { body = JSON.parse(raw) } catch { /* cuerpo no-JSON */ }
 
-  const paymentId = body?.payment_id ?? body?.id ?? null
-  const status = (body?.status ?? body?.payment_status ?? '').toLowerCase()
-  const eventType = body?.event_type ?? null
+  // ── El cuerpo REAL de Notifications v2 va anidado ─────────────────────────
+  //
+  //   { event_type, event_date, event_resource,
+  //     data: { payment_id, status, amount_to, currency_to, external_reference,
+  //             fields: { id_cuota, dni, student_id, ... } } }
+  //
+  // Leíamos el nivel superior, así que payment_id, status, importe y campos
+  // salían vacíos SIEMPRE. La consecuencia no fue un error: era un 200 con
+  // "sin external_reference" y ni un pago registrado. 222 notificaciones
+  // reales entraron así entre el 9 y el 10 de agosto de 2026 —29 pagos por
+  // 3.800,50 dólares— sin dejar más rastro que el log crudo.
+  //
+  // Se conserva la lectura del nivel superior como respaldo: si mañana Flywire
+  // manda un cuerpo plano, sigue funcionando.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const d: any = body?.data ?? body ?? {}
+  const paymentId = d?.payment_id ?? d?.id ?? body?.payment_id ?? null
+  const status = String(d?.status ?? body?.status ?? body?.payment_status ?? '').toLowerCase()
+  const eventType = body?.event_type ?? d?.event_type ?? null
 
   // Llave de conciliación: el external_id de la cuota.
   //
@@ -42,7 +58,7 @@ export async function POST(req: NextRequest) {
   // Flywire publica en los callbacks (publish_recipient_info_within_callbacks),
   // y en `callback_id`. `external_reference` queda solo como último recurso.
   const recipientFields: Record<string, string> = {}
-  const rawFields = body?.recipient_fields ?? body?.fields ?? null
+  const rawFields = d?.fields ?? body?.recipient_fields ?? body?.fields ?? null
   if (Array.isArray(rawFields)) {
     for (const f of rawFields) {
       const k = f?.id ?? f?.field_id ?? f?.name
@@ -53,8 +69,10 @@ export async function POST(req: NextRequest) {
   }
   const externalRef =
     recipientFields.id_cuota?.trim() ||
-    body?.id_cuota ||
+    d?.fields?.id_cuota ||
+    d?.callback_id ||
     body?.callback_id ||
+    d?.external_reference ||
     body?.external_reference ||
     null
 
@@ -63,8 +81,8 @@ export async function POST(req: NextRequest) {
   // 1) Log crudo (auditoría), siempre
   await sb.from('flywire_events').insert({
     payment_id: paymentId, external_reference: externalRef, status, event_type: eventType,
-    amount_from: num(body?.amount_from), currency_from: body?.currency_from ?? null,
-    amount_to: num(body?.amount_to), currency_to: body?.currency_to ?? null,
+    amount_from: num(d?.amount_from), currency_from: d?.currency_from ?? null,
+    amount_to: num(d?.amount_to), currency_to: d?.currency_to ?? null,
     signature_valid: valid, raw: body ?? { raw },
   })
 
@@ -103,7 +121,7 @@ export async function POST(req: NextRequest) {
       const balance = Math.round((Number(charge.amount ?? 0) - paid) * 100) / 100
       // amount_to viene en SUBUNIDADES (40000 = 400.00 USD). En el log crudo se
       // guarda tal como llegó —es la auditoría— y aquí se convierte.
-      const recibido = desdeSubunidades(num(body?.amount_to), body?.currency_to)
+      const recibido = desdeSubunidades(num(d?.amount_to), d?.currency_to)
       const amount = recibido != null && recibido > 0 ? recibido
         : (balance > 0 ? balance : Number(charge.amount ?? 0))
 
