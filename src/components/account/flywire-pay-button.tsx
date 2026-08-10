@@ -69,7 +69,13 @@ export function FlywirePayButton(
       id_cuota: chargeExternalId,
       // Distingue los pagos nacidos de este botón de los que el estudiante
       // hace entrando al portal de Flywire por su cuenta.
-      payment_source: 'ERP',
+      //
+      // En Demo va MARCADO. El portal Demo notifica al mismo webhook que el de
+      // producción —el callback estático apunta a system.blackwell.university—
+      // así que sin esta marca un pago de mentira contra una cuota real la
+      // dejaría pagada. La marca es lo que hace que el entorno de pruebas sea
+      // seguro: el webhook registra el evento y no toca el estado de cuenta.
+      payment_source: ENV === 'production' ? 'ERP' : 'ERP-DEMO',
       read_only: READ_ONLY,
       // NO se manda callback_url. Comprobado el 10/08/2026: `callback_url` no
       // activa Notifications v2, activa el callback CLÁSICO, que es otro
@@ -115,6 +121,18 @@ export function FlywirePayButton(
         className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-amber-100 text-amber-800 cursor-not-allowed">
         <CreditCard className="w-3.5 h-3.5" /> Pago no disponible
       </span>
+    )
+  }
+
+  // En un despliegue de prueba el botón se ve distinto y lo dice. Un botón
+  // idéntico al de producción que no cobra es una trampa esperando a alguien.
+  if (ENV !== 'production') {
+    return (
+      <button type="button" onClick={pay}
+        title="Entorno de PRUEBAS: abre la pasarela demo de Flywire. No cobra nada y no afecta al estado de cuenta."
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-amber-500 hover:bg-amber-600 text-white">
+        <CreditCard className="w-3.5 h-3.5" /> Pagar (prueba)
+      </button>
     )
   }
 

@@ -112,7 +112,23 @@ export async function POST(req: NextRequest) {
       formato: clasico ? 'callback clásico (no es Notifications v2)' : 'notifications v2',
     }, { status: 401 })
   }
-  // 2b) Sin referencia de cuota: el pago viene del portal de Flywire.
+  // 2b) Pago de PRUEBA nacido del ERP en modo Demo.
+  //
+  // El portal Demo notifica a ESTE mismo webhook: el callback estático apunta
+  // a system.blackwell.university y no distingue entornos. Sin esta puerta, un
+  // pago de mentira contra una cuota real la dejaría pagada, que es justo lo
+  // que hace inservible un entorno de pruebas.
+  //
+  // El evento se registra —para eso se prueba— y no se toca el estado de
+  // cuenta de nadie.
+  if (String(recipientFields.payment_source ?? '').toUpperCase() === 'ERP-DEMO') {
+    return NextResponse.json({
+      ok: true, prueba: true,
+      note: 'pago de prueba (ERP-DEMO): queda en el log, sin efecto en el estado de cuenta',
+    })
+  }
+
+  // 2c) Sin referencia de cuota: el pago viene del portal de Flywire.
   //
   // Si el documento del pagador corresponde a un estudiante nuestro, se coloca
   // en su cuota vencida más antigua — lo mismo que haría Cobranzas a mano. Si
