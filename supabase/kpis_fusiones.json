@@ -1,0 +1,168 @@
+{
+ "fuente": "Consolidacion_KPI_BGU_consultas.xlsx respondido por Planeamiento (2026-08-10)",
+ "nota": "destino = el codigo que SOBREVIVE; absorbe = los que se funden en el. Un miembro que sea una medida del plan de Evaluacion (D-xx / I-xx) no se borra: la medida se conserva y pasa a apuntar al indicador superviviente.",
+ "grupos": [
+  {
+   "destino": "E1-I01",
+   "absorbe": [
+    "E1-K2"
+   ],
+   "nota": "conservamos el nombre en el consolidado - el código es diferente por cada plan, prevalece la formula que se consideró en el EF"
+  },
+  {
+   "destino": "E1-S01",
+   "absorbe": [
+    "E1-K4",
+    "D-05"
+   ],
+   "nota": "conservamos el nombre en el consolidado - el código es diferente por cada plan, prevalece la formula que se consideró en el EF"
+  },
+  {
+   "destino": "E2-I01",
+   "absorbe": [
+    "E2-K1",
+    "I-06"
+   ],
+   "nota": "conservamos el nombre en el consolidado - el código es diferente por cada plan, prevalece la formula que se consideró en el EF"
+  },
+  {
+   "destino": "E3-O01",
+   "absorbe": [
+    "E3-K3"
+   ],
+   "nota": "conservamos el nombre en el consolidado - el código es diferente por cada plan, prevalece la formula que se consideró en el EF"
+  },
+  {
+   "destino": "E3-O02",
+   "absorbe": [
+    "E3-K4"
+   ],
+   "nota": "conservamos el nombre en el consolidado - el código es diferente por cada plan, prevalece la formula que se consideró en el EF"
+  },
+  {
+   "destino": "E4-S01",
+   "absorbe": [
+    "E4-K1"
+   ],
+   "nota": "conservamos el nombre en el consolidado - el código es diferente por cada plan, prevalece la formula que se consideró en el EF"
+  },
+  {
+   "destino": "E7-O02",
+   "absorbe": [
+    "E7-K4"
+   ],
+   "nota": "conservamos el nombre en el consolidado - el código es diferente por cada plan, prevalece la formula que se consideró en el EF"
+  },
+  {
+   "destino": "E7-I01",
+   "absorbe": [
+    "E7-K3"
+   ],
+   "nota": "conservamos el nombre en el consolidado - el código es diferente por cada plan, prevalece la formula que se consideró en el EF"
+  },
+  {
+   "destino": "E5-I01",
+   "absorbe": [
+    "E5-K3"
+   ],
+   "nota": "El resultado es el mismo presentado a CIE"
+  },
+  {
+   "destino": "E1-S02",
+   "absorbe": [
+    "E1-K3"
+   ],
+   "nota": "E1-K3 es el mismo que E1-S02, prevalece fórmula del EF"
+  },
+  {
+   "destino": "E2-S01",
+   "absorbe": [
+    "E2-K2"
+   ],
+   "nota": "E2-K2 es el mismo que E2-S01, prevalece fórmula del EF"
+  },
+  {
+   "destino": "E2-S02",
+   "absorbe": [
+    "E2-K3"
+   ],
+   "nota": "E2-K3 es el mismo que E2-S02, prevalece la fórmula del EF"
+  },
+  {
+   "destino": "E3-I01",
+   "absorbe": [
+    "E3-K1"
+   ],
+   "nota": "E3-K1 es el mismo que E3-I01, prevalece la fórmula del EF"
+  },
+  {
+   "destino": "E3-S02",
+   "absorbe": [
+    "E3-K2",
+    "I-11"
+   ],
+   "nota": "E3-K2 es el mismo que E3-S02 y I11, prevalece la fórmula del EF"
+  },
+  {
+   "destino": "E4-O01",
+   "absorbe": [
+    "E4-K3"
+   ],
+   "nota": "E4-K3 es el mismo que E4-O01, prevalece la fórmula del EF"
+  },
+  {
+   "destino": "E4-I01",
+   "absorbe": [
+    "E4-K4"
+   ],
+   "nota": "E4-K4 es el mismo que E4-I01, prevalece la fórmula del EF"
+  },
+  {
+   "destino": "E6-I01",
+   "absorbe": [
+    "E6-K1"
+   ],
+   "nota": "E6-K1 es el mismo que E6-I01, prevalece la fórmula del EF"
+  },
+  {
+   "destino": "E7-O01",
+   "absorbe": [
+    "E7-K1"
+   ],
+   "nota": "E7-K1 es el mismo que E7-O01, prevalece la fórmula del EF"
+  },
+  {
+   "destino": "E2-K4",
+   "absorbe": [
+    "D-08"
+   ],
+   "nota": "E2-K4 es lo mismo que D-08, prevalece la fórmula del PE"
+  },
+  {
+   "destino": "E1-I02",
+   "absorbe": [
+    "I-07"
+   ],
+   "nota": "I-07 es lo mismo que E1-I02, prevalece la fórmula del EF"
+  },
+  {
+   "destino": "E1-I03",
+   "absorbe": [
+    "I-08"
+   ],
+   "nota": "I-08 es lo mismo que E1-I03, prevalece la fórmula del EF"
+  }
+ ],
+ "nuevo": {
+  "destino": "E1-O01",
+  "absorbe": [
+   "E1-K1"
+  ],
+  "name": "Programas autorizados",
+  "planes": [
+   "PE",
+   "EF"
+  ],
+  "nota": "E1-O01 es el mismo que E1-K1, no estaba en el catálogo de KPI, añadir y prevalece la fórmula del EF"
+ }
+}
