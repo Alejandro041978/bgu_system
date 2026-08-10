@@ -57,14 +57,15 @@ export function FlywirePayButton(
       // hace entrando al portal de Flywire por su cuenta.
       payment_source: 'ERP',
       read_only: READ_ONLY,
-      // El callback por transacción SOLO en Demo.
+      // NO se manda callback_url. Comprobado el 10/08/2026: `callback_url` no
+      // activa Notifications v2, activa el callback CLÁSICO, que es otro
+      // mecanismo con otro cuerpo —plano, con `id` en vez de `payment_id`,
+      // importe en unidades y no en subunidades, sin los campos del
+      // recipiente— y otra firma, que no valida contra el shared secret.
       //
-      // En producción el callback estático del portal funciona y sus avisos
-      // llegan con firma válida, así que añadir uno propio solo duplicaría.
-      // En Demo, en cambio, un pago sin callback_url no notifica nada: se
-      // probó el 10/08/2026 y no llegó ni un aviso en cinco minutos. Sin esto
-      // el entorno de pruebas es inservible.
-      ...(ENV === 'production' ? {} : { callback_url: `${window.location.origin}/api/flywire/webhook` }),
+      // Cuando Flywire recomienda "definan el callback por transacción" están
+      // hablando de ese otro camino. El que queremos es Notifications v2, que
+      // se configura en el portal y en producción ya funciona.
     })
     if (firstName) params.set('student_first_name', firstName)
     if (rest.length) params.set('student_last_name', rest.join(' '))

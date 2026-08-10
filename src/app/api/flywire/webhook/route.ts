@@ -40,8 +40,19 @@ export async function POST(req: NextRequest) {
   //
   // Se conserva la lectura del nivel superior como respaldo: si mañana Flywire
   // manda un cuerpo plano, sigue funcionando.
+  //
+  // Y hay un SEGUNDO formato, el del callback clásico (el que se activa
+  // pasando callback_url al iniciar el pago):
+  //
+  //   { at, id, amount, status, callback_id }
+  //
+  // Plano, con `id` en vez de `payment_id`, importe en UNIDADES y sin los
+  // campos del recipiente. Su firma no valida contra el shared secret, así que
+  // no registra nada — pero se reconoce para que el log diga qué llegó en vez
+  // de guardar una fila de nulos.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const d: any = body?.data ?? body ?? {}
+  const clasico = !body?.data && !!body?.id && !!body?.callback_id
   const paymentId = d?.payment_id ?? d?.id ?? body?.payment_id ?? null
   const status = String(d?.status ?? body?.status ?? body?.payment_status ?? '').toLowerCase()
   const eventType = body?.event_type ?? d?.event_type ?? null
@@ -83,7 +94,10 @@ export async function POST(req: NextRequest) {
   await sb.from('flywire_events').insert({
     payment_id: paymentId, external_reference: externalRef, status, event_type: eventType,
     amount_from: num(d?.amount_from), currency_from: d?.currency_from ?? null,
-    amount_to: num(d?.amount_to), currency_to: d?.currency_to ?? null,
+    // En el clásico el importe ya viene en unidades: se sube a subunidades
+    // para que la columna signifique lo mismo en las dos formas.
+    amount_to: clasico ? Math.round(Number(d?.amount ?? 0) * 100) : num(d?.amount_to),
+    currency_to: d?.currency_to ?? null,
     signature_valid: valid, signature_key: firma.key, raw: body ?? { raw },
   })
 
@@ -91,7 +105,12 @@ export async function POST(req: NextRequest) {
   // Se responde 401 para que Flywire reintente. Si el problema fuera nuestro
   // —clave mal configurada— el reintento no arregla nada, pero al menos la
   // notificación no se da por entregada.
-  if (!valid) return NextResponse.json({ error: 'Firma inválida', digest_recibido: !!digest }, { status: 401 })
+  if (!valid) {
+    return NextResponse.json({
+      error: 'Firma inválida', digest_recibido: !!digest,
+      formato: clasico ? 'callback clásico (no es Notifications v2)' : 'notifications v2',
+    }, { status: 401 })
+  }
   if (!externalRef) return NextResponse.json({ ok: true, note: 'sin external_reference' })
 
   // 3) Ubicar la cuota
