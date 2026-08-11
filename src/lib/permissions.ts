@@ -119,3 +119,206 @@ export function pageKeyForPath(pathname: string): string | null {
   }
   return null
 }
+
+// ---------------------------------------------------------------------------
+// Rutas de API → clave de página.
+//
+// La comprobación de permisos vivía solo en las páginas, y solo para VER. Las
+// 215 rutas de escritura del ERP no miraban nada: bastaba con ser colaborador.
+// Ocultar botones no arregla eso —el endpoint sigue ahí—, así que el permiso se
+// exige aquí, en el único sitio por el que pasan todas.
+//
+// El mapa es explícito y no se deduce del nombre. /api/academic/groups atiende
+// a los carruseles, /api/convocatorias/setup a las convocatorias, y adivinarlo
+// por prefijo produciría aciertos casi siempre y un agujero de vez en cuando.
+// Del más específico al más genérico.
+//
+// Lo que NO está aquí queda sin exigencia, y por eso el reporte de auditoría
+// lista las rutas de escritura sin mapear: un hueco tiene que verse.
+export const API_ROUTE_TO_PAGE_KEY: [string, string][] = [
+  ['/api/academic/collection-backfill', 'academic_collection_backfill'],
+  ['/api/academic/collection-summary', 'academic_collection_backfill'],
+  ['/api/academic/curricular-coverage', 'academic_curricular_coverage'],
+  ['/api/academic/convocatoria-students', 'academic_convocatoria_students'],
+  ['/api/academic/transfer-schemes', 'academic_transfer_schemes'],
+  ['/api/academic/transfer-credits', 'academic_transfer_credits'],
+  ['/api/academic/teaching-assignments', 'academic_teaching'],
+  ['/api/academic/course-withdrawal', 'academic_curricular'],
+  ['/api/academic/classroom-links', 'academic_classroom_links'],
+  ['/api/academic/moodle-collections', 'academic_classroom_links'],
+  ['/api/academic/moodle-links', 'academic_classroom_links'],
+  ['/api/academic/moodle-actas', 'academic_moodle_actas'],
+  ['/api/academic/moodle-access', 'moodle_access'],
+  ['/api/academic/grades-import', 'academic_grades_import'],
+  ['/api/academic/grade-scales', 'academic_grade_scales'],
+  ['/api/academic/course-sync', 'academic_course_sync'],
+  ['/api/academic/acta-asignatura', 'academic_acta_course'],
+  ['/api/academic/acta-detalle', 'academic_acta_detail'],
+  ['/api/academic/carousels-overview', 'academic_carousels'],
+  ['/api/academic/credentials', 'academic_credentials'],
+  ['/api/academic/convocatorias', 'academic_convocatorias'],
+  ['/api/academic/seguimiento', 'academic_tracking'],
+  ['/api/academic/validations', 'academic_validations'],
+  ['/api/academic/billing-plans', 'academic_billing_plans'],
+  ['/api/academic/retencion', 'academic_retention'],
+  ['/api/academic/schedules', 'academic_schedules'],
+  ['/api/academic/concepts', 'academic_concepts'],
+  ['/api/academic/examenes', 'academic_exams'],
+  ['/api/academic/programs', 'academic_programs'],
+  ['/api/academic/syllabi', 'academic_syllabi'],
+  ['/api/academic/students', 'academic_student_profile'],
+  ['/api/academic/withdrawals', 'academic_withdrawals'],
+  ['/api/academic/retiros', 'academic_withdrawals'],
+  ['/api/academic/camila', 'academic_camila'],
+  ['/api/academic/faculty', 'academic_faculty'],
+  ['/api/academic/offerings', 'academic_offer'],
+  ['/api/academic/groups', 'academic_groups'],
+  ['/api/academic/grades', 'academic_grades'],
+  ['/api/academic/account', 'academic_account'],
+  ['/api/academic/acta', 'academic_acta'],
+  ['/api/academic/years', 'academic_years'],
+  ['/api/convocatorias/setup', 'academic_convocatorias'],
+  ['/api/convocatorias', 'academic_convocatorias'],
+  ['/api/admision/nueva-matricula', 'admision_nueva_matricula'],
+  ['/api/admision/matricula', 'admision_nueva_matricula'],
+  ['/api/admision/matriculas', 'admision_matriculas'],
+  ['/api/admissions/commissions', 'admissions_commissions'],
+  ['/api/admissions/documents', 'admissions_documents'],
+  ['/api/admissions/referrals', 'admissions_referrals'],
+  ['/api/admissions/sales', 'admissions_sales'],
+  ['/api/finance/books-operations', 'finance_books_operations'],
+  ['/api/finance/flywire-unmatched', 'finance_flywire_unmatched'],
+  ['/api/finance/other-income', 'finance_other_income'],
+  ['/api/finance/reconciliation', 'finance_reconciliation'],
+  ['/api/finance/credit-rates', 'finance_credit_rates'],
+  ['/api/finance/pagos-conciliar', 'finance_conciliar'],
+  ['/api/finance/debt-report', 'finance_debt_report'],
+  ['/api/finance/recaudacion', 'finance_recaudacion'],
+  ['/api/finance/flywire-import', 'finance_flywire_import'],
+  ['/api/finance/cashpay', 'finance_cashpay'],
+  ['/api/finance/refunds', 'finance'],
+  ['/api/finance/books', 'finance_books_operations'],
+  ['/api/collection/scholarships', 'collection_scholarships'],
+  ['/api/collection/bonuses', 'collection_bonuses'],
+  ['/api/registrar/document-types', 'registrar_document_types'],
+  ['/api/registrar/isic-cards', 'registrar_isic_cards'],
+  ['/api/registrar/formatos', 'registrar_formatos'],
+  ['/api/registrar/requests', 'registrar_requests'],
+  ['/api/registrar/tramites', 'registrar_tramites'],
+  ['/api/registrar/degrees', 'registrar_degrees'],
+  ['/api/planning/effectiveness', 'effectiveness_plan'],
+  ['/api/planning/assessment', 'assessment_plan'],
+  ['/api/planning/indicators', 'planning_indicators'],
+  ['/api/planning/overview', 'planning_overview'],
+  ['/api/planning/progress', 'planning_progress'],
+  ['/api/planning/audit', 'planning_audit'],
+  ['/api/planning/plan', 'planning_plan'],
+  ['/api/reports/estado-estudiantes', 'report_student_status'],
+  ['/api/reports/student-status', 'report_student_status'],
+  ['/api/reports/tuition-audit', 'report_tuition_audit'],
+  ['/api/reports/graduates', 'report_graduates'],
+  ['/api/reports/grades', 'report_grades'],
+  ['/api/contracts/templates', 'contracts_templates'],
+  ['/api/contracts', 'contracts'],
+  ['/api/helpdesk/skills', 'helpdesk_skills'],
+  ['/api/hr/capacitaciones', 'hr_capacitaciones'],
+  ['/api/settings/permissions', 'settings_users'],
+  ['/api/settings/users', 'settings_users'],
+  ['/api/settings/sofia', 'settings_sofia'],
+  ['/api/sofia/mejoras', 'sofia_mejoras'],
+  ['/api/sofia/supervisor', 'sofia_supervisor'],
+  ['/api/ventas/prospectos', 'sales_prospectos'],
+  ['/api/ventas/embudos', 'sales_funnels'],
+  // Rutas que no llevan el nombre de su página. Se mapean una a una porque
+  // adivinarlas por prefijo acierta casi siempre, y "casi" es el tamaño exacto
+  // del agujero.
+  ['/api/academic/course-enrollments', 'academic_offer'],
+  ['/api/academic/program-categories', 'academic_programs'],
+  ['/api/academic/withdrawal-requests', 'academic_retention'],
+  ['/api/academic/transfer-credit-items', 'academic_transfer_credits'],
+  ['/api/academic/transfer-scheme-items', 'academic_transfer_schemes'],
+  ['/api/academic/grade-status', 'academic_grades'],
+  ['/api/academic/sync-grades', 'academic_grades'],
+  ['/api/academic/assignments', 'academic_teaching'],
+  ['/api/academic/moodle-account', 'academic_student_profile'],
+  ['/api/academic/moodle-audit', 'report_campus_audit'],
+  ['/api/academic/semesters', 'academic_years'],
+  ['/api/academic/tracking', 'academic_tracking'],
+  ['/api/academic/courses', 'academic_programs'],
+  ['/api/academic/exams', 'academic_exams'],
+  ['/api/account/generate-charges', 'academic_account'],
+  ['/api/account/distribute', 'academic_account'],
+  ['/api/account/concepts', 'academic_concepts'],
+  ['/api/account/discount', 'academic_account'],
+  ['/api/account/payments', 'academic_account'],
+  ['/api/account/charges', 'academic_account'],
+  ['/api/account/rebill', 'academic_account'],
+  ['/api/billing/templates', 'academic_billing_plans'],
+  ['/api/billing/backfill', 'academic_billing_plans'],
+  ['/api/finance/flywire-disbursements', 'finance_flywire_import'],
+  ['/api/registrar/tramite-types', 'registrar_tramites'],
+  ['/api/registrar/isic-photo', 'registrar_isic_cards'],
+  ['/api/registrar/isic', 'registrar_isic_cards'],
+  ['/api/planning/objectives', 'planning_plan'],
+  ['/api/planning/strategies', 'planning_plan'],
+  ['/api/planning/dimensions', 'planning_plan'],
+  ['/api/planning/responsibles', 'planning_plan'],
+  ['/api/planning/actions', 'planning_progress'],
+  ['/api/planning/history', 'planning_progress'],
+  ['/api/planning/cycles', 'planning_plan'],
+  ['/api/sales/admission-comments', 'admissions_sales'],
+  ['/api/sales/admission-docs', 'admissions_documents'],
+  ['/api/sales/admission-types', 'admissions_sales'],
+  ['/api/sales/admissions', 'admissions_sales'],
+  ['/api/sales/funnels', 'sales_funnels'],
+  ['/api/sales/leads', 'sales_prospectos'],
+  ['/api/sofia/knowledge', 'sofia_mejoras'],
+  ['/api/sofia/suggestions', 'sofia_mejoras'],
+  ['/api/sofia/run-supervisor', 'sofia_supervisor'],
+  ['/api/sofia/save-prompt', 'settings_sofia'],
+  ['/api/settings/roles', 'settings_users'],
+  ['/api/students', 'academic_student_profile'],
+  ['/api/zoho/tickets', 'desk'],
+  ['/api/chat', 'chat'],
+  ['/api/campaigns', 'seguimiento_campaigns'],
+  ['/api/convenios', 'convenios'],
+  ['/api/inbox', 'inbox'],
+  ['/api/social', 'social'],
+  ['/api/desk', 'desk'],
+  ['/api/kpis', 'kpis'],
+  ['/api/crm', 'crm'],
+  ['/api/hr', 'hr'],
+]
+
+export function pageKeyForApi(pathname: string): string | null {
+  for (const [prefix, key] of API_ROUTE_TO_PAGE_KEY) {
+    if (pathname === prefix || pathname.startsWith(prefix + '/')) return key
+  }
+  return null
+}
+
+export type AccionPermiso = 'ver' | 'editar' | 'borrar'
+
+// Qué permiso exige cada método. DELETE pide el suyo propio: borrar un registro
+// no es lo mismo que corregirlo, y hasta ahora quien podía editar podía borrar.
+export function accionDeMetodo(metodo: string): AccionPermiso {
+  const m = metodo.toUpperCase()
+  if (m === 'DELETE') return 'borrar'
+  if (m === 'GET' || m === 'HEAD' || m === 'OPTIONS') return 'ver'
+  return 'editar'
+}
+
+// Rutas de API que NO se rigen por permisos de página: o son de la propia
+// sesión, o las llama un cron/webhook sin usuario, o son del portal del
+// estudiante (que tiene su propio control por identidad).
+export const API_SIN_PERMISO_DE_PAGINA = [
+  '/api/auth/', '/api/me/', '/api/cron/', '/api/webhooks/', '/api/flywire/',
+  '/api/student/', '/api/students/search', '/api/sync/', '/api/staff/impersonate-user',
+  // Formularios públicos y entradas de sistemas externos: no hay usuario del
+  // ERP detrás, así que no hay rol al que preguntarle.
+  '/api/form/', '/api/whatsapp/', '/api/bitrix/',
+]
+
+export function apiExentaDePermiso(pathname: string): boolean {
+  return API_SIN_PERMISO_DE_PAGINA.some(p => pathname.startsWith(p))
+}

@@ -34,16 +34,26 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const body = await req.json() as { role_id: string; permissions: { page_key: string; can_view: boolean; can_edit: boolean }[] }
+  const body = await req.json() as { role_id: string; permissions: { page_key: string; can_view: boolean; can_edit: boolean; can_delete?: boolean }[] }
   const supabase = admin()
 
-  // Upsert all permissions for the role
-  const rows = body.permissions.map(p => ({
-    role_id: body.role_id,
-    page_key: p.page_key,
-    can_view: p.can_view,
-    can_edit: p.can_edit,
-  }))
+  // Upsert all permissions for the role.
+  //
+  // La jerarquía se impone aquí y no solo en la pantalla: borrar implica editar
+  // e implica ver. Guardar "puede borrar pero no ver" dejaría un permiso que
+  // nadie sabe leer y que el guard resolvería de un modo que no es el que quien
+  // configuró tenía en la cabeza.
+  const rows = body.permissions.map(p => {
+    const can_delete = !!p.can_delete
+    const can_edit = p.can_edit || can_delete
+    return {
+      role_id: body.role_id,
+      page_key: p.page_key,
+      can_view: p.can_view || can_edit,
+      can_edit,
+      can_delete,
+    }
+  })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)

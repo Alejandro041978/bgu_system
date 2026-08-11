@@ -2,13 +2,79 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import { pageKeyForPath } from '@/lib/permissions'
+import { pageKeyForPath, pageKeyForApi, accionDeMetodo, apiExentaDePermiso, type AccionPermiso } from '@/lib/permissions'
 import { findStudentByLoginEmail } from '@/lib/student-lookup'
 
 const adminClient = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+const COLUMNA: Record<AccionPermiso, 'can_view' | 'can_edit' | 'can_delete'> = {
+  ver: 'can_view', editar: 'can_edit', borrar: 'can_delete',
+}
+
+// Devuelve una respuesta 403 solo en modo estricto; en auditoría devuelve null
+// (deja pasar) después de anotar lo que habría bloqueado.
+async function evaluarPermisoApi(
+  request: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any,
+  pathname: string,
+): Promise<NextResponse | null> {
+  const estricto = process.env.PERMISOS_MODO === 'estricto'
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = adminClient() as any
+  try {
+    const { data: emp } = await sb.from('hr_employees')
+      .select('id, role_id').eq('user_id', user.id).maybeSingle()
+    if (!emp) return null                       // no es colaborador: lo resuelve guardStaff
+    // Superadmin real (sin rol). Si está viendo como otro, manda el rol de ese.
+    const impUser = request.cookies.get('imp_user')?.value || null
+    let roleId: string | null = emp.role_id ?? null
+    if (!roleId && impUser) {
+      const { data: impEmp } = await sb.from('hr_employees').select('role_id').eq('user_id', impUser).maybeSingle()
+      roleId = impEmp?.role_id ?? null
+    }
+    if (!roleId) return null                    // superadmin: pasa
+
+    const pageKey = pageKeyForApi(pathname)
+    // Ruta sin mapear: no se inventa una exigencia. El reporte de auditoría las
+    // lista para cerrarlas, en vez de negar por lo que no sabemos.
+    if (!pageKey) return null
+
+    const accion = accionDeMetodo(request.method)
+    const { data: perm } = await sb.from('role_permissions')
+      .select('can_view, can_edit, can_delete')
+      .eq('role_id', roleId).eq('page_key', pageKey).maybeSingle()
+
+    // can_delete puede no existir todavía (SQL sin correr): mientras tanto,
+    // borrar se comporta como editar en vez de bloquear a todo el mundo.
+    const permitido = accion === 'borrar'
+      ? (perm?.can_delete ?? perm?.can_edit ?? false)
+      : (perm?.[COLUMNA[accion]] ?? false)
+    if (permitido) return null
+
+    const { data: rol } = await sb.from('roles').select('name').eq('id', roleId).maybeSingle()
+    await sb.from('permission_audit').insert({
+      user_id: user.id, email: user.email ?? null,
+      role_id: roleId, role_name: rol?.name ?? null,
+      page_key: pageKey, accion, metodo: request.method, ruta: pathname,
+      bloqueado: estricto,
+    }).then(() => null, () => null)
+
+    if (!estricto) return null
+    return NextResponse.json({
+      error: `Tu rol no tiene permiso para ${accion} en esta sección`,
+      page_key: pageKey, accion,
+    }, { status: 403 })
+  } catch {
+    // Un fallo del guard no puede tumbar el ERP. En auditoría deja pasar; en
+    // estricto también, porque negar por un error de lectura sería peor: se
+    // vería como "el sistema no funciona" y no como "no tienes permiso".
+    return null
+  }
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -71,6 +137,25 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.json({ error: 'Auditoría (ver como colaborador): sesión de solo lectura' }, { status: 403 })
       }
     }
+  }
+
+  // ── Permiso de página en las rutas de API ────────────────────────────────
+  //
+  // Hasta aquí el ERP solo exigía permiso para VER una página. Las 215 rutas de
+  // escritura no comprobaban nada: bastaba con ser colaborador, así que la
+  // casilla "Editar" del configurador no hacía nada en ningún sitio. Ocultar
+  // botones no lo arregla —el endpoint sigue respondiendo—, por eso se exige
+  // aquí, que es por donde pasan todas.
+  //
+  // MODO AUDITORÍA (por defecto): no bloquea, registra. La configuración actual
+  // nunca se sintió y no describe cómo trabaja la gente —hay roles con 69
+  // páginas visibles y cero editables cuya gente edita a diario—, así que
+  // bloquear de golpe apagaría media operación. Primero se anota qué se habría
+  // bloqueado, se corrigen los roles con esa lista, y luego se pone estricto
+  // con PERMISOS_MODO=estricto.
+  if (user && isApiRoute && !apiExentaDePermiso(pathname)) {
+    const veredicto = await evaluarPermisoApi(request, user, pathname)
+    if (veredicto) return veredicto
   }
 
   // Enforce role permissions for authenticated users on app routes

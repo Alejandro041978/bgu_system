@@ -34,11 +34,11 @@ export async function GET() {
 
   const { data: rows } = await sb
     .from('role_permissions')
-    .select('page_key, can_view, can_edit')
+    .select('page_key, can_view, can_edit, can_delete')
     .eq('role_id', emp.role_id)
 
-  const permissions: Record<string, { can_view: boolean; can_edit: boolean }> = {}
-  for (const r of rows ?? []) permissions[r.page_key] = { can_view: r.can_view, can_edit: r.can_edit }
+  const permissions: Record<string, { can_view: boolean; can_edit: boolean; can_delete: boolean }> = {}
+  for (const r of rows ?? []) permissions[r.page_key] = { can_view: r.can_view, can_edit: r.can_edit, can_delete: !!r.can_delete }
 
   return NextResponse.json({ superadmin: false, permissions })
 }

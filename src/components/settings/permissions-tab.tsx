@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Save } from 'lucide-react'
 
 type Role = { id: string; name: string; label: string }
-type PermMap = Record<string, { can_view: boolean; can_edit: boolean }>
+type PermMap = Record<string, { can_view: boolean; can_edit: boolean; can_delete: boolean }>
 
 // El orden y la agrupación reflejan el sidebar (Comercial, Services, Administration…).
 const PAGE_GROUPS = [
@@ -180,10 +180,10 @@ export function PermissionsTab({ roles }: { roles: Role[] }) {
     if (!selectedRoleId) return
     setLoading(true)
     const res = await fetch(`/api/settings/permissions?role_id=${selectedRoleId}`)
-    const data = await res.json() as { page_key: string; can_view: boolean; can_edit: boolean }[]
+    const data = await res.json() as { page_key: string; can_view: boolean; can_edit: boolean; can_delete?: boolean }[]
     const map: PermMap = {}
     if (Array.isArray(data)) {
-      data.forEach(p => { map[p.page_key] = { can_view: p.can_view, can_edit: p.can_edit } })
+      data.forEach(p => { map[p.page_key] = { can_view: p.can_view, can_edit: p.can_edit, can_delete: !!p.can_delete } })
     }
     setPerms(map)
     setLoading(false)
@@ -198,14 +198,19 @@ export function PermissionsTab({ roles }: { roles: Role[] }) {
       .then(r => r.json()).then(d => setMembers(d.employees ?? [])).catch(() => setMembers([]))
   }, [selectedRoleId])
 
-  function toggle(pageKey: string, field: 'can_view' | 'can_edit') {
+  // Jerarquía: borrar implica editar, y editar implica ver. Quitar de arriba
+  // arrastra lo de abajo, para que no queden combinaciones que nadie sabe leer
+  // —"puede borrar pero no ver"— y que el servidor tendría que interpretar.
+  function toggle(pageKey: string, field: 'can_view' | 'can_edit' | 'can_delete') {
     setPerms(prev => {
-      const curr = prev[pageKey] ?? { can_view: false, can_edit: false }
+      const curr = prev[pageKey] ?? { can_view: false, can_edit: false, can_delete: false }
       const updated = { ...curr, [field]: !curr[field] }
-      // can_edit implica can_view
-      if (field === 'can_edit' && updated.can_edit) updated.can_view = true
-      // quitar can_view quita can_edit
-      if (field === 'can_view' && !updated.can_view) updated.can_edit = false
+      if (field === 'can_delete' && updated.can_delete) { updated.can_edit = true; updated.can_view = true }
+      if (field === 'can_edit') {
+        if (updated.can_edit) updated.can_view = true
+        else updated.can_delete = false
+      }
+      if (field === 'can_view' && !updated.can_view) { updated.can_edit = false; updated.can_delete = false }
       return { ...prev, [pageKey]: updated }
     })
     setSaved(false)
@@ -217,6 +222,7 @@ export function PermissionsTab({ roles }: { roles: Role[] }) {
       page_key,
       can_view: p.can_view,
       can_edit: p.can_edit,
+      can_delete: p.can_delete,
     }))
     await fetch('/api/settings/permissions', {
       method: 'POST',
@@ -255,6 +261,8 @@ export function PermissionsTab({ roles }: { roles: Role[] }) {
         </button>
       </div>
 
+      <AuditoriaPermisos roleId={selectedRoleId} />
+
       <div className="flex gap-4 items-start">
         <div className="flex-1 min-w-0">
       {loading ? (
@@ -265,20 +273,21 @@ export function PermissionsTab({ roles }: { roles: Role[] }) {
             <thead>
               <tr className="border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wide">
                 <th className="text-left px-5 py-3">Página</th>
-                <th className="text-center px-5 py-3 w-32">Puede ver</th>
-                <th className="text-center px-5 py-3 w-32">Puede editar</th>
+                <th className="text-center px-5 py-3 w-28">Puede ver</th>
+                <th className="text-center px-5 py-3 w-28">Puede editar</th>
+                <th className="text-center px-5 py-3 w-28">Puede borrar</th>
               </tr>
             </thead>
             <tbody>
               {PAGE_GROUPS.map(group => (
                 <>
                   <tr key={group.label} className="bg-gray-800/60">
-                    <td colSpan={3} className="px-5 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <td colSpan={4} className="px-5 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       {group.label}
                     </td>
                   </tr>
                   {group.pages.map(page => {
-                    const p = perms[page.key] ?? { can_view: false, can_edit: false }
+                    const p = perms[page.key] ?? { can_view: false, can_edit: false, can_delete: false }
                     return (
                       <tr key={page.key} className="border-t border-gray-800/50 hover:bg-gray-800/20">
                         <td className="px-5 py-3 text-gray-200">{page.label}</td>
@@ -296,6 +305,14 @@ export function PermissionsTab({ roles }: { roles: Role[] }) {
                             checked={p.can_edit}
                             onChange={() => toggle(page.key, 'can_edit')}
                             className="w-4 h-4 rounded accent-blue-500 cursor-pointer"
+                          />
+                        </td>
+                        <td className="px-5 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={p.can_delete}
+                            onChange={() => toggle(page.key, 'can_delete')}
+                            className="w-4 h-4 rounded accent-red-500 cursor-pointer"
                           />
                         </td>
                       </tr>
@@ -335,6 +352,90 @@ export function PermissionsTab({ roles }: { roles: Role[] }) {
           </div>
         </aside>
       </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Lo que el permiso HABRÍA bloqueado.
+//
+// La comprobación arranca en modo auditoría: no niega nada, anota. Esta tabla
+// es la lista con la que se corrigen los roles antes de poner el modo
+// estricto — porque la configuración actual nunca se sintió y no describe cómo
+// trabaja la gente. Casi todo lo que salga aquí es trabajo legítimo al que le
+// falta la casilla, no un intento de hacer algo indebido.
+// ---------------------------------------------------------------------------
+interface FilaAudit {
+  role_id: string; rol: string; page_key: string; accion: string
+  intentos: number; personas: string[]; ultima: string; rutas: string[]; bloqueado: boolean
+}
+
+function AuditoriaPermisos({ roleId }: { roleId: string }) {
+  const [datos, setDatos] = useState<{ modo: string; eventos: number; resumen: FilaAudit[] } | null>(null)
+  const [abierto, setAbierto] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!abierto) return
+    fetch('/api/settings/permission-audit?dias=14').then(r => r.json())
+      .then(d => { if (d.error) setError(d.error); else { setDatos(d); setError(null) } })
+      .catch(() => setError('Error de red'))
+  }, [abierto])
+
+  const suyas = (datos?.resumen ?? []).filter(f => !roleId || f.role_id === roleId)
+
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <button onClick={() => setAbierto(v => !v)} className="w-full flex items-center justify-between px-5 py-3 text-left">
+        <span className="text-sm font-medium text-gray-200">
+          Auditoría de permisos
+          {datos && <span className="ml-2 text-xs text-gray-500">
+            modo {datos.modo === 'estricto' ? 'estricto (bloquea)' : 'auditoría (no bloquea, solo anota)'} · últimos 14 días
+          </span>}
+        </span>
+        <span className="text-xs text-gray-500">{abierto ? 'ocultar' : 'ver'}</span>
+      </button>
+
+      {abierto && (
+        <div className="border-t border-gray-800 px-5 py-4 space-y-3">
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          {!error && !datos && <p className="text-sm text-gray-500">Cargando…</p>}
+          {datos && suyas.length === 0 && (
+            <p className="text-sm text-gray-500">
+              Nada registrado para este rol. O no le falta ningún permiso, o todavía no ha usado esas pantallas
+              desde que se activó la auditoría.
+            </p>
+          )}
+          {datos && suyas.length > 0 && (
+            <>
+              <p className="text-xs text-gray-400">
+                Estas acciones se dejaron pasar, pero en modo estricto se bloquearían. Si son parte del trabajo de
+                este rol, marca la casilla que corresponde arriba y guarda.
+              </p>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[11px] text-gray-500 uppercase tracking-wide border-b border-gray-800">
+                    <th className="text-left px-2 py-2">Página</th>
+                    <th className="text-left px-2 py-2 w-24">Acción</th>
+                    <th className="text-right px-2 py-2 w-20">Veces</th>
+                    <th className="text-left px-2 py-2">Quién</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suyas.map(f => (
+                    <tr key={`${f.page_key}|${f.accion}`} className="border-t border-gray-800/50">
+                      <td className="px-2 py-2 text-gray-200">{f.page_key}</td>
+                      <td className={`px-2 py-2 ${f.accion === 'borrar' ? 'text-red-400' : 'text-amber-400'}`}>{f.accion}</td>
+                      <td className="px-2 py-2 text-right text-gray-300">{f.intentos}</td>
+                      <td className="px-2 py-2 text-gray-500 text-xs">{f.personas.join(', ') || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
