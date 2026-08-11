@@ -62,11 +62,15 @@ export async function POST(req: NextRequest) {
       matriculas += r.enrol_ops
       cuentasCreadas += r.accounts_created
       if (r.errors.length) errores.push(...r.errors.map(e => `${g.name}: ${e}`))
-      if (r.enrol_ops || r.accounts_created || r.courses_unmapped.length) {
+      if (r.enrol_ops || r.accounts_created || r.courses_unmapped.length || r.sin_coleccion) {
         detalle.push({
           grupo: g.name, estudiantes: r.students_total,
           altas: r.enrol_ops, cuentas_creadas: r.accounts_created,
           asignaturas_sin_aula: r.courses_unmapped,
+          // Los que entraron por el respaldo (aula de la oferta) porque su
+          // matrícula no tiene colección. Mientras este número no sea cero, el
+          // respaldo sigue haciendo falta y no se puede retirar.
+          sin_coleccion: r.sin_coleccion,
         })
       }
     } catch (e) {

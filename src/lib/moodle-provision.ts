@@ -13,6 +13,10 @@ export interface SyncResult {
   accounts_created: number
   enrol_ops: number
   courses_unmapped: string[]
+  // Estudiantes cuyas aulas se resolvieron por el respaldo (la oferta) porque
+  // su matrícula no tiene colección. Es la deuda que queda por saldar, y se
+  // cuenta para que se vea en vez de suponerse.
+  sin_coleccion: number
   errors: string[]
 }
 
@@ -111,8 +115,27 @@ async function ensureCourse(sb: any, o: { id: string; moodle_course_id: string |
 //
 // Una asignatura tiene varias aulas —la regular, la del upgrade, la del campus
 // asociado, la que se dicte en inglés— y cuál le toca a este estudiante lo
-// dice su colección, no la oferta. La oferta queda como respaldo para las
+// dice su colección, no la oferta. La oferta queda como respaldo SOLO para las
 // matrículas que todavía no tienen colección elegida.
+//
+// ── La colección no se mezcla con el respaldo ────────────────────────────────
+//
+// Antes el respaldo actuaba POR ASIGNATURA: si la colección del estudiante no
+// tenía aula para una asignatura, se usaba la de la oferta. Y la oferta tiene
+// una sola aula por asignatura, la de la colección regular. Resultado: el
+// estudiante caía en el aula de OTRA colección para esa asignatura, sin que
+// nada lo dijera.
+//
+// No era hipotético. Medido el 10-08-2026: 7 colecciones con 39 casillas
+// vacías que la oferta rellenaba en silencio. La peor, BBA Upgrade ES —16 de
+// las 33 asignaturas de su carrusel—, que es justo donde el backfill va a
+// colocar a 98 estudiantes: media carrera del upgrade en las aulas regulares.
+//
+// Ahora, si el estudiante TIENE colección, sus aulas salen únicamente de ella.
+// La casilla vacía se reporta como asignatura sin aula (courses_unmapped) y se
+// arregla poniéndole el aula que le toca, que es lo que había que hacer desde
+// el principio. Quedarse sin matricular en una asignatura se ve; entrar al
+// aula equivocada no se ve.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function loadGroupCourses(sb: any, groupId: string, collectionId?: string | null) {
   const { data: offs } = await sb.from('semester_offerings')
@@ -133,12 +156,20 @@ async function loadGroupCourses(sb: any, groupId: string, collectionId?: string 
   const unmapped: string[] = []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const o of (offs ?? []) as any[]) {
-    const deColeccion = o.course_id ? porColeccion.get(String(o.course_id)) : undefined
-    const cid = deColeccion ?? await ensureCourse(sb, { id: o.id, moodle_course_id: o.moodle_course_id, code: o.course?.code ?? null })
+    if (collectionId) {
+      const deColeccion = o.course_id ? porColeccion.get(String(o.course_id)) : undefined
+      if (deColeccion) courseIds.add(deColeccion)
+      else unmapped.push(o.course?.name ?? o.id)
+      continue
+    }
+    const cid = await ensureCourse(sb, { id: o.id, moodle_course_id: o.moodle_course_id, code: o.course?.code ?? null })
     if (cid) courseIds.add(cid)
     else unmapped.push(o.course?.name ?? o.id)
   }
-  return { courseIds: [...courseIds], unmapped: [...new Set(unmapped)] }
+  // por_respaldo: este juego de aulas no salió de una colección. Se devuelve
+  // para que quien llame pueda contarlo y enseñarlo, en vez de que el respaldo
+  // siga siendo invisible mientras sostiene al 98% de los estudiantes.
+  return { courseIds: [...courseIds], unmapped: [...new Set(unmapped)], por_respaldo: !collectionId }
 }
 
 // La colección elegida en la matrícula de ese programa. Es lo que decide en
@@ -155,14 +186,15 @@ async function coleccionDe(sb: any, groupId: string, studentId: string): Promise
 
 // Matricula/desmatricula UN estudiante en las aulas del grupo. Best-effort.
 export async function provisionStudent(groupId: string, studentId: string, action: 'enrol' | 'unenrol'): Promise<SyncResult> {
-  const result: SyncResult = { configured: moodleConfigured(), students_total: 1, with_account: 0, no_account: 0, accounts_created: 0, enrol_ops: 0, courses_unmapped: [], errors: [] }
+  const result: SyncResult = { configured: moodleConfigured(), students_total: 1, with_account: 0, no_account: 0, accounts_created: 0, enrol_ops: 0, courses_unmapped: [], sin_coleccion: 0, errors: [] }
   if (!result.configured) return result
   const sb = admin()
   try {
     const { data: s } = await sb.from('academic_students').select(STUDENT_FIELDS).eq('id', studentId).maybeSingle()
     if (!s) { result.errors.push('Estudiante no encontrado'); return result }
-    const { courseIds, unmapped } = await loadGroupCourses(sb, groupId, await coleccionDe(sb, groupId, studentId))
+    const { courseIds, unmapped, por_respaldo } = await loadGroupCourses(sb, groupId, await coleccionDe(sb, groupId, studentId))
     result.courses_unmapped = unmapped
+    if (por_respaldo) result.sin_coleccion = 1
     const uid = await ensureMoodleUser(sb, s, result)
     if (!uid) { result.no_account = 1; return result }
     result.with_account = 1
@@ -179,7 +211,7 @@ export async function provisionStudent(groupId: string, studentId: string, actio
 // motor y no debe volver a sus aulas. La matrícula va en LOTES (una llamada WS
 // con cientos de pares) para que grupos grandes entren en el tiempo de Vercel.
 export async function syncGroup(groupId: string): Promise<SyncResult> {
-  const result: SyncResult = { configured: moodleConfigured(), students_total: 0, with_account: 0, no_account: 0, accounts_created: 0, enrol_ops: 0, courses_unmapped: [], errors: [] }
+  const result: SyncResult = { configured: moodleConfigured(), students_total: 0, with_account: 0, no_account: 0, accounts_created: 0, enrol_ops: 0, courses_unmapped: [], sin_coleccion: 0, errors: [] }
   if (!result.configured) return result
   const sb = admin()
   try {
@@ -208,7 +240,9 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
       const uid = await ensureMoodleUser(sb, s, result)
       if (!uid) { result.no_account++; continue }
       result.with_account++
-      const suyas = await cargar(await coleccionDe(sb, groupId, s.id))
+      const col = await coleccionDe(sb, groupId, s.id)
+      if (!col) result.sin_coleccion++
+      const suyas = await cargar(col)
       for (const cid of suyas) enrolments.push({ userid: uid, courseid: cid })
     }
     for (let i = 0; i < enrolments.length; i += 300) {
