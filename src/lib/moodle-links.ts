@@ -134,6 +134,15 @@ export interface Propuesta {
   confianza: Confianza
   familia: Familia
   motivo: string
+  // El título del aula nombra a OTRA asignatura de la misma malla.
+  //
+  // La propuesta se decide por CÓDIGO, y así debe seguir: los nombres chocan
+  // entre programas y media colección está en español contra una malla en
+  // inglés. Pero cuando el título contradice al código, alguien tiene que
+  // mirarlo antes de confirmar — el aula 155 se llamaba "COM 205 -
+  // Interpersonal Communication", se vinculó por el COM 205 y pasó meses
+  // archivando notas en una asignatura que sus 34 alumnos tenían convalidada.
+  aviso_titulo?: { code: string | null; name: string | null } | null
 }
 
 // "Módulo 02 - Prescripción de Macronutrientes en el Deporte" → el nombre real.
@@ -179,6 +188,27 @@ export function proponer(
     return ultima && ultima !== sufijo ? alias.get(ultima) : undefined
   }
 
+  // ¿El título del aula nombra a otra asignatura de la malla del programa que
+  // propone el código? Se exige que la parte común sea la mayoría del nombre:
+  // sin eso, "Marketing" saltaría con "Marketing Internacional", que es la
+  // misma asignatura traducida y no un error.
+  const norm = (s: string | null | undefined) => String(s ?? '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+  const otraDelTitulo = (shortname: string | null, elegido: CursoMalla): CursoMalla | null => {
+    const partes = String(shortname ?? '').split(' - ').map(x => x.trim()).filter(Boolean)
+    const titulo = norm(partes.length >= 2 ? partes[1] : '')
+    if (!titulo || titulo.length < 6) return null
+    const propio = norm(elegido.name)
+    if (propio.includes(titulo) || titulo.includes(propio)) return null
+    return courses.find(c => {
+      if (c.id === elegido.id || c.program_id !== elegido.program_id) return false
+      const n = norm(c.name)
+      const corto = n.length < titulo.length ? n : titulo
+      const largo = n.length < titulo.length ? titulo : n
+      return largo.includes(corto) && corto.length / largo.length > 0.75
+    }) ?? null
+  }
+
   return aulas.map(a => {
     const { code, sufijo } = leerNombreAula(a.shortname)
     const base = {
@@ -192,12 +222,12 @@ export function proponer(
       if (pid) {
         const hit = porProgCode.get(`${pid}|${code}`) ?? []
         if (hit.length === 1) {
-          return { ...base, course_id: hit[0].id, course_name: hit[0].name, program_id: hit[0].program_id, confianza: 'alta' as const, familia: null, motivo: `Código ${code} en el programa que corresponde a "${sufijo}"` }
+          return { ...base, course_id: hit[0].id, course_name: hit[0].name, program_id: hit[0].program_id, confianza: (otraDelTitulo(a.shortname, hit[0]) ? 'media' : 'alta') as Confianza, familia: null, motivo: `Código ${code} en el programa que corresponde a "${sufijo}"`, aviso_titulo: otraDelTitulo(a.shortname, hit[0]) }
         }
       }
       const global = porCode.get(code) ?? []
       if (global.length === 1) {
-        return { ...base, course_id: global[0].id, course_name: global[0].name, program_id: global[0].program_id, confianza: 'media' as const, familia: null, motivo: `El código ${code} existe en un solo programa de toda la malla` }
+        return { ...base, course_id: global[0].id, course_name: global[0].name, program_id: global[0].program_id, confianza: 'media' as const, familia: null, motivo: `El código ${code} existe en un solo programa de toda la malla`, aviso_titulo: otraDelTitulo(a.shortname, global[0]) }
       }
       if (global.length > 1) {
         return { ...base, ...nada, familia: 'codigo_ambiguo' as const, motivo: `El código ${code} existe en ${global.length} asignaturas y el sufijo no permite elegir` }

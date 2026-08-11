@@ -49,6 +49,7 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/academic/curricular', 'academic_curricular'],
   ['/academic/curricular-coverage', 'academic_curricular_coverage'],
   ['/academic/collection-backfill', 'academic_collection_backfill'],
+  ['/academic/link-audit', 'academic_link_audit'],
   ['/admision/matriculas', 'admision_matriculas'],
   ['/admissions/referrals', 'admissions_referrals'],
   ['/contracts/templates', 'contracts_templates'],
@@ -138,6 +139,7 @@ export function pageKeyForPath(pathname: string): string | null {
 export const API_ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/api/academic/collection-backfill', 'academic_collection_backfill'],
   ['/api/academic/collection-summary', 'academic_collection_backfill'],
+  ['/api/academic/link-audit', 'academic_link_audit'],
   ['/api/academic/curricular-coverage', 'academic_curricular_coverage'],
   ['/api/academic/convocatoria-students', 'academic_convocatoria_students'],
   ['/api/academic/transfer-schemes', 'academic_transfer_schemes'],
