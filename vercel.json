@@ -70,7 +70,7 @@
     },
     {
       "path": "/api/cron/moodle-enrol-sync",
-      "schedule": "40 10 * * *"
+      "schedule": "40 * * * *"
     },
     {
       "path": "/api/cron/moodle-access",

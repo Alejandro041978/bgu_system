@@ -2,7 +2,7 @@ import { readAll } from './withdrawals'
 import { asignaturasDeGrupos } from './group-courses'
 import { esIntento } from '@/lib/grade-sources'
 import { sameCourse } from './course-match'
-import { provisionStudent } from './moodle-provision'
+import { provisionStudent, marcarParaSincronizar } from './moodle-provision'
 
 // ---------------------------------------------------------------------------
 // Motor de carruseles.
@@ -216,9 +216,9 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
       const { error } = await sb.from('academic_group_students')
         .upsert({ group_id: op.group_id, student_id: op.student_id, status: 'activo' }, { onConflict: 'group_id,student_id' })
       if (error) { result.errors.push(`enter ${op.group_id}: ${error.message}`); continue }
-      const r = await provisionStudent(op.group_id, op.student_id, 'enrol')
-      result.moodle_enrols += r.enrol_ops
-      result.errors.push(...r.errors.map(e => `moodle enrol: ${e}`))
+      // El alta en las aulas la hace el reconciliador: aquí solo se le adelanta
+      // el turno. La baja del carrusel que completó sí va arriba, en el momento.
+      await marcarParaSincronizar(sb, op.group_id)
     }
   }
   return result
@@ -248,6 +248,6 @@ export async function placeStudentInEntry(sb: any, studentId: string, programId:
   const { error } = await sb.from('academic_group_students')
     .insert({ group_id: entry, student_id: studentId, status: 'activo' })
   if (error) return { ok: false, note: error.message }
-  await provisionStudent(entry, studentId, 'enrol')
+  await marcarParaSincronizar(sb, entry)
   return { ok: true, group_id: entry, note: 'Colocado en el carrusel de entrada' }
 }

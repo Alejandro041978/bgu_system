@@ -93,10 +93,7 @@ export function ConvocatoriaStudents() {
     if (!res.ok || d.error) {
       setNotice({ kind: 'error', text: `${row.name}: ${d.error ?? 'error al colocar'}` })
     } else {
-      const moodleNote = d.moodle?.configured
-        ? (d.moodle.errors?.length ? ` · Moodle con avisos: ${d.moodle.errors.join('; ')}` : ` · ${d.moodle.enrol_ops} matrículas en aulas Moodle`)
-        : ' · Moodle no configurado'
-      setNotice({ kind: 'ok', text: `${row.name} colocado en ${d.group_label}${moodleNote}` })
+      setNotice({ kind: 'ok', text: `${row.name} colocado en ${d.group_label}` })
     }
     load(convId)
   }

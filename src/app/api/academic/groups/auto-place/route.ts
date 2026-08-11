@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
-import { provisionStudent } from '@/lib/moodle-provision'
+import { marcarParaSincronizar } from '@/lib/moodle-provision'
 import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
@@ -102,28 +102,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, dry_run: true, programas_carrusel_unico: entryOf.size, pendientes: pending.length, colocados: 0, detalle })
   }
 
-  // Ejecutar: membresía primero (la verdad del ERP), Moodle después
-  // (best-effort — cuentas se crean si no existen; sin aulas mapeadas solo
-  // deja la cuenta lista y el sync del grupo completa después).
-  let colocados = 0, moodle_enrols = 0, cuentas_creadas = 0
+  // Ejecutar: solo la membresía, que es la decisión académica —en qué ruta
+  // entra el estudiante—. Las aulas son una consecuencia y las pone el
+  // reconciliador; aquí se le adelanta el turno al carrusel tocado.
+  let colocados = 0
   const errors: string[] = []
+  const tocados = new Set<string>()
   for (const p of pending) {
     const entry = entryOf.get(p.program_id)!
     const { error } = await sb.from('academic_group_students')
       .upsert({ group_id: entry.id, student_id: p.student_id, status: 'activo' }, { onConflict: 'group_id,student_id' })
     if (error) { errors.push(`${p.student_id}: ${error.message}`); continue }
     colocados++
-    const r = await provisionStudent(entry.id, p.student_id, 'enrol')
-    moodle_enrols += r.enrol_ops
-    cuentas_creadas += r.accounts_created
-    errors.push(...r.errors)
+    tocados.add(entry.id)
   }
+  for (const gid of tocados) await marcarParaSincronizar(sb, gid)
 
   return NextResponse.json({
     ok: errors.length === 0,
     programas_carrusel_unico: entryOf.size,
     pendientes: pending.length,
-    colocados, moodle_enrols, cuentas_creadas,
+    colocados,
     detalle,
     errors: errors.slice(0, 10),
   })

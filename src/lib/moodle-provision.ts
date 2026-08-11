@@ -205,7 +205,33 @@ async function coleccionDe(sb: any, groupId: string, studentId: string): Promise
   return enr?.collection_id ?? null
 }
 
+// ---------------------------------------------------------------------------
+// Marca un carrusel como pendiente de sincronizar con el campus.
+//
+// Colocar a alguien en un carrusel es una decisión académica: dice qué cursa y
+// en qué orden avanza. Que el campus se parezca a esa decisión —matricularlo en
+// las aulas que su colección tenga para esas asignaturas— es una consecuencia,
+// y la hace UN solo sitio: el reconciliador (cron moodle-enrol-sync).
+//
+// Antes la hacían cuatro: la colocación automática, la colocación individual,
+// la matrícula y el motor de avance. Con cuatro dueños, "quién matricula en las
+// aulas" no tenía una respuesta, y cada página del dominio del carrusel tenía
+// que hablar de Moodle sin que fuera asunto suyo.
+//
+// El aviso no necesita una tabla nueva: el cron ya atiende primero a quien
+// lleva más tiempo sin revisarse, y un null va delante de cualquier fecha. Así
+// que vaciar last_enrol_sync_at pone a este carrusel el primero de la cola.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function marcarParaSincronizar(sb: any, groupId: string): Promise<void> {
+  try { await sb.from('academic_groups').update({ last_enrol_sync_at: null }).eq('id', groupId) }
+  catch { /* el cron pasa igual por rotación; esto solo adelanta el turno */ }
+}
+
 // Matricula/desmatricula UN estudiante en las aulas del grupo. Best-effort.
+//
+// La BAJA se sigue llamando en el momento —quien completó un carrusel no debe
+// seguir una hora más en aulas que ya no le tocan—. El ALTA la hace el
+// reconciliador.
 export async function provisionStudent(groupId: string, studentId: string, action: 'enrol' | 'unenrol'): Promise<SyncResult> {
   const result: SyncResult = { configured: moodleConfigured(), students_total: 1, with_account: 0, no_account: 0, accounts_created: 0, enrol_ops: 0, courses_unmapped: [], sin_coleccion: 0, errors: [] }
   if (!result.configured) return result

@@ -21,7 +21,6 @@ interface Data {
 interface AutoPlan {
   dry_run?: boolean
   programas_carrusel_unico: number; pendientes: number; colocados: number
-  moodle_enrols?: number; cuentas_creadas?: number
   detalle: { group_id: string; carrusel: string; n: number; estudiantes: string[] }[]
   errors?: string[]
 }
@@ -159,14 +158,7 @@ export function CarouselsOverview() {
             </>
           ) : (
             <>
-              {/* El aula no la da el carrusel: la da la colección del estudiante.
-                  El carrusel dice QUÉ asignaturas, y con eso se le matricula en
-                  las aulas que su colección tenga para ellas. */}
-              <p className="font-medium">
-                ✓ {autoPlan.colocados} matrículas colocadas en su ruta
-                {(autoPlan.moodle_enrols ?? 0) > 0 && <> · {autoPlan.moodle_enrols} inscripciones en las aulas de su colección</>}
-                {(autoPlan.cuentas_creadas ?? 0) > 0 && <> · {autoPlan.cuentas_creadas} cuentas de campus creadas</>}
-              </p>
+              <p className="font-medium">✓ {autoPlan.colocados} matrículas colocadas en su ruta</p>
               {(autoPlan.errors?.length ?? 0) > 0 && (
                 <p className="text-xs text-amber-700">Avisos: {autoPlan.errors!.join(' · ')}</p>
               )}

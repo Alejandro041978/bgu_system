@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchByIn } from '@/lib/grades-write'
-import { provisionStudent } from '@/lib/moodle-provision'
+import { marcarParaSincronizar } from '@/lib/moodle-provision'
 import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
@@ -188,15 +188,8 @@ export async function POST(req: NextRequest) {
     .insert({ group_id, student_id, status: 'activo' })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const moodle = await provisionStudent(group_id, student_id, 'enrol')
-  return NextResponse.json({
-    ok: true,
-    group_label: glabel(group as Group),
-    moodle: {
-      configured: moodle.configured,
-      enrol_ops: moodle.enrol_ops,
-      courses_unmapped: moodle.courses_unmapped,
-      errors: moodle.errors,
-    },
-  })
+  // Colocar es decidir su ruta. Las aulas las pone el reconciliador; aquí solo
+  // se le adelanta el turno a este carrusel.
+  await marcarParaSincronizar(sb, group_id)
+  return NextResponse.json({ ok: true, group_label: glabel(group as Group) })
 }

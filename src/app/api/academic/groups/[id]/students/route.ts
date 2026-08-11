@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
-import { provisionStudent } from '@/lib/moodle-provision'
+import { provisionStudent, marcarParaSincronizar } from '@/lib/moodle-provision'
 import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
@@ -28,9 +28,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { error } = await db().from('academic_group_students')
     .upsert({ group_id: id, student_id: b.student_id }, { onConflict: 'group_id,student_id' })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  // Aprovisionamiento en Moodle (best-effort; no bloquea la membresía)
-  const moodle = await provisionStudent(id, b.student_id, 'enrol').catch(() => null)
-  return NextResponse.json({ ok: true, moodle })
+  // El alta en las aulas la hace el reconciliador; aquí solo se le adelanta el
+  // turno a este carrusel.
+  await marcarParaSincronizar(db(), id)
+  return NextResponse.json({ ok: true })
 }
 
 // DELETE ?student_id= → quitar estudiante del grupo

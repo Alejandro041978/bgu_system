@@ -14,19 +14,29 @@ const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 const BUDGET_MS = 200_000
 
 // ---------------------------------------------------------------------------
-// Alta en las aulas que se fueron añadiendo a la colección.
+// EL reconciliador: el único sitio que da de alta en las aulas.
 //
-// Una colección se arma de a poco: hoy 4 casillas de 40, la semana que viene
-// 12. Los estudiantes ya colocados en el carrusel no volverían a pasar por el
-// aprovisionamiento nunca, así que se quedarían sin las aulas nuevas.
+// Colocar a alguien en un carrusel es una decisión académica —qué cursa y en
+// qué orden avanza—; que el campus se parezca a esa decisión es una
+// consecuencia, y la hace este cron. Antes la hacían además la colocación
+// automática, la colocación individual, la matrícula y el motor de avance:
+// cuatro dueños para el mismo efecto, y cada página del dominio del carrusel
+// obligada a hablar de Moodle sin que fuera asunto suyo.
 //
-// Este cron vuelve a sincronizar los grupos activos. No hay lógica de "qué
-// cambió": syncGroup resuelve las aulas consultando la colección en cada
-// corrida, y matricular a quien ya está matriculado es inocuo en Moodle. Así
-// que basta con volver a pasar.
+// Corre cada hora. Quien coloca a alguien vacía last_enrol_sync_at del
+// carrusel, y como la rotación ordena por ese campo —un null va delante de
+// cualquier fecha—, el carrusel recién tocado es el primero de la cola. Sin
+// tabla de pendientes ni lógica nueva.
 //
-// Rotación por last_enrol_sync_at: se atienden primero los grupos que llevan
-// más tiempo sin revisarse, y ninguno acapara las corridas.
+// Tampoco hay lógica de "qué cambió": syncGroup resuelve las aulas consultando
+// la colección de cada estudiante en cada corrida, y matricular a quien ya está
+// matriculado es inocuo en Moodle. Basta con volver a pasar. Eso también
+// resuelve el otro caso para el que nació esto: una colección se arma de a poco
+// —hoy 4 casillas de 40, la semana que viene 12— y los ya colocados tienen que
+// recibir las aulas que se vayan añadiendo.
+//
+// La BAJA no espera aquí: quien completa un carrusel se desmatricula en el
+// momento, para no quedarse ni una hora de más en aulas que ya no le tocan.
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('authorization')
