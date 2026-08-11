@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, PlayCircle, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Loader2, PlayCircle, AlertTriangle, CheckCircle2, Search } from 'lucide-react'
 
 interface Criterio { criterio: string; etiqueta: string; matriculas: number }
 interface Propuesta {
@@ -15,6 +15,129 @@ interface Bloque {
   matriculas: number; opciones: { id: string; name: string }[]; estudiantes: string[]
 }
 interface Data { total: number; por_criterio: Criterio[]; bloques: Bloque[]; muestra: Propuesta[] }
+
+interface Fila { program_id: string; programa: string; externo: boolean; collection_id: string | null; coleccion: string; matriculas: number }
+interface Resumen { total: number; con: number; sin: number; programas: number }
+interface Catalogo { categorias: { id: string; name: string }[]; programas: { id: string; name: string; category_id: string }[] }
+
+// Resumen de matrículas por colección, con filtro. El total de 1.081 dice que
+// hay un problema pero no por dónde empezar; esto lo parte por categoría y
+// programa para poder ir cerrándolo a pedazos.
+function ResumenMatriculas() {
+  const [cat, setCat] = useState<Catalogo | null>(null)
+  const [categoryId, setCategoryId] = useState('')
+  const [programId, setProgramId] = useState('')
+  const [filas, setFilas] = useState<Fila[] | null>(null)
+  const [resumen, setResumen] = useState<Resumen | null>(null)
+  const [cargando, setCargando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/academic/collection-summary').then(r => r.json())
+      .then(d => setCat(d.catalogo ?? null)).catch(() => { /* el botón avisa */ })
+  }, [])
+
+  async function consultar() {
+    if (!categoryId) return
+    setCargando(true); setError(null)
+    const q = new URLSearchParams({ category_id: categoryId })
+    if (programId) q.set('program_id', programId)
+    const d = await fetch(`/api/academic/collection-summary?${q}`).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
+    setCargando(false)
+    if (d.error) { setError(d.error); setFilas(null); setResumen(null); return }
+    setFilas(d.filas ?? []); setResumen(d.resumen ?? null)
+  }
+
+  const programas = (cat?.programas ?? []).filter(p => p.category_id === categoryId)
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-800">Resumen de matrículas por colección</h3>
+        <p className="text-xs text-gray-500 mt-0.5">Matrículas de estudiantes activos. Elige categoría y, si quieres, un programa.</p>
+      </div>
+
+      <div className="flex flex-wrap gap-3 items-end">
+        <label className="flex-1 min-w-[200px]">
+          <span className="block text-xs text-gray-500 mb-1">Categoría</span>
+          <select value={categoryId} onChange={e => { setCategoryId(e.target.value); setProgramId('') }} className={inp}>
+            <option value="">Seleccionar…</option>
+            {(cat?.categorias ?? []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </label>
+        <label className="flex-1 min-w-[240px]">
+          <span className="block text-xs text-gray-500 mb-1">Programa</span>
+          <select value={programId} onChange={e => setProgramId(e.target.value)} className={inp} disabled={!categoryId}>
+            <option value="">{categoryId ? 'Todos los de la categoría' : 'Elige la categoría'}</option>
+            {programas.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+        <button onClick={consultar} disabled={!categoryId || cargando}
+          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-900 disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+          {cargando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+          Consultar
+        </button>
+      </div>
+
+      {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+
+      {resumen && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Dato label="Matrículas" valor={resumen.total} />
+          <Dato label="Programas" valor={resumen.programas} />
+          <Dato label="Con colección" valor={resumen.con} tono="ok" />
+          <Dato label="Sin colección" valor={resumen.sin} tono={resumen.sin ? 'alerta' : 'ok'} />
+        </div>
+      )}
+
+      {filas && filas.length === 0 && (
+        <p className="text-sm text-gray-400 py-6 text-center">No hay matrículas de estudiantes activos en ese ámbito.</p>
+      )}
+
+      {filas && filas.length > 0 && (
+        <div className="overflow-x-auto border border-gray-100 rounded-lg">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[11px] text-gray-400 uppercase tracking-wide border-b border-gray-100 bg-gray-50">
+                <th className="text-left px-4 py-2">Programa</th>
+                <th className="text-left px-4 py-2">Colección</th>
+                <th className="text-right px-4 py-2">Matrículas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filas.map((f, i) => {
+                const nuevoPrograma = i === 0 || filas[i - 1].program_id !== f.program_id
+                const sinCol = f.collection_id === null
+                return (
+                  <tr key={`${f.program_id}|${f.collection_id ?? '—'}`} className={`border-t border-gray-50 ${sinCol ? 'bg-amber-50/60' : ''}`}>
+                    <td className="px-4 py-2 text-gray-700">
+                      {nuevoPrograma ? f.programa : <span className="text-gray-300">↳</span>}
+                      {nuevoPrograma && f.externo && <span className="block text-[11px] text-gray-400">campus externo</span>}
+                    </td>
+                    <td className={`px-4 py-2 ${sinCol ? 'text-amber-800 font-medium' : 'text-gray-600'}`}>{f.coleccion}</td>
+                    <td className={`px-4 py-2 text-right ${sinCol ? 'text-amber-800 font-semibold' : 'text-gray-800'}`}>{f.matriculas}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Dato({ label, valor, tono }: { label: string; valor: number; tono?: 'ok' | 'alerta' }) {
+  const cls = tono === 'alerta' ? 'text-amber-700' : tono === 'ok' ? 'text-green-700' : 'text-gray-800'
+  return (
+    <div className="border border-gray-100 rounded-lg px-3 py-2">
+      <span className="block text-[11px] text-gray-500">{label}</span>
+      <span className={`text-lg font-semibold ${cls}`}>{valor}</span>
+    </div>
+  )
+}
+
+const inp = 'border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full'
 
 export function CollectionBackfill() {
   const [data, setData] = useState<Data | null>(null)
@@ -69,18 +192,38 @@ export function CollectionBackfill() {
     load()
   }
 
-  if (loading) return <div className="flex items-center justify-center py-20 text-gray-400"><Loader2 className="w-5 h-5 animate-spin" /></div>
-  if (error) return <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">{error}</p>
-  if (!data) return null
+  // El resumen se muestra siempre: sirve para mirar el reparto aunque ya no
+  // quede nada por completar.
+  return (
+    <div className="space-y-5">
+      <ResumenMatriculas />
+      {loading ? (
+        <div className="flex items-center justify-center py-20 text-gray-400"><Loader2 className="w-5 h-5 animate-spin" /></div>
+      ) : error ? (
+        <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">{error}</p>
+      ) : !data ? null : data.total === 0 ? (
+        <p className="text-sm text-green-800 bg-green-50 px-4 py-3 rounded-xl flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4" /> Todas las matrículas de estudiantes activos tienen su colección de aulas.
+        </p>
+      ) : (
+        <Pendientes {...{ data, notice, busy, eleccion, setEleccion, aplicarTodo, resolver, aEscribir }} />
+      )}
+    </div>
+  )
+}
 
-  if (data.total === 0) {
-    return (
-      <p className="text-sm text-green-800 bg-green-50 px-4 py-3 rounded-xl flex items-center gap-2">
-        <CheckCircle2 className="w-4 h-4" /> Todas las matrículas de estudiantes activos tienen su colección de aulas.
-      </p>
-    )
-  }
+interface PendientesProps {
+  data: Data
+  notice: { kind: 'ok' | 'error'; text: string } | null
+  busy: string | null
+  eleccion: Record<string, string>
+  setEleccion: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  aplicarTodo: () => void
+  resolver: (b: Bloque) => void
+  aEscribir: number
+}
 
+function Pendientes({ data, notice, busy, eleccion, setEleccion, aplicarTodo, resolver, aEscribir }: PendientesProps) {
   return (
     <div className="space-y-5">
       {notice && (
