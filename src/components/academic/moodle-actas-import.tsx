@@ -16,7 +16,7 @@ interface Preview {
   con_nota: number; sin_nota: number
   ya_importadas: number; cerradas: number
   ya_registradas_activa: number; rellenan_pendiente: number; nuevas: number
-  actualizan: number; sin_cambio: number
+  actualizan: number; sin_cambio: number; recursados?: number
   desaparecidos: { name: string; document: string; value: number | null }[]
   unmatched: { fullname: string; idnumber: string }[]
   matched: MatchedRow[]
@@ -24,7 +24,7 @@ interface Preview {
 interface ImportResult {
   inserted: number; updated: number; unchanged: number; protected_rows: number; locked_rows: number
   sin_puente: number; sin_total: number; importables: number
-  ya_registradas_activa: number; rellenadas_pendientes: number
+  ya_registradas_activa: number; rellenadas_pendientes: number; recursados?: number
   detalles_escritos: number
   errors: string[]
   recompute: { egresados_detectados?: number; situaciones_actualizadas?: number; avances_de_carrusel?: number; error?: string } | null
@@ -163,6 +163,9 @@ export function MoodleActasImport() {
                 {preview.actualizan > 0 && (
                   <span className="bg-orange-50 text-orange-700 px-2 py-1 rounded-full">{preview.actualizan} cambian de valor</span>
                 )}
+                {(preview.recursados ?? 0) > 0 && (
+                  <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded-full">{preview.recursados} recursado(s) — desaprobó y vuelve a cursar</span>
+                )}
                 {preview.sin_cambio > 0 && (
                   <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-full">{preview.sin_cambio} sin cambio</span>
                 )}
@@ -240,7 +243,7 @@ export function MoodleActasImport() {
               <button onClick={doImport} disabled={importing || preview.politica.violations.length > 0}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
                 {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                Importar {preview.rellenan_pendiente + preview.nuevas + preview.actualizan} notas al expediente
+                Importar {preview.rellenan_pendiente + preview.nuevas + preview.actualizan + (preview.recursados ?? 0)} notas al expediente
               </button>
               <p className="text-[11px] text-gray-400">
                 Solo entran los alumnos identificados y con nota final. Reimportar es seguro: actualiza lo que cambió y
