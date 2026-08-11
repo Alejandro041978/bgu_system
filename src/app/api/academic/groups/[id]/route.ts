@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { guardStaff } from '@/lib/api-guard'
+import { asignaturasDeGrupo } from '@/lib/group-courses'
 
 export const revalidate = 0
 
@@ -45,9 +46,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const OFF = 'id, start_date, end_date, moodle_course_id, course:academic_courses(id, name, code), assignments:faculty_assignments(employee:hr_employees(full_name))'
-  const [{ data: offerings }, { data: members }] = await Promise.all([
+  const [{ data: offerings }, { data: members }, asignaturas, { data: malla }] = await Promise.all([
     sb.from('semester_offerings').select(OFF).eq('group_id', id).order('start_date', { ascending: false, nullsFirst: false }),
     sb.from('academic_group_students').select('student_id, academic_students(id, first_name, last_name, second_last_name, document_number)').eq('group_id', id),
+    // Lo que el carrusel DICTA. La oferta de abajo solo dice cuándo y quién.
+    asignaturasDeGrupo(sb, id),
+    sb.from('academic_courses').select('id, code, name').eq('program_id', group.program_id).order('code'),
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,12 +70,25 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return { id: s?.id ?? m.student_id, name: [s?.first_name, s?.last_name, s?.second_last_name].filter(Boolean).join(' '), document_number: s?.document_number ?? null }
   }).sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))
 
+  // Las que la oferta programa pero el carrusel ya no dicta. Es el contraste
+  // entre las dos tablas, y sale a la vista en vez de quedar como una
+  // diferencia que nadie compara.
+  const dicta = new Set(asignaturas.map(c => String(c.id)))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ofertadasDeMas = [...new Set(((offerings ?? []) as any[])
+    .filter(o => o.course?.id && !dicta.has(String(o.course.id)))
+    .map(o => o.course?.name as string))]
+
   return NextResponse.json({
     group: {
       id: group.id, abbreviation: group.abbreviation, name: group.name, detail: group.detail,
       program_name: group.academic_programs?.name ?? '',
     },
     sequence,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    courses: asignaturas.map((c: any) => ({ id: c.id, code: c.code, name: c.name, credits: c.credits ?? null })),
+    malla: (malla ?? []).map((c: { id: string; code: string | null; name: string }) => ({ id: c.id, code: c.code, name: c.name })),
+    ofertadas_de_mas: ofertadasDeMas,
     offerings: (offerings ?? []).map(mapOff),
     students,
   })

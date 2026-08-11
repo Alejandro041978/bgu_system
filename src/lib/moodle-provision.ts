@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { getUserByEmail, getUserByIdnumber, getCourseByCode, enrolUser, enrolUsersBulk, unenrolUser, unenrolUsersBulk, moodleConfigured } from './moodle'
 import { crearCuentaMoodle, notificarCuentaMoodle } from './moodle-account'
+import { asignaturasDeGrupo } from './group-courses'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -138,8 +139,10 @@ async function ensureCourse(sb: any, o: { id: string; moodle_course_id: string |
 // aula equivocada no se ve.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function loadGroupCourses(sb: any, groupId: string, collectionId?: string | null) {
-  const { data: offs } = await sb.from('semester_offerings')
-    .select('id, moodle_course_id, course_id, course:academic_courses(name, code)').eq('group_id', groupId)
+  // Las asignaturas las declara el CARRUSEL. Antes se leían de las ofertas del
+  // semestre, así que la misma asignatura llegaba repetida —una vez por año
+  // ofertado— y había que deduplicar aquí. Ahora vienen sin repetir de origen.
+  const cursos = await asignaturasDeGrupo(sb, groupId)
 
   // aula de cada asignatura dentro de la colección
   const porColeccion = new Map<string, number>()
@@ -150,21 +153,39 @@ async function loadGroupCourses(sb: any, groupId: string, collectionId?: string 
       porColeccion.set(String(l.course_id), Number(l.aula_id))
     }
   }
-  // El carrusel repite la misma asignatura en varios años y todas apuntan a la
-  // MISMA aula Moodle → deduplicar para no matricular dos veces en cada aula.
+  // Respaldo para quien todavía no tiene colección: el aula que la oferta tenga
+  // registrada para esa asignatura. Se resuelve por asignatura, no por oferta,
+  // porque la oferta ya no manda aquí.
+  const porOferta = new Map<string, { id: string; aula: string | null }>()
+  if (!collectionId) {
+    const { data: offs } = await sb.from('semester_offerings')
+      .select('id, moodle_course_id, course_id').eq('group_id', groupId)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const o of (offs ?? []) as any[]) {
+      if (!o.course_id) continue
+      const prev = porOferta.get(String(o.course_id))
+      // Se prefiere la que ya tiene aula puesta.
+      if (!prev || (!prev.aula && o.moodle_course_id)) {
+        porOferta.set(String(o.course_id), { id: String(o.id), aula: o.moodle_course_id ? String(o.moodle_course_id) : null })
+      }
+    }
+  }
+
   const courseIds = new Set<number>()
   const unmapped: string[] = []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const o of (offs ?? []) as any[]) {
+  for (const c of cursos) {
     if (collectionId) {
-      const deColeccion = o.course_id ? porColeccion.get(String(o.course_id)) : undefined
+      const deColeccion = porColeccion.get(String(c.id))
       if (deColeccion) courseIds.add(deColeccion)
-      else unmapped.push(o.course?.name ?? o.id)
+      else unmapped.push(c.name ?? c.id)
       continue
     }
-    const cid = await ensureCourse(sb, { id: o.id, moodle_course_id: o.moodle_course_id, code: o.course?.code ?? null })
+    const o = porOferta.get(String(c.id))
+    const cid = o
+      ? await ensureCourse(sb, { id: o.id, moodle_course_id: o.aula, code: c.code ?? null })
+      : null
     if (cid) courseIds.add(cid)
-    else unmapped.push(o.course?.name ?? o.id)
+    else unmapped.push(c.name ?? c.id)
   }
   // por_respaldo: este juego de aulas no salió de una colección. Se devuelve
   // para que quien llame pueda contarlo y enseñarlo, en vez de que el respaldo

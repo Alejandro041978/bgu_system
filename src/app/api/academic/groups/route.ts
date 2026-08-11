@@ -37,8 +37,11 @@ export async function GET(req: NextRequest) {
     const offCount = new Map<string, number>()
     const stuCount = new Map<string, number>()
     if (groupIds.length) {
+      // El contador cuenta las asignaturas que el carrusel DICTA, no sus
+      // ofertas: eran 31 ofertas para 14 asignaturas en MBA_SP0, y el número
+      // que se enseñaba no era el de ninguna de las dos cosas útiles.
       const [{ data: offs }, { data: gss }] = await Promise.all([
-        sb.from('semester_offerings').select('group_id').in('group_id', groupIds),
+        sb.from('academic_group_courses').select('group_id').in('group_id', groupIds),
         sb.from('academic_group_students').select('group_id').in('group_id', groupIds),
       ])
       for (const o of offs ?? []) offCount.set(o.group_id, (offCount.get(o.group_id) ?? 0) + 1)

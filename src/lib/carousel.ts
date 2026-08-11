@@ -1,4 +1,5 @@
 import { readAll } from './withdrawals'
+import { asignaturasDeGrupos } from './group-courses'
 import { esIntento } from '@/lib/grade-sources'
 import { sameCourse } from './course-match'
 import { provisionStudent } from './moodle-provision'
@@ -72,14 +73,10 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
     return g ? ([g.abbreviation, g.name].filter(Boolean).join(' · ') || gid) : gid
   }
 
-  // Asignaturas de cada grupo (via oferta académica)
-  const offs = await readAll(sb, 'semester_offerings', 'group_id, course:academic_courses(id, code, name)')
-  const coursesOf = new Map<string, { id: string; code: string | null; name: string | null }[]>()
-  for (const o of offs as { group_id: string | null; course: { id: string; code: string | null; name: string | null } | null }[]) {
-    if (!o.group_id || !o.course) continue
-    if (!coursesOf.has(o.group_id)) coursesOf.set(o.group_id, [])
-    coursesOf.get(o.group_id)!.push(o.course)
-  }
+  // Asignaturas de cada carrusel. Salen de academic_group_courses, que es la
+  // ruta; antes se deducían de las ofertas del semestre y por eso la misma
+  // asignatura se evaluaba una vez por año en el que estuviera ofertada.
+  const coursesOf = await asignaturasDeGrupos(sb)
 
   // Estudiantes involucrados
   const studentIds = [...new Set(memberships.map(m => m.student_id))]

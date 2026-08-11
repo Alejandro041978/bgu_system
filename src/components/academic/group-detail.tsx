@@ -11,8 +11,13 @@ interface Off {
   start_date: string | null; end_date: string | null; moodle_course_id: string | null
 }
 interface Stu { id: string; name: string; document_number: string | null }
+interface Curso { id: string; code: string | null; name: string; credits?: number | null }
 interface Sequence { next_group_id: string | null; is_entry: boolean; prev_label: string | null; siblings: { id: string; label: string }[] }
-interface Data { group: { id: string; abbreviation: string | null; name: string | null; detail: string | null; program_name: string }; sequence: Sequence; offerings: Off[]; students: Stu[] }
+interface Data {
+  group: { id: string; abbreviation: string | null; name: string | null; detail: string | null; program_name: string }
+  sequence: Sequence; courses: Curso[]; malla: Curso[]; ofertadas_de_mas: string[]
+  offerings: Off[]; students: Stu[]
+}
 
 const fdate = (d: string | null) => (d ? d.split('T')[0].split('-').reverse().join('/') : '—')
 
@@ -26,6 +31,8 @@ export function GroupDetail({ groupId }: { groupId: string }) {
   const [sync, setSync] = useState<SyncResult | null>(null)
   const [savingSeq, setSavingSeq] = useState(false)
   const [seqErr, setSeqErr] = useState<string | null>(null)
+  const [busyCourse, setBusyCourse] = useState(false)
+  const [courseErr, setCourseErr] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const d = await fetch(`/api/academic/groups/${groupId}`).then(r => r.json())
@@ -42,6 +49,31 @@ export function GroupDetail({ groupId }: { groupId: string }) {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ moodle_course_id: off.moodle_course_id ?? '' }),
     })
     setSavingMoodle(null)
+  }
+
+  async function addCourse(courseId: string) {
+    setBusyCourse(true); setCourseErr(null)
+    const r = await fetch(`/api/academic/groups/${groupId}/courses`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ course_id: courseId }),
+    }).then(res => res.json()).catch(() => ({ error: 'Error de red' }))
+    setBusyCourse(false)
+    if (r.error) { setCourseErr(r.error); return }
+    load()
+  }
+
+  async function removeCourse(c: Curso) {
+    const dentro = data?.students.length ?? 0
+    if (!confirm(
+      `¿Quitar "${c.name}" de este carrusel?\n\n` +
+      (dentro > 0
+        ? `Hay ${dentro} estudiante(s) dentro: deja de ser un requisito para avanzar, y quien solo tuviera esta pendiente pasará al siguiente carrusel en la próxima corrida del motor.`
+        : 'No hay estudiantes dentro.'))) return
+    setBusyCourse(true); setCourseErr(null)
+    const r = await fetch(`/api/academic/groups/${groupId}/courses?course_id=${c.id}`, { method: 'DELETE' })
+      .then(res => res.json()).catch(() => ({ error: 'Error de red' }))
+    setBusyCourse(false)
+    if (r.error) { setCourseErr(r.error); return }
+    load()
   }
 
   async function searchStudents(value: string) {
@@ -120,14 +152,63 @@ export function GroupDetail({ groupId }: { groupId: string }) {
         <p className="text-[11px] text-gray-400">El estudiante avanza al siguiente carrusel cuando aprueba todas las asignaturas de este; se desconecta de estas aulas y se matricula en las del siguiente.</p>
       </div>
 
-      {/* Asignaturas (solo lectura; se asignan en Oferta Académica) */}
+      {/* Lo que el carrusel DICTA: su plan de estudios. Se declara aquí, no se
+          deduce de la oferta — la oferta es de un semestre y el carrusel no. */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5"><BookOpen className="w-4 h-4 text-gray-400" />Asignaturas ({data.offerings.length})</h3>
-          <span className="text-xs text-gray-400">Se asignan en <Link href="/academic/offer" className="text-blue-600 hover:underline">Oferta Académica</Link></span>
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+            <BookOpen className="w-4 h-4 text-gray-400" />Asignaturas del carrusel ({data.courses.length})
+          </h3>
+          <span className="text-xs text-gray-400">Qué se cursa en esta ruta</span>
+        </div>
+
+        {data.courses.length === 0 && (
+          <p className="text-xs text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
+            ⚠ Este carrusel no dicta ninguna asignatura. Quien esté dentro no puede avanzar —el motor nunca da por
+            completado un carrusel vacío— ni recibe aulas de él{data.students.length > 0 ? `, y hoy hay ${data.students.length} estudiante(s) dentro` : ''}.
+          </p>
+        )}
+
+        {data.ofertadas_de_mas.length > 0 && (
+          <p className="text-xs text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
+            La oferta programa asignaturas que este carrusel ya no dicta: {data.ofertadas_de_mas.join(', ')}.
+          </p>
+        )}
+
+        {data.courses.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {data.courses.map(c => (
+              <span key={c.id} className="flex items-center gap-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg pl-2.5 pr-1.5 py-1">
+                <span className="text-gray-400">{c.code ?? '—'}</span>
+                <span className="text-gray-800">{c.name}</span>
+                <button onClick={() => removeCourse(c)} className="text-gray-300 hover:text-red-600" title="Quitar del carrusel">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <select value="" onChange={e => e.target.value && addCourse(e.target.value)}
+            className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm max-w-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Agregar asignatura de la malla…</option>
+            {data.malla.filter(m => !data.courses.some(c => c.id === m.id))
+              .map(m => <option key={m.id} value={m.id}>{m.code ? `${m.code} · ` : ''}{m.name}</option>)}
+          </select>
+          {busyCourse && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+          {courseErr && <span className="text-xs text-red-600">{courseErr}</span>}
+        </div>
+      </div>
+
+      {/* La OFERTA: cuándo y quién. No decide qué dicta el carrusel. */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5"><BookOpen className="w-4 h-4 text-gray-400" />Oferta programada ({data.offerings.length})</h3>
+          <span className="text-xs text-gray-400">Cuándo y quién · se programa en <Link href="/academic/offer" className="text-blue-600 hover:underline">Oferta Académica</Link></span>
         </div>
         {data.offerings.length === 0 ? (
-          <p className="text-xs text-gray-400 py-2">Sin asignaturas. Asígnalas a este grupo desde Oferta Académica.</p>
+          <p className="text-xs text-gray-400 py-2">Sin oferta programada para este carrusel.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm whitespace-nowrap">
