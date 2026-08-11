@@ -16,8 +16,14 @@ interface Bloque {
 }
 interface Data { total: number; por_criterio: Criterio[]; bloques: Bloque[]; muestra: Propuesta[] }
 
-interface Fila { program_id: string; programa: string; externo: boolean; collection_id: string | null; coleccion: string; matriculas: number }
-interface Resumen { total: number; con: number; sin: number; programas: number }
+interface Ruta { group_id: string; label: string; matriculas: number }
+interface Celda { collection_id: string | null; coleccion: string; matriculas: number; sin_carrusel: number; carruseles: Ruta[] }
+interface BloquePrograma {
+  program_id: string; programa: string; externo: boolean
+  total: number; sin_coleccion: number; sin_carrusel: number
+  carruseles_del_programa: number; colecciones: Celda[]
+}
+interface Resumen { total: number; con: number; sin: number; sin_carrusel: number; programas: number }
 interface Catalogo { categorias: { id: string; name: string }[]; programas: { id: string; name: string; category_id: string }[] }
 
 // Resumen de matrículas por colección, con filtro. El total de 1.081 dice que
@@ -27,7 +33,7 @@ function ResumenMatriculas() {
   const [cat, setCat] = useState<Catalogo | null>(null)
   const [categoryId, setCategoryId] = useState('')
   const [programId, setProgramId] = useState('')
-  const [filas, setFilas] = useState<Fila[] | null>(null)
+  const [filas, setFilas] = useState<BloquePrograma[] | null>(null)
   const [resumen, setResumen] = useState<Resumen | null>(null)
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,7 +51,7 @@ function ResumenMatriculas() {
     const d = await fetch(`/api/academic/collection-summary?${q}`).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
     setCargando(false)
     if (d.error) { setError(d.error); setFilas(null); setResumen(null); return }
-    setFilas(d.filas ?? []); setResumen(d.resumen ?? null)
+    setFilas(d.programas ?? []); setResumen(d.resumen ?? null)
   }
 
   const programas = (cat?.programas ?? []).filter(p => p.category_id === categoryId)
@@ -82,11 +88,12 @@ function ResumenMatriculas() {
       {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
       {resumen && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <Dato label="Matrículas" valor={resumen.total} />
           <Dato label="Programas" valor={resumen.programas} />
           <Dato label="Con colección" valor={resumen.con} tono="ok" />
           <Dato label="Sin colección" valor={resumen.sin} tono={resumen.sin ? 'alerta' : 'ok'} />
+          <Dato label="Sin carrusel" valor={resumen.sin_carrusel} tono={resumen.sin_carrusel ? 'alerta' : 'ok'} />
         </div>
       )}
 
@@ -99,29 +106,72 @@ function ResumenMatriculas() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-[11px] text-gray-400 uppercase tracking-wide border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-4 py-2">Programa</th>
-                <th className="text-left px-4 py-2">Colección</th>
-                <th className="text-right px-4 py-2">Matrículas</th>
+                <th className="text-left px-4 py-2">Programa · Colección</th>
+                <th className="text-right px-4 py-2 w-24">Matrículas</th>
+                <th className="text-left px-4 py-2">Carruseles (rutas)</th>
+                <th className="text-right px-4 py-2 w-28">Sin carrusel</th>
               </tr>
             </thead>
             <tbody>
-              {filas.map((f, i) => {
-                const nuevoPrograma = i === 0 || filas[i - 1].program_id !== f.program_id
-                const sinCol = f.collection_id === null
-                return (
-                  <tr key={`${f.program_id}|${f.collection_id ?? '—'}`} className={`border-t border-gray-50 ${sinCol ? 'bg-amber-50/60' : ''}`}>
-                    <td className="px-4 py-2 text-gray-700">
-                      {nuevoPrograma ? f.programa : <span className="text-gray-300">↳</span>}
-                      {nuevoPrograma && f.externo && <span className="block text-[11px] text-gray-400">campus externo</span>}
+              {filas.map(p => {
+                // El total del programa manda: la suma de sus colecciones tiene
+                // que dar ese número, y si no da, el descuadre se ve aquí.
+                const suma = p.colecciones.reduce((s, c) => s + c.matriculas, 0)
+                return [
+                  <tr key={p.program_id} className="border-t border-gray-200 bg-gray-50/70">
+                    <td className="px-4 py-2 font-semibold text-gray-800">
+                      {p.programa}
+                      <span className="ml-2 text-[11px] font-normal text-gray-400">
+                        {p.carruseles_del_programa} carrusel{p.carruseles_del_programa === 1 ? '' : 'es'}
+                        {p.externo ? ' · campus externo' : ''}
+                      </span>
                     </td>
-                    <td className={`px-4 py-2 ${sinCol ? 'text-amber-800 font-medium' : 'text-gray-600'}`}>{f.coleccion}</td>
-                    <td className={`px-4 py-2 text-right ${sinCol ? 'text-amber-800 font-semibold' : 'text-gray-800'}`}>{f.matriculas}</td>
-                  </tr>
-                )
+                    <td className="px-4 py-2 text-right font-semibold text-gray-900">
+                      {p.total}
+                      {suma !== p.total && <span className="block text-[11px] font-normal text-red-600">suma {suma}</span>}
+                    </td>
+                    <td className="px-4 py-2"></td>
+                    <td className={`px-4 py-2 text-right font-semibold ${p.sin_carrusel ? 'text-amber-700' : 'text-gray-300'}`}>
+                      {p.sin_carrusel || '—'}
+                    </td>
+                  </tr>,
+                  ...p.colecciones.map(c => {
+                    const sinCol = c.collection_id === null
+                    return (
+                      <tr key={`${p.program_id}|${c.collection_id ?? '—'}`} className={`border-t border-gray-50 ${sinCol ? 'bg-amber-50/60' : ''}`}>
+                        <td className={`px-4 py-2 pl-8 ${sinCol ? 'text-amber-800 font-medium' : 'text-gray-600'}`}>{c.coleccion}</td>
+                        <td className={`px-4 py-2 text-right ${sinCol ? 'text-amber-800 font-semibold' : 'text-gray-800'}`}>{c.matriculas}</td>
+                        <td className="px-4 py-2">
+                          {c.carruseles.length === 0
+                            ? <span className="text-xs text-gray-300">—</span>
+                            : (
+                              <span className="flex flex-wrap gap-1">
+                                {c.carruseles.map(r => (
+                                  <span key={r.group_id} className="text-[11px] bg-blue-50 text-blue-700 rounded px-1.5 py-0.5">
+                                    {r.label} <b>{r.matriculas}</b>
+                                  </span>
+                                ))}
+                              </span>
+                            )}
+                        </td>
+                        <td className={`px-4 py-2 text-right ${c.sin_carrusel ? 'text-amber-700 font-medium' : 'text-gray-300'}`}>
+                          {c.sin_carrusel || '—'}
+                        </td>
+                      </tr>
+                    )
+                  }),
+                ]
               })}
             </tbody>
           </table>
         </div>
+      )}
+
+      {filas && filas.length > 0 && (
+        <p className="text-[11px] text-gray-400">
+          La colección es el aula; el carrusel es la ruta —qué cursa y en qué orden—. Un estudiante puede tener
+          colección y no tener ruta, o al revés: son dos vínculos distintos y aquí se ven cruzados.
+        </p>
       )}
     </div>
   )
