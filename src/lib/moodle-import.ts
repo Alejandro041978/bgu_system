@@ -270,7 +270,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   // de la estructura de evaluación.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const detailByExternal = new Map<string, { student_id: string; process: any[]; total: number }>()
-  let sinPuente = 0, sinTotal = 0, yaRegistradas = 0, rellenadas = 0
+  let sinPuente = 0, sinTotal = 0, yaRegistradas = 0, rellenadas = 0, recursados = 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const ug of ((report?.usergrades ?? []) as any[])) {
     const u = users.get(Number(ug.userid))
@@ -290,10 +290,15 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     )
     if (target.action === 'skip') { yaRegistradas++; continue }
     if (target.action === 'fill') rellenadas++
+    // Recursado: el intento anterior quedó desaprobado y éste entra como fila
+    // aparte, numerada. No se pisa la nota anterior —desaprobar es un hecho—
+    // y el acta se queda con el mejor de los dos.
+    if (target.action === 'retake') recursados++
     const externalId = target.external_id
     const fila: ImportRow = {
       external_id: externalId,
       shield: target.shield,
+      intento: target.intento ?? 1,
       document_number: String(stu.document_number ?? ''),
       email: stu.email ?? null,
       student_name: [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' '),
@@ -447,7 +452,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     ok: true,
     summary: {
       ...result, sin_puente: sinPuente, sin_total: sinTotal, importables: rows.length,
-      ya_registradas_activa: yaRegistradas, rellenadas_pendientes: rellenadas,
+      ya_registradas_activa: yaRegistradas, rellenadas_pendientes: rellenadas, recursados,
       detalles_escritos: detallesEscritos,
     },
   }

@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { sameCourse, courseNameKey } from '@/lib/course-match'
 import { esFilaDePlan } from '@/lib/grade-sources'
+import { etiquetaIntento } from '@/lib/grades-write'
 import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
     malla.some(c => (c.code && g.course_code && String(c.code) === String(g.course_code)) || sameCourse(g.course_name, c.name))
 
   const { data: grades } = await sb.from('academic_grades')
-    .select('external_id, course_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id, estado_academico')
+    .select('external_id, course_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id, estado_academico, intento')
     .eq('document_number', student.document_number).neq('source', 'convalidacion').neq('source', 'validacion')
 
   // Parciales del Acta Detallada (misma inscripción por external_id): una
@@ -88,7 +89,9 @@ export async function GET(req: NextRequest) {
       course_code: (g.course_id ? malla.find((c: { id: string; code: string | null }) => c.id === g.course_id)?.code : null) ?? g.course_code,
       course_name: g.course_name,
       credits: g.credits != null ? Number(g.credits) : null,
-      term: [g.term_year, g.term_block].filter(Boolean).join(' · '),
+      // El recursado se distingue del primer intento en el propio registro:
+      // los dos existen y el acta se queda con el mejor.
+      term: [etiquetaIntento(g.intento), [g.term_year, g.term_block].filter(Boolean).join(' · ')].filter(Boolean).join(' · '),
       status: st.status, grade: st.grade, has_grade, withdrawn: !!g.withdrawn_at,
       // Solo se editan/borran notas importadas de SystemActiva (no las de Moodle)
       editable: g.source === 'systemactiva' && !g.moodle_course_id,

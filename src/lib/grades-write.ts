@@ -171,6 +171,8 @@ export interface ImportRow {
   // RELLENAR una fila "en curso" heredada de SystemActiva: sin el blindaje,
   // el sync nocturno la revertiría a null porque en Activa sigue vacía.
   shield?: boolean
+  // Número de intento. 1 = original; 2+ = recursado (se etiqueta "Recursado N-1").
+  intento?: number
 }
 
 // ---------------------------------------------------------------------------
@@ -195,7 +197,7 @@ export function resolveImportTarget(
   // Mínimo de la CATEGORÍA del programa. El importador ya lo resuelve; antes
   // aquí había un 70 fijo, que en Master y Doctorado daba por aprobado un 75.
   categoryPassing: number | null = null,
-): { action: 'skip' | 'fill' | 'new' | 'update'; external_id: string; shield: boolean; prev_value: number | null } {
+): { action: 'skip' | 'fill' | 'new' | 'update' | 'retake'; external_id: string; shield: boolean; prev_value: number | null; intento?: number } {
   const matches = (studentRows ?? [])
     .filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
     .filter(g =>
@@ -229,10 +231,55 @@ export function resolveImportTarget(
     const shield = !(own.source === 'moodle' || own.source === 'csv')
     return { action: 'update', external_id: String(own.external_id), shield, prev_value: val(own) }
   }
+  // ── Recursado ────────────────────────────────────────────────────────────
+  //
+  // Una fila histórica DESAPROBADA no bloquea: el estudiante puede volver a
+  // cursar la asignatura, y esa segunda vuelta es una nota nueva, no una
+  // corrección de la primera.
+  //
+  // Antes cualquier fila con valor devolvía 'skip', así que un recursado no se
+  // escribía en ninguna parte. Se descubrió con tres estudiantes de Accounting
+  // que estaban recursando Interpersonal Communication: sus notas solo existían
+  // porque el aula estaba mal identificada y caían en otra asignatura, donde no
+  // había fila que las bloqueara. El error nos estaba tapando el hueco.
+  //
+  // El intento anterior se conserva —desaprobar es un hecho y el seguimiento lo
+  // necesita— y el acta se queda con el MEJOR de los dos (regla del usuario,
+  // 2026-08-11), que es lo que ya hacía cuando encontraba varias notas.
+  //
+  // Solo se abre intento nuevo cuando SABEMOS que la anterior está desaprobada:
+  // hace falta una nota mínima conocida. Sin ella no se adivina — se respeta la
+  // fila que ya existe, como hasta ahora.
+  const desaprobada = (g: any): boolean => {  // eslint-disable-line @typescript-eslint/no-explicit-any
+    const v = val(g)
+    const min = categoryPassing ?? (g.passing_score != null ? Number(g.passing_score) : null)
+    return v != null && min != null && Number(v) < Number(min)
+  }
+  const previa = matches.find(desaprobada)
+  if (previa) {
+    const intento = Math.max(...matches.map(m => Number(m.intento ?? 1)), 1) + 1
+    return {
+      action: 'retake', external_id: retakeExternalId(fallbackExternalId, intento),
+      shield: false, prev_value: val(previa), intento,
+    }
+  }
+
   const valued = matches.find(g => val(g) != null)
   if (valued) return { action: 'skip', external_id: String(valued.external_id), shield: false, prev_value: val(valued) }
   if (matches.length) return { action: 'fill', external_id: String(matches[0].external_id), shield: true, prev_value: null }
   return { action: 'new', external_id: fallbackExternalId, shield: false, prev_value: null }
+}
+
+// external_id del intento N. Determinista: re-importar el mismo recursado no
+// crea una fila más cada vez.
+export function retakeExternalId(base: string, intento: number): string {
+  return stableUuid(`retake:${base}:${intento}`)
+}
+
+// "Recursado 1" es el segundo intento. El primero no lleva etiqueta.
+export function etiquetaIntento(intento: number | null | undefined): string | null {
+  const n = Number(intento ?? 1)
+  return n > 1 ? `Recursado ${n - 1}` : null
 }
 
 export async function importGrades(
@@ -326,6 +373,9 @@ export async function importGrades(
       estado_academico: r.estado_academico ?? null,
       last_evaluated_at: r.last_evaluated_at ?? null,
       source: opts.origin,
+      // 1 = primer intento; 2+ = recursado. Va explícito y no se deduce de
+      // cuántas filas haya: con tres intentos, deducirlo dejaría de funcionar.
+      intento: r.intento ?? 1,
       synced_at: new Date().toISOString(),
       // shield=true blinda contra el sync N8N; null es inocuo: las filas
       // editadas a mano ya fueron saltadas antes de llegar aquí.
