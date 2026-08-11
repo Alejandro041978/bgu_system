@@ -244,7 +244,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   const gradesByDoc = new Map<string, any[]>()
   {
     const all = await fetchByIn(sb, 'academic_grades',
-      'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source, intento',
+      'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year',
       'document_number', docsImport, { orderBy: 'external_id' })
     for (const g of all) {
       const k = String(g.document_number)
@@ -279,14 +279,36 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     const total = courseTotal(ug.gradeitems)
     if (total == null) { sinTotal++; continue }
 
+    // Cuánto ha rendido de verdad en ESTA aula. Se calcula antes de decidir el
+    // destino porque un recursado no se abre sin evidencia: las aulas se
+    // reutilizan entre cohortes, así que "está matriculado" no significa que
+    // esté cursando.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const itemsUsuario = ((ug.gradeitems ?? []) as any[])
+      .filter(i => i.itemtype === 'mod' && (i.weightraw ?? 0) > 0)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const process = itemsUsuario.map((i: any, idx: number) => {
+      let val: number | null = i.graderaw ?? null
+      const max = Number(i.grademax ?? 100)
+      if (val != null && isFinite(max) && max > 0 && max !== 100) val = (val / max) * 100
+      return {
+        n: idx + 1,
+        pct: i.weightraw != null ? Math.round(Number(i.weightraw) * 10000) / 100 : null,
+        val: val == null ? null : Math.round(val * 100) / 100,
+        desc: i.itemname ?? '',
+      }
+    })
+    const rendido = rendidoPct(process as ItemProceso[])
+
     // skip = histórico con nota (intocable); update = fila de una importación
     // anterior (las notas cambian en Moodle y se reflejan); fill = "en curso"
-    // que se rellena y blinda; new = fila nueva
+    // que se rellena y blinda; retake = recursado; new = fila nueva
     const target = resolveImportTarget(
       gradesByDoc.get(String(stu.document_number ?? '')) ?? [],
       { code: destCourse.code, name: destCourse.name },
       stableUuid(`moodle:${courseid}:${ug.userid}`),
       passing,
+      { rendido_pct: rendido, term_year: termYear },
     )
     if (target.action === 'skip') { yaRegistradas++; continue }
     if (target.action === 'fill') rellenadas++
@@ -321,25 +343,13 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     // desactivadas de cohortes anteriores o subsanaciones — ninguno afecta el
     // promedio (decisión del usuario, 2026-07-19). Las subsanaciones se
     // registran a mano en retake_grade por el editor.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const items = ((ug.gradeitems ?? []) as any[])
-      .filter(i => i.itemtype === 'mod' && (i.weightraw ?? 0) > 0)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const process = items.map((i: any, idx: number) => {
-      let val: number | null = i.graderaw ?? null
-      const max = Number(i.grademax ?? 100)
-      if (val != null && isFinite(max) && max > 0 && max !== 100) val = (val / max) * 100
-      return {
-        n: idx + 1,
-        pct: i.weightraw != null ? Math.round(Number(i.weightraw) * 10000) / 100 : null,
-        val: val == null ? null : Math.round(val * 100) / 100,
-        desc: i.itemname ?? '',
-      }
-    })
+    // process y rendido ya se calcularon arriba: los necesitaba la decisión
+    // del destino, porque un recursado no se abre sin evidencia de actividad.
+    //
     // La nota de Moodle es un acumulado sobre el 100% del curso: 3,33 no es
     // "le va mal", es "lleva un quiz de 3,33%". El estado lo decide la
     // aritmética del acumulado, sin umbrales.
-    fila.rendido_pct = rendidoPct(process as ItemProceso[])
+    fila.rendido_pct = rendido
     fila.estado_academico = estadoAcademico({
       valor: total, passing_score: passing,
       rendido_pct: fila.rendido_pct, cerrado: false,

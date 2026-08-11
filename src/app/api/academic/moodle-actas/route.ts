@@ -4,6 +4,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { moodleCall, moodleConfigured } from '@/lib/moodle'
 import { resolveImportTarget, fetchByIn, stableUuid } from '@/lib/grades-write'
 import { courseTotal, aulaPolicy, enrolledMap, importAula } from '@/lib/moodle-import'
+import { rendidoPct, type ItemProceso } from '@/lib/grade-status'
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
@@ -123,7 +124,7 @@ export async function GET(req: NextRequest) {
   const gradesByDoc = new Map<string, any[]>()
   if (linkedCourse) {
     const all = await fetchByIn(sb, 'academic_grades',
-      'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source, intento',
+      'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year',
       'document_number', docsAula)
     for (const g of all) {
       const k = String(g.document_number)
@@ -131,6 +132,14 @@ export async function GET(req: NextRequest) {
       gradesByDoc.get(k)!.push(g)
     }
   }
+
+  // El año del aula sale de su oferta, igual que en el importador.
+  const { data: ofertaAula } = await sb.from('semester_offerings')
+    .select('semester:academic_semesters(year:academic_years(start_date))')
+    .eq('moodle_course_id', String(courseid)).limit(1).maybeSingle()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inicio = (ofertaAula as any)?.semester?.year?.start_date ?? null
+  const termYearAula: number | null = inicio ? Number(String(inicio).slice(0, 4)) : null
 
   const politica = await aulaPolicy(sb, courseid, report)
 
@@ -146,7 +155,21 @@ export async function GET(req: NextRequest) {
     const doc = String(stu.document_number ?? '')
     let destino = 'en curso'
     if (total != null && linkedCourse) {
-      const r = resolveImportTarget(gradesByDoc.get(doc) ?? [], linkedCourse, stableUuid(`moodle:${courseid}:${ug.userid}`), passing)
+      // La misma evidencia que exige el importador para abrir un recursado:
+      // cuánto rindió en ESTA aula y de qué periodo es. Si la previa no la
+      // pasara, volvería a anunciar algo distinto de lo que va a ocurrir.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const proc = ((ug.gradeitems ?? []) as any[])
+        .filter(i => i.itemtype === 'mod' && (i.weightraw ?? 0) > 0)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((i: any) => ({
+          pct: i.weightraw != null ? Math.round(Number(i.weightraw) * 10000) / 100 : null,
+          val: i.graderaw ?? null,
+        }))
+      const r = resolveImportTarget(
+        gradesByDoc.get(doc) ?? [], linkedCourse, stableUuid(`moodle:${courseid}:${ug.userid}`), passing,
+        { rendido_pct: rendidoPct(proc as ItemProceso[]), term_year: termYearAula },
+      )
       if (r.action === 'skip') { destino = 'ya registrada (histórico)'; yaRegistradas++ }
       else if (r.action === 'retake') {
         destino = `recursado ${(r.intento ?? 2) - 1} (anterior: ${r.prev_value ?? '—'})`

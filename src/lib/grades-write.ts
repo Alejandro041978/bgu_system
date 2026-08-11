@@ -197,6 +197,9 @@ export function resolveImportTarget(
   // Mínimo de la CATEGORÍA del programa. El importador ya lo resuelve; antes
   // aquí había un 70 fijo, que en Master y Doctorado daba por aprobado un 75.
   categoryPassing: number | null = null,
+  // Evidencia del intento que se está importando: cuánto rindió y de qué
+  // periodo es. Sin ella no se abre un recursado.
+  intentoNuevo?: { rendido_pct?: number | null; term_year?: number | null },
 ): { action: 'skip' | 'fill' | 'new' | 'update' | 'retake'; external_id: string; shield: boolean; prev_value: number | null; intento?: number } {
   const matches = (studentRows ?? [])
     .filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
@@ -256,11 +259,32 @@ export function resolveImportTarget(
     return v != null && min != null && Number(v) < Number(min)
   }
   const previa = matches.find(desaprobada)
+  // Un recursado exige EVIDENCIA POSITIVA de que hay un intento nuevo. Que no
+  // haya una nota aprobada que lo bloquee no es evidencia de nada.
+  //
+  // Sin esta exigencia la regla abrió 147 intentos en una sola corrida y solo
+  // 4 eran reales: las aulas se reutilizan entre cohortes, así que un
+  // estudiante de una promoción vieja sigue matriculado y el aula reporta un
+  // total de 0. 74 de esos 147 no tenían NINGUNA evaluación rendida, y 23
+  // decían ser un "intento nuevo" de un año ANTERIOR al original.
+  //
+  // Es el espejo del caso que el código ya cubría para las aprobadas (1.841
+  // filas duplicadas el 28-07). Dos condiciones, las dos comprobables:
+  //   · el estudiante RINDIÓ algo en el aula (rendido_pct > 0)
+  //   · y el periodo del intento nuevo es POSTERIOR al del anterior
+  // Si el periodo de cualquiera de los dos se desconoce, no se abre nada: un
+  // dato que falta no autoriza a crear una nota.
   if (previa) {
-    const intento = Math.max(...matches.map(m => Number(m.intento ?? 1)), 1) + 1
-    return {
-      action: 'retake', external_id: retakeExternalId(fallbackExternalId, intento),
-      shield: false, prev_value: val(previa), intento,
+    const rindio = Number(intentoNuevo?.rendido_pct ?? 0) > 0
+    const anioPrevio = previa.term_year != null ? Number(previa.term_year) : null
+    const anioNuevo = intentoNuevo?.term_year != null ? Number(intentoNuevo.term_year) : null
+    const posterior = anioPrevio != null && anioNuevo != null && anioNuevo > anioPrevio
+    if (rindio && posterior) {
+      const intento = Math.max(...matches.map(m => Number(m.intento ?? 1)), 1) + 1
+      return {
+        action: 'retake', external_id: retakeExternalId(fallbackExternalId, intento),
+        shield: false, prev_value: val(previa), intento,
+      }
     }
   }
 
