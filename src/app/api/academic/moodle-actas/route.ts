@@ -133,13 +133,16 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // El año del aula sale de su oferta, igual que en el importador.
-  const { data: ofertaAula } = await sb.from('semester_offerings')
+  // El año del aula sale de su oferta MÁS RECIENTE, igual que en el importador:
+  // un aula reutilizada entre cohortes tiene varias, y elegir una al azar
+  // fechaba las notas con la cohorte equivocada.
+  const { data: ofertasAula } = await sb.from('semester_offerings')
     .select('semester:academic_semesters(year:academic_years(start_date))')
-    .eq('moodle_course_id', String(courseid)).limit(1).maybeSingle()
+    .eq('moodle_course_id', String(courseid))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const inicio = (ofertaAula as any)?.semester?.year?.start_date ?? null
-  const termYearAula: number | null = inicio ? Number(String(inicio).slice(0, 4)) : null
+  const inicios = ((ofertasAula ?? []) as any[])
+    .map(o => o.semester?.year?.start_date).filter(Boolean).sort().reverse()
+  const termYearAula: number | null = inicios.length ? Number(String(inicios[0]).slice(0, 4)) : null
 
   const politica = await aulaPolicy(sb, courseid, report)
 

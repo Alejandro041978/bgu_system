@@ -116,11 +116,18 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   // Si el aula no tiene oferta, se deja en blanco. Un periodo desconocido es
   // un dato que falta; inventarlo lo convierte en un dato falso, que es lo que
   // nadie puede detectar después.
-  const { data: oferta } = await sb.from('semester_offerings')
+  // Un aula puede tener VARIAS ofertas: se reutiliza entre cohortes, así que la
+  // 155 está ofertada en FALL 2024 y en FALL 2025. Antes se tomaba una con
+  // limit(1) sin ordenar —es decir, al azar—, y con eso todas las notas del
+  // aula se sellaban con el año de la cohorte equivocada. Se toma la MÁS
+  // RECIENTE, que es la que se está dictando.
+  const { data: ofertas } = await sb.from('semester_offerings')
     .select('semester:academic_semesters(name, year:academic_years(start_date))')
-    .eq('moodle_course_id', String(courseid)).limit(1).maybeSingle()
+    .eq('moodle_course_id', String(courseid))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sem = (oferta as any)?.semester ?? null
+  const sems = ((ofertas ?? []) as any[]).map(o => o.semester).filter(Boolean)
+    .sort((a, b) => String(b?.year?.start_date ?? '').localeCompare(String(a?.year?.start_date ?? '')))
+  const sem = sems[0] ?? null
   const termYear: number | null = sem?.year?.start_date ? Number(String(sem.year.start_date).slice(0, 4)) : null
   const termBlock: string | null = sem?.name ? String(sem.name).trim().replace(/\s+/g, '_') : null
   // Presupuesto para las llamadas pesadas a Moodle (el reporte de un aula de
