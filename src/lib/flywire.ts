@@ -68,3 +68,59 @@ export function desdeSubunidades(valor: number | null, moneda: string | null | u
 export function aSubunidades(monto: number, moneda: string | null | undefined): number {
   return Math.round(monto * 10 ** decimalesDe(moneda))
 }
+
+// ---------------------------------------------------------------------------
+// Los datos de un pago, venga como venga.
+//
+// Un evento de Flywire llega al ERP en DOS formas y no se parecen en nada:
+//
+//   · CSV del portal (importación manual) → plano y en unidades:
+//     { first_name, last_name, dni, amount, method, finished_date }
+//   · Notifications v2 (webhook) → anidado y en SUBUNIDADES:
+//     { data: { amount_to: "30000", currency_to: "USD",
+//               fields: { student_first_name, student_last_name, dni } } }
+//
+// La página de conciliación estaba escrita solo para la primera, así que a los
+// pagos que entraban por webhook les mostraba "0.00" y "(sin nombre)" — con
+// los datos completos guardados un nivel más abajo. Es el mismo error que ya
+// nos costó 222 notificaciones sin registrar en agosto, repetido en la
+// pantalla en vez de en el webhook.
+//
+// Vive aquí para que la próxima pantalla que lea eventos no vuelva a elegir
+// una de las dos formas.
+// ---------------------------------------------------------------------------
+export interface DatosPago {
+  nombre: string | null
+  dni: string | null
+  importe: number | null
+  moneda: string | null
+  metodo: string | null
+  fecha: string | null
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function datosDePago(raw: any): DatosPago {
+  const d = raw?.data ?? null
+  if (d) {
+    const f = d.fields ?? {}
+    const nombre = [f.student_first_name, f.student_last_name].filter(Boolean).join(' ').trim()
+    return {
+      nombre: nombre || null,
+      dni: f.dni || f.document_number || null,
+      importe: desdeSubunidades(d.amount_to != null ? Number(d.amount_to) : null, d.currency_to),
+      moneda: d.currency_to ?? null,
+      metodo: d.payment_method ?? null,
+      fecha: d.finished_date ? String(d.finished_date).slice(0, 10) : null,
+    }
+  }
+  const nombre = [raw?.first_name, raw?.last_name].filter(Boolean).join(' ').trim()
+  return {
+    nombre: nombre || null,
+    dni: raw?.dni || null,
+    // El CSV trae el importe en unidades: no se convierte.
+    importe: raw?.amount != null && raw.amount !== '' ? Number(raw.amount) : null,
+    moneda: raw?.currency ?? null,
+    metodo: raw?.method ?? null,
+    fecha: raw?.finished_date ? String(raw.finished_date).slice(0, 10) : null,
+  }
+}

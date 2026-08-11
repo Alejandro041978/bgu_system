@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { datosDePago } from '@/lib/flywire'
 import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 import { maybeMarkExamPaid } from '@/lib/exam-requests'
 import { maybeMarkDocumentPaid } from '@/lib/document-request'
@@ -115,15 +116,24 @@ export async function GET(req: NextRequest) {
   }
   const sinRegistrar = [...bestByRef.values()]
     .filter(e => !flyIds.has(e.payment_id) && !descartados.has(e.payment_id))
-    .map(e => ({
-      reference: e.payment_id,
-      status: e.status,
-      name: [e.raw?.first_name, e.raw?.last_name].filter(Boolean).join(' ') || '(sin nombre)',
-      dni: e.raw?.dni || null,
-      amount: Number(e.raw?.amount) || 0,
-      method: e.raw?.method || null,
-      fecha: e.raw?.finished_date ? String(e.raw.finished_date).slice(0, 10) : null,
-    }))
+    .map(e => {
+      // Los eventos llegan en dos formas —CSV plano y webhook anidado— y esta
+      // lista solo sabía leer la primera: los pagos del webhook salían en
+      // 0.00 y sin nombre, con los datos completos un nivel más abajo.
+      const p = datosDePago(e.raw)
+      return {
+        reference: e.payment_id,
+        status: e.status,
+        name: p.nombre ?? '(sin nombre)',
+        dni: p.dni,
+        amount: p.importe ?? 0,
+        method: p.metodo,
+        // Sin fecha propia del pago se usa la de recepción del aviso, que es
+        // lo más cercano que tenemos: dejarla en blanco mandaba la fila al
+        // final del orden y parecía un pago sin fecha.
+        fecha: p.fecha ?? (e.received_at ? String(e.received_at).slice(0, 10) : null),
+      }
+    })
     .sort((a, b) => (a.fecha ?? '') < (b.fecha ?? '') ? -1 : 1)
 
   return NextResponse.json({
@@ -186,18 +196,20 @@ export async function PATCH(req: NextRequest) {
     // un programa (libros, eventos...). Sale de la bandeja vía evento de
     // resolución y queda tabulado en su propia página.
     if (b.other_income) {
-      const raw = ev.raw ?? {}
+      // El importe se lee con datosDePago: un aviso del webhook trae el monto
+      // anidado y en subunidades, y leerlo como el del CSV registraba 0.
+      const p = datosDePago(ev.raw)
       const cat = ['eventos', 'libros', 'viajes', 'otros'].includes(b.other_income.category ?? '')
         ? b.other_income.category : 'otros'
       const auth2 = await createAuthClient()
       const { data: { user: u2 } } = await auth2.auth.getUser()
       const { error: oiErr } = await sb.from('other_income').insert({
         flywire_ref: b.flywire_ref,
-        payer_name: [raw.first_name, raw.last_name].filter(Boolean).join(' ') || null,
-        payer_dni: raw.dni || null,
-        amount: Number(raw.amount) || 0,
-        method: raw.method || null,
-        income_date: raw.finished_date ? String(raw.finished_date).slice(0, 10) : null,
+        payer_name: p.nombre,
+        payer_dni: p.dni,
+        amount: p.importe ?? 0,
+        method: p.metodo,
+        income_date: p.fecha ?? (ev.received_at ? String(ev.received_at).slice(0, 10) : null),
         category: cat,
         note: b.other_income.note?.trim() || null,
         created_by: u2?.email ?? null,
@@ -216,9 +228,17 @@ export async function PATCH(req: NextRequest) {
     const { data: dup } = await sb.from('account_payments').select('id').eq('flywire_payment_id', b.flywire_ref).limit(1)
     if ((dup ?? []).length) return NextResponse.json({ error: 'Esa referencia ya está registrada como pago' }, { status: 409 })
 
-    const raw = ev.raw ?? {}
-    const amount = Number(raw.amount) || 0
-    const paidDate = raw.finished_date ? String(raw.finished_date).slice(0, 10) : new Date().toISOString().slice(0, 10)
+    // Mismo lector para las dos formas del evento. Registrar un pago con el
+    // importe leído del sitio equivocado habría metido un cero en el estado de
+    // cuenta de alguien, y un cero cuadra con todo sin que nadie lo note.
+    const p = datosDePago(ev.raw)
+    const amount = p.importe ?? 0
+    if (!(amount > 0)) {
+      return NextResponse.json({
+        error: 'Ese aviso no trae importe legible: no se registra un pago en cero. Revisa el evento en flywire_events.',
+      }, { status: 400 })
+    }
+    const paidDate = p.fecha ?? (ev.received_at ? String(ev.received_at).slice(0, 10) : new Date().toISOString().slice(0, 10))
     // Cuota destino: elegida por el humano (charge_external_id), explícitamente
     // ninguna (no_link → queda en la bandeja de pagos sin cuota), o el
     // auto-calce por monto exacto de siempre.
@@ -253,9 +273,10 @@ export async function PATCH(req: NextRequest) {
       paid_date: paidDate,
       series_code: 'FLYWIRE',
       transaction_reference: b.flywire_ref,
-      payment_method: raw.method || null,
-      currency_from: raw.currency || null,
-      country_from: raw.country || null,
+      payment_method: p.metodo,
+      // El CSV trae currency/country planos; el webhook los anida bajo data.
+      currency_from: ev.raw?.currency ?? ev.raw?.data?.currency_from ?? null,
+      country_from: ev.raw?.country ?? ev.raw?.data?.country ?? null,
     })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     let activated = null
