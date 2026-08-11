@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { codigosDeMalla, codigoVisible } from '@/lib/course-code'
 import { guardStaff } from '@/lib/api-guard'
 import { normalizarEvaluaciones } from '@/lib/evaluaciones'
+import { courseNameKey } from '@/lib/course-match'
 
 export const revalidate = 0
 
@@ -75,7 +76,33 @@ export async function GET(req: NextRequest) {
   const porCurso = await passingByCourse(sb)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = ((details ?? []) as any[]).filter(d => !withdrawn.has(String(d.external_id))).map(d => {
+  // Una asignatura CONVALIDADA o VALIDADA no se cursa, así que su inscripción
+  // vieja no debe seguir apareciendo "En curso" en el acta detallada.
+  //
+  // Renzo tenía English Composition I validada con 70 y, además, una
+  // inscripción vacía heredada de SystemActiva. El acta personal mostraba
+  // "Validation" —prefiere la validación— y la detallada mostraba "En curso"
+  // —solo ve el detalle—. Ninguna de las dos mentía: eran dos registros de la
+  // misma asignatura, y la pantalla que no sabía de validaciones enseñaba el
+  // que sobraba.
+  const resueltas = new Set<string>()
+  if (stu?.document_number) {
+    const { data: rv } = await sb.from('academic_grades')
+      .select('course_name, source').eq('document_number', stu.document_number)
+      .in('source', ['validacion', 'convalidacion'])
+    for (const r of (rv ?? []) as { course_name: string | null }[]) {
+      if (r.course_name) resueltas.add(courseNameKey(r.course_name))
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = ((details ?? []) as any[])
+    .filter(d => !withdrawn.has(String(d.external_id)))
+    // Solo se oculta la inscripción SIN nota: si tiene calificaciones, es un
+    // hecho académico y debe verse aunque además esté validada — justamente el
+    // caso que el auditor de vínculos señala para que alguien lo revise.
+    .filter(d => !(resueltas.has(courseNameKey(d.course_name)) && d.final_grade == null))
+    .map(d => {
   // Las evaluaciones se normalizan al leer: fuera el "Total" sintético del
   // importador y fuera el agrupamiento de proceso de SystemActiva. Los pesos
   // que llegan a la pantalla suman 100%, que es la regla de la casa.

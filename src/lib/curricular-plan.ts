@@ -175,7 +175,12 @@ export async function analizarCobertura(sb: SB): Promise<MatriculaIncompleta[]> 
 
   const notasDe = new Map<string, { course_name: string | null; course_id: string | null }[]>()
   for (const g of grades) {
-    if (g.source === 'convalidacion' || g.source === 'validacion') continue
+    // Una VALIDACIÓN cubre la asignatura: el estudiante no tiene que cursarla.
+    // Se saltaba junto con las convalidaciones, y por eso a Renzo se le creó
+    // una fila "No iniciada" de English Composition II que ya tenía validada.
+    // Las convalidaciones sí se saltan aquí porque llegan por su propia vía
+    // (transfer_credit_items); las validaciones no tienen otra vía que ésta.
+    if (g.source === 'convalidacion') continue
     const d = String(g.document_number ?? '')
     if (!notasDe.has(d)) notasDe.set(d, [])
     notasDe.get(d)!.push(g)
