@@ -98,6 +98,19 @@ export interface DatosPago {
   fecha: string | null
 }
 
+// El método de pago del CSV es un texto; en Notifications v2 es un OBJETO
+// ({type:'card', brand:'visa', last_four_digits:'3362'…}). Devolverlo tal cual
+// reventaba la pantalla con el error #31 de React —"un objeto no es un hijo
+// válido"— y tumbaba la página entera de conciliación.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function metodoLegible(pm: any): string | null {
+  if (pm == null) return null
+  if (typeof pm === 'string') return pm || null
+  if (typeof pm !== 'object') return String(pm)
+  const partes = [pm.brand ?? pm.type, pm.last_four_digits ? `····${pm.last_four_digits}` : null]
+  return partes.filter(Boolean).join(' ') || null
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function datosDePago(raw: any): DatosPago {
   const d = raw?.data ?? null
@@ -109,7 +122,7 @@ export function datosDePago(raw: any): DatosPago {
       dni: f.dni || f.document_number || null,
       importe: desdeSubunidades(d.amount_to != null ? Number(d.amount_to) : null, d.currency_to),
       moneda: d.currency_to ?? null,
-      metodo: d.payment_method ?? null,
+      metodo: metodoLegible(d.payment_method),
       fecha: d.finished_date ? String(d.finished_date).slice(0, 10) : null,
     }
   }
@@ -120,7 +133,7 @@ export function datosDePago(raw: any): DatosPago {
     // El CSV trae el importe en unidades: no se convierte.
     importe: raw?.amount != null && raw.amount !== '' ? Number(raw.amount) : null,
     moneda: raw?.currency ?? null,
-    metodo: raw?.method ?? null,
+    metodo: metodoLegible(raw?.method),
     fecha: raw?.finished_date ? String(raw.finished_date).slice(0, 10) : null,
   }
 }
