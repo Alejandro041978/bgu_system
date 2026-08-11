@@ -4,6 +4,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { codigosDeMalla, codigoVisible } from '@/lib/course-code'
 import { guardStaff } from '@/lib/api-guard'
+import { normalizarEvaluaciones } from '@/lib/evaluaciones'
 
 export const revalidate = 0
 
@@ -74,8 +75,18 @@ export async function GET(req: NextRequest) {
   const porCurso = await passingByCourse(sb)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = ((details ?? []) as any[]).filter(d => !withdrawn.has(String(d.external_id))).map(d => ({
+  const rows = ((details ?? []) as any[]).filter(d => !withdrawn.has(String(d.external_id))).map(d => {
+  // Las evaluaciones se normalizan al leer: fuera el "Total" sintético del
+  // importador y fuera el agrupamiento de proceso de SystemActiva. Los pesos
+  // que llegan a la pantalla suman 100%, que es la regla de la casa.
+  const ev = normalizarEvaluaciones(d.grades, d.process_grades)
+  return {
     ...d,
+    grades: ev.grades,
+    process_grades: ev.process_grades,
+    total_pct: ev.total_pct,
+    ajuste_pesos: ev.ajuste,
+    descuadrado: ev.descuadrado,
     course_code: codigoVisible(cursoByExt.get(String(d.external_id)), malla, d.course_code),
     program_name: d.enrollment_id ? (progByEnr.get(d.enrollment_id) ?? 'Sin programa') : 'Sin programa',
     editable: editableByExt.get(String(d.external_id)) ?? false,
@@ -91,7 +102,8 @@ export async function GET(req: NextRequest) {
       { course_id: cursoByExt.get(String(d.external_id)) ?? null, passing_score: notaByExt.get(String(d.external_id))?.passing ?? d.passing_score },
       porCurso,
     ),
-  }))
+  }
+  })
 
   return NextResponse.json({ details: rows })
 }

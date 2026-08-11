@@ -412,7 +412,11 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
         final_grade: d.total,
         passing_score: null,   // regla de la categoría, no dato de la nota
         max_score: 100,
-        grades: [{ n: 1, pct: 100, val: null, desc: 'Total' }],
+        // Sin slot "Total". Era una evaluación inventada al 100% que convivía
+        // con las evaluaciones reales —que ya suman 100%— y hacía que el acta
+        // detallada mostrara pesos sumando 200%. La nota final vive en su
+        // columna y se muestra aparte; no necesita ocupar una fila de la lista.
+        grades: [],
         process_grades: d.process,
       }
       const id = existingDetail.get(externalId)

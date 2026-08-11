@@ -12,6 +12,7 @@ interface Detail {
   extra_points: number | null; passing_score: number | null; max_score: number | null
   grades: Slot[] | null; process_grades: Slot[] | null
   origen?: string | null; rendido_pct?: number | null; estado_academico?: string | null
+  total_pct?: number | null; descuadrado?: boolean; ajuste_pesos?: string
 }
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 
@@ -262,6 +263,15 @@ function DetailPanel({ d, onEdit }: { d: Detail; onEdit: () => void }) {
         {d.extra_points != null && d.extra_points !== 0 && <span>Puntos extra: <b>{g(d.extra_points)}</b></span>}
         {d.passing_score != null && <span>Nota aprobatoria: <b>{g(d.passing_score)}</b></span>}
         {d.max_score != null && <span>Máx: <b>{g(d.max_score)}</b></span>}
+        {/* Los pesos de una asignatura suman 100%: todas las evaluaciones
+            entran directo al promedio y nada se agrupa. Si no suman, el aula
+            está mal ponderada y hay que verlo, no taparlo. */}
+        {d.total_pct != null && (
+          <span className={d.descuadrado ? 'text-amber-700 font-medium' : 'text-gray-400'}>
+            Pesos: <b>{Number(d.total_pct).toFixed(2)}%</b>
+            {d.descuadrado ? ' ⚠ no suman 100%' : ''}
+          </span>
+        )}
       </div>
     </div>
   )
