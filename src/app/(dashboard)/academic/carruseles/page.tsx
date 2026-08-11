@@ -6,7 +6,7 @@ export const revalidate = 0
 export default function CarruselesPage() {
   return (
     <>
-      <Topbar title="Carruseles" subtitle="Cobertura: todo activo debe estar en un carrusel (= acceso a Moodle)" />
+      <Topbar title="Carruseles" subtitle="La ruta de aprendizaje: qué asignaturas cursa cada estudiante y en qué orden avanza" />
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-5xl mx-auto">
           <CarouselsOverview />

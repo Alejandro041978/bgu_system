@@ -25,7 +25,8 @@ async function readAll(sb: any, table: string, select: string, filter?: (q: any)
 }
 
 // Tablero de cobertura de carruseles: todo alumno ACTIVO debe vivir en un
-// carrusel (pertenecer a uno = tener acceso a sus aulas Moodle). Por categoría:
+// carrusel: es su ruta de aprendizaje —qué asignaturas cursa y en qué orden
+// avanza—, y sin ella no tiene ninguna en curso. Por categoría:
 // los carruseles con sus conteos, y abajo los activos sin carrusel (típicamente
 // programas con varias entradas, donde la colocación es decisión humana).
 // GET ?category_id=
@@ -86,6 +87,18 @@ export async function GET(req: NextRequest) {
         (q: any) => q.in('group_id', groupIds))
     : []
   const groupOfId = new Map(groups.map(g => [g.id, g]))
+  // Cuántas asignaturas dicta cada carrusel. Un carrusel sin ninguna no es una
+  // ruta: quien esté dentro no cursa nada y el motor no lo hará avanzar jamás
+  // —nunca da por completado un carrusel vacío, porque avanzar por vacío
+  // regalaría el programa—. Sin esta columna, eso solo se veía entrando a la
+  // ficha de cada uno.
+  const asignaturas = new Map<string, number>()
+  if (groupIds.length) {
+    const { data: agc } = await sb.from('academic_group_courses').select('group_id').in('group_id', groupIds)
+    for (const r of (agc ?? []) as { group_id: string }[]) {
+      asignaturas.set(r.group_id, (asignaturas.get(r.group_id) ?? 0) + 1)
+    }
+  }
   const activos = new Map<string, number>(), completados = new Map<string, number>()
   const covered = new Set<string>()               // `${student}|${program}`
   for (const m of memberships) {
@@ -147,6 +160,7 @@ export async function GET(req: NextRequest) {
     label: [g.abbreviation, g.name].filter(Boolean).join(' · ') || g.id,
     position: pos.get(g.id) ?? null,
     is_last: !g.next_group_id,
+    asignaturas: asignaturas.get(g.id) ?? 0,
     activos: activos.get(g.id) ?? 0,
     completados: completados.get(g.id) ?? 0,
   })).sort((a, b) => a.program.localeCompare(b.program) || (a.position ?? 99) - (b.position ?? 99))

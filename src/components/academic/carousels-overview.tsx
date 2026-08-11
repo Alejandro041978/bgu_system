@@ -7,7 +7,7 @@ interface Ref { id: string; name: string }
 interface GroupRow {
   id: string; program: string; label: string
   position: number | null; is_last: boolean
-  activos: number; completados: number
+  asignaturas: number; activos: number; completados: number
 }
 interface Candidate { id: string; label: string }
 interface Unplaced {
@@ -62,8 +62,10 @@ export function CarouselsOverview() {
     load(categoryId)
   }
 
-  // Colocación automática global: programas con UN solo carrusel de entrada
-  // (coloca en el carrusel + crea cuenta y matricula en Moodle). Dry-run primero.
+  // Colocación automática global: programas con UN solo carrusel de entrada.
+  // Coloca al estudiante en su ruta; las aulas salen después de su colección,
+  // que es quien decide en cuál de las aulas de cada asignatura entra.
+  // Dry-run primero.
   async function autoPlace(execute: boolean) {
     setAutoBusy(true)
     setNotice(null)
@@ -111,18 +113,18 @@ export function CarouselsOverview() {
             {data.resumen.sin_carrusel > 0 ? (
               <span className="inline-flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-sm text-amber-700">
                 <AlertTriangle className="w-4 h-4" />
-                <b>{data.resumen.sin_carrusel}</b> sin carrusel (sin acceso a Moodle)
+                <b>{data.resumen.sin_carrusel}</b> sin ruta asignada
               </span>
             ) : (
               <span className="inline-flex items-center gap-2 bg-green-50 border border-green-100 rounded-lg px-3 py-2 text-sm text-green-700">
-                Cobertura completa ✓
+                Todos con ruta ✓
               </span>
             )}
           </div>
         )}
         <button onClick={() => autoPlace(false)} disabled={autoBusy}
           className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-          title="Coloca toda matrícula pendiente de programas con un solo carrusel (todas las categorías) y la matricula en Moodle">
+          title="Coloca en su ruta a toda matrícula pendiente de programas con un solo carrusel de entrada (todas las categorías)">
           {autoBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
           Colocación automática
         </button>
@@ -157,9 +159,13 @@ export function CarouselsOverview() {
             </>
           ) : (
             <>
+              {/* El aula no la da el carrusel: la da la colección del estudiante.
+                  El carrusel dice QUÉ asignaturas, y con eso se le matricula en
+                  las aulas que su colección tenga para ellas. */}
               <p className="font-medium">
-                ✓ {autoPlan.colocados} matrículas colocadas · {autoPlan.moodle_enrols ?? 0} matrículas en aulas Moodle
-                {(autoPlan.cuentas_creadas ?? 0) > 0 && <> · {autoPlan.cuentas_creadas} cuentas Moodle creadas</>}
+                ✓ {autoPlan.colocados} matrículas colocadas en su ruta
+                {(autoPlan.moodle_enrols ?? 0) > 0 && <> · {autoPlan.moodle_enrols} inscripciones en las aulas de su colección</>}
+                {(autoPlan.cuentas_creadas ?? 0) > 0 && <> · {autoPlan.cuentas_creadas} cuentas de campus creadas</>}
               </p>
               {(autoPlan.errors?.length ?? 0) > 0 && (
                 <p className="text-xs text-amber-700">Avisos: {autoPlan.errors!.join(' · ')}</p>
@@ -193,8 +199,9 @@ export function CarouselsOverview() {
               <tr className="border-b border-gray-100 bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">
                 <th className="text-left px-4 py-2">Carrusel</th>
                 <th className="text-center px-4 py-2 w-32">Secuencia</th>
-                <th className="text-right px-4 py-2 w-32">Activos</th>
-                <th className="text-right px-4 py-2 w-32">Completaron</th>
+                <th className="text-right px-4 py-2 w-28">Asignaturas</th>
+                <th className="text-right px-4 py-2 w-28">Cursando</th>
+                <th className="text-right px-4 py-2 w-28">Completaron</th>
               </tr>
             </thead>
             <tbody>
@@ -205,6 +212,11 @@ export function CarouselsOverview() {
                   </td>
                   <td className="px-4 py-2.5 text-center text-xs text-gray-500">
                     {g.position ? `${g.position}º${g.is_last ? ' · último' : ''}` : '—'}
+                  </td>
+                  {/* Un carrusel sin asignaturas no es una ruta: quien esté
+                      dentro no cursa nada y el motor no lo hace avanzar nunca. */}
+                  <td className={`px-4 py-2.5 text-right ${g.asignaturas ? 'text-gray-600' : 'text-amber-700 font-medium'}`}>
+                    {g.asignaturas ? g.asignaturas : (g.activos > 0 ? '0 ⚠' : '0')}
                   </td>
                   <td className="px-4 py-2.5 text-right font-semibold text-gray-900">{g.activos}</td>
                   <td className="px-4 py-2.5 text-right text-gray-500">{g.completados}</td>
@@ -218,9 +230,15 @@ export function CarouselsOverview() {
       {/* Activos sin carrusel */}
       {!loading && (data?.unplaced.length ?? 0) > 0 && (
         <div className="bg-white border border-amber-200 rounded-xl overflow-hidden">
-          <p className="px-4 py-2.5 border-b border-amber-100 bg-amber-50 text-sm font-semibold text-amber-800">
-            ⚠ Activos sin carrusel ({data!.unplaced.length}) — sin acceso a sus aulas Moodle
-          </p>
+          <div className="px-4 py-2.5 border-b border-amber-100 bg-amber-50">
+            <p className="text-sm font-semibold text-amber-800">
+              ⚠ Activos sin ruta asignada ({data!.unplaced.length})
+            </p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Están matriculados pero nadie les ha dicho qué asignaturas cursan ni en qué orden, así que no tienen
+              ninguna en curso ni pueden avanzar.
+            </p>
+          </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">

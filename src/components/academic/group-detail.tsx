@@ -149,7 +149,7 @@ export function GroupDetail({ groupId }: { groupId: string }) {
           </label>
         </div>
         {seqErr && <p className="text-xs text-red-600">{seqErr}</p>}
-        <p className="text-[11px] text-gray-400">El estudiante avanza al siguiente carrusel cuando aprueba todas las asignaturas de este; se desconecta de estas aulas y se matricula en las del siguiente.</p>
+        <p className="text-[11px] text-gray-400">El estudiante avanza al siguiente carrusel cuando aprueba todas las asignaturas de este. Al avanzar, deja las aulas de estas asignaturas y entra a las del siguiente carrusel — en cuál de las aulas de cada asignatura lo decide su colección, no el carrusel.</p>
       </div>
 
       {/* Lo que el carrusel DICTA: su plan de estudios. Se declara aquí, no se

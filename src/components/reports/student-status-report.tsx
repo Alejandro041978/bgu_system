@@ -64,7 +64,7 @@ export function StudentStatusReport() {
         <p><b>Matriculados</b> = Egresados + Titulados + Retirados + Activos + Campus socio (cada matrícula en un solo estado).</p>
         <p><b>Egresados</b> son matrículas terminadas cuyo título aún no se emite; al emitirse pasan a <b>Titulados</b>. Los dos juntos son el total de programas completados.</p>
         <p><b>Reentry</b> se muestra aparte (no suma): matrículas activas de estudiantes que se retiraron y volvieron.</p>
-        <p><b>Carrusel</b> y <b>Moodle</b> miden cobertura sobre los <b>Activos</b>: cuántos ya están colocados en un carrusel (lo que da acceso a sus aulas) y cuántos tienen cuenta Moodle. Lo ideal: ambos iguales a Activos.</p>
+        <p><b>Carrusel</b> y <b>Moodle</b> miden cobertura sobre los <b>Activos</b>: cuántos tienen ruta de aprendizaje asignada —qué asignaturas cursan y en qué orden— y cuántos tienen cuenta de campus. Lo ideal: ambos iguales a Activos.</p>
         <p>{d.rows.map(r => `${r.sigla} = ${r.category}`).join(' · ')}</p>
       </div>
     </div>

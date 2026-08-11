@@ -383,7 +383,7 @@ export function NuevaMatricula() {
 
       <p className="text-[11px] text-gray-400 flex items-start gap-1.5">
         <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-        Al matricular, si el programa tiene un único carrusel de entrada el estudiante se coloca automáticamente (con acceso a sus aulas Moodle). Si hay varias variantes, la colocación se hace en Estudiantes por Convocatoria.
+        Al matricular, si el programa tiene un único carrusel de entrada el estudiante se coloca automáticamente en él. Si hay varias variantes, la colocación se hace en Estudiantes por Convocatoria. El carrusel define qué asignaturas cursa; la colección, en cuál de las aulas de cada una entra.
       </p>
     </div>
   )
