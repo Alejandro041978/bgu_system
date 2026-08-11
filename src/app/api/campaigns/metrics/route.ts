@@ -15,13 +15,19 @@ const pct = (n: number, d: number) => d > 0 ? Math.round((n / d) * 1000) / 10 : 
 // GET → embudo y resultado de CADA campaña, más el motivo por el que una
 // campaña no está enviando (apagada, sin plantilla, sin bot, cupo agotado).
 // El éxito se mide con la regla propia de cada campaña (campaign-outcomes).
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (await isStudentUser(user)) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 
   const sb = db()
+  // Ventana de tiempo del EMBUDO. La cola y los elegibles son siempre una foto
+  // de hoy —quién cumple los criterios ahora—, pero contactados, respuestas y
+  // resultado son acumulados: sin poder acotarlos, un mes bueno y uno malo se
+  // mezclan y la campaña parece siempre igual.
+  const dias = Number(new URL(req.url).searchParams.get('dias') ?? 0)
+  const desde = dias > 0 ? new Date(Date.now() - dias * 864e5).toISOString() : null
   const { campaigns, assignments, optouts, en_cooldown } = await resolveEligibility(sb)
 
   // Contactos del modelo nuevo
@@ -32,7 +38,10 @@ export async function GET() {
     contactos.push(...(data ?? []))
     if ((data ?? []).length < 1000) break
   }
-  const exitosos = await computeOutcomes(sb, contactos.filter(c => c.status !== 'failed'))
+  // El filtro se aplica ANTES de calcular resultados: si no, el éxito contaría
+  // reconexiones de fuera de la ventana contra contactos de dentro.
+  const enVentana = desde ? contactos.filter(c => String(c.sent_at) >= desde) : contactos
+  const exitosos = await computeOutcomes(sb, enVentana.filter(c => c.status !== 'failed'))
 
   // Plantillas y bots disponibles (para explicar por qué una campaña no envía)
   const { data: tplRows } = await sb.from('whatsapp_templates').select('key, language, content_sid, active')
@@ -46,7 +55,7 @@ export async function GET() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const def = c as any
     const cola = assignments.filter(a => a.campaign_key === c.key)
-    const cs = contactos.filter(x => x.campaign_key === c.key && x.status !== 'failed')
+    const cs = enVentana.filter(x => x.campaign_key === c.key && x.status !== 'failed')
     const alumnosContactados = new Set(cs.map(x => x.student_id))
     const respondieron = new Set(cs.filter(x => x.replied_at).map(x => x.student_id))
     const exito = [...alumnosContactados].filter(id => exitosos.has(id)).length
@@ -106,5 +115,6 @@ export async function GET() {
       bloqueadas: filas.filter(f => f.bloqueo).length,
     },
     optouts, en_cooldown,
+    periodo: { dias, desde },
   })
 }

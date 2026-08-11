@@ -106,7 +106,23 @@ async function run(dryRun: boolean) {
     if (cupo <= 0) { resumen[camp.key].motivo = 'cupo diario alcanzado'; continue }
 
     const creds = { sid: bot.twilio_account_sid!, token: bot.twilio_auth_token!, from: bot.twilio_number! }
-    for (const a of cola.slice(0, cupo)) {
+
+    // El cupo se llena con quien SE PUEDE contactar, no con los primeros de la
+    // cola.
+    //
+    // Antes era cola.slice(0, cupo): se cogían los cinco primeros y a los que
+    // no tenían teléfono se les saltaba sin pasar al siguiente. Como el orden
+    // de la cola es el mismo cada día, los mismos ilocalizables la encabezaban
+    // siempre y la campaña no avanzaba: IW mandó 0 de 5 durante días porque sus
+    // cinco primeros no tienen número, y Cash Pay mandó 1 de 5 por lo mismo.
+    //
+    // Saltar a alguien sin teléfono no gasta cupo —no se contactó a nadie—,
+    // pero un fallo de Twilio sí lo gasta: si la plantilla está rota, es
+    // preferible que se note en cinco intentos y no que recorra la cola entera
+    // generando cientos de errores.
+    let usados = 0
+    for (const a of cola) {
+      if (usados >= cupo) break
       const s = stu.get(a.student_id)
       const tel = telefonoE164(s)
       const nombre = saludo(s?.first_name ?? null)
@@ -120,15 +136,16 @@ async function run(dryRun: boolean) {
         student_id: a.student_id, campaign_key: camp.key, template_key: tplKey,
         language: lang, reason: a.reason, sent_at: new Date().toISOString(),
       }
-      if (dryRun) { resumen[camp.key].enviados++; enviados++; continue }
+      if (dryRun) { resumen[camp.key].enviados++; enviados++; usados++; continue }
       try {
         const sid = await sendTemplate(`whatsapp:${tel}`, tpl.sid, { '1': nombre }, creds)
         await sb.from('campaign_contacts').insert({ ...bitacora, twilio_sid: sid, status: 'sent' })
-        resumen[camp.key].enviados++; enviados++
+        resumen[camp.key].enviados++; enviados++; usados++
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
         await sb.from('campaign_contacts').insert({ ...bitacora, status: 'failed', error: msg.slice(0, 300) })
         errores.push(`${camp.key}/${a.student_id}: ${msg.slice(0, 120)}`)
+        usados++
       }
     }
   }

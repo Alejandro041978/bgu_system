@@ -15,6 +15,7 @@ interface Data {
   campanas: Campana[]
   totales: { elegibles: number; contactados: number; exito: number; activas: number; bloqueadas: number }
   optouts: number; en_cooldown: number
+  periodo?: { dias: number; desde: string | null }
 }
 
 // Monitor de TODAS las campañas de Camila. El tablero histórico solo medía
@@ -24,15 +25,39 @@ export function CampaignsMonitor() {
   const [d, setD] = useState<Data | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Elegibles y cola son siempre la foto de hoy; contactados, respuestas y
+  // resultado son acumulados, y sin acotarlos un mes bueno y uno malo se
+  // mezclan hasta que la campaña parece siempre igual.
+  const [dias, setDias] = useState(0)
 
   useEffect(() => {
-    fetch('/api/campaigns/metrics').then(r => r.json()).then(j => {
-      if (j.error) setError(j.error); else setD(j)
+    setLoading(true)
+    fetch(`/api/campaigns/metrics?dias=${dias}`).then(r => r.json()).then(j => {
+      if (j.error) setError(j.error); else { setD(j); setError(null) }
       setLoading(false)
     }).catch(() => { setError('No se pudo cargar'); setLoading(false) })
-  }, [])
+  }, [dias])
 
-  if (loading) return <div className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /><p className="text-xs text-gray-400 mt-2">Resolviendo elegibilidad de todas las campañas…</p></div>
+  const RANGOS: { v: number; label: string }[] = [
+    { v: 1, label: 'Hoy' }, { v: 7, label: '7 días' }, { v: 30, label: '30 días' }, { v: 0, label: 'Todo' },
+  ]
+  const selector = (
+    <div className="flex items-center gap-1 mb-4">
+      <span className="text-xs text-gray-400 mr-1">Resultados de:</span>
+      {RANGOS.map(r => (
+        <button key={r.v} onClick={() => setDias(r.v)}
+          className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${dias === r.v
+            ? 'bg-blue-600 border-blue-600 text-white'
+            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+          {r.label}
+        </button>
+      ))}
+    </div>
+  )
+
+  // El selector se pinta también mientras carga: si desaparece al cambiar de
+  // rango, parece que el clic no hizo nada.
+  if (loading) return <div>{selector}<div className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /><p className="text-xs text-gray-400 mt-2">Resolviendo elegibilidad de todas las campañas…</p></div></div>
   if (error) return <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>
   if (!d) return null
 
@@ -45,6 +70,7 @@ export function CampaignsMonitor() {
 
   return (
     <div className="space-y-5">
+      {selector}
       {/* Resumen global */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {([
