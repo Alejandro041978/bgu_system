@@ -86,16 +86,44 @@ export async function GET(req: NextRequest) {
 
   // Asignatura vinculada (para anticipar el destino de cada nota) y notas
   // existentes de los alumnos del aula
-  const { data: prevOffs } = await sb.from('semester_offerings')
-    .select('course:academic_courses(code, name)').eq('moodle_course_id', String(courseid))
-  const linkedCourse = prevOffs?.[0]?.course ?? null
+  // La identidad del aula sale de la COLECCIÓN, igual que en la importación.
+  // Leerla de semester_offerings hacía que la vista previa pudiera anticipar
+  // una asignatura distinta de la que el importador iba a escribir — y una
+  // previsualización que no coincide con lo que va a pasar es peor que ninguna.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let linkedCourse: any = null
+  const { data: vinc } = await sb.from('moodle_course_links')
+    .select('course_id').eq('aula_id', courseid).eq('kind', 'asignatura').is('replaced_at', null)
+  const vincIds = [...new Set(((vinc ?? []) as { course_id: string | null }[]).map(v => v.course_id).filter(Boolean))]
+  if (vincIds.length) {
+    const { data: cs } = await sb.from('academic_courses')
+      .select('code, name, program_id, academic_programs(category_id)').in('id', vincIds)
+    linkedCourse = cs?.[0] ?? null
+  }
+  if (!linkedCourse) {
+    const { data: prevOffs } = await sb.from('semester_offerings')
+      .select('course:academic_courses(code, name, program_id, academic_programs(category_id))')
+      .eq('moodle_course_id', String(courseid))
+    linkedCourse = prevOffs?.[0]?.course ?? null
+  }
+
+  // La nota mínima de la CATEGORÍA. Sin ella, resolveImportTarget no puede
+  // distinguir una nota aprobada de una desaprobada y lo manda todo al mismo
+  // cajón: "ya registrada". Por eso esta pantalla anunciaba 0 importaciones en
+  // un aula con recursados pendientes de escribir.
+  let passing: number | null = null
+  if (linkedCourse?.academic_programs?.category_id) {
+    const { data: cat } = await sb.from('academic_programs_category')
+      .select('passing_score').eq('id', linkedCourse.academic_programs.category_id).maybeSingle()
+    passing = cat?.passing_score != null ? Number(cat.passing_score) : null
+  }
   const docsAula = [...new Set([...users.values()].map(u => byExternal.get(u.idnumber))
     .filter(Boolean).map(s => String(s.document_number ?? '')).filter(Boolean))]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gradesByDoc = new Map<string, any[]>()
   if (linkedCourse) {
     const all = await fetchByIn(sb, 'academic_grades',
-      'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source',
+      'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source, intento',
       'document_number', docsAula)
     for (const g of all) {
       const k = String(g.document_number)
@@ -108,7 +136,7 @@ export async function GET(req: NextRequest) {
 
   const matched: { document: string; name: string; total: number | null; destino: string }[] = []
   const unmatched: { fullname: string; idnumber: string }[] = []
-  let yaRegistradas = 0, rellenan = 0, nuevas = 0, actualizan = 0, sinCambio = 0
+  let yaRegistradas = 0, rellenan = 0, nuevas = 0, actualizan = 0, sinCambio = 0, recursados = 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const ug of ((report?.usergrades ?? []) as any[])) {
     const u = users.get(Number(ug.userid))
@@ -118,8 +146,12 @@ export async function GET(req: NextRequest) {
     const doc = String(stu.document_number ?? '')
     let destino = 'en curso'
     if (total != null && linkedCourse) {
-      const r = resolveImportTarget(gradesByDoc.get(doc) ?? [], linkedCourse, stableUuid(`moodle:${courseid}:${ug.userid}`))
+      const r = resolveImportTarget(gradesByDoc.get(doc) ?? [], linkedCourse, stableUuid(`moodle:${courseid}:${ug.userid}`), passing)
       if (r.action === 'skip') { destino = 'ya registrada (histórico)'; yaRegistradas++ }
+      else if (r.action === 'retake') {
+        destino = `recursado ${(r.intento ?? 2) - 1} (anterior: ${r.prev_value ?? '—'})`
+        recursados++
+      }
       else if (r.action === 'update') {
         if (r.prev_value != null && Math.abs(Number(r.prev_value) - total) < 0.005) { destino = 'sin cambio'; sinCambio++ }
         else { destino = `actualiza (${r.prev_value ?? '—'} → ${total})`; actualizan++ }
@@ -162,6 +194,7 @@ export async function GET(req: NextRequest) {
     nuevas,
     actualizan,
     sin_cambio: sinCambio,
+    recursados,
     desaparecidos,
     unmatched,
     matched,
