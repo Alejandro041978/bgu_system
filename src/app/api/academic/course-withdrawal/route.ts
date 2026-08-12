@@ -66,13 +66,17 @@ export async function GET(req: NextRequest) {
     malla.some(c => (c.code && g.course_code && String(c.code) === String(g.course_code)) || sameCourse(g.course_name, c.name))
 
   const { data: grades } = await sb.from('academic_grades')
-    .select('external_id, course_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id, estado_academico, intento')
+    .select('external_id, course_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id, estado_academico, intento, semester_id')
     .eq('document_number', student.document_number).neq('source', 'convalidacion').neq('source', 'validacion')
 
   // Parciales del Acta Detallada (misma inscripción por external_id): una
   // asignatura con evaluaciones con valor TAMBIÉN tiene notas (no solo la final).
   const { data: dets } = await sb.from('academic_grade_details')
     .select('external_id, grades, process_grades, makeup_grade').eq('student_id', studentId)
+
+  const { data: semRows } = await sb.from('academic_semesters').select('id, name')
+  const nombreSem = new Map((semRows ?? []).map((s: { id: string; name: string }) => [String(s.id), String(s.name)]))
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hasSlot = (arr: any) => Array.isArray(arr) && arr.some((s: any) => s && s.val != null)
   const partialsByExt = new Map<string, boolean>()
@@ -91,7 +95,8 @@ export async function GET(req: NextRequest) {
       credits: g.credits != null ? Number(g.credits) : null,
       // El recursado se distingue del primer intento en el propio registro:
       // los dos existen y el acta se queda con el mejor.
-      term: [etiquetaIntento(g.intento), [g.term_year, g.term_block].filter(Boolean).join(' · ')].filter(Boolean).join(' · '),
+      // El periodo sale del semestre; año+bloque se contradecían en 6.747 filas.
+      term: [etiquetaIntento(g.intento), g.semester_id ? (nombreSem.get(String(g.semester_id)) ?? null) : null].filter(Boolean).join(' · '),
       status: st.status, grade: st.grade, has_grade, withdrawn: !!g.withdrawn_at,
       // Solo se editan/borran notas importadas de SystemActiva (no las de Moodle)
       editable: g.source === 'systemactiva' && !g.moodle_course_id,

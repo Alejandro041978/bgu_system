@@ -24,7 +24,7 @@ interface Resultado {
     estudiantes: number; calificaciones: number
     aprobados: number; en_proceso: number; desaprobados: number
     promedio: number | null; notas_promediadas: number; sin_periodo: number
-    por_semestre: number; por_anio: number; solo_semestre: boolean
+    por_semestre: number
   }
   detalle: boolean; aviso: string | null; filas: Fila[]
 }
@@ -176,9 +176,7 @@ export function GradesReport() {
           <p className="text-[11px] text-gray-400">
             El promedio sale de {res.resumen.notas_promediadas} calificación(es) cerrada(s) —aprobadas y desaprobadas—;
             las que están en proceso son acumulados a medio camino y no se promedian.
-            {res.resumen.por_anio > 0 && ` De las calificaciones, ${res.resumen.por_semestre} traen el semestre en su fila y ${res.resumen.por_anio} se ubican por su año lectivo (así llegaron de SystemActiva, que numera los bloques del programa como "1", "2" o "3" en vez de nombrar el semestre).`}
-            {res.resumen.solo_semestre && ' Al pedir un semestre concreto solo entran las que lo nombran: una nota que solo trae el año no se puede colocar en Fall o Spring sin inventar.'}
-            {res.resumen.sin_periodo > 0 && ` ${res.resumen.sin_periodo} calificación(es) quedaron fuera por no traer ni semestre ni año. Sin filtro de periodo sí entran.`}
+            {res.resumen.sin_periodo > 0 && ` ${res.resumen.sin_periodo} calificación(es) quedaron fuera porque no dicen en qué semestre se cursaron. Sin filtro de periodo sí entran.`}
           </p>
 
           {res.aviso && (
