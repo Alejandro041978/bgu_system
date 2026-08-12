@@ -6,6 +6,7 @@ import { codigosDeMalla, codigoVisible } from '@/lib/course-code'
 import { guardStaff } from '@/lib/api-guard'
 import { normalizarEvaluaciones } from '@/lib/evaluaciones'
 import { courseNameKey } from '@/lib/course-match'
+import { numerarIntentos, etiquetaDeIntento } from '@/lib/intentos'
 
 export const revalidate = 0
 
@@ -95,6 +96,25 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Qué intento es cada fila. Se deriva del periodo porque las filas heredadas
+  // de SystemActiva llegaron como inscripciones sueltas y todas dicen "1": sin
+  // esto, el acta mostraba dos veces la misma asignatura sin distinguir el
+  // recursado del curso original.
+  const intentoDe = new Map<string, number>()
+  {
+    const porCurso = new Map<string, Record<string, unknown>[]>()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const d of (details ?? []) as any[]) {
+      const k = courseNameKey(d.course_name)
+      if (!porCurso.has(k)) porCurso.set(k, [])
+      porCurso.get(k)!.push(d)
+    }
+    for (const grupo of porCurso.values()) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const f of numerarIntentos(grupo as any[])) intentoDe.set(String(f.external_id), f.intento_calc)
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = ((details ?? []) as any[])
     .filter(d => !withdrawn.has(String(d.external_id)))
@@ -113,6 +133,8 @@ export async function GET(req: NextRequest) {
     process_grades: ev.process_grades,
     total_pct: ev.total_pct,
     ajuste_pesos: ev.ajuste,
+    intento: intentoDe.get(String(d.external_id)) ?? 1,
+    intento_label: etiquetaDeIntento(intentoDe.get(String(d.external_id)) ?? 1),
     descuadrado: ev.descuadrado,
     course_code: codigoVisible(cursoByExt.get(String(d.external_id)), malla, d.course_code),
     program_name: d.enrollment_id ? (progByEnr.get(d.enrollment_id) ?? 'Sin programa') : 'Sin programa',

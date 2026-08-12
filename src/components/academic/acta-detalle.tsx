@@ -13,6 +13,7 @@ interface Detail {
   grades: Slot[] | null; process_grades: Slot[] | null
   origen?: string | null; rendido_pct?: number | null; estado_academico?: string | null
   total_pct?: number | null; descuadrado?: boolean; ajuste_pesos?: string
+  intento?: number; intento_label?: string | null
 }
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 
@@ -167,7 +168,16 @@ export function ActaDetalle() {
                       <button onClick={() => toggle(d.id)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left">
                         {isOpen ? <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-800 truncate">{d.course_name ?? d.course_code ?? '—'}</p>
+                          <p className="text-sm text-gray-800 truncate">
+                            {d.course_name ?? d.course_code ?? '—'}
+                            {/* Sin esto, una asignatura recursada aparecía dos
+                                veces sin nada que dijera cuál fue primero. */}
+                            {d.intento_label && (
+                              <span className="ml-2 text-[11px] font-medium bg-blue-50 text-blue-700 rounded-full px-2 py-0.5 align-middle">
+                                {d.intento_label}
+                              </span>
+                            )}
+                          </p>
                           {d.course_code && <p className="text-xs text-gray-400">{d.course_code}</p>}
                         </div>
                         <span className="text-sm font-semibold text-gray-900 w-12 text-right">{g(val)}</span>
