@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Search, User, Loader2, FileText, LogOut, Pencil } from 'lucide-react'
+import { usePermissions } from '@/hooks/use-permissions'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 interface Program { id: string; name: string }
@@ -19,6 +20,8 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 }
 
 export function CurricularRecord() {
+  // "Editar nota" escribe una calificación: solo superadmin (ver api-guard).
+  const { superadmin } = usePermissions()
   const [q, setQ] = useState('')
   const [hits, setHits] = useState<StudentHit[]>([])
   const [student, setStudent] = useState<StudentHit | null>(null)
@@ -190,7 +193,7 @@ export function CurricularRecord() {
                         {/* Convalidadas y no registradas se ven, pero no se
                             retiran: no son inscripciones de este programa. */}
                         {r.kind !== 'inscripcion' ? null : busy === r.external_id ? <Loader2 className="w-3.5 h-3.5 animate-spin inline text-gray-400" /> : r.has_grade ? (
-                          r.editable ? (
+                          r.editable && superadmin ? (
                             <button onClick={() => editGrade(r)}
                               className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
                               title="Nota de SystemActiva: edítala o bórrala para poder retirar">

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isStudentUser } from '@/lib/student-identity'
+import { guardSuperadmin } from '@/lib/api-guard'
 import { rendidoPct, estadoAcademico, irrecuperable, type ItemProceso } from '@/lib/grade-status'
 
 export const revalidate = 0
@@ -53,6 +54,10 @@ async function todo(sb: any, tabla: string, cols: string, orden: string) {
 export async function POST(req: NextRequest) {
   const g = await requireStaff(); if ('error' in g) return g.error
   const apply = req.nextUrl.searchParams.get('apply') === '1'
+  // Reescribe el veredicto (aprobado/reprobado/pendiente) de todo el expediente
+  // de golpe. No elige la nota, pero decide lo que el acta dice de ella: se
+  // aplica con la misma llave que editarla. Simular sigue abierto.
+  if (apply) { const s = await guardSuperadmin(); if (s) return s }
   const sb = db()
   const t0 = Date.now()
 

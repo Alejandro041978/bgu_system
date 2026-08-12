@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { applyGradeEdit } from '@/lib/grades-write'
-import { guardStaff } from '@/lib/api-guard'
+import { guardStaff, guardSuperadmin } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -90,6 +90,11 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (b.action === 'nota') {
+    // Registrar la nota de la subsanación ES escribir una calificación: va al
+    // acta por la misma vía que el editor. Notificar o anular la solicitud
+    // siguen siendo trabajo de Registros; esto no.
+    const soloSuper = await guardSuperadmin()
+    if (soloSuper) return soloSuper
     if (r.status !== 'pendiente_evaluacion') return NextResponse.json({ error: 'La solicitud no está pendiente de evaluación' }, { status: 400 })
     const grade = Number(b.grade)
     if (!Number.isFinite(grade) || grade < 0 || grade > 100) return NextResponse.json({ error: 'Nota inválida (0-100)' }, { status: 400 })

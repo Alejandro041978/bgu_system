@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { sameCourse } from '@/lib/course-match'
 import { applyGradeEdit, type GradeChanges } from '@/lib/grades-write'
-import { guardStaff } from '@/lib/api-guard'
+import { guardStaff, guardSuperadmin } from '@/lib/api-guard'
 
 export const maxDuration = 60
 
@@ -107,8 +107,10 @@ export async function GET(req: NextRequest) {
 // PATCH { external_id, changes: { final_grade?, retake_grade?, course_name? }, reason }
 // Edita una nota. Pasa por grades-write: auditoría + marca de edición (que la
 // protege del sync) + recálculo inmediato del estudiante.
+//
+// Solo superadmin: ver guardSuperadmin() en lib/api-guard.
 export async function PATCH(req: NextRequest) {
-  const noAutorizado = await guardStaff()
+  const noAutorizado = await guardSuperadmin()
   if (noAutorizado) return noAutorizado
 
   const authClient = await createAuthClient()

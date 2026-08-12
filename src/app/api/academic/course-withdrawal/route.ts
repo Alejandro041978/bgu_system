@@ -6,7 +6,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { sameCourse, courseNameKey } from '@/lib/course-match'
 import { esFilaDePlan } from '@/lib/grade-sources'
 import { etiquetaIntento } from '@/lib/grades-write'
-import { guardStaff } from '@/lib/api-guard'
+import { guardStaff, guardSuperadmin } from '@/lib/api-guard'
 
 export const revalidate = 0
 
@@ -190,8 +190,10 @@ export async function GET(req: NextRequest) {
 // SOLO notas importadas de SystemActiva (source='systemactiva', sin moodle_course_id):
 // las de Moodle no se tocan aquí. Escribe edited_at para que el sync no la pise
 // y actualiza ambas tablas (academic_grades + academic_grade_details) por external_id.
+// Escribe final_grade a mano sobre una inscripción de SystemActiva: es una
+// edición de nota como cualquier otra, así que solo superadmin.
 export async function PATCH(req: NextRequest) {
-  const noAutorizado = await guardStaff()
+  const noAutorizado = await guardSuperadmin()
   if (noAutorizado) return noAutorizado
 
   const user = await requireUser()

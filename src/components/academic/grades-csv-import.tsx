@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Loader2, Upload, Download, CheckCircle2, AlertTriangle, FileSpreadsheet } from 'lucide-react'
+import { usePermissions } from '@/hooks/use-permissions'
 
 interface OkRow { fila: number; document: string; student_name: string; course_code: string | null; course_name: string; grade: number; destino: string }
 interface ErrRow { fila: number; motivo: string; documento?: string }
@@ -37,6 +38,8 @@ function parseCsv(text: string): { rows: Record<string, string>[]; error: string
 }
 
 export function GradesCsvImport() {
+  // El simulacro lo puede correr cualquiera del personal; aplicar, no.
+  const { superadmin } = usePermissions()
   const [rows, setRows] = useState<Record<string, string>[]>([])
   const [fileName, setFileName] = useState<string | null>(null)
   const [preview, setPreview] = useState<Preview | null>(null)
@@ -149,11 +152,18 @@ export function GradesCsvImport() {
             </div>
           )}
 
-          <button onClick={apply} disabled={applying || preview.con_error > 0 || preview.validas === 0}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
-            {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            Aplicar {preview.validas} notas
-          </button>
+          {superadmin ? (
+            <button onClick={apply} disabled={applying || preview.con_error > 0 || preview.validas === 0}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
+              {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              Aplicar {preview.validas} notas
+            </button>
+          ) : (
+            <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+              La revisión es tuya; aplicar las {preview.validas} notas al expediente lo hace un
+              superadministrador. Un CSV escribe las mismas calificaciones que el editor.
+            </p>
+          )}
           {preview.con_error > 0 && <p className="text-[11px] text-rose-600">Corrige los errores del archivo y vuelve a subirlo: no se aplica nada mientras haya filas inválidas.</p>}
         </div>
       )}

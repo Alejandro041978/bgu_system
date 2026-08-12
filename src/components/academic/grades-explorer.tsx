@@ -3,11 +3,16 @@
 import { useState, useRef } from 'react'
 import { Search, Loader2, User, X } from 'lucide-react'
 import { GradesTable, type Grade } from './grades-table'
+import { usePermissions } from '@/hooks/use-permissions'
 
 interface Student { document_number: string; student_name: string }
 interface Program { id: string; name: string }
 
 export function GradesExplorer() {
+  // Corregir una nota es potestad del superadministrador. El botón no se muestra
+  // a nadie más: el endpoint ya lo rechaza, pero ofrecer una acción que va a
+  // fallar es peor que no ofrecerla.
+  const { superadmin } = usePermissions()
   const [query, setQuery] = useState('')
   const [students, setStudents] = useState<Student[]>([])
   const [searching, setSearching] = useState(false)
@@ -172,7 +177,7 @@ export function GradesExplorer() {
           )}
           {loadingGrades
             ? <div className="bg-white rounded-xl border border-gray-200 py-16 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>
-            : <GradesTable grades={visibleGrades} onEdit={openEdit} />}
+            : <GradesTable grades={visibleGrades} onEdit={superadmin ? openEdit : undefined} />}
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { esFilaDePlan } from '@/lib/grade-sources'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isStudentUser } from '@/lib/student-identity'
+import { guardSuperadmin } from '@/lib/api-guard'
 import {
   indexarMalla, resolverAsignatura, estadoDeNota, ordenarIntentos,
   type NotaMin, type CursoMalla, type MotivoSinResolver,
@@ -50,6 +51,9 @@ async function todo(sb: any, tabla: string, cols: string, orden: string, tune = 
 export async function POST(req: NextRequest) {
   const g = await requireStaff(); if ('error' in g) return g.error
   const apply = req.nextUrl.searchParams.get('apply') === '1'
+  // Crea inscripciones por asignatura leyendo las notas: toca el expediente en
+  // masa. Misma llave que editar. Simular sigue abierto.
+  if (apply) { const s = await guardSuperadmin(); if (s) return s }
   const sb = db()
   const t0 = Date.now()
 

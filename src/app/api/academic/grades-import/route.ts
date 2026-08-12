@@ -6,7 +6,7 @@ import { importGrades, resolveImportTarget, fetchByIn, stableUuid, type ImportRo
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
-import { guardStaff } from '@/lib/api-guard'
+import { guardStaff, guardSuperadmin } from '@/lib/api-guard'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -39,6 +39,14 @@ export async function POST(req: NextRequest) {
   }
   if (b.rows.length > 2000) return NextResponse.json({ error: 'Máximo 2000 filas por carga' }, { status: 400 })
   const dry = b.dry !== false
+
+  // Un CSV escribe las mismas notas que el editor, solo que de a dos mil. Cerrar
+  // el editor y dejar esta puerta abierta no habría cerrado nada. El simulacro
+  // se queda para todo el personal: mirar qué haría una carga no cambia nada.
+  if (!dry) {
+    const soloSuper = await guardSuperadmin()
+    if (soloSuper) return soloSuper
+  }
 
   const sb = db()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
+import { esSuperadmin } from '@/lib/api-guard'
 
 const admin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,8 +29,10 @@ export async function GET() {
     .maybeSingle()
 
   if (!emp?.role_id) {
-    // No employee record or no role = superadmin
-    return NextResponse.json({ superadmin: true, permissions: {} })
+    // Sin rol NO alcanza: superadmin es quien además está en app_superadmins.
+    // Se usa el mismo juez que el servidor (lib/api-guard) para que la pantalla
+    // no ofrezca botones que el endpoint va a rechazar, ni al revés.
+    return NextResponse.json({ superadmin: await esSuperadmin(user), permissions: {} })
   }
 
   const { data: rows } = await sb

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Search, Loader2, ChevronRight, ChevronDown, Pencil } from 'lucide-react'
+import { usePermissions } from '@/hooks/use-permissions'
 
 interface Slot { n: number; desc: string; pct: number | null; val: number | null }
 interface Detail {
@@ -55,6 +56,8 @@ function statusOf(d: Detail): { label: string; cls: string } | null {
 }
 
 export function ActaDetalle() {
+  // "Editar nota final" escribe una calificación: solo superadmin (ver api-guard).
+  const { superadmin } = usePermissions()
   const [q, setQ] = useState('')
   const [hits, setHits] = useState<StudentHit[]>([])
   const [student, setStudent] = useState<StudentHit | null>(null)
@@ -183,7 +186,7 @@ export function ActaDetalle() {
                         <span className="text-sm font-semibold text-gray-900 w-12 text-right">{g(val)}</span>
                         {st && <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${st.cls}`}>{st.label}</span>}
                       </button>
-                      {isOpen && <DetailPanel d={d} onEdit={() => editGrade(d)} />}
+                      {isOpen && <DetailPanel d={d} onEdit={superadmin ? () => editGrade(d) : undefined} />}
                     </div>
                   )
               })}
@@ -222,7 +225,7 @@ function SlotTable({ title, slots }: { title: string; slots: Slot[] }) {
   )
 }
 
-function DetailPanel({ d, onEdit }: { d: Detail; onEdit: () => void }) {
+function DetailPanel({ d, onEdit }: { d: Detail; onEdit?: () => void }) {
   // Lista unificada: ya no se distingue entre notas principales y de proceso
   // (las integraciones nuevas escriben todo en una sola lista; la separación
   // era herencia de SystemActiva). Se oculta el marcador "Total" vacío que
@@ -233,7 +236,7 @@ function DetailPanel({ d, onEdit }: { d: Detail; onEdit: () => void }) {
   ].map((s, i) => ({ ...s, n: i + 1 }))
   return (
     <div className="px-4 pb-4 pt-1 bg-gray-50/50 space-y-3">
-      {d.editable && (
+      {d.editable && onEdit && (
         <div className="flex justify-end">
           <button onClick={onEdit}
             className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"

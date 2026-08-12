@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, Bell, CheckCircle2, CircleSlash, Award } from 'lucide-react'
+import { usePermissions } from '@/hooks/use-permissions'
 
 interface Row {
   id: string; student_name: string; document: string; student_email: string | null
@@ -20,6 +21,9 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 const fdate = (d: string | null) => (d ? d.split('T')[0].split('-').reverse().join('/') : '—')
 
 export function ExamsControl() {
+  // Notificar y anular siguen siendo trabajo de Registros. Registrar la nota
+  // del examen escribe en el acta: solo superadmin (ver api-guard).
+  const { superadmin } = usePermissions()
   const [rows, setRows] = useState<Row[] | null>(null)
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [filter, setFilter] = useState('pendiente_evaluacion')
@@ -112,6 +116,8 @@ export function ExamsControl() {
                     <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-700">
                       <Award className="w-3.5 h-3.5" /> {r.result_grade}
                     </span>
+                  ) : r.status === 'pendiente_evaluacion' && !superadmin ? (
+                    <span className="text-[11px] text-gray-400" title="La nota del examen la registra un superadministrador">pendiente de nota</span>
                   ) : r.status === 'pendiente_evaluacion' ? (
                     <span className="inline-flex items-center gap-1.5">
                       <input type="number" min={0} max={100} step="0.01" value={grade[r.id] ?? ''}
