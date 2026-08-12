@@ -104,5 +104,12 @@ export async function esSuperadmin(user: { id: string; email?: string | null }):
   // la que ya pasaba, y evita quedarse sin nadie capaz de corregir una nota.
   if (error?.code === '42P01') return !(await isStudentUser(user))
 
+  // Cualquier otro fallo al leer la lista niega. Es deliberado: ante la duda,
+  // que no se pueda tocar un acta. El caso real fue un grant que faltaba —la
+  // tabla existía y la lectura devolvía "permission denied"—, y el síntoma es
+  // inconfundible: de golpe no hay ningún superadministrador. Se arregla con el
+  // grant a service_role de supabase/superadmins.sql, no aflojando esto.
+  if (error) return false
+
   return !!lista
 }

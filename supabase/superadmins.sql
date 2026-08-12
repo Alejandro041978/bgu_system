@@ -20,6 +20,12 @@ create table if not exists public.app_superadmins (
 
 alter table public.app_superadmins enable row level security;
 
+-- El servidor lee esta tabla con la service_role. Sin este grant la lectura
+-- falla con "permission denied" —no con "no existe"—, y entonces el guard no
+-- reconoce a NADIE como superadministrador: nadie puede corregir una nota. Pasó
+-- al crear la tabla por primera vez, así que queda escrito aquí.
+grant select, insert, update, delete on public.app_superadmins to service_role;
+
 comment on table public.app_superadmins is
   'Cuentas con potestad de superadministrador (editar calificaciones, entre otras). Se administra a mano: agregar a alguien aquí es una decisión de Dirección.';
 
