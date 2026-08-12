@@ -122,7 +122,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   // aula se sellaban con el año de la cohorte equivocada. Se toma la MÁS
   // RECIENTE, que es la que se está dictando.
   const { data: ofertas } = await sb.from('semester_offerings')
-    .select('semester:academic_semesters(name, year:academic_years(start_date))')
+    .select('semester:academic_semesters(id, name, start_date, year:academic_years(start_date))')
     .eq('moodle_course_id', String(courseid))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sems = ((ofertas ?? []) as any[]).map(o => o.semester).filter(Boolean)
@@ -130,6 +130,10 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   const sem = sems[0] ?? null
   const termYear: number | null = sem?.year?.start_date ? Number(String(sem.year.start_date).slice(0, 4)) : null
   const termBlock: string | null = sem?.name ? String(sem.name).trim().replace(/\s+/g, '_') : null
+  // El semestre en sí, que es el orden temporal fiable: año+bloque se
+  // contradicen en 6.747 filas del histórico.
+  const semesterId: string | null = sem?.id ? String(sem.id) : null
+  const semesterStart: string | null = sem?.start_date ? String(sem.start_date) : null
   // Presupuesto para las llamadas pesadas a Moodle (el reporte de un aula de
   // 500+ estudiantes tarda minutos). Sin deadline (importación manual): 240s.
   const heavyTimeout = () => {
@@ -251,12 +255,22 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   const gradesByDoc = new Map<string, any[]>()
   {
     const all = await fetchByIn(sb, 'academic_grades',
-      'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year',
+      'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year, semester_id',
       'document_number', docsImport, { orderBy: 'external_id' })
+    // Cada nota previa viaja con la FECHA de su semestre: es con lo que se
+    // decide si el intento que llega es posterior, y el año suelto no sirve.
+    const { data: todosSem } = await sb.from('academic_semesters').select('id, start_date')
+    const inicioDe = new Map<string, string>()
+    for (const s of (todosSem ?? []) as { id: string; start_date: string | null }[]) {
+      if (s.start_date) inicioDe.set(String(s.id), String(s.start_date))
+    }
     for (const g of all) {
       const k = String(g.document_number)
       if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
-      gradesByDoc.get(k)!.push(g)
+      gradesByDoc.get(k)!.push({
+        ...g,
+        semester_start: g.semester_id ? (inicioDe.get(String(g.semester_id)) ?? null) : null,
+      })
     }
     // Un aula con diez o más alumnos donde NINGUNO tiene una sola nota en todo
     // el ERP no existe: es la lectura del historial que vino vacía. Importar
@@ -315,7 +329,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       { code: destCourse.code, name: destCourse.name },
       stableUuid(`moodle:${courseid}:${ug.userid}`),
       passing,
-      { rendido_pct: rendido, term_year: termYear },
+      { rendido_pct: rendido, term_year: termYear, semester_start: semesterStart },
     )
     if (target.action === 'skip') { yaRegistradas++; continue }
     if (target.action === 'fill') rellenadas++
@@ -336,6 +350,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       credits: destCourse.credits ?? null,
       term_year: termYear,
       term_block: termBlock,
+      semester_id: semesterId,
       final_grade: total,
       // El mínimo NO se guarda en la nota: es la regla de la categoría y se
       // resuelve al leer. Guardarlo era lo que devolvía a la base los mínimos

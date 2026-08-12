@@ -160,6 +160,9 @@ export interface ImportRow {
   credits?: number | null
   term_year?: number | null
   term_block?: string | null
+  // El semestre real. Año y bloque se conservan como dato crudo, pero el orden
+  // temporal se decide con esto.
+  semester_id?: string | null
   final_grade: number | null
   passing_score?: number | null
   // Estado académico calculado del detalle: cuánto del curso está rendido, qué
@@ -199,7 +202,7 @@ export function resolveImportTarget(
   categoryPassing: number | null = null,
   // Evidencia del intento que se está importando: cuánto rindió y de qué
   // periodo es. Sin ella no se abre un recursado.
-  intentoNuevo?: { rendido_pct?: number | null; term_year?: number | null },
+  intentoNuevo?: { rendido_pct?: number | null; term_year?: number | null; semester_start?: string | null },
 ): { action: 'skip' | 'fill' | 'new' | 'update' | 'retake'; external_id: string; shield: boolean; prev_value: number | null; intento?: number } {
   const matches = (studentRows ?? [])
     .filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
@@ -276,9 +279,13 @@ export function resolveImportTarget(
   // dato que falta no autoriza a crear una nota.
   if (previa) {
     const rindio = Number(intentoNuevo?.rendido_pct ?? 0) > 0
-    const anioPrevio = previa.term_year != null ? Number(previa.term_year) : null
-    const anioNuevo = intentoNuevo?.term_year != null ? Number(intentoNuevo.term_year) : null
-    const posterior = anioPrevio != null && anioNuevo != null && anioNuevo > anioPrevio
+    // El "después" se mide con el SEMESTRE cuando se conoce. El año suelto
+    // mentía: el aula 155 tiene oferta en dos años y term_year de las notas de
+    // Activa contradice al bloque en 6.747 filas, así que "posterior" nunca se
+    // cumplía y la regla quedó muerta el día que se escribió.
+    const previoOrden = previa.semester_start ?? (previa.term_year != null ? String(previa.term_year) : null)
+    const nuevoOrden = intentoNuevo?.semester_start ?? (intentoNuevo?.term_year != null ? String(intentoNuevo.term_year) : null)
+    const posterior = previoOrden != null && nuevoOrden != null && String(nuevoOrden) > String(previoOrden)
     if (rindio && posterior) {
       const intento = Math.max(...matches.map(m => Number(m.intento ?? 1)), 1) + 1
       return {
@@ -391,6 +398,7 @@ export async function importGrades(
       credits: r.credits ?? null,
       term_year: r.term_year ?? null,
       term_block: r.term_block ?? null,
+      semester_id: r.semester_id ?? null,
       final_grade: r.final_grade,
       passing_score: r.passing_score ?? null,
       rendido_pct: r.rendido_pct ?? null,

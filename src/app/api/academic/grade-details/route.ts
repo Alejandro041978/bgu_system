@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   const sb = db()
   const [{ data: details }, { data: enr }, { data: stu }] = await Promise.all([
     sb.from('academic_grade_details')
-      .select('id, external_id, enrollment_id, course_code, course_name, term_year, term_block, final_grade, retake_grade, makeup_grade, extra_points, passing_score, max_score, grades, process_grades')
+      .select('id, external_id, enrollment_id, course_code, course_name, term_year, term_block, semester_id, final_grade, retake_grade, makeup_grade, extra_points, passing_score, max_score, grades, process_grades')
       .eq('student_id', studentId)
       .order('term_year', { ascending: false }).order('term_block', { ascending: false }).order('course_name'),
     sb.from('academic_student_enrollments').select('id, academic_programs(name)').eq('student_id', studentId),
@@ -102,6 +102,14 @@ export async function GET(req: NextRequest) {
   // recursado del curso original.
   const intentoDe = new Map<string, number>()
   {
+    // El orden temporal sale del SEMESTRE, no de año+bloque: esos dos se
+    // contradecían en 6.747 filas y la numeración de intentos depende de
+    // saber cuál fue primero.
+    const { data: sems } = await sb.from('academic_semesters').select('id, start_date')
+    const inicioDe = new Map<string, string>()
+    for (const s of (sems ?? []) as { id: string; start_date: string | null }[]) {
+      if (s.start_date) inicioDe.set(String(s.id), String(s.start_date))
+    }
     const porCurso = new Map<string, Record<string, unknown>[]>()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const d of (details ?? []) as any[]) {
@@ -115,6 +123,7 @@ export async function GET(req: NextRequest) {
         final_grade: oficial?.final ?? d.final_grade,
         retake_grade: oficial?.retake ?? d.retake_grade,
         rendido_pct: estadoByExt.get(String(d.external_id))?.rendido ?? null,
+        orden: d.semester_id ? (inicioDe.get(String(d.semester_id)) ?? null) : null,
       })
     }
     for (const grupo of porCurso.values()) {
