@@ -107,7 +107,15 @@ export async function GET(req: NextRequest) {
     for (const d of (details ?? []) as any[]) {
       const k = courseNameKey(d.course_name)
       if (!porCurso.has(k)) porCurso.set(k, [])
-      porCurso.get(k)!.push(d)
+      // La nota y lo rendido viven en academic_grades: sin ellos no se puede
+      // saber si la fila es un intento real o una inscripción vacía.
+      const oficial = notaByExt.get(String(d.external_id))
+      porCurso.get(k)!.push({
+        ...d,
+        final_grade: oficial?.final ?? d.final_grade,
+        retake_grade: oficial?.retake ?? d.retake_grade,
+        rendido_pct: estadoByExt.get(String(d.external_id))?.rendido ?? null,
+      })
     }
     for (const grupo of porCurso.values()) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

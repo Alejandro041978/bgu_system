@@ -25,7 +25,22 @@ export interface FilaIntento {
   term_block?: string | null
   synced_at?: string | null
   intento?: number | null
+  // Evidencia de que ese intento se cursó de verdad. Sin nota y sin nada
+  // rendido, la fila es una inscripción, no un intento.
+  final_grade?: number | null
+  retake_grade?: number | null
+  rendido_pct?: number | null
 }
+
+// Una fila cuenta como INTENTO cuando hay algo que demuestre que se cursó.
+//
+// Ruth Perez tenía Project Management aprobada con 94.80 y, además, una
+// inscripción vacía de SystemActiva de un periodo posterior: cero
+// evaluaciones, ninguna nota. Numerando solo por periodo, esa inscripción
+// salía como "Recursado 1" de una asignatura que ya había aprobado — el ERP
+// afirmando un hecho académico que no ocurrió.
+const esIntentoReal = (f: FilaIntento): boolean =>
+  f.final_grade != null || f.retake_grade != null || Number(f.rendido_pct ?? 0) > 0
 
 // Clave de orden del periodo. Sin año no se puede ordenar: esas filas van al
 // final y comparten número, que es lo honesto cuando no se sabe cuándo fue.
@@ -43,6 +58,9 @@ export function numerarIntentos<T extends FilaIntento>(filas: T[]): (T & { inten
   let anterior: string | null = null
   for (const f of orden) {
     const k = clave(f)
+    // Una inscripción sin nota ni actividad no numera: no es un intento, y
+    // etiquetarla de recursado afirmaría algo que no pasó.
+    if (!esIntentoReal(f)) { out.push({ ...f, intento_calc: 1 }); continue }
     // Solo sube el contador al cambiar de periodo: las del mismo periodo son
     // el mismo intento visto dos veces.
     if (anterior === null || k !== anterior) n++
