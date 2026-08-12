@@ -40,22 +40,50 @@ export async function GET(req: NextRequest) {
       .filter(c => c.format !== 'site')
       .map(c => ({ id: c.id, shortname: c.shortname, fullname: c.fullname, visible: c.visible }))
 
-    // VÍNCULO EXACTO: semester_offerings.moodle_course_id (el ID de aula que se
-    // configura en el detalle del grupo). Cuando existe, ESA es la asignatura
-    // destino — sin interpretar nombres. El parseo del código del shortname
-    // queda solo como sugerencia para aulas aún no vinculadas.
+    // VÍNCULO EXACTO. La identidad del aula la da la COLECCIÓN
+    // (moodle_course_links); la oferta queda como respaldo para las aulas que
+    // nunca se migraron. Sin interpretar nombres en ningún caso.
+    //
+    // Esta lista leía SOLO la oferta, mientras la vista previa ya leía la
+    // colección. Resultado: un aula vinculada en su colección y sin oferta
+    // —las 711 y 712, por ejemplo— calculaba bien la previa y a la vez decía
+    // "esta aula no está vinculada a ninguna asignatura", con el botón de
+    // importar bloqueado. Dos lecturas distintas de la misma pregunta en la
+    // misma pantalla.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const linkedByAula = new Map<number, any>()
+
     const { data: linkedOffs } = await sb.from('semester_offerings')
       .select('moodle_course_id, course:academic_courses(id, code, name, academic_programs(name)), grupo:academic_groups(abbreviation, name)')
       .not('moodle_course_id', 'is', null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const linkedByAula = new Map<number, any>()
+    const grupoDeAula = new Map<number, string | null>()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const o of (linkedOffs ?? []) as any[]) {
       const aulaId = Number(o.moodle_course_id)
-      if (!isFinite(aulaId) || !o.course) continue
+      if (!isFinite(aulaId)) continue
+      const grupo = o.grupo ? [o.grupo.abbreviation, o.grupo.name].filter(Boolean).join(' · ') : null
+      if (grupo && !grupoDeAula.has(aulaId)) grupoDeAula.set(aulaId, grupo)
+      if (!o.course) continue
       linkedByAula.set(aulaId, {
         course: { id: o.course.id, code: o.course.code, name: o.course.name, program: o.course.academic_programs?.name ?? '' },
-        group: o.grupo ? [o.grupo.abbreviation, o.grupo.name].filter(Boolean).join(' · ') : null,
+        group: grupo,
+      })
+    }
+
+    // La colección MANDA: pisa lo que dijera la oferta.
+    const { data: vincs } = await sb.from('moodle_course_links')
+      .select('aula_id, course:academic_courses(id, code, name, academic_programs(name)), coleccion:moodle_collections(name)')
+      .eq('kind', 'asignatura').is('replaced_at', null).not('course_id', 'is', null)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const v of (vincs ?? []) as any[]) {
+      const aulaId = Number(v.aula_id)
+      if (!isFinite(aulaId) || !v.course) continue
+      linkedByAula.set(aulaId, {
+        course: { id: v.course.id, code: v.course.code, name: v.course.name, program: v.course.academic_programs?.name ?? '' },
+        // Si la colección no trae grupo, se conserva el de la oferta: es el
+        // dato que dice a qué carrusel se está dictando.
+        group: v.coleccion?.name ?? grupoDeAula.get(aulaId) ?? null,
       })
     }
 
