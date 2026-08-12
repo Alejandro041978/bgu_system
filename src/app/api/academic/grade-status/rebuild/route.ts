@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   const cambios: { external_id: string; rendido_pct: number | null; estado_academico: string }[] = []
   const cuenta: Record<string, number> = { aprobado: 0, reprobado: 0, pendiente: 0 }
   const porOrigen: Record<string, Record<string, number>> = {}
-  let alerta = 0
+  let alerta = 0, sinMinimo = 0
 
   for (const n of notas) {
     const valor = n.retake_grade ?? n.final_grade ?? null
@@ -80,7 +80,13 @@ export async function POST(req: NextRequest) {
     if (!esMoodle && valor != null) {
       // Resultado final de un sistema apagado: no hay curso a medias que valer.
       const min = passingFor(n, porCurso)
-      estado = min != null && Number(valor) >= min ? 'aprobado' : 'reprobado'
+      // Sin mínimo conocido NO se dictamina. Antes el ternario caía en
+      // "reprobado" cuando el mínimo era null, así que una nota de 93 sin
+      // course_id quedaba desaprobada — 65 filas, 58 de ellas con 70 o más.
+      // El acta sí sabe resolver el mínimo, porque recorre la malla de un
+      // programa concreto: dejándole el estado en blanco, lo decide bien.
+      if (min == null) { sinMinimo++; continue }
+      estado = Number(valor) >= min ? 'aprobado' : 'reprobado'
     } else {
       estado = estadoAcademico({
         valor, passing_score: passingFor(n, porCurso), rendido_pct: rend, cerrado: !!n.locked_at,
@@ -105,6 +111,9 @@ export async function POST(req: NextRequest) {
     estado: cuenta,
     por_origen: porOrigen,
     pendientes_que_ya_no_pueden_aprobar: alerta,
+    // Notas con valor cuyo mínimo no se pudo resolver: no se dictaminan y se
+    // cuentan, porque son las que necesitan que alguien les ponga course_id.
+    sin_minimo_conocido: sinMinimo,
     a_escribir: cambios.length,
     duracion_s: 0 as number,
   }
