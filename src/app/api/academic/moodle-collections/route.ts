@@ -327,7 +327,23 @@ export async function POST(req: NextRequest) {
       .update({ sync_enabled: on, sync_enabled_by: quien, sync_enabled_at: ahora }, { count: 'exact' })
       .eq('collection_id', b.collection_id).eq('kind', 'asignatura')
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, aulas: count ?? 0, sincronizando: on })
+
+    // El capstone no se sincroniza nunca, y encender la colección entera es
+    // justo por donde volvería a encenderse sin que nadie lo decidiera. Su aula
+    // sigue vinculada —el estudiante entra igual—; lo que no hace es traer notas.
+    let capstone = 0
+    if (on) {
+      const { data: caps } = await sb.from('academic_courses').select('id').eq('is_capstone', true)
+      const ids = (caps ?? []).map((c: { id: string }) => String(c.id))
+      if (ids.length) {
+        const { data: apagadas } = await sb.from('moodle_course_links')
+          .update({ sync_enabled: false, sync_enabled_by: quien, sync_enabled_at: ahora })
+          .eq('collection_id', b.collection_id).eq('kind', 'asignatura')
+          .in('course_id', ids).select('aula_id')
+        capstone = (apagadas ?? []).length
+      }
+    }
+    return NextResponse.json({ ok: true, aulas: (count ?? 0) - capstone, sincronizando: on, capstone_excluidas: capstone })
   }
 
   return NextResponse.json({ error: 'Acción desconocida' }, { status: 400 })

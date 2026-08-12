@@ -82,6 +82,8 @@ const PAGE_GROUPS = [
       { key: 'academic_teaching', label: 'Docentes · Asignación Docente' },
       // Calificaciones
       { key: 'academic_grades', label: 'Notas' },
+      { key: 'academic_external_campus', label: 'Notas de campus externo' },
+      { key: 'academic_capstone', label: 'Notas de Capstone' },
       { key: 'academic_acta', label: 'Acta Personal' },
       { key: 'academic_acta_detail', label: 'Acta Detallada' },
       { key: 'academic_curricular', label: 'Registro Curricular (retiro de asignaturas)' },

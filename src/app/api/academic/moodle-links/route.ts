@@ -296,7 +296,26 @@ export async function POST(req: NextRequest) {
         { count: 'exact' })
       .in('aula_id', ids).eq('kind', 'asignatura')
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, [encender ? 'sincronizando' : 'apagadas']: count ?? ids.length })
+
+    // El aula de una asignatura capstone da acceso y nunca trae notas. Se vuelve
+    // a apagar aquí en vez de confiar en que nadie la encienda: la regla vive en
+    // la marca de la asignatura, no en la memoria de quien pulsa el botón.
+    let capstone = 0
+    if (encender) {
+      const { data: caps } = await sb.from('academic_courses').select('id').eq('is_capstone', true)
+      const capIds = (caps ?? []).map((c: { id: string }) => String(c.id))
+      if (capIds.length) {
+        const { data: apagadas } = await sb.from('moodle_course_links')
+          .update({ sync_enabled: false, sync_enabled_by: quien, sync_enabled_at: ahora })
+          .in('aula_id', ids).eq('kind', 'asignatura').in('course_id', capIds).select('aula_id')
+        capstone = (apagadas ?? []).length
+      }
+    }
+    return NextResponse.json({
+      ok: true,
+      [encender ? 'sincronizando' : 'apagadas']: (count ?? ids.length) - capstone,
+      ...(capstone ? { capstone_excluidas: capstone } : {}),
+    })
   }
 
   if (aplicar === 'alta' || aplicar === 'media') {

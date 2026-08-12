@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target, Gift, ShieldCheck, ShieldOff, PiggyBank,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone, CreditCard, RefreshCw, ListChecks, LayoutGrid,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone, CreditCard, RefreshCw, ListChecks, LayoutGrid, Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -150,6 +150,8 @@ const navigation: NavGroup[] = [
           { name: 'Vinculación de Aulas', href: '/academic/classroom-links', icon: Link2, pageKey: 'academic_classroom_links' },
           { name: 'Colección por matrícula', href: '/academic/collection-backfill', icon: Layers, pageKey: 'academic_collection_backfill' },
           { name: 'Auditor de vínculos', href: '/academic/link-audit', icon: Shield, pageKey: 'academic_link_audit' },
+          { name: 'Notas de campus externo', href: '/academic/external-campus-grades', icon: Globe, pageKey: 'academic_external_campus' },
+          { name: 'Notas de Capstone', href: '/academic/capstone-grades', icon: GraduationCap, pageKey: 'academic_capstone' },
           { name: 'Cargar Notas (CSV)', href: '/academic/grades-import', icon: Upload, pageKey: 'academic_grades_import' },
           { name: 'Sincronizar asignatura', href: '/academic/course-sync', icon: RefreshCw, pageKey: 'academic_course_sync' },
           { name: 'Exámenes · Control', href: '/academic/examenes', icon: FileCheck, pageKey: 'academic_exams' },
