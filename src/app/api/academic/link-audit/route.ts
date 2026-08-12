@@ -29,6 +29,7 @@ export async function GET() {
         titulo: r.hallazgos.filter(h => h.tipo === 'titulo').length,
         fuentes: r.hallazgos.filter(h => h.tipo === 'fuentes').length,
         convalidada: r.hallazgos.filter(h => h.tipo === 'convalidada').length,
+        sin_ficha: r.hallazgos.filter(h => h.tipo === 'sin_ficha').length,
       },
       hallazgos: r.hallazgos,
     })

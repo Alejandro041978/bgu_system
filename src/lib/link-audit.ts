@@ -11,7 +11,7 @@
 // programas y media colección está en español contra una malla en inglés. La
 // lección es contrastar lo que ya tenemos y enseñar las contradicciones.
 //
-// Tres contrastes, los tres baratos:
+// Cuatro contrastes, los cuatro baratos:
 //
 //   1. TÍTULO vs CÓDIGO — el título del aula nombra a otra asignatura de la
 //      misma malla. Así se encontró la 155.
@@ -22,6 +22,10 @@
 //   3. CONVALIDADA CON NOTAS — una asignatura convalidada que recibe
 //      calificaciones. Es la consecuencia visible de un vínculo equivocado, y
 //      se descubría comparando dos pantallas a mano.
+//   4. NOTA SIN FICHA — el documento de la nota no cruza con ningún
+//      estudiante. Los cuatro casos del 12-08 venían mal escritos desde
+//      SystemActiva: un punto suelto, un documento sin guiones, una CURP
+//      cortada. 91 notas de gente real, una con 10 asignaturas calificadas.
 // ---------------------------------------------------------------------------
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,7 +43,7 @@ export function tituloDeAula(shortname: string | null | undefined): string {
 }
 
 export interface Hallazgo {
-  tipo: 'titulo' | 'fuentes' | 'convalidada'
+  tipo: 'titulo' | 'fuentes' | 'convalidada' | 'sin_ficha'
   aula_id?: number
   aula?: string | null
   coleccion?: string | null
@@ -68,7 +72,7 @@ export async function auditarVinculos(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
     todo(sb, 'academic_courses', 'id, code, name, program_id') as Promise<any[]>,
     todo(sb, 'moodle_collections', 'id, name') as Promise<any[]>,
     todo(sb, 'semester_offerings', 'moodle_course_id, course_id') as Promise<any[]>,
-    todo(sb, 'academic_grades', 'document_number, course_name, source, moodle_course_id') as Promise<any[]>,
+    todo(sb, 'academic_grades', 'document_number, student_name, course_name, source, final_grade, moodle_course_id') as Promise<any[]>,
     todo(sb, 'transfer_credits', 'id, student_id, status') as Promise<any[]>,
     todo(sb, 'transfer_credit_items', 'transfer_credit_id, dest_course_id, dest_course_name') as Promise<any[]>,
     todo(sb, 'academic_students', 'id, document_number, first_name, last_name') as Promise<any[]>,
@@ -186,6 +190,44 @@ export async function auditarVinculos(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       dice: c.curso, contra: 'convalidada para esos estudiantes',
       detalle: `${c.docs.size} estudiante(s) con esta asignatura convalidada están recibiendo notas: `
         + [...c.docs].slice(0, 6).map(d => nomDe.get(d) ?? d).join(', ') + (c.docs.size > 6 ? '…' : ''),
+    })
+  }
+
+  // 4. Notas cuyo documento no cruza con NINGUNA ficha.
+  //
+  // Los cuatro casos encontrados el 12-08-2026 venían mal escritos desde
+  // SystemActiva: un punto suelto delante, un punto detrás, un documento
+  // dominicano sin sus guiones y una CURP cortada a 14 de sus 18 caracteres.
+  // Eran 91 notas de gente real —una estudiante con 10 asignaturas
+  // calificadas— y la única señal era que salieran como "(sin ficha)" en un
+  // reporte que alguien mirara por casualidad.
+  //
+  // Se agrupan por documento porque el arreglo es por documento, no por nota.
+  const fichas = new Set(studs.map(s => String(s.document_number ?? '')).filter(Boolean))
+  const digitos = new Map<string, string>()
+  for (const s of studs) {
+    const d = String(s.document_number ?? '').replace(/\D/g, '')
+    if (d) digitos.set(d, `${s.first_name ?? ''} ${s.last_name ?? ''}`.trim())
+  }
+  const sinFicha = new Map<string, { n: number; nombre: string | null; conNota: number }>()
+  for (const g of grades) {
+    const d = String(g.document_number ?? '')
+    if (!d || fichas.has(d)) continue
+    if (!sinFicha.has(d)) sinFicha.set(d, { n: 0, nombre: null, conNota: 0 })
+    const v = sinFicha.get(d)!
+    v.n++
+    if (g.student_name && !v.nombre) v.nombre = String(g.student_name)
+    if (g.final_grade != null) v.conNota++
+  }
+  for (const [doc, v] of sinFicha) {
+    // Si los mismos dígitos sí encuentran ficha, el arreglo es evidente y se
+    // dice; si no, hace falta que alguien identifique a la persona.
+    const porDig = digitos.get(doc.replace(/\D/g, ''))
+    hallazgos.push({
+      tipo: 'sin_ficha', notas: v.n,
+      dice: doc, contra: v.nombre ?? '(la nota no trae nombre)',
+      detalle: `${v.n} nota(s), ${v.conNota} con calificación.`
+        + (porDig ? ` Los mismos dígitos corresponden a la ficha de ${porDig}.` : ' Ninguna ficha coincide, ni comparando solo los dígitos.'),
     })
   }
 

@@ -4,13 +4,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { Loader2, CheckCircle2, RefreshCw } from 'lucide-react'
 
 interface Hallazgo {
-  tipo: 'titulo' | 'fuentes' | 'convalidada'
+  tipo: 'titulo' | 'fuentes' | 'convalidada' | 'sin_ficha'
   aula_id?: number; aula?: string | null; coleccion?: string | null
   dice: string; contra: string; notas: number; detalle: string
 }
 interface Data {
   revisadas: number; total: number
-  por_tipo: { titulo: number; fuentes: number; convalidada: number }
+  por_tipo: { titulo: number; fuentes: number; convalidada: number; sin_ficha: number }
   hallazgos: Hallazgo[]
 }
 
@@ -26,6 +26,10 @@ const TIPO: Record<Hallazgo['tipo'], { label: string; cls: string; explica: stri
   convalidada: {
     label: 'Convalidada con notas', cls: 'bg-violet-50 text-violet-800 border-violet-200',
     explica: 'Una asignatura convalidada está recibiendo calificaciones. Suele ser la consecuencia visible de un aula mal identificada.',
+  },
+  sin_ficha: {
+    label: 'Nota sin ficha', cls: 'bg-orange-50 text-orange-800 border-orange-200',
+    explica: 'El documento de la nota no corresponde a ningún estudiante. Los casos vistos venían mal escritos desde SystemActiva —un punto suelto, un documento sin sus guiones, una CURP cortada— y eran notas de gente real que no aparecían en su expediente.',
   },
 }
 
@@ -72,14 +76,14 @@ export function LinkAudit() {
       ) : (
         <>
           <div className="flex flex-wrap gap-2">
-            {(['fuentes', 'titulo', 'convalidada'] as const).map(t => data.por_tipo[t] > 0 && (
+            {(['fuentes', 'titulo', 'sin_ficha', 'convalidada'] as const).map(t => data.por_tipo[t] > 0 && (
               <span key={t} className={`text-xs px-2.5 py-1 rounded-full border ${TIPO[t].cls}`}>
                 {data.por_tipo[t]} · {TIPO[t].label}
               </span>
             ))}
           </div>
 
-          {(['fuentes', 'titulo', 'convalidada'] as const).map(t => {
+          {(['fuentes', 'titulo', 'sin_ficha', 'convalidada'] as const).map(t => {
             const items = data.hallazgos.filter(h => h.tipo === t)
             if (!items.length) return null
             return (
@@ -97,15 +101,20 @@ export function LinkAudit() {
                           {h.aula ?? h.dice}
                         </p>
                         <span className="text-xs text-gray-400 shrink-0">
-                          {h.notas} {h.tipo === 'convalidada' ? 'estudiante(s)' : 'nota(s) importadas'}
+                          {h.notas} {h.tipo === 'convalidada' ? 'estudiante(s)' : 'nota(s)'}
                           {h.coleccion ? ` · ${h.coleccion}` : ''}
                         </span>
                       </div>
-                      {h.tipo !== 'convalidada' && (
+                      {h.tipo === 'sin_ficha' && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          documento <b>{h.dice}</b> · la nota dice que es de <b>{h.contra}</b>
+                        </p>
+                      )}
+                      {h.tipo === 'titulo' || h.tipo === 'fuentes' ? (
                         <p className="text-xs text-gray-600 mt-1">
                           el ERP dice <b>{h.dice}</b> · contra <b>{h.contra}</b>
                         </p>
-                      )}
+                      ) : null}
                       <p className="text-[11px] text-gray-400 mt-0.5">{h.detalle}</p>
                     </div>
                   ))}
