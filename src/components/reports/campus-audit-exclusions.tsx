@@ -4,8 +4,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { Loader2, EyeOff, Undo2 } from 'lucide-react'
 import { usePermissions } from '@/hooks/use-permissions'
 
-interface Categoria { ruta: string; aulas: number; excluida: boolean }
-interface Exclusion { ruta: string; nota: string | null }
+// `aulas` incluye las subcategorías —es lo que de verdad se excluye—;
+// `propias` son solo las que cuelgan directamente de la categoría.
+interface Categoria { ruta: string; aulas: number; propias: number; excluida: boolean }
+interface Exclusion { ruta: string; nota: string | null; aulas?: number }
 interface Data { exclusiones: Exclusion[]; categorias: Categoria[]; aulas_excluidas: number }
 
 // Qué categorías de Moodle no mide el auditor.
@@ -84,7 +86,10 @@ export function CampusAuditExclusions() {
         </div>
         <div className="divide-y divide-gray-50">
           {d.exclusiones.map(e => {
-            const n = d.categorias.filter(c => c.excluida && c.ruta.includes(e.ruta)).reduce((s, c) => s + c.aulas, 0)
+            // Lo cuenta el servidor con la misma regla de tramos que aplica el
+            // auditor. Contarlo aquí con un `includes` sobre los nombres daba
+            // otro número que el de la decisión.
+            const n = e.aulas ?? 0
             return (
               <div key={e.ruta} className="px-4 py-2.5 flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -115,8 +120,23 @@ export function CampusAuditExclusions() {
           <select value={sel} onChange={e => setSel(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
             <option value="">Elige una categoría de Moodle…</option>
-            {disponibles.map(c => <option key={c.ruta} value={c.ruta}>{c.ruta} — {c.aulas} aula{c.aulas === 1 ? '' : 's'}</option>)}
+            {disponibles.map(c => (
+              <option key={c.ruta} value={c.ruta}>
+                {c.ruta} — {c.aulas} aula{c.aulas === 1 ? '' : 's'}
+                {c.aulas > c.propias ? ` (${c.propias} propia${c.propias === 1 ? '' : 's'} + ${c.aulas - c.propias} en subcategorías)` : ''}
+              </option>
+            ))}
           </select>
+          {sel && (() => {
+            const c = d.categorias.find(x => x.ruta === sel)
+            if (!c) return null
+            return (
+              <p className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                Dejarán de auditarse <b>{c.aulas} aula{c.aulas === 1 ? '' : 's'}</b>
+                {c.aulas > c.propias && <> — las {c.propias} de esta categoría y {c.aulas - c.propias} de las que cuelgan de ella</>}.
+              </p>
+            )
+          })()}
           <input value={nota} onChange={e => setNota(e.target.value)}
             placeholder="Por qué no vale: en construcción, en desuso, demo…"
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />

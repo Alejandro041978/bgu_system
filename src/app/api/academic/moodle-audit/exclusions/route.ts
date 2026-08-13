@@ -42,14 +42,31 @@ export async function GET() {
     const c = r.categoria ? String(r.categoria) : '(sin categoría)'
     cuenta.set(c, (cuenta.get(c) ?? 0) + 1)
   }
-  const categorias = [...cuenta].map(([ruta, aulas]) => ({
-    ruta, aulas, excluida: estaExcluida(ruta, exclusiones),
+
+  // Dos cuentas por categoría, y la que manda es la segunda.
+  //
+  //   propias  — aulas que cuelgan directamente de ella.
+  //   aulas    — las que quedarían fuera al excluirla, subcategorías incluidas.
+  //
+  // Al principio solo se ofrecía la primera, y mentía en el momento exacto de
+  // decidir: "Excluidos ERP — 2 aulas" cuando excluirla saca 37, porque la
+  // coincidencia es por tramos de la ruta y sus hijas empiezan igual.
+  const categorias = [...cuenta].map(([ruta, propias]) => ({
+    ruta,
+    propias,
+    aulas: rows.filter(r => estaExcluida(r.categoria, [{ ruta, nota: null }])).length,
+    excluida: estaExcluida(ruta, exclusiones),
   })).sort((a, b) => a.ruta.localeCompare(b.ruta))
 
   return NextResponse.json({
-    exclusiones,
+    exclusiones: exclusiones.map(e => ({
+      ...e,
+      aulas: rows.filter(r => estaExcluida(r.categoria, [e])).length,
+    })),
     categorias,
-    aulas_excluidas: categorias.filter(c => c.excluida).reduce((s, c) => s + c.aulas, 0),
+    // Sobre las filas, no sumando categorías: una excluida por dos reglas
+    // distintas se contaría dos veces.
+    aulas_excluidas: rows.filter(r => estaExcluida(r.categoria, exclusiones)).length,
   })
 }
 
