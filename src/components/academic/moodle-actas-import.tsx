@@ -52,10 +52,20 @@ export function MoodleActasImport() {
   async function selectAula(a: Aula) {
     setSelected(a); setPreview(null); setResult(null); setError(null)
     setLoadingPreview(true)
-    const d = await fetch(`/api/academic/moodle-actas?courseid=${a.id}`).then(r => r.json())
-    setLoadingPreview(false)
-    if (d.error) { setError(d.error); return }
-    setPreview(d)
+    // El fallo se atrapa aquí. Antes era `.then(r => r.json())` a secas: si la
+    // petición se caía —tiempo agotado, 504 del proxy con HTML en el cuerpo—,
+    // la promesa se rompía, setLoadingPreview(false) no llegaba a ejecutarse y
+    // el aula se quedaba cargando indefinidamente sin un solo mensaje.
+    try {
+      const r = await fetch(`/api/academic/moodle-actas?courseid=${a.id}`)
+      const d = await r.json().catch(() => ({ error: `El servidor respondió ${r.status} sin datos legibles.` }))
+      if (!r.ok || d.error) { setError(d.error ?? `Error ${r.status}`); return }
+      setPreview(d)
+    } catch (e) {
+      setError(`No se pudo consultar el aula ${a.id}: ${e instanceof Error ? e.message : 'error de red'}`)
+    } finally {
+      setLoadingPreview(false)
+    }
   }
 
   async function setLock(action: 'lock' | 'unlock') {

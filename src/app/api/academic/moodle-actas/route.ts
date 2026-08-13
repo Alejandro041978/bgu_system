@@ -94,12 +94,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ aulas: aulas.map(a => ({ ...a, linked: linkedByAula.get(Number(a.id)) ?? null })) })
   }
 
-  // Vista previa de un aula
+  // Vista previa de un aula.
+  //
+  // Las dos llamadas a Moodle van con un tope generoso y, sobre todo, con el
+  // fallo explicado: el informe de un aula grande tarda minutos, y cuando el
+  // tope se agotaba la excepción subía sin envolver y la pantalla se quedaba
+  // girando para siempre sin decir nada.
   const courseid = Number(courseidParam)
-  const [users, report] = await Promise.all([
-    enrolledMap(courseid),
-    moodleCall('gradereport_user_get_grade_items', { courseid }),
-  ])
+  let users, report
+  try {
+    ;[users, report] = await Promise.all([
+      enrolledMap(courseid, 240_000),
+      moodleCall('gradereport_user_get_grade_items', { courseid }, { timeoutMs: 240_000 }),
+    ])
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'error'
+    return NextResponse.json({
+      error: /abort|timeout|signal/i.test(msg)
+        ? `Moodle no devolvió el acta del aula ${courseid} a tiempo. Suele pasar con aulas de muchos estudiantes: vuelve a intentarlo, y si insiste, impórtala desde el cron nocturno que no tiene este límite.`
+        : `Moodle: ${msg}`,
+    }, { status: 504 })
+  }
 
   // Puente idnumber → estudiante
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
