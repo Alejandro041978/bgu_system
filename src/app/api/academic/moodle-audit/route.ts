@@ -4,6 +4,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { moodleCall, moodleConfigured, MOODLE_STUDENT_ROLEID } from '@/lib/moodle'
 import { randomBytes } from 'crypto'
 import { guardStaff } from '@/lib/api-guard'
+import { cargarExclusiones, estaExcluida } from '@/lib/moodle-audit-exclusions'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -45,6 +46,21 @@ export async function GET() {
     rows.push(...chunk)
     if (chunk.length < 1000) break
   }
+
+  // Fuera lo que no enseña: aulas en construcción, en desuso o demos, agrupadas
+  // por eLearning en categorías declaradas aparte. Medirlas contra la política
+  // producía incumplimientos que nadie iba a arreglar, y una lista de fallos
+  // que nadie arregla enseña a no leer la lista.
+  //
+  // No se borran ni se ocultan: se cuentan aparte y el auditor dice cuántas
+  // dejó fuera, para que excluir sea una decisión visible.
+  const exclusiones = await cargarExclusiones(sb)
+  const excluidas = rows.filter(r => estaExcluida(r.categoria, exclusiones))
+  if (excluidas.length) {
+    const dentro = new Set(excluidas.map(r => r.aula_id))
+    for (let i = rows.length - 1; i >= 0; i--) if (dentro.has(rows[i].aula_id)) rows.splice(i, 1)
+  }
+
   // Pesos: DOS señales complementarias y AMBAS deben cumplir.
   //  - suma_coeficientes (BD de Moodle, ítems VISIBLES): detecta huecos que la
   //    normalización esconde (3 Module Tests de 4 → 95)… pero es CIEGA al peso
@@ -169,6 +185,12 @@ export async function GET() {
     familias: [...familias.values()].sort((a, b) => String(a.orden).localeCompare(String(b.orden))),
     moodle_url: process.env.MOODLE_URL ?? null,
     total: rows.length,
+    // Lo que el auditor decidió no mirar, y por dónde.
+    excluidas: excluidas.length,
+    excluidas_por: exclusiones.map(e => ({
+      ruta: e.ruta, nota: e.nota,
+      aulas: excluidas.filter(r => estaExcluida(r.categoria, [e])).length,
+    })),
     cumplen: porEstado.get('cumplen') ?? 0,
     incumplen: porEstado.get('incumplen') ?? 0,
     pesos_mal: rows.filter(r => cumplePesosDe(r) === false).length,
@@ -287,6 +309,19 @@ export async function POST(req: NextRequest) {
     }
     return false
   }
+  // Las categorías excluidas no se auditan siquiera: cada aula cuesta una o
+  // varias llamadas a Moodle —y para las vacías, matricular y desmatricular la
+  // cuenta de servicio—, así que medir lo que no enseña alarga la corrida sin
+  // producir nada. Se respeta si alguien pide un aula por id: pedirla a mano es
+  // una decisión explícita y manda sobre la regla general.
+  const exclusiones = await cargarExclusiones(sb)
+  let saltadas = 0
+  if (!soloIds && exclusiones.length) {
+    const antes = aulas.length
+    aulas = aulas.filter(c => !estaExcluida(catName.get(Number(c.categoryid)) ?? null, exclusiones))
+    saltadas = antes - aulas.length
+  }
+
   if (soloIds) {
     aulas = aulas.filter(c => soloIds.has(Number(c.id)))
     if (!aulas.length) {
@@ -451,5 +486,8 @@ export async function POST(req: NextRequest) {
   // campus: si no coinciden, el problema está en lo que devuelve
   // core_course_get_categories, no en cómo lo agrupamos.
   const raices = [...new Set(aulas.map(c => catRoot.get(Number(c.categoryid))).filter(Boolean))]
-  return NextResponse.json({ ok: true, auditadas, familia: familia ?? 'todas', raices_moodle: raices })
+  return NextResponse.json({
+    ok: true, auditadas, familia: familia ?? 'todas', raices_moodle: raices,
+    ...(saltadas ? { saltadas_por_exclusion: saltadas } : {}),
+  })
 }

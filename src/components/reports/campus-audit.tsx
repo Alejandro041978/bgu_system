@@ -21,6 +21,8 @@ interface Data {
   sin_evaluaciones: number; sin_ponderacion: number
   sin_datos: number; vinculadas: number; sin_matricula_manual: number; coefs_caducados?: number
   audited_at_mas_antigua?: string | null
+  excluidas?: number
+  excluidas_por?: { ruta: string; nota: string | null; aulas: number }[]
   familias?: Familia[]
   aulas: Aula[]
 }
@@ -134,6 +136,14 @@ export function CampusAudit() {
               )}
             </>
           ) : 'Aún no se ha auditado el campus.'}
+          {/* Lo que se decidió no medir se dice aquí. Una exclusión silenciosa
+              es indistinguible de un error del auditor. */}
+          {!!d?.excluidas && (
+            <p className="text-gray-500 mt-0.5">
+              {d.excluidas} aula{d.excluidas === 1 ? '' : 's'} fuera de la auditoría
+              {d.excluidas_por?.length ? `: ${d.excluidas_por.filter(e => e.aulas).map(e => `${e.ruta} (${e.aulas})`).join(' · ')}` : ''}
+            </p>
+          )}
         </div>
         <button onClick={() => audit()} disabled={!!auditing}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-60">
