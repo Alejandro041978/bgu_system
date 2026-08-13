@@ -266,6 +266,43 @@ export interface StudentAccountState {
 // Google devuelve lastLoginTime = epoch cuando la cuenta NUNCA se ha usado.
 const NUNCA = '1970-01-01T00:00:00.000Z'
 
+/**
+ * Último acceso al correo estudiantil de TODO el dominio, en una pasada.
+ *
+ * getStudentAccountState() pregunta por un correo; para una lista de deudores
+ * serían cientos de llamadas y varios minutos. El directorio se lista paginado
+ * de 500 en 500 —el dominio entero cabe en unas pocas— y se busca en memoria.
+ *
+ * Devuelve el mapa correo → última sesión (null si la cuenta existe pero nunca
+ * se usó). Si Google no está configurado o falla, devuelve un mapa vacío: el
+ * reporte se dibuja igual y la columna dice "sin dato", que es la verdad.
+ */
+export async function lastLoginByEmail(): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>()
+  if (!googleConfigured()) return out
+  try {
+    const token = await getAccessToken()
+    let pageToken: string | undefined
+    for (let vuelta = 0; vuelta < 40; vuelta++) {
+      const url = new URL('https://admin.googleapis.com/admin/directory/v1/users')
+      url.searchParams.set('domain', DOMAIN)
+      url.searchParams.set('maxResults', '500')
+      url.searchParams.set('fields', 'nextPageToken,users(primaryEmail,lastLoginTime)')
+      if (pageToken) url.searchParams.set('pageToken', pageToken)
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) break
+      const d = await res.json()
+      for (const u of d.users ?? []) {
+        const last = u.lastLoginTime && u.lastLoginTime !== NUNCA ? u.lastLoginTime : null
+        out.set(String(u.primaryEmail).toLowerCase(), last)
+      }
+      pageToken = d.nextPageToken
+      if (!pageToken) break
+    }
+  } catch { /* el reporte se dibuja sin esta columna */ }
+  return out
+}
+
 export async function getStudentAccountState(email: string): Promise<StudentAccountState> {
   const token = await getAccessToken()
   const res = await fetch(`https://admin.googleapis.com/admin/directory/v1/users/${encodeURIComponent(email)}`, {

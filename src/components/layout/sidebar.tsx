@@ -48,6 +48,7 @@ const navigation: NavGroup[] = [
           { name: 'Egresados', href: '/reports/egresados', icon: GraduationCap, pageKey: 'report_graduates' },
           { name: 'Recaudación', href: '/finance/recaudacion', icon: Banknote, pageKey: 'finance_recaudacion' },
           { name: 'Reporte de Deuda', href: '/finance/debt-report', icon: FileWarning, pageKey: 'finance_debt_report' },
+          { name: 'Relación de Deudores', href: '/finance/debtors', icon: UserMinus, pageKey: 'finance_debtors' },
           { name: 'Auditoría de Tuition', href: '/reports/tuition-audit', icon: Shield, pageKey: 'report_tuition_audit' },
           { name: 'Matrículas', href: '/admision/matriculas', icon: GraduationCap, pageKey: 'admision_matriculas' },
         ],

@@ -149,6 +149,7 @@ const PAGE_GROUPS = [
       { key: 'finance_reconciliation', label: 'Finanzas · Auditor de Conciliación' },
       { key: 'finance_other_income', label: 'Finanzas · Otros Ingresos' },
       { key: 'finance_debt_report', label: 'Finanzas · Reporte de Deuda' },
+      { key: 'finance_debtors', label: 'Finanzas · Relación de Deudores' },
       { key: 'finance_credit_rates', label: 'Finanzas · Credit Rate' },
       { key: 'admissions_commissions', label: 'Admisión · Comisiones' },
       { key: 'admissions_referrals', label: 'Admisión · Free Degree (referidos)' },
