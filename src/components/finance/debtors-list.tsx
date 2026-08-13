@@ -34,11 +34,25 @@ function hace(s: string | null): { texto: string; tono: string } {
   return { texto: `hace ${Math.floor(dias / 30)} meses`, tono: 'text-rose-600' }
 }
 
+// Cómo se llama cada situación en la pantalla. IW y LOA entre paréntesis porque
+// es como los nombra Registros, y "retiro permanente" no siempre se reconoce.
+const SITUACION: Record<string, string> = {
+  activo: 'Activo',
+  retiro_permanente: 'Retiro permanente (IW)',
+  retiro_temporal: 'Retiro temporal (LOA)',
+  egresado: 'Egresado',
+  campus_socio: 'Campus socio',
+  '—': 'Sin situación',
+}
+
 export function DebtorsList() {
   const [d, setD] = useState<Data | null>(null)
   const [categoria, setCategoria] = useState('')
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Situaciones ocultas. Se filtra sobre lo ya cargado: cambiar de idea no
+  // debería costar otra consulta a Moodle y al directorio de correo.
+  const [ocultas, setOcultas] = useState<Set<string>>(new Set())
 
   const catalogo = useCallback(async () => {
     const r = await fetch('/api/finance/debtors').then(x => x.json()).catch(() => null)
@@ -53,21 +67,41 @@ export function DebtorsList() {
     const j = await r.json().catch(() => ({ error: 'Error de red' }))
     setCargando(false)
     if (!r.ok || j.error) { setError(j.error ?? 'No se pudo generar'); return }
+    setOcultas(new Set())
     setD(j)
   }
 
+  // Composición por situación, sobre TODO lo cargado: las cuentas de los chips
+  // no cambian al filtrar, porque son lo que hay, no lo que se ve.
+  const porSituacion = new Map<string, { n: number; monto: number }>()
+  for (const f of d?.filas ?? []) {
+    const k = f.situacion ?? '—'
+    const a = porSituacion.get(k) ?? { n: 0, monto: 0 }
+    porSituacion.set(k, { n: a.n + 1, monto: a.monto + f.deuda_vencida })
+  }
+  const visibles = (d?.filas ?? []).filter(f => !ocultas.has(f.situacion ?? '—'))
+  const sumaVisible = visibles.reduce((s, f) => s + f.deuda_vencida, 0)
+
+  function alternar(k: string) {
+    setOcultas(prev => {
+      const s = new Set(prev)
+      if (s.has(k)) s.delete(k); else s.add(k)
+      return s
+    })
+  }
+
   function exportar() {
-    if (!d?.filas?.length) return
+    if (!visibles.length) return
     const cab = ['Estudiante', 'Documento', 'Deuda vencida', 'Cuotas', 'Vencida desde', 'Programa', 'Situación',
       'Correo personal', 'Correo institucional', 'Teléfono', 'Último acceso campus', 'Último acceso correo']
     const linea = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
-    const csv = [cab.map(linea).join(',')].concat(d.filas.map(f => [
+    const csv = [cab.map(linea).join(',')].concat(visibles.map(f => [
       f.nombre, f.documento, f.deuda_vencida, f.cuotas_vencidas, f.vencida_desde, f.programa, f.situacion,
       f.email_personal, f.email_institucional, f.telefono,
       f.ultimo_acceso_campus ? dia(f.ultimo_acceso_campus) : 'nunca',
       f.ultimo_acceso_correo ? dia(f.ultimo_acceso_correo) : (f.correo_en_directorio ? 'nunca' : 'sin cuenta'),
     ].map(linea).join(','))).join('\n')
-    const nombre = d.categorias.find(c => c.id === categoria)?.name ?? 'deudores'
+    const nombre = d?.categorias.find(c => c.id === categoria)?.name ?? 'deudores'
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
     a.download = `deudores-${nombre.toLowerCase().replace(/\s+/g, '-')}.csv`
@@ -92,7 +126,7 @@ export function DebtorsList() {
             className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
             {cargando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />} Generar
           </button>
-          {!!d?.filas?.length && (
+          {!!visibles.length && (
             <button onClick={exportar}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">
               <Download className="w-4 h-4" /> Excel
@@ -112,12 +146,18 @@ export function DebtorsList() {
         <>
           <div className="flex flex-wrap gap-3">
             <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-              <p className="text-2xl font-bold text-gray-900 tabular-nums">{d.total}</p>
-              <p className="text-xs text-gray-500">Deudores en la categoría</p>
+              <p className="text-2xl font-bold text-gray-900 tabular-nums">{visibles.length}</p>
+              <p className="text-xs text-gray-500">
+                Deudores en la lista
+                {ocultas.size > 0 && <span className="block text-[11px] text-gray-400">de {d.total} en la categoría</span>}
+              </p>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-              <p className="text-2xl font-bold text-rose-600 tabular-nums">{money(d.suma_vencida ?? 0)}</p>
-              <p className="text-xs text-gray-500">Deuda vencida acumulada</p>
+              <p className="text-2xl font-bold text-rose-600 tabular-nums">{money(sumaVisible)}</p>
+              <p className="text-xs text-gray-500">
+                Deuda vencida acumulada
+                {ocultas.size > 0 && <span className="block text-[11px] text-gray-400">de {money(d.suma_vencida ?? 0)} en total</span>}
+              </p>
             </div>
             {/* Si una fuente externa no respondió, se dice: una columna vacía y
                 una columna sin datos se parecen demasiado. */}
@@ -128,6 +168,33 @@ export function DebtorsList() {
               <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-4 py-3 self-center">El directorio de correo no respondió: esa columna va vacía.</p>
             )}
           </div>
+
+          {/* Filtro por situación. Nace con todo visible a propósito: el total
+              debe cuadrar con el Reporte de Deuda antes de que nadie empiece a
+              descartar. Quitar a los retirados es una decisión de prioridad, y
+              se ve cuánta deuda se está apartando al tomarla. */}
+          {porSituacion.size > 1 && (
+            <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+              <p className="text-xs text-gray-500 mb-2">
+                Situación del estudiante — quita las que no vas a gestionar ahora
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[...porSituacion].sort((a, b) => b[1].n - a[1].n).map(([k, v]) => {
+                  const off = ocultas.has(k)
+                  return (
+                    <button key={k} onClick={() => alternar(k)}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${off
+                        ? 'bg-gray-50 text-gray-300 border-gray-200 line-through'
+                        : k === 'activo'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                      {SITUACION[k] ?? k.replace(/_/g, ' ')} · {v.n} · {money(v.monto)}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
@@ -143,7 +210,7 @@ export function DebtorsList() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {d.filas.map(f => {
+                  {visibles.map(f => {
                     const campus = hace(f.ultimo_acceso_campus)
                     const correo = f.correo_en_directorio ? hace(f.ultimo_acceso_correo) : { texto: 'sin cuenta', tono: 'text-gray-300' }
                     return (
@@ -185,8 +252,8 @@ export function DebtorsList() {
                       </tr>
                     )
                   })}
-                  {!d.filas.length && (
-                    <tr><td colSpan={6} className="px-3 py-8 text-center text-sm text-gray-400">Ningún estudiante de esta categoría tiene deuda vencida.</td></tr>
+                  {!visibles.length && (
+                    <tr><td colSpan={6} className="px-3 py-8 text-center text-sm text-gray-400">Ningún estudiante visible con los filtros actuales.</td></tr>
                   )}
                 </tbody>
               </table>
