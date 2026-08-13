@@ -3,6 +3,8 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { applyGradeEdit } from '@/lib/grades-write'
 import { guardStaff, guardSuperadmin } from '@/lib/api-guard'
+import { guardPagina } from '@/lib/page-guard'
+import { eligibleCourses, createExamRequest } from '@/lib/exam-requests'
 
 export const revalidate = 0
 
@@ -15,10 +17,31 @@ async function requireUser() {
   return user
 }
 
-// GET → Hoja de Control de exámenes (todas las solicitudes con su estudiante)
+// GET ?student=<id> → asignaturas elegibles de ese estudiante + tipos de examen
+// activos. Es lo que necesita el formulario de "Nueva solicitud": la lista de
+// elegibles la calcula el servidor con la MISMA regla que el portal del
+// estudiante, para que Registros no pueda ofrecer una asignatura que el
+// estudiante no podría pedir.
 export async function GET(req: NextRequest) {
   const noAutorizado = await guardStaff()
   if (noAutorizado) return noAutorizado
+
+  const studentId = req.nextUrl.searchParams.get('student')
+  if (studentId) {
+    const sb = db()
+    const { data: stu } = await sb.from('academic_students')
+      .select('id, first_name, last_name, second_last_name, document_number').eq('id', studentId).maybeSingle()
+    if (!stu) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
+    const [elegibles, { data: tipos }] = await Promise.all([
+      eligibleCourses(sb, stu.id, stu.document_number ? String(stu.document_number) : null),
+      sb.from('exam_types').select('id, name, price').eq('active', true).order('name'),
+    ])
+    return NextResponse.json({
+      student: { id: stu.id, name: [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' '), document_number: stu.document_number },
+      elegibles,
+      tipos: tipos ?? [],
+    })
+  }
 
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = db()
@@ -139,4 +162,42 @@ export async function PATCH(req: NextRequest) {
   }
 
   return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
+}
+
+// POST { student_id, exam_type_id, grade_external_id } → crea la solicitud EN
+// NOMBRE del estudiante.
+//
+// Hasta ahora la única puerta era el portal del estudiante. Ésta es la segunda,
+// para los casos en que el estudiante no puede o no sabe pedirla, y pasa por el
+// mismo motor: la elegibilidad se revalida en el servidor con la misma regla
+// —desaprobada y con al menos el 70% de la ponderación rendida—, así que
+// Registros no puede crear una solicitud que el estudiante no podría pedir.
+//
+// Se registra de qué puerta vino y quién la abrió. Genera un cargo real en el
+// estado de cuenta de una persona: eso no puede quedar sin autor.
+export async function POST(req: NextRequest) {
+  const noAutorizado = await guardPagina('academic_exams')
+  if (noAutorizado) return noAutorizado
+
+  const user = await requireUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const b = await req.json().catch(() => null) as
+    { student_id?: string; exam_type_id?: string; grade_external_id?: string } | null
+  if (!b?.student_id || !b?.exam_type_id || !b?.grade_external_id) {
+    return NextResponse.json({ error: 'Faltan estudiante, tipo de examen o asignatura' }, { status: 400 })
+  }
+
+  const sb = db()
+  const { data: stu } = await sb.from('academic_students')
+    .select('id, document_number').eq('id', b.student_id).maybeSingle()
+  if (!stu) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
+
+  const r = await createExamRequest(
+    stu.id, stu.document_number ? String(stu.document_number) : null,
+    b.exam_type_id, b.grade_external_id,
+    { source: 'erp', by: user.email ?? user.id },
+  )
+  if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 })
+  return NextResponse.json({ ok: true, charge: r.charge })
 }

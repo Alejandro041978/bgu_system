@@ -105,8 +105,18 @@ export async function eligibleCourses(sb: any, studentId: string, documentNumber
   return out.sort((a, b) => (a.course_name ?? '').localeCompare(b.course_name ?? ''))
 }
 
+/**
+ * Crea la solicitud y su cargo. La usan las DOS puertas —el portal del
+ * estudiante y la Hoja de Control— y por eso revalida la elegibilidad aquí, en
+ * el servidor: la pantalla que la llama puede estar desfasada, o ser otra.
+ *
+ * `origen` deja escrito de qué puerta vino. Sin ese dato, un cargo de $20 en el
+ * estado de cuenta de alguien se queda sin autor en cuanto haya dos formas de
+ * generarlo.
+ */
 export async function createExamRequest(
   studentId: string, documentNumber: string | null, examTypeId: string, gradeExternalId: string,
+  origen: { source: 'estudiante' | 'erp'; by?: string | null } = { source: 'estudiante' },
 ): Promise<{ ok: boolean; error?: string; charge?: number }> {
   const sb = admin()
   const { data: type } = await sb.from('exam_types').select('*').eq('id', examTypeId).eq('active', true).maybeSingle()
@@ -154,6 +164,8 @@ export async function createExamRequest(
     course_name: course.course_name,
     status: 'pendiente_pago',
     charge_external_id: chargeExternalId,
+    requested_source: origen.source,
+    requested_by: origen.source === 'erp' ? (origen.by ?? null) : null,
   })
   if (error) return { ok: false, error: error.message }
   return { ok: true, charge: Number(type.price) }

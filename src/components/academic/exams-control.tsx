@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, Bell, CheckCircle2, CircleSlash, Award } from 'lucide-react'
+import { Loader2, Bell, CheckCircle2, CircleSlash, Award, Plus } from 'lucide-react'
 import { usePermissions } from '@/hooks/use-permissions'
+import { NuevaSolicitudExamen } from '@/components/academic/exam-new-request'
 
 interface Row {
   id: string; student_name: string; document: string; student_email: string | null
@@ -30,6 +31,8 @@ export function ExamsControl() {
   const [busy, setBusy] = useState<string | null>(null)
   const [grade, setGrade] = useState<Record<string, string>>({})
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  // Alta en nombre del estudiante (panel aparte).
+  const [nuevaAbierta, setNuevaAbierta] = useState(false)
 
   const load = useCallback(() => {
     fetch(`/api/academic/exams${filter ? `?status=${filter}` : ''}`)
@@ -62,14 +65,31 @@ export function ExamsControl() {
         <p className={`text-sm px-3 py-2 rounded-lg ${notice.kind === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>{notice.text}</p>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 items-center">
         {[['', 'Todas'], ['pendiente_pago', 'Pendientes de pago'], ['pendiente_evaluacion', 'Pendientes de evaluación'], ['evaluado', 'Evaluadas'], ['anulado', 'Anuladas']].map(([k, l]) => (
           <button key={k} onClick={() => setFilter(k)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${filter === k ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
             {l}{k && counts[k] ? ` (${counts[k]})` : ''}
           </button>
         ))}
+        <button onClick={() => setNuevaAbierta(v => !v)}
+          className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white">
+          <Plus className="w-4 h-4" /> Nueva solicitud
+        </button>
       </div>
+
+      {nuevaAbierta && (
+        <NuevaSolicitudExamen
+          onCerrar={() => setNuevaAbierta(false)}
+          onCreada={txt => {
+            setNuevaAbierta(false)
+            setNotice({ kind: 'ok', text: txt })
+            // La solicitud nace pendiente de pago: llevar ahí el filtro evita
+            // que parezca que no se creó nada.
+            setFilter('pendiente_pago')
+          }}
+        />
+      )}
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <table className="w-full text-sm whitespace-nowrap">
