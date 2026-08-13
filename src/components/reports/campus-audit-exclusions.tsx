@@ -120,20 +120,31 @@ export function CampusAuditExclusions() {
           <select value={sel} onChange={e => setSel(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
             <option value="">Elige una categoría de Moodle…</option>
-            {disponibles.map(c => (
-              <option key={c.ruta} value={c.ruta}>
-                {c.ruta} — {c.aulas} aula{c.aulas === 1 ? '' : 's'}
-                {c.aulas > c.propias ? ` (${c.propias} propia${c.propias === 1 ? '' : 's'} + ${c.aulas - c.propias} en subcategorías)` : ''}
-              </option>
-            ))}
+            {disponibles.map(c => {
+              // Sangrado por profundidad: la lista mezcla madres e hijas, y sin
+              // esto "Otros" y "Otros / UNDC / Gestión Pública" se leen como dos
+              // opciones sueltas en vez de una rama y su rama.
+              const nivel = c.ruta.split(' / ').length - 1
+              return (
+                <option key={c.ruta} value={c.ruta}>
+                  {'  '.repeat(nivel)}{nivel ? '└ ' : ''}{c.ruta.split(' / ').pop()} — {c.aulas} aula{c.aulas === 1 ? '' : 's'}
+                  {c.aulas > c.propias ? ` (${c.propias} propia${c.propias === 1 ? '' : 's'} + ${c.aulas - c.propias} en subcategorías)` : ''}
+                </option>
+              )
+            })}
           </select>
           {sel && (() => {
             const c = d.categorias.find(x => x.ruta === sel)
             if (!c) return null
             return (
               <p className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <b>{sel}</b><br />
                 Dejarán de auditarse <b>{c.aulas} aula{c.aulas === 1 ? '' : 's'}</b>
-                {c.aulas > c.propias && <> — las {c.propias} de esta categoría y {c.aulas - c.propias} de las que cuelgan de ella</>}.
+                {c.propias === 0
+                  ? <>, todas en las subcategorías que cuelgan de ella</>
+                  : c.aulas > c.propias
+                    ? <> — {c.propias} de esta categoría y {c.aulas - c.propias} de las que cuelgan de ella</>
+                    : null}.
               </p>
             )
           })()}

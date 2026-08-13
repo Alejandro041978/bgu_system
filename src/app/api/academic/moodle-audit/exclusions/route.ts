@@ -51,9 +51,26 @@ export async function GET() {
   // Al principio solo se ofrecía la primera, y mentía en el momento exacto de
   // decidir: "Excluidos ERP — 2 aulas" cuando excluirla saca 37, porque la
   // coincidencia es por tramos de la ruta y sus hijas empiezan igual.
-  const categorias = [...cuenta].map(([ruta, propias]) => ({
+  // Se ofrecen TODOS los niveles, no solo las rutas observadas.
+  //
+  // La lista salía de las categorías donde hay aulas, y esas son siempre hojas:
+  // una madre como "Otros" —que no tiene aulas propias, solo hijas— no aparecía
+  // nunca, así que no había forma de excluir la rama entera de una vez. Solo se
+  // podían excluir ramas cuya madre tuviera además aulas por su cuenta, que es
+  // una casualidad, no un criterio.
+  //
+  // De cada ruta observada se derivan sus prefijos: "Otros / UNDC / Gestión
+  // Pública" ofrece también "Otros / UNDC" y "Otros".
+  const rutas = new Set<string>()
+  for (const ruta of cuenta.keys()) {
+    if (ruta === '(sin categoría)') { rutas.add(ruta); continue }
+    const segs = ruta.split(' / ')
+    for (let i = 1; i <= segs.length; i++) rutas.add(segs.slice(0, i).join(' / '))
+  }
+
+  const categorias = [...rutas].map(ruta => ({
     ruta,
-    propias,
+    propias: cuenta.get(ruta) ?? 0,
     aulas: rows.filter(r => estaExcluida(r.categoria, [{ ruta, nota: null }])).length,
     excluida: estaExcluida(ruta, exclusiones),
   })).sort((a, b) => a.ruta.localeCompare(b.ruta))
