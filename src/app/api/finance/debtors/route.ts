@@ -10,12 +10,19 @@ export const maxDuration = 300
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
+// Lee una tabla entera, y GRITA si la consulta falla.
+//
+// La primera versión ignoraba el error y devolvía []. Pedí una columna que no
+// existe —`concept` en account_charges— y el reporte dijo "ningún estudiante de
+// esta categoría tiene deuda vencida": una respuesta perfectamente creíble y
+// completamente falsa. Un cero que viene de un error tiene que verse como error.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function todo(sb: any, tabla: string, cols: string): Promise<any[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const out: any[] = []
   for (let from = 0; ; from += 1000) {
-    const { data } = await sb.from(tabla).select(cols).range(from, from + 999)
+    const { data, error } = await sb.from(tabla).select(cols).range(from, from + 999)
+    if (error) throw new Error(`${tabla}: ${error.message}`)
     const rows = data ?? []
     out.push(...rows)
     if (rows.length < 1000) break
@@ -44,7 +51,14 @@ async function todo(sb: any, tabla: string, cols: string): Promise<any[]> {
 export async function GET(req: NextRequest) {
   const noAutorizado = await guardStaff()
   if (noAutorizado) return noAutorizado
+  try {
+    return await generar(req)
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Error' }, { status: 500 })
+  }
+}
 
+async function generar(req: NextRequest) {
   const categoria = (req.nextUrl.searchParams.get('category') ?? '').trim()
   const sb = db()
 
@@ -62,7 +76,7 @@ export async function GET(req: NextRequest) {
   // Las cuotas SIN fecha se consideran exigibles, igual que en el Reporte de
   // Deuda: una cuota sin vencimiento no es una cuota futura, es una que nadie
   // fechó.
-  const charges = await todo(sb, 'account_charges', 'external_id, student_id, amount, due_date, concept')
+  const charges = await todo(sb, 'account_charges', 'external_id, student_id, amount, due_date')
   const pagos = await todo(sb, 'account_payments', 'charge_external_id, amount')
   const pagado = new Map<string, number>()
   for (const p of pagos) {
