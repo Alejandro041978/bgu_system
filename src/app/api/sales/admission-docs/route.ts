@@ -25,10 +25,29 @@ export async function GET(req: NextRequest) {
   const sb = db()
   const convocatoriaId = req.nextUrl.searchParams.get('convocatoria')
 
-  const [{ data: convocatorias }, { data: types }] = await Promise.all([
+  const [{ data: convocatorias }, { data: todosLosTipos }] = await Promise.all([
     sb.from('convocatorias').select('id, name').order('name'),
     sb.from('admission_doc_types').select('*').order('sort_order'),
   ])
+
+  // Los tipos se acotan a la categoría de la convocatoria: un curso de
+  // actualización no pide el FERPA Waiver ni el acuerdo de matrícula. Un tipo
+  // sin categorías vale para todas —así los seis originales siguen igual—.
+  //
+  // Sin convocatoria elegida se devuelven todos: es la lista del configurador,
+  // no la de una pantalla de captura.
+  let categoriaConv: string | null = null
+  if (convocatoriaId) {
+    const { data: c } = await sb.from('convocatorias')
+      .select('product_category_id').eq('id', convocatoriaId).maybeSingle()
+    categoriaConv = c?.product_category_id ?? null
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const types = (todosLosTipos ?? []).filter((t: any) => {
+    const cats: string[] = Array.isArray(t.category_ids) ? t.category_ids : []
+    if (!cats.length) return true
+    return categoriaConv ? cats.includes(categoriaConv) : true
+  })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let students: any[] = []
