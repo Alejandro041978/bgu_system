@@ -5,8 +5,14 @@ import { Loader2, X } from 'lucide-react'
 
 interface Elegibles {
   student: { id: string; name: string; document_number: string | null }
-  elegibles: { grade_external_id: string; course_code: string | null; course_name: string | null; final: number | null; passing: number | null; pct_rendida: number }[]
+  elegibles: {
+    grade_external_id: string; course_code: string | null; course_name: string | null
+    final: number | null; passing: number | null; pct_rendida: number
+    cumple_participacion: boolean
+  }[]
   tipos: { id: string; name: string; price: number }[]
+  // El superadministrador ve además las que no llegan al 70% de participación.
+  puede_exceptuar: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -33,6 +39,8 @@ export function NuevaSolicitudExamen({ onCerrar, onCreada }: {
   const [tipo, setTipo] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  // Motivo de la excepción, obligatorio cuando la asignatura no llega al 70%.
+  const [motivo, setMotivo] = useState('')
 
   async function buscar() {
     if (busqueda.trim().length < 2) return
@@ -56,18 +64,25 @@ export function NuevaSolicitudExamen({ onCerrar, onCreada }: {
     } catch { setErr('No se pudo cargar al estudiante') }
   }
 
+  const cursoElegido = elegido?.elegibles.find(e => e.grade_external_id === curso) ?? null
+  const necesitaMotivo = !!cursoElegido && !cursoElegido.cumple_participacion
+
   async function crear() {
     if (!elegido || !curso || !tipo) return
+    if (necesitaMotivo && !motivo.trim()) { setErr('Escribe el motivo de la excepción.'); return }
     setGuardando(true); setErr(null)
     try {
       const r = await fetch('/api/academic/exams', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: elegido.student.id, exam_type_id: tipo, grade_external_id: curso }),
+        body: JSON.stringify({
+          student_id: elegido.student.id, exam_type_id: tipo, grade_external_id: curso,
+          ...(necesitaMotivo ? { motivo_excepcion: motivo.trim() } : {}),
+        }),
       })
       const d = await r.json()
       if (!r.ok || d.error) { setErr(d.error ?? 'No se pudo crear'); return }
       const c = elegido.elegibles.find(e => e.grade_external_id === curso)
-      onCreada(`Solicitud creada para ${elegido.student.name} · ${c?.course_name ?? ''}. Se generó un cargo de $${d.charge} en su estado de cuenta; pasará a "Pendientes de evaluación" cuando lo pague.`)
+      onCreada(`Solicitud creada para ${elegido.student.name} · ${c?.course_name ?? ''}${d.sin_participacion ? ' (con excepción al mínimo de participación)' : ''}. Se generó un cargo de $${d.charge} en su estado de cuenta; pasará a "Pendientes de evaluación" cuando lo pague.`)
     } catch { setErr('Error de red') } finally { setGuardando(false) }
   }
 
@@ -121,10 +136,26 @@ export function NuevaSolicitudExamen({ onCerrar, onCreada }: {
                 <option value="">Elige la asignatura…</option>
                 {elegido.elegibles.map(e => (
                   <option key={e.grade_external_id} value={e.grade_external_id}>
+                    {e.cumple_participacion ? '' : '⚠ '}
                     {e.course_name} — nota {e.final ?? '—'} de {e.passing ?? '—'} · rindió {e.pct_rendida}%
+                    {e.cumple_participacion ? '' : ' (no llega al 70%)'}
                   </option>
                 ))}
               </select>
+              {/* La excepción se pide en el momento y con motivo. Sin esto, una
+                  autorización y un descuido se ven igual dentro de seis meses. */}
+              {necesitaMotivo && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 space-y-2">
+                  <p className="text-xs text-amber-800">
+                    <b>{cursoElegido?.course_name}</b> rindió el {cursoElegido?.pct_rendida}% de la ponderación
+                    y la regla pide 70%. Puedes autorizarlo igual, pero queda registrado como excepción con
+                    tu nombre.
+                  </p>
+                  <input value={motivo} onChange={e => setMotivo(e.target.value)}
+                    placeholder="Motivo de la excepción (obligatorio)"
+                    className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                </div>
+              )}
               <select value={tipo} onChange={e => setTipo(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
                 <option value="">Elige el tipo de examen…</option>
@@ -143,7 +174,7 @@ export function NuevaSolicitudExamen({ onCerrar, onCreada }: {
             Genera un cargo en el estado de cuenta del estudiante, igual que si lo pidiera desde su portal.
             Queda registrado que la creaste tú.
           </p>
-          <button onClick={crear} disabled={!curso || !tipo || guardando}
+          <button onClick={crear} disabled={!curso || !tipo || guardando || (necesitaMotivo && !motivo.trim())}
             className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
             {guardando && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Crear solicitud
           </button>

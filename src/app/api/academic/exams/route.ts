@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { applyGradeEdit } from '@/lib/grades-write'
-import { guardStaff, guardSuperadmin } from '@/lib/api-guard'
+import { guardStaff, guardSuperadmin, esSuperadmin } from '@/lib/api-guard'
 import { guardPagina } from '@/lib/page-guard'
 import { eligibleCourses, createExamRequest } from '@/lib/exam-requests'
 
@@ -32,14 +32,23 @@ export async function GET(req: NextRequest) {
     const { data: stu } = await sb.from('academic_students')
       .select('id, first_name, last_name, second_last_name, document_number').eq('id', studentId).maybeSingle()
     if (!stu) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
+    // El superadministrador ve además las desaprobadas que no llegan al 70% de
+    // participación, marcadas como lo que son. Quien no lo es, ni las ve: no
+    // tiene sentido mostrar una opción que el servidor va a rechazar.
+    const auth = await createAuthClient()
+    const { data: { user: quien } } = await auth.auth.getUser()
+    const puedeExceptuar = quien ? await esSuperadmin(quien) : false
+
     const [elegibles, { data: tipos }] = await Promise.all([
-      eligibleCourses(sb, stu.id, stu.document_number ? String(stu.document_number) : null),
+      eligibleCourses(sb, stu.id, stu.document_number ? String(stu.document_number) : null,
+        { incluirSinParticipacion: puedeExceptuar }),
       sb.from('exam_types').select('id, name, price').eq('active', true).order('name'),
     ])
     return NextResponse.json({
       student: { id: stu.id, name: [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' '), document_number: stu.document_number },
       elegibles,
       tipos: tipos ?? [],
+      puede_exceptuar: puedeExceptuar,
     })
   }
 
@@ -183,9 +192,21 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const b = await req.json().catch(() => null) as
-    { student_id?: string; exam_type_id?: string; grade_external_id?: string } | null
+    { student_id?: string; exam_type_id?: string; grade_external_id?: string; motivo_excepcion?: string } | null
   if (!b?.student_id || !b?.exam_type_id || !b?.grade_external_id) {
     return NextResponse.json({ error: 'Faltan estudiante, tipo de examen o asignatura' }, { status: 400 })
+  }
+
+  // Levantar el mínimo de participación es del superadministrador, y con motivo
+  // escrito. Se comprueba aquí y no solo en la pantalla: el permiso vive en el
+  // servidor o no vive.
+  const motivo = (b.motivo_excepcion ?? '').trim()
+  let excepcion: { motivo: string } | undefined
+  if (motivo) {
+    if (!(await esSuperadmin(user))) {
+      return NextResponse.json({ error: 'Solo un superadministrador puede levantar el requisito de participación.' }, { status: 403 })
+    }
+    excepcion = { motivo }
   }
 
   const sb = db()
@@ -197,7 +218,8 @@ export async function POST(req: NextRequest) {
     stu.id, stu.document_number ? String(stu.document_number) : null,
     b.exam_type_id, b.grade_external_id,
     { source: 'erp', by: user.email ?? user.id },
+    excepcion,
   )
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 })
-  return NextResponse.json({ ok: true, charge: r.charge })
+  return NextResponse.json({ ok: true, charge: r.charge, sin_participacion: r.sin_participacion })
 }

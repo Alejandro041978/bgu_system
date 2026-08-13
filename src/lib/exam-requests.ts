@@ -20,10 +20,28 @@ export interface EligibleCourse {
   final: number
   passing: number
   pct_rendida: number
+  /** Cumple el mínimo de participación (70% de la ponderación rendida). Solo es
+   *  false en el listado ampliado del superadministrador. */
+  cumple_participacion: boolean
 }
 
+/**
+ * Asignaturas sobre las que se puede pedir un examen.
+ *
+ * Dos condiciones: estar DESAPROBADA, y haber rendido al menos el 70% de la
+ * ponderación. La primera no se levanta nunca —un examen de subsanación sobre
+ * una asignatura aprobada no significa nada—; la segunda sí, y solo para el
+ * superadministrador, con `incluirSinParticipacion`.
+ *
+ * Cuando se amplía, las que no cumplen NO desaparecen ni se disfrazan: vienen
+ * marcadas con `cumple_participacion: false` para que quien decide vea que está
+ * haciendo una excepción y no crea que la regla se cumplió.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function eligibleCourses(sb: any, studentId: string, documentNumber: string | null): Promise<EligibleCourse[]> {
+export async function eligibleCourses(
+  sb: any, studentId: string, documentNumber: string | null,
+  opciones: { incluirSinParticipacion?: boolean } = {},
+): Promise<EligibleCourse[]> {
   if (!documentNumber) return []
 
   const { data: grades } = await sb.from('academic_grades')
@@ -89,9 +107,13 @@ export async function eligibleCourses(sb: any, studentId: string, documentNumber
       ?? (g.course_code ? detailByCode.get(String(g.course_code).trim()) : null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const evals = Array.isArray(det?.process_grades) ? det.process_grades as any[] : []
-    if (!evals.length) continue
+    // Sin detalle de evaluaciones no hay participación que medir. En el listado
+    // normal queda fuera; en el ampliado entra con 0%, que es exactamente lo
+    // que sabemos de ella.
+    if (!evals.length && !opciones.incluirSinParticipacion) continue
     const pctRendida = evals.reduce((s, e) => s + (e?.val != null ? Number(e?.pct ?? 0) : 0), 0)
-    if (pctRendida < 70) continue
+    const cumple = pctRendida >= 70
+    if (!cumple && !opciones.incluirSinParticipacion) continue
 
     out.push({
       grade_external_id: g.external_id,
@@ -100,6 +122,7 @@ export async function eligibleCourses(sb: any, studentId: string, documentNumber
       final: best,
       passing,
       pct_rendida: Math.round(pctRendida * 10) / 10,
+      cumple_participacion: cumple,
     })
   }
   return out.sort((a, b) => (a.course_name ?? '').localeCompare(b.course_name ?? ''))
@@ -117,15 +140,28 @@ export async function eligibleCourses(sb: any, studentId: string, documentNumber
 export async function createExamRequest(
   studentId: string, documentNumber: string | null, examTypeId: string, gradeExternalId: string,
   origen: { source: 'estudiante' | 'erp'; by?: string | null } = { source: 'estudiante' },
-): Promise<{ ok: boolean; error?: string; charge?: number }> {
+  excepcion?: { motivo: string },
+): Promise<{ ok: boolean; error?: string; charge?: number; sin_participacion?: boolean }> {
   const sb = admin()
   const { data: type } = await sb.from('exam_types').select('*').eq('id', examTypeId).eq('active', true).maybeSingle()
   if (!type) return { ok: false, error: 'Tipo de examen no disponible' }
 
-  // Revalidar elegibilidad en el servidor (la UI puede estar desfasada)
-  const eleg = await eligibleCourses(sb, studentId, documentNumber)
+  // Revalidar elegibilidad en el servidor (la UI puede estar desfasada).
+  //
+  // Con excepción se amplía el listado, pero la comprobación NO se salta: la
+  // asignatura tiene que seguir existiendo, estar desaprobada y no tener otra
+  // solicitud activa. Lo único que se levanta es el mínimo de participación —y
+  // quién lo levantó y por qué queda escrito en la solicitud.
+  const eleg = await eligibleCourses(sb, studentId, documentNumber,
+    { incluirSinParticipacion: !!excepcion })
   const course = eleg.find(e => e.grade_external_id === gradeExternalId)
   if (!course) return { ok: false, error: 'La asignatura no cumple los requisitos para este examen (o ya tiene una solicitud activa)' }
+  if (!course.cumple_participacion && !excepcion) {
+    return { ok: false, error: `Rindió el ${course.pct_rendida}% de la ponderación y hace falta al menos el 70%.` }
+  }
+  if (excepcion && !excepcion.motivo.trim()) {
+    return { ok: false, error: 'Una excepción sin motivo escrito no se puede autorizar.' }
+  }
 
   // Cargo al estado de cuenta, colgado de la matrícula cuyo programa contiene
   // la asignatura (para que no caiga en "Sin programa")
@@ -166,9 +202,13 @@ export async function createExamRequest(
     charge_external_id: chargeExternalId,
     requested_source: origen.source,
     requested_by: origen.source === 'erp' ? (origen.by ?? null) : null,
+    // La excepción se guarda con su motivo. Una excepción sin registro es
+    // indistinguible de una regla que no se aplicó.
+    eligibility_override: !course.cumple_participacion,
+    override_reason: !course.cumple_participacion ? (excepcion?.motivo.trim() ?? null) : null,
   })
   if (error) return { ok: false, error: error.message }
-  return { ok: true, charge: Number(type.price) }
+  return { ok: true, charge: Number(type.price), sin_participacion: !course.cumple_participacion }
 }
 
 // Gatillo de pago: si la cuota pagada pertenece a una solicitud de examen
