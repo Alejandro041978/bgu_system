@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, AlertTriangle, TrendingDown, Wallet, CalendarClock, Users } from 'lucide-react'
+import { Loader2, AlertTriangle, TrendingDown, Wallet, CalendarClock, Users, History, Target } from 'lucide-react'
 
 type Row = {
   categoria_id: string; sigla: string; nombre: string
@@ -11,7 +11,11 @@ type Row = {
 }
 type Data = {
   month: string
-  kpis: { indice_morosidad: number | null; tasa_recaudacion: number | null; deuda_vencida: number; deuda_por_vencer: number; deudores: number }
+  kpis: {
+    indice_morosidad: number | null; tasa_recaudacion: number | null
+    deuda_arrastrada: number; objetivo_recaudacion: number
+    deuda_vencida: number; deuda_por_vencer: number; deudores: number
+  }
   table: Row[]
   totales: Omit<Row, 'categoria_id' | 'sigla' | 'nombre'>
 }
@@ -40,7 +44,12 @@ export function DebtReport() {
   const k = data?.kpis
   const kpiCards = [
     { label: 'Índice de morosidad', value: k?.indice_morosidad != null ? `${k.indice_morosidad}%` : '—', hint: 'deuda vencida / deuda total', icon: AlertTriangle, tone: 'text-red-600 bg-red-50' },
-    { label: 'Tasa de recaudación', value: k?.tasa_recaudacion != null ? `${k.tasa_recaudacion}%` : '—', hint: 'pagos del mes / (deuda arrastrada + cuotas del mes)', icon: TrendingDown, tone: 'text-emerald-600 bg-emerald-50' },
+    { label: 'Tasa de recaudación', value: k?.tasa_recaudacion != null ? `${k.tasa_recaudacion}%` : '—', hint: 'pagos del mes / objetivo de recaudación', icon: TrendingDown, tone: 'text-emerald-600 bg-emerald-50' },
+    // Deuda arrastrada y objetivo son las dos piezas del denominador de la tasa.
+    // Estaban dentro del cálculo y no se veían: un 68% sobre 126 mil no es el
+    // mismo mes que un 68% sobre medio millón.
+    { label: 'Deuda arrastrada', value: k ? money(k.deuda_arrastrada) : '—', hint: 'cuotas pasadas − pagos pasados', icon: History, tone: 'text-amber-600 bg-amber-50' },
+    { label: 'Objetivo de recaudación', value: k ? money(k.objetivo_recaudacion) : '—', hint: 'deuda arrastrada + cuotas del mes', icon: Target, tone: 'text-indigo-600 bg-indigo-50' },
     { label: 'Deuda vencida', value: k ? money(k.deuda_vencida) : '—', hint: 'exigible no pagado', icon: Wallet, tone: 'text-orange-600 bg-orange-50' },
     { label: 'Deuda por vencer', value: k ? money(k.deuda_por_vencer) : '—', hint: 'cuotas futuras netas', icon: CalendarClock, tone: 'text-blue-600 bg-blue-50' },
     { label: 'Estudiantes deudores', value: k ? String(k.deudores) : '—', hint: 'con deuda vencida o por vencer', icon: Users, tone: 'text-purple-600 bg-purple-50' },
@@ -63,7 +72,7 @@ export function DebtReport() {
       {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {kpiCards.map(c => (
           <div key={c.label} className="bg-white border border-gray-200 rounded-xl p-4">
             <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg mb-2 ${c.tone}`}><c.icon className="w-4 h-4" /></div>

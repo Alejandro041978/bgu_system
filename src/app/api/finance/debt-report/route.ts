@@ -152,10 +152,16 @@ export async function GET(req: NextRequest) {
   // Monto exigible del mes = deuda arrastrada (cuotas pasadas impagas) + lo
   // que vence este mes. Con cuotas brutas históricas el ratio se diluye a
   // nada (todo lo pagado desde 2023 inflaría el denominador).
-  const exigible = (tot.cuotas_pasado - tot.pagos_pasado) + tot.cuotas_actual
+  const arrastrada = r2(tot.cuotas_pasado - tot.pagos_pasado)
+  const exigible = r2(arrastrada + tot.cuotas_actual)
   const kpis = {
     indice_morosidad: deudaTotal > 0 ? r2(tot.deuda_vencida / deudaTotal * 100) : null,
     tasa_recaudacion: exigible > 0 ? r2(tot.pagos_actual / exigible * 100) : null,
+    // Los dos que ya se usaban para calcular la tasa y no se veían. El
+    // denominador de un ratio dice tanto como el ratio: un 68% sobre 126 mil no
+    // es el mismo mes que un 68% sobre medio millón.
+    deuda_arrastrada: arrastrada,
+    objetivo_recaudacion: exigible,
     deuda_vencida: tot.deuda_vencida,
     deuda_por_vencer: tot.deuda_por_vencer,
     deudores: tot.deudores,
