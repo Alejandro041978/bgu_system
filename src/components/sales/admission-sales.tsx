@@ -9,10 +9,12 @@ interface Sale {
   student_name: string; document_number: string | null
   program_name: string | null; category_id: string | null
   advisor_id: string | null; admission_type_id: string | null; commission_amount: number | null
+  // Bono Cash congelado al asignar. Null = la venta no lo lleva.
+  bonus_amount: number | null
   comments: Comment[]
 }
 interface Advisor { id: string; full_name: string }
-interface AdmType { id: string; category_id: string; name: string; commission: number; active: boolean }
+interface AdmType { id: string; category_id: string; name: string; commission: number; bonus_amount: number | null; active: boolean }
 
 const money = (n: number) => `$${Number(n).toFixed(2)}`
 // Fecha de cierre de inscripciones en DD/MM/YYYY (sin desfase de zona horaria)
@@ -69,13 +71,16 @@ export function AdmissionSales() {
       })
   }, [categoryId, yearId])
 
-  async function assign(enrollmentId: string, patch: { advisor_id?: string | null; admission_type_id?: string | null }) {
+  async function assign(enrollmentId: string, patch: { advisor_id?: string | null; admission_type_id?: string | null; bono?: boolean }) {
     const s = sales.find(x => x.enrollment_id === enrollmentId)
     if (!s) return
     const body = {
       enrollment_id: enrollmentId,
       advisor_id: patch.advisor_id !== undefined ? patch.advisor_id : s.advisor_id,
       admission_type_id: patch.admission_type_id !== undefined ? patch.admission_type_id : s.admission_type_id,
+      // El bono se manda siempre, no solo cuando cambia: el endpoint reescribe
+      // la fila entera, y omitirlo al cambiar de asesora lo borraría.
+      bono: patch.bono !== undefined ? patch.bono : s.bonus_amount != null,
     }
     const d = await fetch('/api/sales/admissions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -122,6 +127,14 @@ export function AdmissionSales() {
         const bt = r.byType.get(tk)!
         bt.count++
         r.total += comm
+      }
+      // El Bono Cash suma al total pero se agrupa APARTE, con su propio monto:
+      // la liquidación tiene que poder distinguir comisión de bono sin restar.
+      if (s.bonus_amount != null) {
+        const bk = `bono:${s.bonus_amount}`
+        if (!r.byType.has(bk)) r.byType.set(bk, { name: 'Bono Cash', count: 0, commission: Number(s.bonus_amount) })
+        r.byType.get(bk)!.count++
+        r.total += Number(s.bonus_amount)
       }
     }
     return [...por.entries()].sort((a, b) => b[1].total - a[1].total)
@@ -212,6 +225,7 @@ export function AdmissionSales() {
                   <th className="px-4 py-2 text-left">Fecha</th>
                   <th className="px-4 py-2 text-left">Asesora</th>
                   <th className="px-4 py-2 text-left">Tipo de admisión</th>
+                  <th className="px-3 py-2 text-center">Bono Cash</th>
                   <th className="px-4 py-2 text-right">Comisión</th>
                   <th className="px-3 py-2 text-center">Notas</th>
                 </tr>
@@ -243,7 +257,41 @@ export function AdmissionSales() {
                         </select>
                         {s.category_id && opciones.length === 0 && <span className="block text-[10px] text-amber-600 mt-0.5">Sin tipos para esta categoría (créalos en la configuración)</span>}
                       </td>
-                      <td className="px-4 py-2 text-right tabular-nums">{s.commission_amount != null ? money(s.commission_amount) : '—'}</td>
+                      <td className="px-3 py-2 text-center">
+                        {/* La casilla solo existe si el tipo elegido tiene bono
+                            configurado: ofrecerla donde no hay monto sería
+                            prometer un pago que nadie sabría cuánto es. */}
+                        {(() => {
+                          const t = s.admission_type_id ? typeById.get(s.admission_type_id) : null
+                          if (!t) return <span className="text-[11px] text-gray-300">—</span>
+                          if (t.bonus_amount == null) {
+                            return <span className="text-[11px] text-gray-300" title="Este tipo de admisión no tiene Bono Cash configurado">sin bono</span>
+                          }
+                          return (
+                            <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                              <input type="checkbox" checked={s.bonus_amount != null}
+                                onChange={e => assign(s.enrollment_id, { bono: e.target.checked })} className="rounded" />
+                              <span className={`text-[11px] font-medium ${s.bonus_amount != null ? 'text-emerald-700' : 'text-gray-400'}`}>
+                                {money(t.bonus_amount)}
+                              </span>
+                            </label>
+                          )
+                        })()}
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums">
+                        {s.commission_amount != null
+                          ? <>
+                              <span className={s.bonus_amount != null ? 'font-semibold' : ''}>
+                                {money(Number(s.commission_amount) + Number(s.bonus_amount ?? 0))}
+                              </span>
+                              {s.bonus_amount != null && (
+                                <span className="block text-[10px] text-gray-400">
+                                  {money(s.commission_amount)} + {money(s.bonus_amount)} bono
+                                </span>
+                              )}
+                            </>
+                          : '—'}
+                      </td>
                       <td className="px-3 py-2 text-center">
                         <button onClick={() => { setOpenComments(v => v === s.enrollment_id ? null : s.enrollment_id); setCommentText('') }}
                           className={`inline-flex items-center gap-1 text-xs rounded-lg px-2 py-1 border ${s.comments.length > 0 ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-400 hover:text-gray-600'}`}>
@@ -253,7 +301,7 @@ export function AdmissionSales() {
                     </tr>
                     {openComments === s.enrollment_id && (
                       <tr className="bg-gray-50/60">
-                        <td colSpan={7} className="px-6 py-3">
+                        <td colSpan={8} className="px-6 py-3">
                           <div className="space-y-2 max-w-3xl">
                             {s.comments.length === 0 && <p className="text-xs text-gray-400">Sin comentarios aún.</p>}
                             {s.comments.map(c => (
@@ -286,7 +334,7 @@ export function AdmissionSales() {
                   )
                 })}
                 {!loading && sales.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-xs text-gray-400">Sin matrículas en esta convocatoria.</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-xs text-gray-400">Sin matrículas en esta convocatoria.</td></tr>
                 )}
               </tbody>
             </table>

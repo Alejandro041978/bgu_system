@@ -75,6 +75,8 @@ export async function GET(req: NextRequest) {
       advisor_id: assignments.get(e.id)?.advisor_id ?? null,
       admission_type_id: assignments.get(e.id)?.admission_type_id ?? null,
       commission_amount: assignments.get(e.id)?.commission_amount ?? null,
+      // Bono Cash congelado al asignar. Null = la venta no lo lleva.
+      bonus_amount: assignments.get(e.id)?.bonus_amount ?? null,
       comments: commentsByEnr.get(e.id) ?? [],
     }))
   }
@@ -92,8 +94,9 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ convocatorias: convocatorias ?? [], advisors: advisors ?? [], advisor_names: advisorNames, types: types ?? [], categories: categories ?? [], sales })
 }
 
-// POST { enrollment_id, advisor_id?, admission_type_id? } → asigna la venta.
-// La comisión se congela con el tipo elegido (snapshot del valor actual).
+// POST { enrollment_id, advisor_id?, admission_type_id?, bono? } → asigna la
+// venta. La comisión Y el bono se congelan con el tipo elegido (snapshot del
+// valor actual): cambiar el tarifario no reescribe lo ya liquidado.
 export async function POST(req: NextRequest) {
   const noAutorizado = await guardStaff()
   if (noAutorizado) return noAutorizado
@@ -105,10 +108,15 @@ export async function POST(req: NextRequest) {
   const sb = db()
 
   let commission: number | null = null
+  let bonus: number | null = null
   if (b.admission_type_id) {
-    const { data: t } = await sb.from('admission_types').select('commission').eq('id', b.admission_type_id).maybeSingle()
+    const { data: t } = await sb.from('admission_types').select('commission, bonus_amount').eq('id', b.admission_type_id).maybeSingle()
     if (!t) return NextResponse.json({ error: 'Tipo de admisión no encontrado' }, { status: 404 })
     commission = Number(t.commission)
+    // El bono solo entra si se pidió Y el tipo lo tiene configurado. Marcar el
+    // bono en un tipo sin bono no inventa un monto: se guarda sin bono, y quien
+    // deba cobrarlo tendrá que configurarlo en el tipo primero.
+    if (b.bono && t.bonus_amount != null) bonus = Number(t.bonus_amount)
   }
 
   const { error } = await sb.from('admission_sales').upsert({
@@ -116,6 +124,7 @@ export async function POST(req: NextRequest) {
     advisor_id: b.advisor_id || null,
     admission_type_id: b.admission_type_id || null,
     commission_amount: commission,
+    bonus_amount: bonus,
     assigned_at: new Date().toISOString(),
     assigned_by: user.email ?? user.id,
   }, { onConflict: 'enrollment_id' })

@@ -14,7 +14,7 @@ async function requireUser() {
   return user
 }
 
-// POST { category_id, name, commission } → crea un tipo de admisión
+// POST { category_id, name, commission, bonus_amount } → crea un tipo de admisión
 export async function POST(req: NextRequest) {
   const noAutorizado = await guardStaff()
   if (noAutorizado) return noAutorizado
@@ -24,12 +24,15 @@ export async function POST(req: NextRequest) {
   if (!b?.category_id || !b?.name?.trim()) return NextResponse.json({ error: 'Faltan categoría o nombre' }, { status: 400 })
   const { error } = await db().from('admission_types').insert({
     category_id: b.category_id, name: b.name.trim(), commission: Number(b.commission) || 0,
+    // Null y no 0: "sin bono" y "bono de cero" son cosas distintas, y la
+    // diferencia decide si la casilla de la venta se puede marcar.
+    bonus_amount: b.bonus_amount == null || String(b.bonus_amount) === '' ? null : Number(b.bonus_amount),
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 
-// PATCH { id, name?, commission?, active? } — cambiar la comisión NO toca las
+// PATCH { id, name?, commission?, bonus_amount?, active? } — cambiar la comisión NO toca las
 // ventas ya asignadas (llevan su snapshot); rige para las asignaciones nuevas.
 export async function PATCH(req: NextRequest) {
   const noAutorizado = await guardStaff()
@@ -41,6 +44,7 @@ export async function PATCH(req: NextRequest) {
   const patch: Record<string, unknown> = {}
   if (b.name?.trim()) patch.name = b.name.trim()
   if (b.commission != null) patch.commission = Number(b.commission) || 0
+  if ('bonus_amount' in b) patch.bonus_amount = b.bonus_amount == null || String(b.bonus_amount) === '' ? null : Number(b.bonus_amount)
   if (b.active != null) patch.active = !!b.active
   const { error } = await db().from('admission_types').update(patch).eq('id', b.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
