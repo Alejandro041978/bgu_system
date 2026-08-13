@@ -98,12 +98,39 @@ export async function GET() {
     if (okCoef == null && okWS == null) return null
     return true
   }
+  // Las aulas de capstone no se miden contra la política de ponderaciones.
+  //
+  // El capstone se defiende: su nota nace de la defensa y se registra en su
+  // página, y el aula existe para dar acceso y acompañar. Su libro de
+  // calificaciones no lo lee nadie, así que preguntarle si suma 100% es medir
+  // algo que no significa nada — y produce incumplimientos que el equipo no
+  // debe arreglar. Eran 11 de las 59 que fallaban.
+  //
+  // Se identifican por la MARCA de la asignatura vinculada, no por el nombre
+  // del aula: de esas 11, solo 3 se llaman "Capstone"; las otras ocho son
+  // "Proyecto Final de …". Buscar la palabra habría perdido ocho.
+  //
+  // No se esconden: tienen su propio recuento. Un aula que desaparece del
+  // reporte es indistinguible de un aula que nadie auditó.
+  const { data: capCourses } = await sb.from('academic_courses').select('id').eq('is_capstone', true)
+  const capIds = new Set((capCourses ?? []).map((c: { id: string }) => String(c.id)))
+  const { data: capLinks } = capIds.size
+    ? await sb.from('moodle_course_links').select('aula_id, course_id')
+        .eq('kind', 'asignatura').is('replaced_at', null)
+    : { data: [] }
+  const aulasCapstone = new Set(
+    ((capLinks ?? []) as { aula_id: number; course_id: string | null }[])
+      .filter(l => l.course_id && capIds.has(String(l.course_id)))
+      .map(l => Number(l.aula_id)))
+
   // Cada aula vive en EXACTAMENTE una categoría (suman el total), por esta
-  // precedencia: sin datos > sin evaluaciones > incumple (viola algo medible)
-  // > cumple > sin ponderación reportada (no reporta pesos y nada más falla).
+  // precedencia: sin datos > capstone > sin evaluaciones > incumple (viola algo
+  // medible) > cumple > sin ponderación reportada (no reporta pesos y nada más
+  // falla).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const estadoDe = (r: any): string => {
     if (r.error) return 'sin_datos'
+    if (aulasCapstone.has(Number(r.aula_id))) return 'capstone'
     if ((r.items_evaluacion ?? 0) === 0) return 'sin_evaluaciones'
     const cp = cumplePesosDe(r)
     if (cp === false || r.cumple_escala === false) return 'incumplen'
@@ -193,12 +220,15 @@ export async function GET() {
     })),
     cumplen: porEstado.get('cumplen') ?? 0,
     incumplen: porEstado.get('incumplen') ?? 0,
-    pesos_mal: rows.filter(r => cumplePesosDe(r) === false).length,
+    // El capstone no cuenta como incumplimiento ni como cumplimiento: no se
+    // mide. Va aparte para que se vea que está y que se decidió no medirlo.
+    capstone: porEstado.get('capstone') ?? 0,
+    pesos_mal: rows.filter(r => estadoDe(r) !== 'capstone' && cumplePesosDe(r) === false).length,
     con_suma_aritmetica: rows.filter(r => coefVigente(r)).length,
     // Aulas cuya Σ aritmética quedó vieja: su señal no se está usando, y hay
     // que volver a correr el sync de N8N para recuperarla.
     coefs_caducados: rows.filter(r => r.suma_coeficientes != null && !coefVigente(r)).length,
-    escala_mal: rows.filter(r => r.cumple_escala === false).length,
+    escala_mal: rows.filter(r => estadoDe(r) !== 'capstone' && r.cumple_escala === false).length,
     sin_evaluaciones: porEstado.get('sin_evaluaciones') ?? 0,
     sin_ponderacion: porEstado.get('sin_ponderacion') ?? 0,
     sin_datos: porEstado.get('sin_datos') ?? 0,
@@ -206,7 +236,10 @@ export async function GET() {
     // Aulas donde el ERP NO puede matricular: sin este dato, el síntoma era una
     // importación que devolvía cero alumnos sin quejarse.
     sin_matricula_manual: rows.filter(r => r.manual_enrol === false).length,
-    aulas: rows,
+    // La marca viaja con cada fila para que la pantalla clasifique con el mismo
+    // criterio que el resumen. Recalcularla allí a partir del nombre —lo único
+    // que la fila trae— daría otro número, y ya sabemos cuánto se pierde así.
+    aulas: rows.map(r => ({ ...r, es_capstone: aulasCapstone.has(Number(r.aula_id)) })),
   })
 }
 

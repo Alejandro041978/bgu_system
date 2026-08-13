@@ -13,10 +13,13 @@ interface Aula {
   cumple_pesos: boolean | null; cumple_escala: boolean | null
   metodo: string | null; categoria: string | null; error: string | null; audited_at: string
   enrol_methods?: string | null; manual_enrol?: boolean | null; matriculados?: number | null
+  // Su asignatura está marcada como capstone: el aula da acceso pero no evalúa,
+  // así que no se mide contra la política de ponderaciones.
+  es_capstone?: boolean
 }
 interface Data {
   audited_at: string | null; moodle_url: string | null
-  total: number; cumplen: number; incumplen: number
+  total: number; cumplen: number; incumplen: number; capstone?: number
   pesos_mal: number; escala_mal: number
   sin_evaluaciones: number; sin_ponderacion: number
   sin_datos: number; vinculadas: number; sin_matricula_manual: number; coefs_caducados?: number
@@ -36,7 +39,7 @@ interface Familia {
   audited_at: string | null; mas_antigua: string | null
 }
 
-type Filtro = 'todas' | 'incumplen' | 'cumplen' | 'sin_evaluaciones' | 'sin_ponderacion' | 'sin_datos' | 'sin_matricula_manual'
+type Filtro = 'todas' | 'incumplen' | 'cumplen' | 'capstone' | 'sin_evaluaciones' | 'sin_ponderacion' | 'sin_datos' | 'sin_matricula_manual'
 
 export function CampusAudit() {
   const [d, setD] = useState<Data | null>(null)
@@ -99,6 +102,7 @@ export function CampusAudit() {
   // Misma precedencia que la API: cada aula vive en UNA sola categoría
   const estadoDe = (a: Aula): Filtro => {
     if (a.error) return 'sin_datos'
+    if (a.es_capstone) return 'capstone'
     if ((a.items_evaluacion ?? 0) === 0) return 'sin_evaluaciones'
     const cp = cumplePesosDe(a)
     if (cp === false || a.cumple_escala === false) return 'incumplen'
@@ -263,6 +267,10 @@ export function CampusAudit() {
               <p className="text-2xl font-bold text-amber-700">{d.sin_ponderacion}</p>
               <p className="text-xs text-amber-700">Sin ponderación reportada</p>
             </button>
+            <button onClick={() => setFiltro('capstone')} className={`rounded-lg p-3 text-left border ${filtro === 'capstone' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'}`}>
+              <p className="text-2xl font-bold text-violet-700">{d.capstone ?? 0}</p>
+              <p className="text-xs text-violet-700">Capstone (dan acceso, no evalúan)</p>
+            </button>
             <button onClick={() => setFiltro('sin_evaluaciones')} className={`rounded-lg p-3 text-left border ${filtro === 'sin_evaluaciones' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'}`}>
               <p className="text-2xl font-bold text-gray-600">{d.sin_evaluaciones}</p>
               <p className="text-xs text-gray-500">Sin evaluaciones (no académicas)</p>
@@ -368,6 +376,8 @@ export function CampusAudit() {
                     <td className="px-3 py-2 whitespace-nowrap">
                       {estadoDe(a) === 'sin_datos'
                         ? <span className="text-[11px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">{a.error}</span>
+                        : estadoDe(a) === 'capstone'
+                        ? <span className="text-[11px] bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full" title="La nota nace de la defensa, no del aula: sus ponderaciones no se miden">capstone · no evalúa</span>
                         : estadoDe(a) === 'sin_evaluaciones'
                           ? <span className="text-[11px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">sin evaluaciones</span>
                           : estadoDe(a) === 'incumplen'
