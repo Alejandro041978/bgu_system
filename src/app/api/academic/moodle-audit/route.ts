@@ -212,6 +212,12 @@ export async function GET() {
 
 const AUDITOR_USERNAME = 'erp-auditor'
 
+// Cuántos matriculados se prueban como lector de la estructura antes de darse
+// por vencido. Cinco es el equilibrio: cubre el aula con poca actividad sin
+// multiplicar por cinco la duración del barrido, porque en cuanto uno responde
+// con ponderaciones se corta.
+const LECTORES = 5
+
 // Cuenta de servicio para leer la estructura de aulas sin matriculados.
 // Se crea una sola vez; no tiene sesión ni recibe correos.
 async function ensureAuditorUser(): Promise<number> {
@@ -404,11 +410,28 @@ export async function POST(req: NextRequest) {
         }
       } catch { /* función no habilitada o aula sin contenido expuesto */ }
 
-      // Lector de estructura: primer matriculado, o la cuenta Auditor ERP
+      // Lector de estructura: un matriculado, o la cuenta Auditor ERP.
+      //
+      // Se piden VARIOS y no uno. Moodle publica la ponderación de cada ítem
+      // solo cuando el usuario del informe tiene calificaciones ahí: a un
+      // matriculado que no ha entregado nada le devuelve los ítems sin
+      // `weightraw`, y el auditor no podía medir los pesos. Eran 319 aulas
+      // "sin ponderación reportada" —el 49% del campus— y la señal se estaba
+      // supliendo con la suma aritmética que trae N8N desde la base de Moodle.
+      //
+      // La prueba de que es el lector y no el aula: con la cuenta de servicio,
+      // recién matriculada y sin actividad, la ponderación no aparece NUNCA
+      // (0 de 48). Y las que sí reportaban tenían 67 matriculados de media
+      // frente a 19 las que no: con más gente, el primero de la lista tiene más
+      // probabilidad de haber entregado algo.
+      //
+      // Coste: para las que ya funcionaban, el primer lector acierta y no hay
+      // llamada de más.
       const enrolled = await moodleCall('core_enrol_get_enrolled_users', {
-        courseid: c.id, options: [{ name: 'limitnumber', value: 1 }],
+        courseid: c.id, options: [{ name: 'limitnumber', value: LECTORES }],
       })
-      let readerId: number | null = Array.isArray(enrolled) && enrolled.length ? Number(enrolled[0].id) : null
+      const candidatos: number[] = Array.isArray(enrolled) ? enrolled.map((u: { id: number }) => Number(u.id)) : []
+      let readerId: number | null = candidatos.length ? candidatos[0] : null
       let metodo = 'alumno'
       let desmatricular = false
       if (!readerId) {
@@ -423,9 +446,24 @@ export async function POST(req: NextRequest) {
       let items: any[] = []
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let courseItem: any = null
+      let lectoresProbados = 0
       try {
-        const rep = await moodleCall('gradereport_user_get_grade_items', { courseid: c.id, userid: readerId })
-        items = rep?.usergrades?.[0]?.gradeitems ?? []
+        // Se prueban lectores hasta que uno devuelva ponderaciones. Si ninguno
+        // las trae, se queda la lectura del primero: los ítems y la escala se
+        // miden igual, y lo que falta —los pesos— queda declarado como
+        // "sin ponderación reportada" en vez de inventado.
+        const aspirantes = metodo === 'auditor' ? [readerId as number] : candidatos
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let primeraLectura: any[] | null = null
+        for (const uid of aspirantes) {
+          lectoresProbados++
+          const rep = await moodleCall('gradereport_user_get_grade_items', { courseid: c.id, userid: uid })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const its: any[] = rep?.usergrades?.[0]?.gradeitems ?? []
+          if (primeraLectura == null) primeraLectura = its
+          if (its.some(i => i.itemtype === 'mod' && i.weightraw != null)) { primeraLectura = its; readerId = uid; break }
+        }
+        items = primeraLectura ?? []
         courseItem = items.find(i => i.itemtype === 'course') ?? null
       } finally {
         if (desmatricular) {
@@ -464,7 +502,8 @@ export async function POST(req: NextRequest) {
         cumple_pesos: sinEvaluaciones ? null : (sumaPesos == null ? null : Math.abs(sumaPesos - 100) <= 0.5),
         cumple_escala: sinEvaluaciones ? null : (escala == null ? null : escala === 100),
         enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados,
-        metodo, error: manualEnrol === false ? "sin matriculación manual: el ERP no puede matricular aquí" : null,
+        metodo: lectoresProbados > 1 ? `${metodo} (${lectoresProbados} lectores)` : metodo,
+        error: manualEnrol === false ? "sin matriculación manual: el ERP no puede matricular aquí" : null,
       }
     } catch (e) {
       return { ...base, ...vacio, enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, metodo: null, error: e instanceof Error ? e.message.slice(0, 120) : 'error' }
