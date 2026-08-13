@@ -5,8 +5,13 @@ import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
 
-// GET → prueba de conexión con Moodle (core_webservice_get_site_info). Requiere sesión.
-export async function GET() {
+// GET            → prueba de conexión con Moodle (core_webservice_get_site_info).
+// GET ?buscar=x  → además, los NOMBRES de las funciones habilitadas que
+//                  contengan "x". Sirve para saber qué se puede pedir sin
+//                  suponerlo: la pregunta "¿podemos leer los coeficientes sin
+//                  N8N?" se responde mirando si existe la función, no de
+//                  memoria. Solo lee.
+export async function GET(req: Request) {
   const noAutorizado = await guardStaff()
   if (noAutorizado) return noAutorizado
 
@@ -19,12 +24,22 @@ export async function GET() {
   }
   try {
     const info = await getSiteInfo()
+    const buscar = (new URL(req.url).searchParams.get('buscar') ?? '').trim().toLowerCase()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const todas: any[] = Array.isArray(info?.functions) ? info.functions : []
     return NextResponse.json({
       ok: true,
       sitename: info?.sitename ?? null,
       release: info?.release ?? null,
       username: info?.username ?? null,
-      functions: Array.isArray(info?.functions) ? info.functions.length : null,
+      functions: todas.length,
+      ...(buscar ? {
+        buscar,
+        coinciden: todas
+          .map(f => String(f?.name ?? ''))
+          .filter(n => n.toLowerCase().includes(buscar))
+          .sort(),
+      } : {}),
     })
   } catch (e) {
     return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'Error desconocido' }, { status: 502 })
