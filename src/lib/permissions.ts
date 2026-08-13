@@ -179,7 +179,6 @@ export const API_ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/api/academic/groups', 'academic_groups'],
   ['/api/academic/external-campus-grades', 'academic_external_campus'],
   ['/api/academic/capstone-grades', 'academic_capstone'],
-  ['/api/academic/capstone-courses', 'academic_capstone'],
   ['/api/academic/grades', 'academic_grades'],
   ['/api/academic/account', 'academic_account'],
   ['/api/academic/acta', 'academic_acta'],

@@ -48,11 +48,28 @@ export async function cursosDelAmbito(sb: any, ambito: Ambito): Promise<Set<stri
     const { data } = await sb.from('academic_courses').select('id').eq('is_capstone', true)
     return new Set((data ?? []).map((c: { id: string }) => String(c.id)))
   }
+  // Campus socio se declara en DOS niveles y el alcance es la unión:
+  //
+  //   · el programa entero se dicta fuera  → academic_programs.partner_campus
+  //   · una asignatura suelta se cursa fuera dentro de un programa normal
+  //     → academic_courses.partner_campus
+  //
+  // El segundo nivel salió de mirar dónde caían las notas escritas a mano: 19
+  // asignaturas en seis programas que no son socios —Coursera, Griky, LMS TEP—
+  // y ninguna con aula en Moodle, porque no se cursan aquí.
+  const out = new Set<string>()
+
   const { data: progs } = await sb.from('academic_programs').select('id').eq('partner_campus', true)
   const ids = (progs ?? []).map((p: { id: string }) => String(p.id))
-  if (!ids.length) return new Set()
-  const { data: cursos } = await sb.from('academic_courses').select('id').in('program_id', ids)
-  return new Set((cursos ?? []).map((c: { id: string }) => String(c.id)))
+  if (ids.length) {
+    const { data: cursos } = await sb.from('academic_courses').select('id').in('program_id', ids)
+    for (const c of (cursos ?? []) as { id: string }[]) out.add(String(c.id))
+  }
+
+  const { data: sueltas } = await sb.from('academic_courses').select('id').eq('partner_campus', true)
+  for (const c of (sueltas ?? []) as { id: string }[]) out.add(String(c.id))
+
+  return out
 }
 
 /**

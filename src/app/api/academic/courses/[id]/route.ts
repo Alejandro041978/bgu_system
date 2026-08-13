@@ -1,19 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { guardStaff } from '@/lib/api-guard'
+import { guardPagina } from '@/lib/page-guard'
+import { createClient as createAuthClient } from '@/lib/supabase/server'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
+// Los campos que se pueden editar desde aquí. Antes se pasaba el cuerpo entero
+// a un UPDATE, así que cualquiera con sesión podía escribir CUALQUIER columna de
+// la asignatura mandando el JSON adecuado —external_id incluido, que es por
+// donde entra el sincronizador—.
+const EDITABLES = [
+  'name', 'code', 'credits', 'level', 'hours', 'graduation_requirement',
+  // Dónde se enseña y cómo se evalúa. Deciden sobre qué puede calificar otra
+  // persona, y por eso el endgpoint exige el permiso de la página de Programas.
+  'is_capstone', 'partner_campus',
+] as const
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const noAutorizado = await guardStaff()
+  // La malla la regula la Dirección Académica: el permiso de la página manda.
+  const noAutorizado = await guardPagina('academic_programs')
   if (noAutorizado) return noAutorizado
 
+  const auth = await createAuthClient()
+  const { data: { user } } = await auth.auth.getUser()
+
   const { id } = await params
-  const body = await req.json()
+  const body = await req.json().catch(() => null) as Record<string, unknown> | null
+  if (!body) return NextResponse.json({ error: 'Cuerpo inválido' }, { status: 400 })
+
+  const patch: Record<string, unknown> = {}
+  for (const k of EDITABLES) if (k in body) patch[k] = body[k]
+  if (!Object.keys(patch).length) {
+    return NextResponse.json({ error: 'Ningún campo editable en la petición' }, { status: 400 })
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (db() as any).from('academic_courses').update(body).eq('id', id)
+  const sb = db() as any
+  const { error } = await sb.from('academic_courses').update(patch).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true })
+
+  // Marcarla como capstone o de campus socio apaga la sincronización de sus
+  // aulas: el aula da acceso, pero la nota nace fuera y la escribe una persona.
+  // Desmarcarla NO la reanuda —volver a importar sobre un acta llevada a mano es
+  // una decisión con consecuencias, y se toma mirando el aula concreta—.
+  let aulas = 0
+  if (patch.is_capstone === true || patch.partner_campus === true) {
+    const { data } = await sb.from('moodle_course_links')
+      .update({ sync_enabled: false, sync_enabled_by: user?.id ?? null, sync_enabled_at: new Date().toISOString() })
+      .eq('course_id', id).eq('sync_enabled', true).select('aula_id')
+    aulas = (data ?? []).length
+  }
+
+  return NextResponse.json({ ok: true, aulas_desconectadas: aulas })
 }
 
 // Lo que impide borrar una asignatura, dicho como le importa a quien la está

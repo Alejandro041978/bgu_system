@@ -112,7 +112,10 @@ export async function GET() {
   //
   // No se esconden: tienen su propio recuento. Un aula que desaparece del
   // reporte es indistinguible de un aula que nadie auditó.
-  const { data: capCourses } = await sb.from('academic_courses').select('id').eq('is_capstone', true)
+  // Capstone y campus socio: en ambos la nota nace fuera del aula, así que en
+  // ambos la ponderación del libro no significa nada.
+  const { data: capCourses } = await sb.from('academic_courses')
+    .select('id, is_capstone, partner_campus').or('is_capstone.eq.true,partner_campus.eq.true')
   const capIds = new Set((capCourses ?? []).map((c: { id: string }) => String(c.id)))
   const { data: capLinks } = capIds.size
     ? await sb.from('moodle_course_links').select('aula_id, course_id')

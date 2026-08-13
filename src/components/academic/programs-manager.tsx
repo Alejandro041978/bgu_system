@@ -3,7 +3,12 @@
 import { useState } from 'react'
 import { Plus, Trash2, BookOpen, ChevronRight, Pencil, Check, X } from 'lucide-react'
 
-type Course = { id: string; name: string; code: string | null; credits: number; hours: number | null; level: number | null }
+type Course = {
+  id: string; name: string; code: string | null; credits: number; hours: number | null; level: number | null
+  // Dónde se enseña y cómo se evalúa. Las lee el alcance de las páginas de
+  // calificación acotadas y el Auditor del Campus.
+  partner_campus?: boolean; is_capstone?: boolean
+}
 type Category = { id: string; name: string }
 type Program = { id: string; name: string; code: string | null; description: string | null; courses: Course[]; category?: Category | null; partner_campus?: boolean }
 
@@ -100,6 +105,33 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
     const r = await fetch('/api/academic/programs/apply-partner', { method: 'POST' }).then(res => res.json())
     setApplyingPartner(false)
     alert(`Programa ${next ? 'marcado' : 'desmarcado'} como campus socio.\n\nEstudiantes en campus socio: ${r.eligible_students ?? 0}\nMarcados ahora: ${r.marked ?? 0}  ·  Revertidos a activo: ${r.reverted ?? 0}`)
+  }
+
+  // Marcar una asignatura como campus socio o capstone. Dos efectos que conviene
+  // ver en el momento, no descubrir después: su aula deja de sincronizar notas, y
+  // la asignatura pasa a calificarse en su propia página.
+  const [marcando, setMarcando] = useState<string | null>(null)
+  async function marcar(course: Course, campo: 'partner_campus' | 'is_capstone') {
+    const next = !course[campo]
+    setMarcando(course.id)
+    setPrograms(prev => prev.map(p => ({ ...p, courses: p.courses.map(c => c.id === course.id ? { ...c, [campo]: next } : c) })))
+    const r = await fetch(`/api/academic/courses/${course.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [campo]: next }),
+    })
+    const d = await r.json().catch(() => ({}))
+    setMarcando(null)
+    if (!r.ok) {
+      // Deshacer el cambio optimista: si el servidor lo rechazó, la pantalla no
+      // puede quedarse diciendo que sí.
+      setPrograms(prev => prev.map(p => ({ ...p, courses: p.courses.map(c => c.id === course.id ? { ...c, [campo]: !next } : c) })))
+      alert(d.error ?? 'No se pudo guardar')
+      return
+    }
+    if (next && d.aulas_desconectadas) {
+      alert(`"${course.name}" queda marcada.\n\nSe apagó la sincronización de ${d.aulas_desconectadas} aula(s): siguen dando acceso al estudiante, pero ya no traen notas.`)
+    } else if (!next) {
+      alert(`"${course.name}" deja de estar marcada.\n\nLa sincronización de sus aulas NO se reanuda sola: si debe volver a importar, enciéndela en Vinculación de Aulas.`)
+    }
   }
 
   async function createCourse() {
@@ -339,6 +371,7 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                     <thead>
                       <tr className="border-b border-gray-100 bg-gray-50">
                         <th className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Asignatura</th>
+                        <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-56">Dónde se enseña</th>
                         <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Ciclo</th>
                         <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Créditos</th>
                         <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Horas</th>
@@ -350,7 +383,7 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                         <>
                           {level > 0 && (
                             <tr key={`h-${level}`}>
-                              <td colSpan={5} className="px-5 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide bg-gray-50/50">
+                              <td colSpan={6} className="px-5 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide bg-gray-50/50">
                                 Ciclo {level}
                               </td>
                             </tr>
@@ -391,6 +424,24 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                                   <td className="px-5 py-2.5">
                                     <p className="font-medium text-gray-800">{course.name}</p>
                                     {course.code && <p className="text-xs text-gray-400">{course.code}</p>}
+                                  </td>
+                                  <td className="px-3 py-2.5">
+                                    {/* Dónde se enseña y cómo se evalúa. Se declara aquí, junto a
+                                        la malla, porque lo regula la Dirección Académica — no quien
+                                        califica. Su efecto: el aula da acceso y deja de traer notas,
+                                        y la asignatura pasa a calificarse en su propia página. */}
+                                    <div className="flex items-center gap-3">
+                                      <label className="inline-flex items-center gap-1.5 cursor-pointer" title="La asignatura se cursa en otra institución: su nota nace fuera y se registra a mano">
+                                        <input type="checkbox" checked={!!course.partner_campus} disabled={marcando === course.id}
+                                          onChange={() => marcar(course, 'partner_campus')} className="rounded" />
+                                        <span className={`text-[11px] font-medium ${course.partner_campus ? 'text-violet-700' : 'text-gray-400'}`}>Campus socio</span>
+                                      </label>
+                                      <label className="inline-flex items-center gap-1.5 cursor-pointer" title="La nota nace de la defensa del trabajo final, no del aula">
+                                        <input type="checkbox" checked={!!course.is_capstone} disabled={marcando === course.id}
+                                          onChange={() => marcar(course, 'is_capstone')} className="rounded" />
+                                        <span className={`text-[11px] font-medium ${course.is_capstone ? 'text-violet-700' : 'text-gray-400'}`}>Capstone</span>
+                                      </label>
+                                    </div>
                                   </td>
                                   <td className="px-3 py-2.5 text-center text-gray-500">{course.level ?? '—'}</td>
                                   <td className="px-3 py-2.5 text-center">
