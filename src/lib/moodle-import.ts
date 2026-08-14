@@ -326,7 +326,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     // que se rellena y blinda; retake = recursado; new = fila nueva
     const target = resolveImportTarget(
       gradesByDoc.get(String(stu.document_number ?? '')) ?? [],
-      { code: destCourse.code, name: destCourse.name },
+      { id: destCourse.id, code: destCourse.code, name: destCourse.name },
       stableUuid(`moodle:${courseid}:${ug.userid}`),
       passing,
       { rendido_pct: rendido, term_year: termYear, semester_start: semesterStart },

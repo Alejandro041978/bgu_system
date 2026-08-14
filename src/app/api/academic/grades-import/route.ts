@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
     // ¿Ya existe esta asignatura para el alumno? skip = de Activa con nota
     // (se omite, no es error); fill = rellena la fila "en curso" y la blinda
     const target = resolveImportTarget(gradesByDoc.get(doc) ?? [],
-      { code: course.code, name: course.name }, stableUuid(`csv:${doc}:${course.id}:${anio}:${bloque}`))
+      { id: course.id, code: course.code, name: course.name }, stableUuid(`csv:${doc}:${course.id}:${anio}:${bloque}`))
     if (target.action === 'skip') {
       omitidas.push({ fila, motivo: 'Ya registrada con nota en el ERP (Activa) — se omite, no se duplica', documento: doc })
       return

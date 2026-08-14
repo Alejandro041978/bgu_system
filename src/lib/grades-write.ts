@@ -1,7 +1,7 @@
 import { createHash } from 'crypto'
 import { recomputeStudentByDocument } from './graduates'
 import { advanceCarousels } from './carousel'
-import { sameCourse } from './course-match'
+import { filaDeCurso } from './course-match'
 
 // academic_grades.external_id es uuid: los ids legibles ("moodle:...",
 // "csv:...", "reg-...") NO caben en la columna. Toda importación deriva su
@@ -195,7 +195,7 @@ export interface ImportRow {
 export function resolveImportTarget(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   studentRows: any[],
-  course: { code: string | null; name: string | null },
+  course: { id?: string | null; code: string | null; name: string | null },
   fallbackExternalId: string,
   // Mínimo de la CATEGORÍA del programa. El importador ya lo resuelve; antes
   // aquí había un 70 fijo, que en Master y Doctorado daba por aprobado un 75.
@@ -204,11 +204,18 @@ export function resolveImportTarget(
   // periodo es. Sin ella no se abre un recursado.
   intentoNuevo?: { rendido_pct?: number | null; term_year?: number | null; semester_start?: string | null },
 ): { action: 'skip' | 'fill' | 'new' | 'update' | 'retake'; external_id: string; shield: boolean; prev_value: number | null; intento?: number } {
+  // Qué filas del estudiante son de ESTA asignatura. Por course_id, y por
+  // nombre solo cuando la fila no lo trae.
+  //
+  // Aquí también estaba el `código O nombre`, y aquí hacía el daño más caro: el
+  // importador decidía que la nota ya estaba registrada. A Francisca Ávila, con
+  // dos programas numerados 101–105, el 98 de Psychopathological Alterations
+  // (Mental Health, código 101) daba por aprobado el Early Detection de ABA
+  // (código 101), así que su 86,67 del aula 437 no entraba nunca: el aula decía
+  // "5 en curso" y la vista previa "ya registrada (histórico)".
   const matches = (studentRows ?? [])
     .filter(g => g.source !== 'convalidacion' && g.source !== 'validacion')
-    .filter(g =>
-      (course.code && g.course_code && String(g.course_code) === String(course.code)) ||
-      sameCourse(g.course_name, course.name))
+    .filter(g => filaDeCurso(g, course))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const val = (g: any): number | null => g.retake_grade ?? g.final_grade ?? null
 

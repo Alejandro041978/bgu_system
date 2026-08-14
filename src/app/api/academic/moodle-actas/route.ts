@@ -141,12 +141,12 @@ export async function GET(req: NextRequest) {
   const vincIds = [...new Set(((vinc ?? []) as { course_id: string | null }[]).map(v => v.course_id).filter(Boolean))]
   if (vincIds.length) {
     const { data: cs } = await sb.from('academic_courses')
-      .select('code, name, program_id, academic_programs(category_id)').in('id', vincIds)
+      .select('id, code, name, program_id, academic_programs(category_id)').in('id', vincIds)
     linkedCourse = cs?.[0] ?? null
   }
   if (!linkedCourse) {
     const { data: prevOffs } = await sb.from('semester_offerings')
-      .select('course:academic_courses(code, name, program_id, academic_programs(category_id))')
+      .select('course:academic_courses(id, code, name, program_id, academic_programs(category_id))')
       .eq('moodle_course_id', String(courseid))
     linkedCourse = prevOffs?.[0]?.course ?? null
   }
