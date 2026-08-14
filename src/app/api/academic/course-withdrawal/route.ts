@@ -115,8 +115,46 @@ export async function GET(req: NextRequest) {
       editable: g.source === 'systemactiva' && !g.moodle_course_id,
       final_grade: g.final_grade, retake_grade: g.retake_grade,
       kind: (esFilaDePlan(g) ? 'sin_registrar' : 'inscripcion') as 'inscripcion' | 'sin_registrar',
+      _clave: `${g.course_id ?? courseNameKey(g.course_name)}|${g.intento ?? 1}`,
+      _vacia: !has_grade && !g.moodle_course_id,
     }
   })
+
+  // ---------------------------------------------------------------------------
+  // Una inscripción, una línea.
+  //
+  // La misma asignatura del mismo intento puede tener dos filas: la heredada de
+  // SystemActiva y la del campus. No son dos matrículas ni un recursado —el
+  // recursado lleva intento=2, y de ésos hay 138 en todo el ERP—, es el mismo
+  // curso anotado dos veces. Pasa en 193 casos y 53 estudiantes.
+  //
+  // Se muestra la que tiene la nota y se calla la vacía. Pero no se descarta sin
+  // más: la fila heredada es la que trae el PERIODO —la del campus llega sin
+  // semestre—, así que primero se le hereda el término a la que se queda. Si se
+  // ocultara a secas, el registro perdería el "AY 23-24 SUMMER 2024" que hoy se
+  // ve en pantalla.
+  //
+  // Se resuelve al leer y no borrando filas: la fila heredada es el documento de
+  // su matrícula en el sistema viejo y no estorba mientras no se muestre dos
+  // veces. Y si el retiro de una se deshace, esto sigue valiendo solo.
+  // ---------------------------------------------------------------------------
+  const porClave = new Map<string, typeof rows>()
+  for (const r of rows) {
+    if (!porClave.has(r._clave)) porClave.set(r._clave, [])
+    porClave.get(r._clave)!.push(r)
+  }
+  const visibles = rows.filter(r => {
+    // Una retirada nunca se esconde: es un acto deliberado, vive en su propia
+    // sección y desde ahí se deshace. Solo se colapsa lo que está activo.
+    if (r.withdrawn || !r._vacia) return true
+    const activas = porClave.get(r._clave)!.filter(o => !o.withdrawn)
+    return activas.length < 2 || !activas.some(o => !o._vacia)
+  })
+  for (const r of visibles) {
+    if (r.term) continue
+    const sombra = porClave.get(r._clave)!.find(o => o !== r && o.term)
+    if (sombra) r.term = sombra.term
+  }
 
   // El registro curricular es TODO el registro. Las convalidadas son parte de
   // él —no se pueden retirar, pero existir existen— y las asignaturas de la
@@ -149,7 +187,7 @@ export async function GET(req: NextRequest) {
   })
 
   // Lo que la malla tiene y el estudiante no: ni nota ni convalidación.
-  const conFila = new Set([...rows, ...convRows].map(r => courseNameKey(r.course_name)))
+  const conFila = new Set([...visibles, ...convRows].map(r => courseNameKey(r.course_name)))
   const faltantes = malla.filter(c => !conFila.has(courseNameKey(c.name))).map(c => ({
     external_id: `falta:${c.id}`, course_code: c.code, course_name: c.name,
     credits: c.credits != null ? Number(c.credits) : null, term: '',
@@ -160,7 +198,7 @@ export async function GET(req: NextRequest) {
   // Se devuelve en el orden de la malla (nivel, código); lo que no está en la
   // malla —notas sueltas de la carga histórica— va al final.
   const orden = new Map(malla.map((c, i) => [courseNameKey(c.name), i]))
-  const todas = [...rows, ...convRows, ...faltantes]
+  const todas = [...visibles, ...convRows, ...faltantes]
     .sort((a, b) => (orden.get(courseNameKey(a.course_name)) ?? 9999) - (orden.get(courseNameKey(b.course_name)) ?? 9999)
       || String(a.course_name).localeCompare(String(b.course_name)))
 
@@ -173,7 +211,7 @@ export async function GET(req: NextRequest) {
   // filas de la misma asignatura y no el doble de trabajo, y la fila de plan
   // que se quedó junto a la nota real (48 casos, 19 estudiantes)—.
   const creditoPorAsignatura = new Map<string, number>()
-  for (const r of rows) {
+  for (const r of visibles) {
     if (r.withdrawn) continue
     const k = courseNameKey(r.course_name)
     if (!creditoPorAsignatura.has(k)) creditoPorAsignatura.set(k, r.credits ?? 0)
@@ -209,7 +247,10 @@ export async function GET(req: NextRequest) {
     // asignaturas de su malla completas, aunque muchas sigan sin empezar.
     malla_total: malla.length,
     sin_registrar: faltantes.length,
-    rows: todas,
+    // Sin los campos de trabajo (_clave, _vacia): son para agrupar aquí, no
+    // parte del registro que ve nadie.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rows: todas.map(({ _clave, _vacia, ...r }: any) => r),
   })
 }
 
