@@ -1,7 +1,7 @@
 import { readAll } from './withdrawals'
 import { asignaturasDeGrupos } from './group-courses'
 import { esIntento } from '@/lib/grade-sources'
-import { sameCourse } from './course-match'
+import { filaDeCurso } from './course-match'
 import { provisionStudent, marcarParaSincronizar } from './moodle-provision'
 
 // ---------------------------------------------------------------------------
@@ -140,9 +140,7 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
   const approved = (studentId: string, programId: string, c: { id: string; code: string | null; name: string | null }): boolean => {
     if (transferredOf.get(`${studentId}|${programId}`)?.has(c.id)) return true
     const doc = String(students.get(studentId)?.document_number ?? '')
-    const rows = (gradesByDoc.get(doc) ?? []).filter(g =>
-      (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
-      sameCourse(g.course_name, c.name))
+    const rows = (gradesByDoc.get(doc) ?? []).filter(g => filaDeCurso(g, c))
     const values = rows.map(g => (g.retake_grade ?? g.final_grade)).filter((v: number | null): v is number => v != null)
     if (!values.length) return false
     const best = Math.max(...values)

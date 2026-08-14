@@ -3,7 +3,7 @@ import { passingByCourse, passingFor } from '@/lib/passing-score'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { sameCourse, courseNameKey } from '@/lib/course-match'
+import { filaDeCurso, sameCourse, courseNameKey } from '@/lib/course-match'
 import { esFilaDePlan } from '@/lib/grade-sources'
 import { etiquetaIntento } from '@/lib/grades-write'
 import { guardStaff, guardSuperadmin } from '@/lib/api-guard'
@@ -62,8 +62,11 @@ export async function GET(req: NextRequest) {
     .order('level', { ascending: true, nullsFirst: false }).order('code')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const malla = (courses ?? []) as any[]
-  const belongs = (g: { course_code: string | null; course_name: string | null }) =>
-    malla.some(c => (c.code && g.course_code && String(c.code) === String(g.course_code)) || sameCourse(g.course_name, c.name))
+  // Qué notas son de ESTE programa. Por nombre y solo por nombre: los códigos
+  // son números de orden, y un estudiante con dos programas los tiene repetidos
+  // 101–105 en los dos. Emparejar por código le mostraba las doce filas de sus
+  // dos mallas en cada uno.
+  const belongs = (g: { course_name: string | null }) => malla.some(c => filaDeCurso(g, c))
 
   const { data: grades } = await sb.from('academic_grades')
     .select('external_id, course_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id, estado_academico, intento, semester_id')

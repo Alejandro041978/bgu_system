@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { sameCourse } from './course-match'
+import { filaDeCurso } from './course-match'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -91,10 +91,7 @@ export async function checkRequirements(
         // Convalidación / validación cubre la asignatura
         if (transferCourseIds.has(c.id)) { cubiertas++; continue }
         // Nota real aprobatoria
-        const matches = gradeRows.filter(g =>
-          (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
-          sameCourse(g.course_name, c.name)
-        )
+        const matches = gradeRows.filter(g => filaDeCurso(g, c))
         const values = matches.map(g => (g.retake_grade ?? g.final_grade) as number | null).filter(v => v != null) as number[]
         if (values.length) {
           const best = Math.max(...values)

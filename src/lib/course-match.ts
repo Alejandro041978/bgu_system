@@ -66,3 +66,29 @@ export function sameCourse(
   const b = courseNameKey(courseName)
   return a !== '' && a === b
 }
+
+// ---------------------------------------------------------------------------
+// La misma pregunta, pero recibiendo las dos filas enteras. Existe para que el
+// criterio se escriba UNA vez.
+//
+// Lo que dice arriba —el código no es llave— estaba escrito desde el primer día
+// y aun así nueve lugares del ERP emparejaban `código O nombre`. El "O" bastaba:
+// alcanza con que el número coincida para que una nota caiga en una asignatura
+// que no es la suya. Se midió sobre las 25.298 filas: 121 emparejamientos
+// vivían solo del código y los 121 eran falsos —"Psychological First Aid"
+// ocupando "ABA Intervention", 33 de ellos con nota puesta—, y ninguno se
+// perdía al quitarlo. Cero legítimos.
+//
+// El daño peor no era ése. Un estudiante con dos programas tiene dos mallas
+// numeradas 101–105, así que TODAS sus notas coincidían con TODAS sus
+// asignaturas: sus dos actas personales salían idénticas nota por nota, cada
+// programa mostrando las calificaciones del otro.
+//
+// Por eso esta función no recibe el código ni por accidente.
+// ---------------------------------------------------------------------------
+export function filaDeCurso(
+  fila: { course_name?: string | null },
+  curso: { name?: string | null },
+): boolean {
+  return sameCourse(fila.course_name, curso.name)
+}

@@ -1,4 +1,4 @@
-import { sameCourse } from '@/lib/course-match'
+import { filaDeCurso } from '@/lib/course-match'
 
 // ---------------------------------------------------------------------------
 // El acta personal: la malla del programa con el estado de cada asignatura.
@@ -90,8 +90,7 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
       summary.transfer++
       return { ...base, status: 'transfer' as const, grade: tm.grade }
     }
-    const matches = gradeRows.filter(g =>
-      (c.code && g.course_code && String(g.course_code) === String(c.code)) || sameCourse(g.course_name, c.name))
+    const matches = gradeRows.filter(g => filaDeCurso(g, c))
     // Una fila de plan no es actividad académica: la asignatura sigue
     // 'pendiente' para el estudiante, pero está EN su registro.
     const empezadas = matches.filter(g => g.source !== 'plan')

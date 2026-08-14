@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { sameCourse } from '@/lib/course-match'
+import { filaDeCurso } from '@/lib/course-match'
 import { applyGradeEdit, type GradeChanges } from '@/lib/grades-write'
 import { guardStaff, guardSuperadmin } from '@/lib/api-guard'
 
@@ -70,9 +70,7 @@ export async function GET(req: NextRequest) {
         const { data: courses } = await sb.from('academic_courses').select('*').in('program_id', programIds)
         for (const g of grades as { course_code: string | null; course_name: string | null; program_ids?: string[] }[]) {
           g.program_ids = [...new Set(((courses ?? []) as { program_id: string; code: string | null; name: string | null }[])
-            .filter(c =>
-              (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
-              sameCourse(g.course_name, c.name))
+            .filter(c => filaDeCurso(g, c))
             .map(c => c.program_id))]
         }
       }

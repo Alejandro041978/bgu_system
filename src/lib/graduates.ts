@@ -1,6 +1,6 @@
 import { readAll } from './withdrawals'
 import { esIntento } from '@/lib/grade-sources'
-import { sameCourse } from './course-match'
+import { filaDeCurso } from './course-match'
 
 // ---------------------------------------------------------------------------
 // Detección masiva de egresados.
@@ -101,10 +101,7 @@ export async function computeGraduates(sb: any): Promise<{
     let covered = 0
     for (const c of malla) {
       if (transferred.has(c.id)) { covered++; continue }
-      const matches = gradeRows.filter(g =>
-        (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
-        sameCourse(g.course_name, c.name)
-      )
+      const matches = gradeRows.filter(g => filaDeCurso(g, c))
       const values = matches.map(g => (g.retake_grade ?? g.final_grade)).filter((v): v is number => v != null)
       if (!values.length) continue
       const best = Math.max(...values)
@@ -220,9 +217,7 @@ export async function recomputeStudentByDocument(sb: any, documentNumber: string
       let covered = 0
       for (const c of malla) {
         if (transferred.has(c.id)) { covered++; continue }
-        const matches = gradeRows.filter(g =>
-          (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
-          sameCourse(g.course_name, c.name))
+        const matches = gradeRows.filter(g => filaDeCurso(g, c))
         const values = matches.map(g => (g.retake_grade ?? g.final_grade)).filter((v): v is number => v != null)
         if (!values.length) continue
         const best = Math.max(...values)

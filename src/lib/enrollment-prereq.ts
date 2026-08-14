@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { esIntento } from '@/lib/grade-sources'
-import { sameCourse } from './course-match'
+import { filaDeCurso } from './course-match'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -59,8 +59,7 @@ async function remainingCourses(sb: any, studentId: string, programId: string, d
   let aprobadas = 0
   for (const c of courses) {
     if (transferred.has(c.id)) { aprobadas++; continue }
-    const rows = grades.filter(g =>
-      (c.code && g.course_code && String(g.course_code) === String(c.code)) || sameCourse(g.course_name, c.name))
+    const rows = grades.filter(g => filaDeCurso(g, c))
     const values = rows.map(g => g.retake_grade ?? g.final_grade).filter((v: number | null): v is number => v != null)
     if (!values.length) continue
     const best = Math.max(...values)

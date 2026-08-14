@@ -11,7 +11,7 @@
 // desbloquea la conversación.
 // ---------------------------------------------------------------------------
 
-import { sameCourse } from './course-match'
+import { filaDeCurso } from './course-match'
 import { esIntento } from './grade-sources'
 
 export interface RetentionContext {
@@ -106,9 +106,7 @@ export async function buildRetentionContext(sb: any, studentId: string): Promise
 
     for (const c of malla) {
       if (transferred.has(c.id)) continue
-      const matches = gradeRows.filter(g =>
-        (c.code && g.course_code && String(g.course_code) === String(c.code)) ||
-        sameCourse(g.course_name, c.name))
+      const matches = gradeRows.filter(g => filaDeCurso(g, c))
       const values = matches.map(g => g.retake_grade ?? g.final_grade).filter((v: number | null): v is number => v != null)
       if (!values.length) { pending++; continue }
       const best = Math.max(...values)
