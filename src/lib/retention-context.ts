@@ -92,7 +92,7 @@ export async function buildRetentionContext(sb: any, studentId: string): Promise
     total = malla.length
 
     const { data: grades } = await sb.from('academic_grades')
-      .select('course_code, course_name, final_grade, retake_grade, passing_score, source')
+      .select('course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
       .eq('document_number', s.document_number)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gradeRows = ((grades ?? []) as any[]).filter(g => esIntento(g))

@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
         programs = ((progs ?? []) as { id: string; name: string }[]).sort((a, b) => a.name.localeCompare(b.name))
         const { data: courses } = await sb.from('academic_courses').select('*').in('program_id', programIds)
         for (const g of grades as { course_code: string | null; course_name: string | null; program_ids?: string[] }[]) {
-          g.program_ids = [...new Set(((courses ?? []) as { program_id: string; code: string | null; name: string | null }[])
+          g.program_ids = [...new Set(((courses ?? []) as { id: string; program_id: string; code: string | null; name: string | null }[])
             .filter(c => filaDeCurso(g, c))
             .map(c => c.program_id))]
         }

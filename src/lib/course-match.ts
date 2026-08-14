@@ -85,10 +85,25 @@ export function sameCourse(
 // programa mostrando las calificaciones del otro.
 //
 // Por eso esta función no recibe el código ni por accidente.
+//
+// Lo que SÍ manda, cuando existe, es course_id: el vínculo resuelto en la
+// importación. El nombre queda de reserva para las 166 filas que no lo tienen.
+//
+// Hace falta porque el nombre solo tampoco alcanza: se repite ENTRE programas.
+// Nueve estudiantes llevan dos mallas con asignaturas homónimas —Administración
+// y Contabilidad comparten dieciocho— y por nombre 192 filas se colaban de un
+// programa al otro, 94 de ellas con nota. Un bachiller figuraba con la
+// asignatura cubierta porque la había cursado en su maestría, que es justo lo
+// que la institución no acepta sin convalidación de por medio.
+//
+// Preferir course_id exige que los vínculos estén sanos: se corrigieron los 20
+// que apuntaban a otra asignatura antes de encender esta regla. Medido sobre el
+// expediente completo, ninguna nota calificada desaparece al aplicarla.
 // ---------------------------------------------------------------------------
 export function filaDeCurso(
-  fila: { course_name?: string | null },
-  curso: { name?: string | null },
+  fila: { course_name?: string | null; course_id?: string | null },
+  curso: { id?: string | null; name?: string | null },
 ): boolean {
+  if (fila.course_id && curso.id) return fila.course_id === curso.id
   return sameCourse(fila.course_name, curso.name)
 }

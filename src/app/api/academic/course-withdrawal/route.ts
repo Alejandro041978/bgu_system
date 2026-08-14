@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
     // las de un ABA de 2 créditos por asignatura decían 1, así que el registro
     // curricular contaba la mitad de la carga real. La malla es el documento
     // que fija cuánto vale cada asignatura; la nota solo dice cómo le fue.
-    const cm = malla.find((c: { name: string | null }) => filaDeCurso(g, c))
+    const cm = malla.find((c: { id: string; name: string | null; code: string | null; credits: number | null }) => filaDeCurso(g, c))
     return {
       external_id: g.external_id,
       // El código de la malla, no el número de orden de SystemActiva.

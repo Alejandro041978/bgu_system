@@ -50,7 +50,7 @@ async function remainingCourses(sb: any, studentId: string, programId: string, d
   let grades: any[] = []
   if (documentNumber) {
     const { data } = await sb.from('academic_grades')
-      .select('course_code, course_name, final_grade, retake_grade, passing_score, source')
+      .select('course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
       .eq('document_number', documentNumber)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     grades = ((data ?? []) as any[]).filter(g => esIntento(g))

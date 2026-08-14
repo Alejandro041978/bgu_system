@@ -95,7 +95,7 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
   const gradesByDoc = new Map<string, any[]>()
   for (const part of chunk(docs, 200)) {
     const { data } = await sb.from('academic_grades')
-      .select('document_number, course_code, course_name, final_grade, retake_grade, passing_score, source')
+      .select('document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
       .in('document_number', part)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const g of (data ?? []) as any[]) {

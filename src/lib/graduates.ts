@@ -49,7 +49,7 @@ export async function computeGraduates(sb: any): Promise<{
   for (const s of students as { id: string; document_number: string | null }[]) docOf.set(s.id, s.document_number)
 
   const grades = await readAll(sb, 'academic_grades',
-    'document_number, course_code, course_name, final_grade, retake_grade, passing_score, source')
+    'document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
   const gradesByDoc = new Map<string, GradeRow[]>()
   for (const g of grades as (GradeRow & { source: string })[]) {
     // Las convalidaciones/validaciones se cuentan por transfer_credit_items, no aquí
@@ -171,7 +171,7 @@ export async function recomputeStudentByDocument(sb: any, documentNumber: string
   if (!studs?.length) return
 
   const { data: grades } = await sb.from('academic_grades')
-    .select('course_code, course_name, final_grade, retake_grade, passing_score, source')
+    .select('course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
     .eq('document_number', documentNumber)
   const gradeRows = ((grades ?? []) as (GradeRow & { source: string })[])
     .filter(g => esIntento(g))

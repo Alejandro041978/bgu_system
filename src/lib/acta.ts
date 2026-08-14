@@ -58,7 +58,7 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
   let grades: any[] | null = []
   if (document) {
     const base = () => sb.from('academic_grades')
-      .select('course_code, course_name, final_grade, retake_grade, passing_score, estado_academico, source')
+      .select('course_id, course_code, course_name, final_grade, retake_grade, passing_score, estado_academico, source')
       .eq('document_number', document).neq('source', 'convalidacion').neq('source', 'validacion')
     const r = await base().is('withdrawn_at', null)
     grades = r.error ? (await base()).data : r.data
