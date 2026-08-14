@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Loader2, ClipboardList, Check, X, Plus, Search } from 'lucide-react'
+import { Loader2, ClipboardList, Check, X, Plus, Search, Undo2 } from 'lucide-react'
 import { TramiteTypesConfig } from './tramite-types-config'
 
 interface Row {
@@ -10,6 +10,9 @@ interface Row {
   resolution_note: string | null; request_note: string | null
   student_name: string; document_number: string | null; email: string | null
   type_name: string; price: number; currency: string
+  // Atender este trámite levanta el retiro del estudiante. Lo dice el catálogo,
+  // no el nombre del trámite.
+  reincorporates: boolean
 }
 interface TramiteType { id: string; name: string; price: number; currency: string; active: boolean; request_note_label: string | null }
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
@@ -34,6 +37,7 @@ export function TramitesManager() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
   const [nota, setNota] = useState<Record<string, string>>({})
 
   // Alta en nombre del estudiante (el que llega por helpdesk o en persona)
@@ -55,17 +59,31 @@ export function TramitesManager() {
   }, [filtro])
   useEffect(() => { load() }, [load])
 
-  async function accion(id: string, action: 'atender' | 'anular') {
-    setBusy(id); setError(null)
-    const res = await fetch('/api/registrar/tramites', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, action, resolution_note: nota[id] ?? null }),
-    })
-    const d = await res.json()
-    setBusy(null)
-    if (!res.ok) { setError(d.error ?? 'No se pudo completar'); return }
-    setNota(n => ({ ...n, [id]: '' }))
-    load()
+  async function accion(id: string, action: 'atender' | 'anular', r?: Row) {
+    // Un trámite que reincorpora no se "marca atendido": devuelve a alguien a
+    // la universidad. Se confirma diciendo eso, con su nombre.
+    if (action === 'atender' && r?.reincorporates) {
+      if (!confirm(
+        `¿Reincorporar a ${r.student_name}?\n\n` +
+        `Pagó su ${r.type_name} y con esto se levanta su retiro definitivo: vuelve a ser estudiante activo.\n\n` +
+        `Es la única vía para revertir un IW, así que revisa que el pago corresponda.`)) return
+    }
+    setBusy(id); setError(null); setAviso(null)
+    try {
+      const res = await fetch('/api/registrar/tramites', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action, resolution_note: nota[id] ?? null }),
+      })
+      const d = await res.json().catch(() => ({ error: `El servidor respondió ${res.status}` }))
+      if (!res.ok || d.error) { setError(d.error ?? 'No se pudo completar'); return }
+      if (d.reincorporados) {
+        setAviso(`${r?.student_name ?? 'El estudiante'} vuelve a estar activo · se cerró ${d.cerrados?.join(', ') ?? 'su retiro'}`)
+      }
+      setNota(n => ({ ...n, [id]: '' }))
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error de red')
+    } finally { setBusy(null) }
   }
 
   async function buscar(v: string) {
@@ -121,6 +139,11 @@ export function TramitesManager() {
       </div>
 
       {error && <p className="text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+      {aviso && (
+        <p className="text-sm bg-green-50 text-green-800 border border-green-200 rounded-lg px-3 py-2 flex items-center gap-2">
+          <Undo2 className="w-4 h-4 shrink-0" />{aviso}
+        </p>
+      )}
 
       {/* El catálogo vive aquí y no en otra página: se administra desde donde se
           trabaja, y evita una entrada más de sidebar y permisos. */}
@@ -215,9 +238,10 @@ export function TramitesManager() {
                     className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   <div className="flex gap-2">
                     {r.status === 'pagado' && (
-                      <button onClick={() => accion(r.id, 'atender')} disabled={busy === r.id}
+                      <button onClick={() => accion(r.id, 'atender', r)} disabled={busy === r.id}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white">
-                        {busy === r.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}Marcar atendido
+                        {busy === r.id ? <Loader2 className="w-4 h-4 animate-spin" /> : r.reincorporates ? <Undo2 className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                        {r.reincorporates ? 'Reincorporar al estudiante' : 'Marcar atendido'}
                       </button>
                     )}
                     <button onClick={() => accion(r.id, 'anular')} disabled={busy === r.id}

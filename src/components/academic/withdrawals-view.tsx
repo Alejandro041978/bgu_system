@@ -163,35 +163,22 @@ export function WithdrawalsView() {
   // situación se recalcula sola en el servidor, porque se deriva de los retiros
   // vigentes y no se escribe a mano.
   //
-  // Vale para los dos tipos. Antes el botón solo salía en los LOA, así que un IW
-  // levantado no tenía por dónde registrarse: la única salida era "Anular", que
-  // BORRA la fila y con ella la constancia de que el retiro existió. Un IW se
-  // levanta por resolución, y esa resolución hay que poder mostrarla después.
+  // SOLO PARA EL LOA. Un IW no se levanta desde aquí: revertirlo cuesta 35
+  // dólares y se pide como trámite de Re-entry, que exige tener el IW vigente
+  // para poder solicitarse. La reincorporación ocurre al atender ese trámite ya
+  // pagado (Registros › Trámites), y de ahí sale el registro de por qué se
+  // levantó. Un botón en esta pantalla sería una puerta que salta el cobro.
   async function reincorporar(r: Row) {
-    const esIW = r.type === 'IW'
     if (!confirm(
       `¿Reincorporar a ${r.student_name}?\n\n` +
-      (esIW
-        ? `Su retiro definitivo (${r.resolution_number ?? 'sin resolución'}) se cierra como reincorporado y vuelve a estudiante activo.\n`
-        : `El LOA se cierra y el estudiante vuelve a activo.\n`) +
+      `El LOA se cierra y el estudiante vuelve a activo.\n` +
       `El registro del retiro se conserva; queda marcado como reincorporado.`)) return
-
-    // El IW se levanta por resolución: se pide y se guarda junto al motivo del
-    // retiro, sin pisarlo. Quien lea la ficha dentro de un año necesita las dos.
-    let note = r.note ?? ''
-    if (esIW) {
-      const motivo = prompt('Resolución o motivo de la reincorporación (queda en el registro):', '')
-      if (motivo === null) return
-      if (!motivo.trim()) { alert('Hace falta indicar la resolución o el motivo.'); return }
-      const hoy = new Date().toISOString().slice(0, 10)
-      note = [note, `Reincorporado ${hoy}: ${motivo.trim()}`].filter(Boolean).join(' · ')
-    }
 
     setSaving(true)
     try {
       const res = await fetch(`/api/academic/withdrawals/${r.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(esIW ? { status: 'reincorporado', note } : { status: 'reincorporado' }),
+        body: JSON.stringify({ status: 'reincorporado' }),
       })
       const d = await res.json().catch(() => ({ error: `El servidor respondió ${res.status}` }))
       if (!res.ok || d.error) { alert(d.error ?? 'No se pudo reincorporar'); return }
@@ -455,10 +442,18 @@ export function WithdrawalsView() {
                   <td className="px-4 py-2.5"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[r.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>{STATUS[r.status]?.label ?? r.status}</span></td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {r.status === 'vigente' && (
-                        <button onClick={() => reincorporar(r)} disabled={saving}
-                          title={r.type === 'IW' ? 'Reincorporar (levantar el retiro definitivo)' : 'Reincorporar'}
+                      {/* Solo el LOA se levanta desde aquí: es gratuito y su
+                          reincorporación es un trámite administrativo.
+                          El IW NO. Revertirlo cuesta 35 dólares y se pide como
+                          Re-entry; se reincorpora al atender ese trámite ya
+                          pagado, en Registros › Trámites. Un botón aquí sería
+                          una puerta que salta el cobro. */}
+                      {r.type === 'LOA' && r.status === 'vigente' && (
+                        <button onClick={() => reincorporar(r)} disabled={saving} title="Reincorporar"
                           className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded disabled:opacity-40"><Undo2 className="w-3.5 h-3.5" /></button>
+                      )}
+                      {r.type === 'IW' && r.status === 'vigente' && (
+                        <span className="text-[11px] text-gray-400 px-1">se levanta con un Re-entry pagado</span>
                       )}
                       <button onClick={() => anular(r)} title="Anular registro"
                         className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>

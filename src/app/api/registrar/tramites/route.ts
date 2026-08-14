@@ -3,6 +3,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { isStudentUser } from '@/lib/student-identity'
 import { createTramiteRequest } from '@/lib/tramites'
+import { recomputeSituations } from '@/lib/withdrawals'
 
 export const revalidate = 0
 
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
   let q = sb.from('tramite_requests')
     .select('id, status, requested_at, paid_at, attended_at, attended_by, resolution_note, request_note, charge_external_id, ' +
       'student:academic_students(first_name, last_name, second_last_name, document_number, email), ' +
-      'type:tramite_types(name, price, currency)')
+      'type:tramite_types(name, price, currency, reincorporates)')
     .order('requested_at', { ascending: false })
   if (status && status !== 'todos') q = q.eq('status', status)
   const { data, error } = await q.limit(400)
@@ -44,6 +45,9 @@ export async function GET(req: NextRequest) {
     document_number: r.student?.document_number ?? null,
     email: r.student?.email ?? null,
     type_name: r.type?.name ?? '—', price: r.type?.price ?? 0, currency: r.type?.currency ?? 'USD',
+    // La pantalla necesita saberlo para nombrar el botón: atender un Re-entry
+    // no es "marcar atendido", es reincorporar a alguien.
+    reincorporates: !!r.type?.reincorporates,
   }))
 
   const { data: todos } = await sb.from('tramite_requests').select('status')
@@ -97,6 +101,37 @@ export async function PATCH(req: NextRequest) {
     if (r.status === 'iniciado') {
       return NextResponse.json({ error: 'Todavía no está pagado. Aparecerá en "Pagados" cuando se concilie el pago.' }, { status: 409 })
     }
+    // Un trámite que reincorpora (hoy, Re-entry) tiene que cerrar el retiro.
+    //
+    // Va por bandera del catálogo y no por el nombre del trámite: mañana habrá
+    // otro que también reincorpore y no debería hacer falta un despliegue.
+    //
+    // Y ES LA ÚNICA VÍA. Reincorporar a alguien de un retiro definitivo cuesta
+    // 35 dólares y se pide como trámite; el botón manual de la pantalla de
+    // Retiros se retiró justamente para que no hubiera una puerta que saltara el
+    // pago. Por eso aquí se EXIGE el retiro vigente en vez de dejarlo pasar: sin
+    // él, atender este trámite no reincorpora a nadie y lo dejaría cerrado sin
+    // que nadie se entere.
+    const { data: tipo } = await sb.from('tramite_types')
+      .select('reincorporates, name').eq('id', r.tramite_type_id).maybeSingle()
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let vigentes: any[] = []
+    if (tipo?.reincorporates) {
+      if (!r.student_id) {
+        return NextResponse.json({ error: 'Este trámite reincorpora, pero no tiene estudiante asociado.' }, { status: 409 })
+      }
+      const { data } = await sb.from('student_withdrawals')
+        .select('id, type, resolution_number, withdrawal_date, note')
+        .eq('student_id', r.student_id).eq('status', 'vigente')
+      vigentes = data ?? []
+      if (!vigentes.length) {
+        return NextResponse.json({
+          error: 'Este estudiante no tiene ningún retiro vigente que levantar. Revisa su expediente en Retiros antes de atender el trámite.',
+        }, { status: 409 })
+      }
+    }
+
     const { error } = await sb.from('tramite_requests').update({
       status: 'atendido', attended_at: now, updated_at: now,
       attended_by: g.user!.email ?? g.user!.id,
@@ -104,26 +139,24 @@ export async function PATCH(req: NextRequest) {
     }).eq('id', b.id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    // Un trámite que reincorpora (hoy, Re-entry) tiene que cerrar el retiro.
-    //
-    // Hasta ahora dependía de que alguien se acordara de apretar el botón
-    // manual en Retiros. Con 37 reingresos históricos falló dos veces: dos
-    // estudiantes pagaron, volvieron a matricularse y el sistema los siguió
-    // teniendo como retiro permanente — sin campus y contados como bajas.
-    //
-    // Va por bandera del catálogo y no por el nombre del trámite: mañana habrá
-    // otro que también reincorpore y no debería hacer falta un despliegue.
-    let reincorporados = 0
-    const { data: tipo } = await sb.from('tramite_types')
-      .select('reincorporates').eq('id', r.tramite_type_id).maybeSingle()
-    if (tipo?.reincorporates && r.student_id) {
-      const { data: cerrados } = await sb.from('student_withdrawals')
-        .update({ status: 'reincorporado' })
-        .eq('student_id', r.student_id).eq('status', 'vigente')
-        .select('id')
-      reincorporados = (cerrados ?? []).length
+    const cerrados: string[] = []
+    for (const w of vigentes) {
+      // Queda escrito de dónde salió la reincorporación. Sin esto, dentro de un
+      // año el retiro figura levantado y nada dice que hubo un trámite pagado.
+      const nota = [w.note, `Reincorporado ${now.slice(0, 10)} por trámite ${tipo?.name ?? 'de reincorporación'} (pagado)`]
+        .filter(Boolean).join(' · ')
+      const { error: e } = await sb.from('student_withdrawals')
+        .update({ status: 'reincorporado', note: nota }).eq('id', w.id)
+      if (!e) cerrados.push(`${w.type} ${w.resolution_number ?? w.withdrawal_date}`)
     }
-    return NextResponse.json({ ok: true, status: 'atendido', reincorporados })
+
+    // La situación se DERIVA de los retiros vigentes, así que hay que
+    // recalcularla o el estudiante sigue figurando retirado hasta el cron
+    // nocturno: fuera de la campaña de retención y exento de completar su malla.
+    // Nueve rutas del ERP ya lo hacían tras tocar un retiro; ésta no.
+    if (cerrados.length) await recomputeSituations(sb).catch(() => null)
+
+    return NextResponse.json({ ok: true, status: 'atendido', reincorporados: cerrados.length, cerrados })
   }
 
   // anular
