@@ -432,7 +432,15 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updates: { id: string; patch: any }[] = []
     for (const [externalId, d] of detailByExternal) {
-      if (locked.has(externalId)) continue
+      // El acta cerrada protege la NOTA, no su desglose. Antes se saltaba la
+      // fila entera y el detalle viejo sobrevivía para siempre: las 10 actas
+      // del aula 566 quedaron con "Evaluación 04 = 100%" cuatro días después
+      // de que el aula se normalizara, y ninguna importación posterior podía
+      // corregirlas porque su nota ya estaba registrada.
+      //
+      // El desglose se refresca igual. Lo que no se toca nunca es final_grade:
+      // por eso el patch de una fila cerrada va sin él.
+      const cerrada = locked.has(externalId)
       const row = {
         external_id: externalId,
         student_id: d.student_id,
@@ -452,8 +460,13 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
         process_grades: d.process,
       }
       const id = existingDetail.get(externalId)
-      if (id) updates.push({ id, patch: row })
-      else inserts.push(row)
+      if (id) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { final_grade, ...sinNota } = row
+        updates.push({ id, patch: cerrada ? sinNota : row })
+      } else if (!cerrada) {
+        inserts.push(row)
+      }
     }
     for (let i = 0; i < inserts.length; i += 200) {
       const { error } = await sb.from('academic_grade_details').insert(inserts.slice(i, i + 200))
