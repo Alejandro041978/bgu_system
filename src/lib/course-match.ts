@@ -43,13 +43,23 @@ const base = (s: string | null | undefined): string =>
 //   'Qualitative Research II' -> 'Qualitative Research': mismo riesgo I/II y sus
 //      19 filas no traen calificación, así que no rescataría a nadie.
 //   'Business Leadership & Entrepreneurship' -> 'Business Leadership': el
-//      sufijo sugiere otra asignatura, no una variante de escritura.
-//   'Energy Eciency Optimization': sin equivalente en ninguna malla.
+//      sufijo sugiere otra asignatura, no una variante de escritura. Sigue
+//      descartado: 12 filas, 7 con nota, y ningún estudiante tiene calificación
+//      en las dos —así que podría ser un cambio de nombre—, pero eso lo dice
+//      Registros y no el parecido de dos títulos.
+//   'Assessment of the Individual and the Environment' -> 'Psychological First
+//      Aid': no existe en ninguna malla y el nombre no se parece. Las 19 filas
+//      quedaron desvinculadas a la espera de Registros.
 // ---------------------------------------------------------------------------
 const ALIASES = new Map<string, string>([
   ['quantitative and qualitative methods for decision', 'quantitative and qualitative methods for decision making'],
   ['business administration capstone project', 'business administration capstone'],
   ['development of artificial intelligence application', 'development of artificial intelligence applications'],
+  // 'Eciency' perdió la ligadura ffi al importarse; es la misma palabra. La
+  // asignatura existe en Renewable Energy and Sustainability Systems y se
+  // dicta en el aula 591. (Esta entrada estuvo descartada mientras la malla
+  // todavía no la tenía; hoy sí, y sus 15 filas se quedaban sin expediente.)
+  ['energy eciency optimization', 'energy efficiency optimization'],
 ])
 
 export const courseNameKey = (s: string | null | undefined): string => {
