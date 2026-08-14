@@ -243,7 +243,20 @@ export async function getAccountStatement(
         if (acta) creditos = creditosQueLleva(acta)
       } catch { /* sin acta: se cae al snapshot */ }
     }
-    const lista = rate != null && creditos != null && creditos > 0
+    // Precio oficial = tarifa × créditos QUE SE CURSAN. Cero créditos son cero
+    // de tuition, y eso incluye al que se retiró de todo antes de empezar: no
+    // se le cobra lo que no va a cursar.
+    //
+    // La condición era `creditos > 0`, y ahí estaba el error: confundía "no
+    // pude calcularlo" con "lo calculé y da cero". Al retirado de todo le caía
+    // el precio congelado de su matrícula, así que el estado de cuenta le
+    // mostraba $10.920 de precio oficial bajo un subtítulo que decía "0 cr" —
+    // una multiplicación que nadie hizo.
+    //
+    // El snapshot sigue siendo el respaldo, pero solo para cuando el acta no se
+    // pudo calcular (creditos == null). Y ojo: el enrollment de $300 no entra
+    // en esta cuenta. Es no reembolsable y es otra cosa; esto es tuition.
+    const lista = rate != null && creditos != null
       ? Math.round(rate * creditos * 100) / 100
       : (e.list_price != null ? Number(e.list_price) : null)
 
