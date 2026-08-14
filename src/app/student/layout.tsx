@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { CalendarDays, MessageCircle, LogOut, Award, ArrowLeft, Wallet, FileText, CalendarClock, PiggyBank, ClipboardList, Landmark, Gift } from 'lucide-react'
+import { CalendarDays, MessageCircle, LogOut, Award, ArrowLeft, Wallet, FileText, CalendarClock, PiggyBank, ClipboardList, Landmark, Gift, IdCard } from 'lucide-react'
 import { BrandLogo } from '@/components/brand-logo'
 import Link from 'next/link'
 import { getEffectiveStudent, isSuperadmin } from '@/lib/student-identity'
@@ -57,6 +57,9 @@ export default async function StudentLayout({ children }: { children: React.Reac
         <div className="flex gap-1">
           <Link href="/student" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
             <CalendarDays className="w-4 h-4" /> Cronogramas
+          </Link>
+          <Link href="/student/profile" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
+            <IdCard className="w-4 h-4" /> Mis Datos
           </Link>
           <Link href="/student/grades" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
             <Award className="w-4 h-4" /> Mis Notas
