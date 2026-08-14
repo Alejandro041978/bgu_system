@@ -33,6 +33,10 @@
       "schedule": "35 4 * * *"
     },
     {
+      "path": "/api/cron/course-enrollments",
+      "schedule": "45 4 * * *"
+    },
+    {
       "path": "/api/cron/graduates",
       "schedule": "50 4 * * *"
     },

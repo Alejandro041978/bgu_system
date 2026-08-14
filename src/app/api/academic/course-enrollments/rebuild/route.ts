@@ -16,6 +16,14 @@ export const maxDuration = 300
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
+// El cron nocturno entra por el secreto, no por sesión: no hay ningún usuario
+// detrás. Es la única puerta que no exige persona, y solo abre la
+// reconstrucción — que es idempotente y no decide nada.
+function esCron(req: NextRequest): boolean {
+  const s = process.env.CRON_SECRET
+  return !!s && req.headers.get('x-cron-secret') === s
+}
+
 async function requireStaff() {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
@@ -49,11 +57,14 @@ async function todo(sb: any, tabla: string, cols: string, orden: string, tune = 
 // Es idempotente: si el intento ya existe, no lo duplica.
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
-  const g = await requireStaff(); if ('error' in g) return g.error
+  const cron = esCron(req)
+  if (!cron) {
+    const g = await requireStaff(); if ('error' in g) return g.error
+  }
   const apply = req.nextUrl.searchParams.get('apply') === '1'
   // Crea inscripciones por asignatura leyendo las notas: toca el expediente en
   // masa. Misma llave que editar. Simular sigue abierto.
-  if (apply) { const s = await guardSuperadmin(); if (s) return s }
+  if (apply && !cron) { const s = await guardSuperadmin(); if (s) return s }
   const sb = db()
   const t0 = Date.now()
 
@@ -63,11 +74,25 @@ export async function POST(req: NextRequest) {
   const programs = await todo(sb, 'academic_programs', 'id, name', 'id')
   const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
   const todasLasNotas = await todo(sb, 'academic_grades',
-    'external_id, document_number, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, withdrawn_at, synced_at, source, course_enrollment_id',
-    'external_id') as (NotaMin & { course_enrollment_id: string | null })[]
-  // Las filas de plan no son intentos: numerarlas convertiría la asignatura que
-  // el estudiante aún no empieza en su intento 1 y la real en el 2.
-  const grades = todasLasNotas.filter(n => !esFilaDePlan(n))
+    'external_id, document_number, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, semester_id, withdrawn_at, synced_at, source, course_enrollment_id',
+    'external_id') as (NotaMin & { course_enrollment_id: string | null; semester_id: string | null })[]
+
+  // Las filas de plan SÍ entran ahora, y ésa es la novedad de este paso: una
+  // asignatura inscrita y sin empezar pertenece al REGISTRO, no a la tabla de
+  // notas. Entran con estado 'no_iniciada'.
+  //
+  // Pero no se numeran como intento: si el estudiante ya tiene una nota real de
+  // esa asignatura, la fila de plan es una sombra —lo vimos el 14 de agosto,
+  // 37 de ellas conviviendo con su nota— y numerarla convertiría lo no empezado
+  // en el intento 1 y lo real en el 2. Por eso se descartan las de plan que
+  // tengan un intento real al lado, y las que quedan van siempre como intento 1.
+  const conIntentoReal = new Set<string>()
+  for (const n of todasLasNotas) {
+    if (esFilaDePlan(n)) continue
+    conIntentoReal.add(`${n.document_number}|${courseNameKey(n.course_name)}`)
+  }
+  const grades = todasLasNotas.filter(n =>
+    !esFilaDePlan(n) || !conIntentoReal.has(`${n.document_number}|${courseNameKey(n.course_name)}`))
 
   const idx = indexarMalla(courses)
   const stuByDoc = new Map<string, { id: string }>()
@@ -130,10 +155,14 @@ export async function POST(req: NextRequest) {
   const enlaces: { external_id: string; course_id: string; course_enrollment_id: string }[] = []
   let variosIntentos = 0
   for (const grupo of porIntento.values()) {
-    const ordenadas = ordenarIntentos(grupo.notas)
-    if (ordenadas.length > 1) variosIntentos++
+    // Las no empezadas nunca numeran: van todas como intento 1. Solo llegan
+    // aquí las que no tienen un intento real al lado, así que no compiten.
+    const reales = grupo.notas.filter(n => !esFilaDePlan(n))
+    const ordenadas = [...ordenarIntentos(reales), ...grupo.notas.filter(n => esFilaDePlan(n))]
+    if (reales.length > 1) variosIntentos++
     ordenadas.forEach((n, i) => {
       const id = crypto.randomUUID()
+      const plan = esFilaDePlan(n)
       nuevas.push({
         id,
         student_id: grupo.student_id,
@@ -141,11 +170,14 @@ export async function POST(req: NextRequest) {
         course_id: grupo.course_id,
         program_id: grupo.program_id,
         program_enrollment_id: grupo.program_id ? (progEnrOf.get(`${grupo.student_id}|${grupo.program_id}`) ?? null) : null,
-        attempt: i + 1,
+        attempt: plan ? 1 : i + 1,
         term_year: n.term_year,
         term_block: n.term_block,
+        // El periodo con la nomenclatura del ERP. term_year/term_block se
+        // siguen copiando mientras existan, pero éste es el que manda.
+        semester_id: n.semester_id ?? null,
         status: estadoDeNota(n),
-        source: n.source === 'moodle' ? 'moodle' : 'systemactiva',
+        source: plan ? 'plan' : (n.source === 'moodle' ? 'moodle' : 'systemactiva'),
         opened_by: 'reconstruccion',
       })
       enlaces.push({ external_id: n.external_id, course_id: grupo.course_id, course_enrollment_id: id })

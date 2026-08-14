@@ -28,6 +28,9 @@ export interface NotaMin {
   passing_score: number | null
   term_year: number | null
   term_block: string | null
+  // El periodo con la nomenclatura del ERP. term_year y term_block son de
+  // SystemActiva y están en retirada; éste es el que pasa al registro.
+  semester_id?: string | null
   withdrawn_at: string | null
   synced_at: string | null
   source: string | null
@@ -93,8 +96,14 @@ export function resolverAsignatura(
 }
 
 // Estado del intento, leído de la nota.
-export function estadoDeNota(n: NotaMin): 'en_curso' | 'aprobada' | 'reprobada' | 'retirada' {
+export type EstadoMatricula = 'no_iniciada' | 'en_curso' | 'aprobada' | 'reprobada' | 'retirada'
+
+export function estadoDeNota(n: NotaMin & { source?: string | null }): EstadoMatricula {
   if (n.withdrawn_at) return 'retirada'
+  // Una fila de plan es una asignatura inscrita que nadie ha empezado. No es
+  // "en curso": el estudiante no ha entrado al aula ni rendido nada, y llamarlo
+  // en curso lo metería en los conteos de carga académica.
+  if (String(n.source ?? '') === 'plan') return 'no_iniciada'
   const v = n.retake_grade ?? n.final_grade ?? null
   if (v == null) return 'en_curso'
   return Number(v) >= Number(n.passing_score ?? 70) ? 'aprobada' : 'reprobada'
