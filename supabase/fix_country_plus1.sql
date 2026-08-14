@@ -263,7 +263,7 @@ update academic_students set country = 'LCA', updated_by = (select id from auth.
 -- PASO 3 · Comprobar
 select s.country, count(*)
   from academic_students s
- where coalesce(s.phone_code, substring(s.phone_number from '^+[0-9]{1,3}')) = '+1'
+ where coalesce(s.phone_code, substring(s.phone_number from '^\+[0-9]{1,3}')) = '+1'
  group by 1 order by 2 desc;
 
 -- ---------------------------------------------------------------------------
