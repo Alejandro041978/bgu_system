@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { guardStaff } from '@/lib/api-guard'
+import { guardPagina } from '@/lib/page-guard'
 import { maybeActivateOnPayment } from '@/lib/enrollment-activation'
 import { maybeMarkExamPaid } from '@/lib/exam-requests'
 import { maybeMarkDocumentPaid } from '@/lib/document-request'
@@ -32,7 +32,12 @@ const r2 = (n: number) => Math.round(n * 100) / 100
 // POST { payment_id, charge_external_id }
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
-  const noAutorizado = await guardStaff()
+  // Mover un pago cambia qué cuota queda saldada y cuál revive: es una decisión
+  // de cobranza, no una consulta. Exige el permiso de edición sobre Estado de
+  // Cuenta —hoy lo tienen collection_agent y admin— en vez de bastar con tener
+  // sesión, que mientras el permisionador siga en modo auditoría significa
+  // cualquier colaborador del ERP.
+  const noAutorizado = await guardPagina('academic_account')
   if (noAutorizado) return noAutorizado
 
   const b = await req.json().catch(() => null) as

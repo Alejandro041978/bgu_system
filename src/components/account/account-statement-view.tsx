@@ -6,6 +6,7 @@ import { computeTuition } from '@/lib/account-statement'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
 import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil, Plus, Gift, Layers, ArrowLeftRight } from 'lucide-react'
 import { FlywirePayButton } from './flywire-pay-button'
+import { usePermissions } from '@/hooks/use-permissions'
 
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
@@ -95,6 +96,11 @@ export function AccountStatementView(
 function ProgramAccountView({ account, canGenerate, canDiscount = false, onChanged, student }: { account: ProgramAccount; canGenerate: boolean; canDiscount?: boolean; onChanged?: () => void; student?: NonNullable<Statement['student']> }) {
   const { totals } = account
   const ledger = buildLedger(account.charges, account.payments)
+  // Mover un pago decide qué cuota queda saldada: es cobranza, no consulta. El
+  // endpoint exige el permiso de edición sobre Estado de Cuenta; aquí se
+  // pregunta lo mismo para no ofrecer un botón que va a devolver 403.
+  const { canEdit } = usePermissions()
+  const puedeMover = canEdit('academic_account')
 
   if (account.charges.length === 0) {
     return (
@@ -249,7 +255,7 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
                             aquí no sobra dinero, es que se aplicó a la cuota
                             equivocada —el caso típico es un reembolso que tarda
                             y un reabono que llega antes—. */}
-                        {canGenerate && !p.transaction_reference?.includes('reembolso de') && (
+                        {puedeMover && !p.transaction_reference?.includes('reembolso de') && (
                           <button
                             onClick={async () => {
                               const impagas = account.charges
