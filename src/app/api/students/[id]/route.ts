@@ -131,6 +131,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     patch.situation_source = 'manual'
   }
 
+  // Quién lo hace. El disparador de la base guarda una fila por campo cambiado
+  // y toma el autor de aquí; lo que se escriba fuera del ERP queda sin autor y
+  // el historial lo marca como externo, que también es una respuesta.
+  const usuario = await requireAuth()
+  patch.updated_by = usuario?.id ?? null
+
   const { error } = await sb.from('academic_students').update(patch).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

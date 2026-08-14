@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target, Gift, ShieldCheck, ShieldOff, PiggyBank,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone, CreditCard, RefreshCw, ListChecks, LayoutGrid, Globe,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone, CreditCard, RefreshCw, ListChecks, LayoutGrid, Globe, History,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -34,6 +34,7 @@ const navigation: NavGroup[] = [
           { name: 'Registro Curricular', href: '/academic/curricular', icon: LogOut, pageKey: 'academic_curricular' },
           { name: 'Cobertura del registro', href: '/academic/curricular-coverage', icon: ListChecks, pageKey: 'academic_curricular_coverage' },
           { name: 'Estado de Cuenta', href: '/academic/account', icon: Wallet, pageKey: 'academic_account' },
+          { name: 'Cambios en las Fichas', href: '/academic/student-audit', icon: History, pageKey: 'academic_student_audit' },
         ],
       },
       {
