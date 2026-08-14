@@ -23,6 +23,7 @@ const PAGE_GROUPS = [
       { key: 'academic_curricular_coverage', label: 'Académico · Cobertura del registro' },
       { key: 'academic_collection_backfill', label: 'Académico · Colección por matrícula' },
       { key: 'academic_link_audit', label: 'Académico · Auditor de vínculos de aula' },
+      { key: 'academic_acta_audit', label: 'Académico · Auditor de Actas' },
       { key: 'academic_acta_course', label: 'Académico · Acta de Asignatura' },
     ],
   },

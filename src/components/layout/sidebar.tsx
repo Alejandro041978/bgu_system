@@ -151,6 +151,7 @@ const navigation: NavGroup[] = [
           { name: 'Vinculación de Aulas', href: '/academic/classroom-links', icon: Link2, pageKey: 'academic_classroom_links' },
           { name: 'Colección por matrícula', href: '/academic/collection-backfill', icon: Layers, pageKey: 'academic_collection_backfill' },
           { name: 'Auditor de vínculos', href: '/academic/link-audit', icon: Shield, pageKey: 'academic_link_audit' },
+          { name: 'Auditor de Actas', href: '/academic/acta-audit', icon: ListChecks, pageKey: 'academic_acta_audit' },
           { name: 'Notas de campus externo', href: '/academic/external-campus-grades', icon: Globe, pageKey: 'academic_external_campus' },
           { name: 'Notas de Capstone', href: '/academic/capstone-grades', icon: GraduationCap, pageKey: 'academic_capstone' },
           { name: 'Cargar Notas (CSV)', href: '/academic/grades-import', icon: Upload, pageKey: 'academic_grades_import' },
