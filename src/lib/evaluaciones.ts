@@ -26,7 +26,13 @@
 
 export interface Slot { n?: number; desc: string; pct: number | null; val: number | null }
 
-const AGREGADO = /process\s*notes|notas?\s*de\s*proceso/i
+// El contenedor del bloque de proceso viene con tres nombres distintos según de
+// dónde llegó el acta. "Notes" a secas es el mismo animal que "Process Notes":
+// aparecía en 22 actas de General Psychology y las hacía sumar 200%.
+// Las dos primeras van SIN anclar porque el contenedor suele traer coletilla
+// —"Notas de proceso (12 test)"—; las dos últimas van ancladas porque "Notes" a
+// secas es contenedor, pero "Final Notes" o "Notes on the Project" no lo serían.
+const AGREGADO = /process\s*notes|notas?\s*de\s*proceso|^\s*notes?\s*$|^\s*notas?\s*$/i
 const TOTAL = /^\s*total\s*$/i
 
 export const suma = (s: Slot[] | null | undefined): number =>
@@ -53,16 +59,27 @@ export function normalizarEvaluaciones(
   let quitóTotal = false
   let aplanó = false
 
-  // CASO A — el "Total" sintético. Solo estorba cuando hay evaluaciones de
-  // verdad debajo: si fuera lo único que hay, es el único dato disponible.
-  if (process.length && grades.some(s => TOTAL.test(String(s.desc ?? '')))) {
-    grades = grades.filter(s => !TOTAL.test(String(s.desc ?? '')))
+  // CASO A — el "Total" sintético al 100%: la nota final colada entre las
+  // evaluaciones. Se quita solo si de verdad vale 100 y hay evaluaciones
+  // debajo; si vale menos, NO es el total del curso sino el contenedor del
+  // bloque de proceso, y le toca el caso B.
+  //
+  // Distinguirlos por el peso y no por el nombre salió de auditar las actas:
+  // ocho asignaturas aparecían sin sumar 100 y en cinco el "Total" valía 50 —
+  // era la caja que contenía a los Assessments—. Quitarlo entero dejaba el
+  // bloque de proceso pesando el doble de lo que le tocaba.
+  const esContenedor = (s: Slot) =>
+    TOTAL.test(String(s.desc ?? '')) || AGREGADO.test(String(s.desc ?? ''))
+  const totalPleno = grades.find(s => TOTAL.test(String(s.desc ?? '')) && Math.abs(Number(s.pct ?? 0) - 100) < 0.6)
+  if (process.length && totalPleno) {
+    grades = grades.filter(s => s !== totalPleno)
     quitóTotal = true
   }
 
-  // CASO B — el agregado "Process Notes" y su detalle. El bloque desaparece y
-  // sus evaluaciones pasan a pesar lo que de verdad pesan sobre la asignatura.
-  const agg = grades.find(s => AGREGADO.test(String(s.desc ?? '')))
+  // CASO B — el contenedor del bloque de proceso: "Process Notes", "Notes", o
+  // un "Total" que no llega a 100. El bloque desaparece y sus evaluaciones
+  // pasan a pesar lo que de verdad pesan sobre la asignatura.
+  const agg = grades.find(s => esContenedor(s))
   if (agg && process.length && Number(agg.pct) > 0) {
     const factor = Number(agg.pct) / 100
     grades = grades.filter(s => s !== agg)
