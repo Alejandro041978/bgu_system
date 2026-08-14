@@ -12,19 +12,26 @@ async function requireUser() {
   return user
 }
 
-// GET ?type=&status= → registro de retiros
+// GET ?student_id=&type=&status= → registro de retiros
+//
+// student_id es lo que se usa a diario: la pregunta real casi nunca es "quiénes
+// están retirados" —son 515 y la lista no cabe en la cabeza— sino "qué pasó con
+// este estudiante". El listado completo sigue disponible sin el parámetro, para
+// los reportes.
 export async function GET(req: NextRequest) {
   const noAutorizado = await guardStaff()
   if (noAutorizado) return noAutorizado
 
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const sb = wdb()
+  const studentId = req.nextUrl.searchParams.get('student_id')
   const type = req.nextUrl.searchParams.get('type')
   const status = req.nextUrl.searchParams.get('status')
 
   let q = sb.from('student_withdrawals')
-    .select('*, student:academic_students(first_name, last_name, second_last_name, document_number, email)')
+    .select('*, student:academic_students(first_name, last_name, second_last_name, document_number, email, situation)')
     .order('withdrawal_date', { ascending: false })
+  if (studentId) q = q.eq('student_id', studentId)
   if (type) q = q.eq('type', type)
   if (status) q = q.eq('status', status)
   const { data, error } = await q.limit(2000)
@@ -35,6 +42,7 @@ export async function GET(req: NextRequest) {
     ...r,
     student_name: [r.student?.first_name, r.student?.last_name, r.student?.second_last_name].filter(Boolean).join(' '),
     document_number: r.student?.document_number ?? null,
+    situation: r.student?.situation ?? null,
   }))
   return NextResponse.json({ rows })
 }

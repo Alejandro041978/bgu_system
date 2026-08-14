@@ -6,7 +6,7 @@ import { Loader2, Plus, Search, X, Undo2, Trash2 } from 'lucide-react'
 type Row = {
   id: string; student_id: string; type: 'IW' | 'LOA'; resolution_number: string | null
   withdrawal_date: string; expires_at: string | null; status: string; reason: string | null; note: string | null
-  source: string; student_name: string; document_number: string | null
+  source: string; student_name: string; document_number: string | null; situation: string | null
 }
 type Student = { id: string; name: string; document_number: string | null; email: string | null }
 
@@ -42,14 +42,42 @@ export function WithdrawalsView() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
 
+  // ---------------------------------------------------------------------------
+  // La pantalla se abre en el EXPEDIENTE de un estudiante, no en el listado.
+  //
+  // Hay 515 retiros y la pregunta de todos los días no es "quiénes están
+  // retirados" —esa lista no cabe en la cabeza— sino "qué pasó con éste": si el
+  // suyo sigue vigente, con qué resolución, si ya se reincorporó una vez. El
+  // listado completo sigue estando, detrás de un botón, para los reportes.
+  // ---------------------------------------------------------------------------
+  const [ficha, setFicha] = useState<Student | null>(null)
+  const [verListado, setVerListado] = useState(false)
+  const [fq, setFq] = useState('')
+  const [fres, setFres] = useState<Student[]>([])
+
+  useEffect(() => {
+    if (fq.trim().length < 2) { setFres([]); return }
+    const t = setTimeout(async () => {
+      const d = await fetch(`/api/students/search?q=${encodeURIComponent(fq)}`).then(r => r.json()).catch(() => ({}))
+      setFres(d.students ?? [])
+    }, 250)
+    return () => clearTimeout(t)
+  }, [fq])
+
   const load = useCallback(async () => {
+    // Sin estudiante elegido y sin listado abierto no hay nada que traer: no se
+    // piden 515 filas para no mostrarlas.
+    if (!ficha && !verListado) { setRows([]); setLoading(false); return }
     setLoading(true)
     const qs = new URLSearchParams()
-    if (type) qs.set('type', type)
-    if (status) qs.set('status', status)
+    if (ficha) qs.set('student_id', ficha.id)
+    else {
+      if (type) qs.set('type', type)
+      if (status) qs.set('status', status)
+    }
     const d = await fetch(`/api/academic/withdrawals${qs.toString() ? `?${qs}` : ''}`).then(r => r.json())
     setRows(d.rows ?? []); setLoading(false)
-  }, [type, status])
+  }, [type, status, ficha, verListado])
   useEffect(() => { load() }, [load])
 
   // --- Formulario de registro ---
@@ -185,38 +213,113 @@ export function WithdrawalsView() {
   for (const r of rows) { const l = levelOf(r.resolution_number); if (l) levelCounts[l] = (levelCounts[l] ?? 0) + 1 }
   const visible = level ? rows.filter(r => levelOf(r.resolution_number) === level) : rows
 
+  const SITUACION: Record<string, { label: string; cls: string }> = {
+    activo: { label: 'Activo', cls: 'bg-green-50 text-green-700' },
+    retiro_permanente: { label: 'Retirado (IW)', cls: 'bg-rose-50 text-rose-700' },
+    retiro_temporal: { label: 'En licencia (LOA)', cls: 'bg-orange-50 text-orange-700' },
+    egresado: { label: 'Egresado', cls: 'bg-blue-50 text-blue-700' },
+    campus_socio: { label: 'Campus socio', cls: 'bg-violet-50 text-violet-700' },
+  }
+  const situacion = rows[0]?.situation ?? null
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex flex-wrap gap-2">
-          {[['', 'Todos'], ['IW', 'IW · Definitivos'], ['LOA', 'LOA · Temporales']].map(([k, l]) => (
-            <button key={k} onClick={() => setType(k)} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${type === k ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{l}</button>
-          ))}
-          <span className="w-px bg-gray-200 mx-1" />
-          {[['', 'Todo estado'], ['vigente', 'Vigentes'], ['reincorporado', 'Reincorporados']].map(([k, l]) => (
-            <button key={k} onClick={() => setStatus(k)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${status === k ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{l}</button>
-          ))}
-        </div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
-          <Plus className="w-4 h-4" /> Registrar retiro
-        </button>
+      {/* Buscador — la puerta de entrada */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        {ficha ? (
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <p className="text-base font-semibold text-gray-900">{ficha.name}</p>
+              <p className="text-xs text-gray-400">
+                {ficha.document_number ?? ficha.email}
+                {situacion && (
+                  <span className={`ml-2 px-2 py-0.5 rounded-full text-[11px] font-medium ${SITUACION[situacion]?.cls ?? 'bg-gray-100 text-gray-600'}`}>
+                    {SITUACION[situacion]?.label ?? situacion}
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { setStudent(ficha); setShowForm(true) }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
+                <Plus className="w-4 h-4" /> Registrar retiro
+              </button>
+              <button onClick={() => { setFicha(null); setFq(''); setFres([]); setVerListado(false) }}
+                className="text-sm text-gray-500 hover:text-gray-800 px-2">Buscar otro</button>
+            </div>
+          </div>
+        ) : (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input value={fq} onChange={e => setFq(e.target.value)} autoFocus
+              placeholder="Busca al estudiante por nombre, documento o correo…"
+              className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            {fres.length > 0 && (
+              <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-auto">
+                {fres.map(s => (
+                  <button key={s.id} onClick={() => { setFicha(s); setFres([]); setLevel('') }}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                    <p className="text-sm text-gray-800">{s.name}</p>
+                    <p className="text-[11px] text-gray-400">{s.document_number ?? s.email}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Filtro por nivel/categoría + total */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] text-gray-400 uppercase tracking-wide mr-1">Nivel:</span>
-          <button onClick={() => setLevel('')} className={`px-3 py-1 rounded-lg text-xs font-medium border ${level === '' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Todos</button>
-          {LEVELS.map(lv => (
-            <button key={lv.key} onClick={() => setLevel(lv.key)} className={`px-3 py-1 rounded-lg text-xs font-medium border ${level === lv.key ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
-              {lv.label} <span className="opacity-70">({levelCounts[lv.token] ?? 0})</span>
-            </button>
-          ))}
+      {/* Sin estudiante: ni tabla ni filtros. El listado completo, a un clic. */}
+      {!ficha && !verListado && (
+        <div className="bg-white border border-dashed border-gray-300 rounded-xl py-16 text-center">
+          <p className="text-sm text-gray-500">Busca a un estudiante para ver su historial de retiros y reincorporaciones.</p>
+          <button onClick={() => setVerListado(true)} className="mt-3 text-sm text-blue-600 hover:underline">
+            o ver el listado completo de retiros
+          </button>
         </div>
-        <span className="text-sm text-gray-500">
-          {level ? <><b className="text-gray-800">{visible.length}</b> de {rows.length}</> : <><b className="text-gray-800">{rows.length}</b> retiros</>}
-        </span>
-      </div>
+      )}
+
+      {/* Filtros del listado completo (no aplican a un expediente) */}
+      {!ficha && verListado && (
+        <>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
+              {[['', 'Todos'], ['IW', 'IW · Definitivos'], ['LOA', 'LOA · Temporales']].map(([k, l]) => (
+                <button key={k} onClick={() => setType(k)} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${type === k ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{l}</button>
+              ))}
+              <span className="w-px bg-gray-200 mx-1" />
+              {[['', 'Todo estado'], ['vigente', 'Vigentes'], ['reincorporado', 'Reincorporados']].map(([k, l]) => (
+                <button key={k} onClick={() => setStatus(k)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${status === k ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}>{l}</button>
+              ))}
+            </div>
+            <button onClick={() => setVerListado(false)} className="text-sm text-gray-500 hover:text-gray-800">Volver al buscador</button>
+          </div>
+
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-gray-400 uppercase tracking-wide mr-1">Nivel:</span>
+              <button onClick={() => setLevel('')} className={`px-3 py-1 rounded-lg text-xs font-medium border ${level === '' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Todos</button>
+              {LEVELS.map(lv => (
+                <button key={lv.key} onClick={() => setLevel(lv.key)} className={`px-3 py-1 rounded-lg text-xs font-medium border ${level === lv.key ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                  {lv.label} <span className="opacity-70">({levelCounts[lv.token] ?? 0})</span>
+                </button>
+              ))}
+            </div>
+            <span className="text-sm text-gray-500">
+              {level ? <><b className="text-gray-800">{visible.length}</b> de {rows.length}</> : <><b className="text-gray-800">{rows.length}</b> retiros</>}
+            </span>
+          </div>
+        </>
+      )}
+
+      {/* Encabezado del expediente */}
+      {ficha && !loading && (
+        <p className="text-sm text-gray-500 px-1">
+          {rows.length === 0
+            ? 'Sin retiros registrados: nunca se le ha retirado.'
+            : <><b className="text-gray-800">{rows.length}</b> {rows.length === 1 ? 'registro' : 'registros'} en su historial · del más reciente al más antiguo</>}
+        </p>
+      )}
 
       {showForm && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
@@ -307,16 +410,20 @@ export function WithdrawalsView() {
         </div>
       )}
 
-      {loading ? (
+      {!ficha && !verListado ? null : loading ? (
         <div className="py-16 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>
       ) : visible.length === 0 ? (
-        <p className="text-sm text-gray-400 py-10 text-center">Sin retiros registrados con este filtro.</p>
+        <p className="text-sm text-gray-400 py-10 text-center">
+          {ficha ? 'Este estudiante no tiene ningún retiro registrado.' : 'Sin retiros registrados con este filtro.'}
+        </p>
       ) : (
         <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
           <table className="w-full text-sm whitespace-nowrap">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 text-[11px] text-gray-400 uppercase tracking-wide">
-                <th className="text-left px-4 py-2.5">Estudiante</th>
+                {/* En un expediente el nombre ya está arriba: repetirlo en cada
+                    fila desplaza a la derecha lo que sí cambia entre retiros. */}
+                <th className="text-left px-4 py-2.5">{ficha ? 'Motivo' : 'Estudiante'}</th>
                 <th className="text-left px-4 py-2.5">Tipo</th>
                 <th className="text-left px-4 py-2.5">N° resolución</th>
                 <th className="text-left px-4 py-2.5">Fecha</th>
@@ -328,9 +435,18 @@ export function WithdrawalsView() {
             <tbody className="divide-y divide-gray-50">
               {visible.map(r => (
                 <tr key={r.id} className="group hover:bg-gray-50/50">
-                  <td className="px-4 py-2.5">
-                    <p className="text-gray-800">{r.student_name || 'Estudiante'}</p>
-                    <p className="text-[11px] text-gray-400">{r.document_number}{r.reason ? ` · ${r.reason}` : ''}</p>
+                  <td className="px-4 py-2.5 max-w-[380px] whitespace-normal">
+                    {ficha ? (
+                      <>
+                        <p className="text-gray-800">{r.reason || <span className="text-gray-400 italic">sin motivo declarado</span>}</p>
+                        {r.note && <p className="text-[11px] text-gray-400">{r.note}</p>}
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-gray-800">{r.student_name || 'Estudiante'}</p>
+                        <p className="text-[11px] text-gray-400">{r.document_number}{r.reason ? ` · ${r.reason}` : ''}</p>
+                      </>
+                    )}
                   </td>
                   <td className="px-4 py-2.5"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${TYPE[r.type]?.cls}`}>{TYPE[r.type]?.label ?? r.type}</span></td>
                   <td className="px-4 py-2.5 text-xs font-mono text-gray-600">{r.resolution_number ?? '—'}</td>
