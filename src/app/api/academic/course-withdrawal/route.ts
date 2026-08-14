@@ -90,12 +90,21 @@ export async function GET(req: NextRequest) {
   const rows = ((grades ?? []) as any[]).filter(belongs).map(g => {
     const st = gradeStatus(g, categoryPassing)
     const has_grade = st.has_grade || (partialsByExt.get(String(g.external_id)) ?? false)
+    // La asignatura de la malla a la que corresponde la fila. Existe siempre:
+    // `belongs` ya la exigió para dejar pasar la nota.
+    //
+    // De ella salen el código Y los créditos, y no de la fila. El crédito de la
+    // fila viene de SystemActiva y en 840 filas no coincide con el de la malla:
+    // las de un ABA de 2 créditos por asignatura decían 1, así que el registro
+    // curricular contaba la mitad de la carga real. La malla es el documento
+    // que fija cuánto vale cada asignatura; la nota solo dice cómo le fue.
+    const cm = malla.find((c: { name: string | null }) => filaDeCurso(g, c))
     return {
       external_id: g.external_id,
       // El código de la malla, no el número de orden de SystemActiva.
-      course_code: (g.course_id ? malla.find((c: { id: string; code: string | null }) => c.id === g.course_id)?.code : null) ?? g.course_code,
+      course_code: cm?.code ?? g.course_code,
       course_name: g.course_name,
-      credits: g.credits != null ? Number(g.credits) : null,
+      credits: cm?.credits != null ? Number(cm.credits) : (g.credits != null ? Number(g.credits) : null),
       // El recursado se distingue del primer intento en el propio registro:
       // los dos existen y el acta se queda con el mejor.
       // El periodo sale del semestre; año+bloque se contradecían en 6.747 filas.
@@ -158,7 +167,17 @@ export async function GET(req: NextRequest) {
     .select('id, list_price, credit_rate, credit_rate_source').eq('student_id', studentId).eq('program_id', programId)
     .order('list_price', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
 
-  const creditosActivos = rows.filter(r => !r.withdrawn).reduce((s, r) => s + (r.credits ?? 0), 0)
+  // Créditos activos: se cuenta cada ASIGNATURA una vez, no cada fila. Sumar
+  // filas inflaba la carga en dos casos corrientes —el recursado, que son dos
+  // filas de la misma asignatura y no el doble de trabajo, y la fila de plan
+  // que se quedó junto a la nota real (48 casos, 19 estudiantes)—.
+  const creditoPorAsignatura = new Map<string, number>()
+  for (const r of rows) {
+    if (r.withdrawn) continue
+    const k = courseNameKey(r.course_name)
+    if (!creditoPorAsignatura.has(k)) creditoPorAsignatura.set(k, r.credits ?? 0)
+  }
+  const creditosActivos = [...creditoPorAsignatura.values()].reduce((s, v) => s + v, 0)
 
   // El precio oficial se CALCULA, igual que en el estado de cuenta: tarifa
   // congelada × créditos que el estudiante lleva. El snapshot list_price decía
@@ -171,7 +190,11 @@ export async function GET(req: NextRequest) {
       const acta = await computeActa(sb, studentId, programId)
       if (acta) {
         creditosQueLlevaTotal = creditosQueLleva(acta)
-        if (creditosQueLlevaTotal > 0) listPrice = Math.round(Number(enr.credit_rate) * creditosQueLlevaTotal * 100) / 100
+        // Sin `> 0`, y a propósito: cero créditos son cero de tuition. La
+        // condición confundía "no pude calcularlo" con "lo calculé y da cero",
+        // y al retirado de todo le devolvía el precio congelado de su matrícula.
+        // Misma regla que el estado de cuenta.
+        listPrice = Math.round(Number(enr.credit_rate) * creditosQueLlevaTotal * 100) / 100
       }
     } catch { /* sin acta calculable se cae al snapshot */ }
   }
