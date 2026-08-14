@@ -131,12 +131,46 @@ export function WithdrawalsView() {
     resetForm(); load()
   }
 
+  // Reincorporar cierra el retiro y devuelve al estudiante a activo — la
+  // situación se recalcula sola en el servidor, porque se deriva de los retiros
+  // vigentes y no se escribe a mano.
+  //
+  // Vale para los dos tipos. Antes el botón solo salía en los LOA, así que un IW
+  // levantado no tenía por dónde registrarse: la única salida era "Anular", que
+  // BORRA la fila y con ella la constancia de que el retiro existió. Un IW se
+  // levanta por resolución, y esa resolución hay que poder mostrarla después.
   async function reincorporar(r: Row) {
-    if (!confirm(`¿Reincorporar a ${r.student_name}? El LOA se cierra y el estudiante vuelve a activo.`)) return
-    await fetch(`/api/academic/withdrawals/${r.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'reincorporado' }),
-    })
-    load()
+    const esIW = r.type === 'IW'
+    if (!confirm(
+      `¿Reincorporar a ${r.student_name}?\n\n` +
+      (esIW
+        ? `Su retiro definitivo (${r.resolution_number ?? 'sin resolución'}) se cierra como reincorporado y vuelve a estudiante activo.\n`
+        : `El LOA se cierra y el estudiante vuelve a activo.\n`) +
+      `El registro del retiro se conserva; queda marcado como reincorporado.`)) return
+
+    // El IW se levanta por resolución: se pide y se guarda junto al motivo del
+    // retiro, sin pisarlo. Quien lea la ficha dentro de un año necesita las dos.
+    let note = r.note ?? ''
+    if (esIW) {
+      const motivo = prompt('Resolución o motivo de la reincorporación (queda en el registro):', '')
+      if (motivo === null) return
+      if (!motivo.trim()) { alert('Hace falta indicar la resolución o el motivo.'); return }
+      const hoy = new Date().toISOString().slice(0, 10)
+      note = [note, `Reincorporado ${hoy}: ${motivo.trim()}`].filter(Boolean).join(' · ')
+    }
+
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/academic/withdrawals/${r.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(esIW ? { status: 'reincorporado', note } : { status: 'reincorporado' }),
+      })
+      const d = await res.json().catch(() => ({ error: `El servidor respondió ${res.status}` }))
+      if (!res.ok || d.error) { alert(d.error ?? 'No se pudo reincorporar'); return }
+      load()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Error de red')
+    } finally { setSaving(false) }
   }
 
   async function anular(r: Row) {
@@ -305,9 +339,10 @@ export function WithdrawalsView() {
                   <td className="px-4 py-2.5"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[r.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>{STATUS[r.status]?.label ?? r.status}</span></td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {r.type === 'LOA' && r.status === 'vigente' && (
-                        <button onClick={() => reincorporar(r)} title="Reincorporar"
-                          className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded"><Undo2 className="w-3.5 h-3.5" /></button>
+                      {r.status === 'vigente' && (
+                        <button onClick={() => reincorporar(r)} disabled={saving}
+                          title={r.type === 'IW' ? 'Reincorporar (levantar el retiro definitivo)' : 'Reincorporar'}
+                          className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded disabled:opacity-40"><Undo2 className="w-3.5 h-3.5" /></button>
                       )}
                       <button onClick={() => anular(r)} title="Anular registro"
                         className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
