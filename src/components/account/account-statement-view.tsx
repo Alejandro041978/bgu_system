@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { CampusAccessNotice } from './campus-access-notice'
 import { computeTuition } from '@/lib/account-statement'
 import type { Statement, ProgramAccount, ChargeRow, PaymentRow } from '@/lib/account-statement'
-import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil, Plus, Gift, Layers } from 'lucide-react'
+import { Wallet, TrendingDown, CheckCircle2, AlertTriangle, GraduationCap, FilePlus, Loader2, Trash2, Tag, BadgeDollarSign, FileCheck, Pencil, Plus, Gift, Layers, ArrowLeftRight } from 'lucide-react'
 import { FlywirePayButton } from './flywire-pay-button'
 
 const money = (n: number) =>
@@ -243,6 +243,35 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
                             }}
                             title="Editar referencia" className="text-gray-300 hover:text-blue-600">
                             <Pencil className="w-3 h-3" />
+                          </button>
+                        )}
+                        {/* Mover el pago a otra cuota. Distinto de distribuir:
+                            aquí no sobra dinero, es que se aplicó a la cuota
+                            equivocada —el caso típico es un reembolso que tarda
+                            y un reabono que llega antes—. */}
+                        {canGenerate && !p.transaction_reference?.includes('reembolso de') && (
+                          <button
+                            onClick={async () => {
+                              const impagas = account.charges
+                                .filter(x => x.external_id !== c.external_id && Number(x.amount ?? 0) - Number(x.paid ?? 0) > 0.005)
+                                .sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''))
+                              if (!impagas.length) { alert('Este estudiante no tiene otra cuota con saldo pendiente.'); return }
+                              const opciones = impagas.map((x, i) =>
+                                `${i + 1}. ${x.due_date ? x.due_date.split('-').reverse().join('/') : 'sin vencimiento'} — falta ${money(Number(x.amount ?? 0) - Number(x.paid ?? 0))}`).join('\n')
+                              const elegido = prompt(`Mover ${money(p.amount)} (${p.transaction_reference ?? 'sin referencia'}) a otra cuota.\n\n${opciones}\n\nEscribe el número:`)
+                              if (elegido === null) return
+                              const idx = Number(elegido.trim()) - 1
+                              if (!(idx >= 0 && idx < impagas.length)) { alert('Número fuera de la lista.'); return }
+                              const d = await fetch('/api/account/move-payment', {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ payment_id: p.id, charge_external_id: impagas[idx].external_id }),
+                              }).then(x => x.json())
+                              if (d.error) { alert(d.error); return }
+                              alert(`Pago movido.${d.reembolsos_movidos ? ` Su reembolso viajó con él.` : ''}${d.matricula_activada ? ' La matrícula quedó activada.' : ''}`)
+                              onChanged?.()
+                            }}
+                            title="Mover este pago a otra cuota" className="text-gray-300 hover:text-blue-600">
+                            <ArrowLeftRight className="w-3 h-3" />
                           </button>
                         )}
                         {canGenerate && p.deletable && (
