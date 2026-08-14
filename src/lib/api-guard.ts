@@ -9,30 +9,66 @@ const admin = () => createClient(
 )
 
 // ---------------------------------------------------------------------------
-// Guard de las rutas de gestión.
+// ¿Esta cuenta es del PERSONAL de la institución?
 //
-// Exige sesión y además que quien la tiene no sea un estudiante: los alumnos
-// tienen sesión de Supabase, así que "hay usuario" no distingue a quien
-// administra de quien es administrado.
+// Se responde por presencia y nunca por ausencia: hace falta una ficha en
+// hr_employees —por user_id o por correo— o figurar en app_superadmins. Quien
+// no esté en ninguna de las dos, no es personal.
 //
-// La ficha de colaborador MANDA. Un correo puede estar a la vez en
-// hr_employees y en academic_students —personal que además estudia aquí, y
-// cualquiera que use su correo institucional para las dos cosas— y en ese caso
-// la persona trabaja aquí. Preguntar solo "¿es estudiante?" dejaba a esa gente
-// fuera de su propio puesto de trabajo.
+// Antes se respondía al revés: "no es estudiante, luego es personal". Eso
+// convertía cualquier fallo de identificación en un ascenso. Ana María Triviño
+// Monje entró el 13 de agosto de 2026 al escritorio de Atención al Cliente y vio
+// los 26.144 tickets de la institución, porque su ficha guarda
+// "anamariatrivinomX@gmail.com" —con una equis de más— y su cuenta real es
+// "anamariatrivinom@gmail.com". Un correo mal escrito la ascendió.
+//
+// Y no era el único camino: findStudentByLoginEmail exige disabled=false, así
+// que deshabilitar a un estudiante también lo habría promovido, y quien solo
+// figura en academic_grades nunca fue reconocido.
+//
+// Medido el 14 de agosto de 2026 sobre las 635 cuentas: 34 pasaban el guard
+// viejo, 28 son personal de verdad y 6 no. Cuatro de esas 6 habían entrado, las
+// cuatro estudiantes con el correo distinto al de su ficha. Ninguna ficha de
+// colaborador con cuenta pierde el acceso con esta regla.
+//
+// La ficha MANDA sobre ser estudiante: un mismo correo puede estar en
+// hr_employees y en academic_students —personal que además estudia aquí— y en
+// ese caso la persona trabaja aquí.
+// ---------------------------------------------------------------------------
+export async function esPersonal(user: { id: string; email?: string | null }): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin() as any
+
+  const { data: porUser } = await sb.from('hr_employees').select('id').eq('user_id', user.id).maybeSingle()
+  if (porUser) return true
+
+  // El correo se interpola en el filtro `or`: se descarta cualquier cosa que
+  // pueda romperlo, igual que en findStudentByLoginEmail.
+  const mail = (user.email ?? '').trim().toLowerCase()
+  if (mail && /^[^\s,()'"]+@[^\s,()'"]+$/.test(mail)) {
+    const { data: porCorreo } = await sb.from('hr_employees')
+      .select('id').or(`email.eq.${mail},zoho_agent_email.eq.${mail}`).limit(1).maybeSingle()
+    if (porCorreo) return true
+
+    // Un fallo de lectura NO puede conceder acceso: sin respuesta clara, no es
+    // personal. (Así se cerró el mismo agujero en app_superadmins: la tabla
+    // creada sin permiso al service_role devolvía error y el código que
+    // interpretaba el error como "pasa" habría abierto el ERP entero.)
+    const { data: sa } = await sb.from('app_superadmins').select('email').ilike('email', mail).maybeSingle()
+    if (sa) return true
+  }
+  return false
+}
+
+// ---------------------------------------------------------------------------
+// Guard de las rutas de gestión: exige sesión Y ser personal.
 // ---------------------------------------------------------------------------
 export async function guardStaff(): Promise<NextResponse | null> {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: emp } = await (admin() as any)
-    .from('hr_employees').select('id').eq('user_id', user.id).maybeSingle()
-  if (emp) return null                       // es colaborador: pasa
-
-  if (await isStudentUser(user)) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
-  return null
+  if (await esPersonal(user)) return null
+  return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 }
 
 // ---------------------------------------------------------------------------

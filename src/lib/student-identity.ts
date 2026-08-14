@@ -14,10 +14,35 @@ export interface StudentIdentity {
   impersonating: boolean
 }
 
-/** Superadmin = usuario sin registro en hr_employees o sin role_id. */
+/**
+ * Superadmin: figura en la lista explícita app_superadmins.
+ *
+ * Antes era "no tiene ficha en hr_employees, o la tiene sin rol", y eso concedía
+ * el rango por ausencia: un estudiante tampoco tiene ficha. La barrera era pedir
+ * isStudentUser() primero en cada llamada, y bastaba que la identificación como
+ * estudiante fallara para que el rango se otorgara solo. Falló: cuatro cuentas
+ * de estudiantes cuyo correo no coincide con el de su ficha llegaron a
+ * superadministrador, y con él a suplantar colaboradores y estudiantes, aplicar
+ * descuentos y refacturar (14 de agosto de 2026).
+ *
+ * Ahora se concede por presencia. Quien no esté en la lista, no lo es, y da
+ * igual cómo se le identifique por otro lado.
+ */
 export async function isSuperadmin(userId: string): Promise<boolean> {
-  const { data: emp } = await admin().from('hr_employees').select('role_id').eq('user_id', userId).maybeSingle()
-  return !emp?.role_id
+  const sb = admin()
+  // Un rol asignado descarta: el superadministrador no lleva rol.
+  const { data: emp } = await sb.from('hr_employees').select('role_id').eq('user_id', userId).maybeSingle()
+  if (emp?.role_id) return false
+
+  const { data: cuenta } = await sb.auth.admin.getUserById(userId)
+  const mail = String(cuenta?.user?.email ?? '').trim().toLowerCase()
+  if (!mail) return false
+
+  // Ante cualquier fallo de lectura, NO. El síntoma de un permiso mal puesto es
+  // inconfundible —de golpe no hay ningún superadministrador— y se arregla con
+  // el grant a service_role de supabase/superadmins.sql, no aflojando esto.
+  const { data: lista } = await sb.from('app_superadmins').select('email').ilike('email', mail).maybeSingle()
+  return !!lista
 }
 
 import { findStudentByLoginEmail } from './student-lookup'
