@@ -8,13 +8,23 @@ import { cursosDelAmbito, notaEnAmbito, guardAmbito, TITULO, type Ambito } from 
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function todo(sb: any, tabla: string, cols: string, filtro?: (q: any) => any): Promise<any[]> {
+async function todo(sb: any, tabla: string, cols: string, filtro?: (q: any) => any, orden = 'id'): Promise<any[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const out: any[] = []
   for (let from = 0; ; from += 1000) {
-    let q = sb.from(tabla).select(cols).range(from, from + 999)
+    // El orden explícito es lo que hace fiable la paginación: sin ORDER BY,
+    // Postgres no garantiza el mismo orden entre una página y la siguiente y el
+    // .range() puede saltarse filas. Hoy el ámbito tiene 1.025 notas, así que ya
+    // pagina de verdad.
+    let q = sb.from(tabla).select(cols).order(orden).range(from, from + 999)
     if (filtro) q = filtro(q)
-    const { data } = await q
+    const { data, error } = await q
+    // Un fallo NO puede devolver una lista vacía. Quien llama la lee como "no
+    // hay nada" y la pantalla dice "0 inscripciones en el ámbito", que es una
+    // mentira tranquila: parece un dato y es una consulta rota. Pasó con esta
+    // misma página —pedía la columna `semester`, que se llama `semester_id`— y
+    // el síntoma fue un buscador que nunca encontraba a nadie.
+    if (error) throw new Error(`${tabla}: ${error.message}`)
     const rows = data ?? []
     out.push(...rows)
     if (rows.length < 1000) break
@@ -33,7 +43,18 @@ const LIMITE = 400
 export async function listar(ambito: Ambito, req: NextRequest) {
   const noAutorizado = await guardAmbito(ambito)
   if (noAutorizado) return noAutorizado
+  try {
+    return await listarInterno(ambito, req)
+  } catch (e) {
+    // Se responde con el error a la vista. Devolver una lista vacía haría que la
+    // pantalla dijera "sin resultados", que es indistinguible de "este
+    // estudiante no tiene capstone" — y manda a buscar el problema al sitio
+    // equivocado.
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'No se pudo leer el listado' }, { status: 500 })
+  }
+}
 
+async function listarInterno(ambito: Ambito, req: NextRequest) {
   const sb = db()
   const q = (req.nextUrl.searchParams.get('q') ?? '').trim().toLowerCase()
   const cursoFiltro = req.nextUrl.searchParams.get('course') ?? ''
@@ -48,10 +69,16 @@ export async function listar(ambito: Ambito, req: NextRequest) {
   const nomPrograma = new Map(programas.map((p: { id: string; name: string }) => [String(p.id), p.name]))
   const delAmbito = cursos.filter((c: { id: string }) => cursosOk.has(String(c.id)))
 
+  // El periodo se guarda como semester_id y se resuelve contra el catálogo. La
+  // columna `semester` no existe: pedirla devolvía error, y como el lector lo
+  // tragaba, la página mostraba "0 inscripciones" con el desplegable lleno.
+  const semestres = await todo(sb, 'academic_semesters', 'id, name')
+  const nomSemestre = new Map(semestres.map((s: { id: string; name: string }) => [String(s.id), s.name]))
+
   const notas = await todo(sb, 'academic_grades',
-    'external_id, document_number, student_name, course_id, course_name, final_grade, retake_grade, estado_academico, semester, source, edited_at',
+    'external_id, document_number, student_name, course_id, course_name, final_grade, retake_grade, estado_academico, semester_id, source, edited_at',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (query: any) => query.in('course_id', [...cursosOk]))
+    (query: any) => query.in('course_id', [...cursosOk]), 'external_id')
 
   const infoCurso = new Map(delAmbito.map((c: { id: string; name: string; program_id: string }) =>
     [String(c.id), { nombre: c.name, programa: nomPrograma.get(String(c.program_id)) ?? '—' }]))
@@ -72,7 +99,7 @@ export async function listar(ambito: Ambito, req: NextRequest) {
     student_name: n.student_name,
     course_name: infoCurso.get(String(n.course_id))?.nombre ?? n.course_name,
     programa: infoCurso.get(String(n.course_id))?.programa ?? '—',
-    semester: n.semester ?? null,
+    semester: n.semester_id ? (nomSemestre.get(String(n.semester_id)) ?? null) : null,
     final_grade: n.final_grade,
     retake_grade: n.retake_grade,
     estado: n.estado_academico ?? null,
