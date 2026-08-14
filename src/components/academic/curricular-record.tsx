@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, User, Loader2, FileText, LogOut, Pencil } from 'lucide-react'
+import { Search, User, Loader2, FileText, LogOut, Pencil, Undo2 } from 'lucide-react'
 import { usePermissions } from '@/hooks/use-permissions'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
@@ -71,6 +71,33 @@ export function CurricularRecord() {
     if (d.error) { setNotice({ kind: 'error', text: d.error }); return }
     setNotice({ kind: 'ok', text: `Retirada "${r.course_name}"${d.delta ? ` · Total Tuition ↓ ${money(d.delta)} → nuevo precio ${money(d.new_list_price)}` : ''}. Recuerda ajustar las cuotas.` })
     load(student.id, programId)
+  }
+
+  // Deshacer el retiro. No vuelve a inscribir nada: la fila siguió ahí todo el
+  // tiempo, solo con fecha de retiro. Se le quita y vuelve al registro con su
+  // periodo y su aula, así que es reversible las veces que haga falta.
+  async function reinstate(r: Row) {
+    if (!student || !data) return
+    const val = (data.enrollment?.credit_rate != null && r.credits) ? data.enrollment.credit_rate * r.credits : null
+    if (!confirm(
+      `¿Devolver a ${student.name} la asignatura "${r.course_name}" (${r.credits ?? '—'} cr)?\n\n` +
+      (val != null
+        ? `Subirá el Total Tuition en ${money(val)} (${r.credits} cr × ${money(data.enrollment!.credit_rate!)}).\n`
+        : 'Esta matrícula no tiene precio regulado, así que no cambia el Total Tuition.\n') +
+      `Vuelve a su registro tal como estaba. El ajuste de las cuotas lo haces tú luego.`)) return
+    setBusy(r.external_id); setNotice(null)
+    try {
+      const res = await fetch('/api/academic/course-withdrawal', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ external_id: r.external_id, student_id: student.id, program_id: programId }),
+      })
+      const d = await res.json().catch(() => ({ error: `El servidor respondió ${res.status}` }))
+      if (d.error) { setNotice({ kind: 'error', text: d.error }); return }
+      setNotice({ kind: 'ok', text: `"${r.course_name}" vuelve al registro${d.delta ? ` · Total Tuition ↑ ${money(d.delta)} → nuevo precio ${money(d.new_list_price)}` : ''}. Recuerda ajustar las cuotas.` })
+      load(student.id, programId)
+    } catch (e) {
+      setNotice({ kind: 'error', text: e instanceof Error ? e.message : 'Error de red' })
+    } finally { setBusy(null) }
   }
 
   async function editGrade(r: Row) {
@@ -224,11 +251,17 @@ export function CurricularRecord() {
               <table className="w-full text-sm">
                 <tbody className="divide-y divide-gray-50">
                   {retirados.map(r => (
-                    <tr key={r.external_id} className="opacity-60">
+                    <tr key={r.external_id} className="opacity-60 hover:opacity-100">
                       <td className="px-5 py-2 text-gray-600 line-through">{r.course_name}</td>
                       <td className="px-3 py-2 text-center text-gray-400 w-16">{r.credits ?? '—'}</td>
                       <td className="px-3 py-2 text-xs text-gray-400">{r.term || '—'}</td>
                       <td className="px-3 py-2"><span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Retirada</span></td>
+                      <td className="px-3 py-2 text-right w-32">
+                        <button onClick={() => reinstate(r)} disabled={busy === r.external_id}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-40">
+                          <Undo2 className="w-3.5 h-3.5" />{busy === r.external_id ? 'Deshaciendo…' : 'Deshacer retiro'}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

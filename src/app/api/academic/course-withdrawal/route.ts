@@ -7,6 +7,7 @@ import { filaDeCurso, sameCourse, courseNameKey } from '@/lib/course-match'
 import { esFilaDePlan } from '@/lib/grade-sources'
 import { etiquetaIntento } from '@/lib/grades-write'
 import { guardStaff, guardSuperadmin } from '@/lib/api-guard'
+import { guardPagina } from '@/lib/page-guard'
 
 export const revalidate = 0
 
@@ -62,11 +63,11 @@ export async function GET(req: NextRequest) {
     .order('level', { ascending: true, nullsFirst: false }).order('code')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const malla = (courses ?? []) as any[]
-  // Qué notas son de ESTE programa. Por nombre y solo por nombre: los códigos
-  // son números de orden, y un estudiante con dos programas los tiene repetidos
-  // 101–105 en los dos. Emparejar por código le mostraba las doce filas de sus
-  // dos mallas en cada uno.
-  const belongs = (g: { course_name: string | null }) => malla.some(c => filaDeCurso(g, c))
+  // Qué notas son de ESTE programa: lo decide filaDeCurso —course_id, y el
+  // nombre solo cuando no lo hay—. Nunca el código: son números de orden, y un
+  // estudiante con dos programas los tiene repetidos 101–105 en los dos, así
+  // que por código veía las doce filas de sus dos mallas en cada uno.
+  const belongs = (g: { course_name: string | null; course_id: string | null }) => malla.some(c => filaDeCurso(g, c))
 
   const { data: grades } = await sb.from('academic_grades')
     .select('external_id, course_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id, estado_academico, intento, semester_id')
@@ -281,7 +282,11 @@ export async function PATCH(req: NextRequest) {
 // POST { external_id, student_id, program_id } → retira la asignatura (sin notas)
 // Recalcula el Total Tuition: list_price de la matrícula −= tarifa × créditos.
 export async function POST(req: NextRequest) {
-  const noAutorizado = await guardStaff()
+  // Retirar saca créditos del registro y baja el precio oficial: pide el permiso
+  // de edición sobre Registro Curricular. guardStaff() solo preguntaba "hay
+  // sesión y no es estudiante", que con el permisionador en modo auditoría es
+  // cualquiera que entre al ERP.
+  const noAutorizado = await guardPagina('academic_curricular')
   if (noAutorizado) return noAutorizado
 
   const user = await requireUser()
@@ -342,4 +347,78 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, delta, new_list_price, credits })
+}
+
+// ---------------------------------------------------------------------------
+// DELETE { external_id, student_id, program_id } → deshace el retiro.
+//
+// Faltaba, y hacía falta: retirar es un clic y equivocarse de fila también. Sin
+// vuelta atrás, el único arreglo era editar la base a mano.
+//
+// Deshacer no es volver a inscribir: la fila nunca se fue. El retiro solo le
+// puso fecha —withdrawn_at— y todo el ERP la lee como "ya no está en su
+// registro". Quitar esa fecha la devuelve entera, con su periodo, su aula y su
+// external_id intactos. Por eso no hay riesgo de duplicar: no se crea nada.
+//
+// Tampoco puede chocar con una fila de plan. huecosDeRegistro mira TODAS las
+// filas, retiradas incluidas, así que mientras la asignatura estuvo retirada
+// nadie le creó un hueco que rellenar.
+// ---------------------------------------------------------------------------
+export async function DELETE(req: NextRequest) {
+  // Deshacer un retiro sube el precio oficial y devuelve créditos al registro:
+  // es la misma decisión que retirar, del revés. Exige el permiso de edición
+  // sobre Registro Curricular en vez de bastar con tener sesión, que mientras
+  // el permisionador siga en modo auditoría significa cualquier colaborador.
+  const noAutorizado = await guardPagina('academic_curricular')
+  if (noAutorizado) return noAutorizado
+
+  const user = await requireUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const b = await req.json().catch(() => null) as { external_id?: string; student_id?: string; program_id?: string } | null
+  if (!b?.external_id || !b?.student_id || !b?.program_id) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
+
+  const sb = db()
+  const { data: g } = await sb.from('academic_grades')
+    .select('external_id, document_number, course_id, credits, course_name, withdrawn_at, withdrawn_by, source')
+    .eq('external_id', b.external_id).maybeSingle()
+  if (!g) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
+  if (!g.withdrawn_at) return NextResponse.json({ error: 'Esa asignatura no está retirada' }, { status: 409 })
+
+  const { data: stu } = await sb.from('academic_students').select('document_number').eq('id', b.student_id).maybeSingle()
+  if (!stu || String(stu.document_number) !== String(g.document_number)) {
+    return NextResponse.json({ error: 'La inscripción no pertenece a ese estudiante' }, { status: 400 })
+  }
+  // Y a la malla del programa desde el que se pide: sin esto, un retiro de un
+  // programa se podría deshacer desde la pantalla del otro.
+  const { data: dela } = await sb.from('academic_courses')
+    .select('id').eq('program_id', b.program_id).eq('id', g.course_id ?? '').maybeSingle()
+  if (g.course_id && !dela) {
+    return NextResponse.json({ error: 'Esa asignatura no es de este programa' }, { status: 400 })
+  }
+
+  // Mismo cuidado con el trigger que al retirar: hay que mover edited_at o el
+  // update se descarta en silencio y la fila sigue retirada.
+  const now = new Date().toISOString()
+  const { error } = await sb.from('academic_grades')
+    .update({ withdrawn_at: null, withdrawn_by: null, edited_at: now, edited_by: user.id })
+    .eq('external_id', b.external_id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  const { data: check } = await sb.from('academic_grades').select('withdrawn_at').eq('external_id', b.external_id).maybeSingle()
+  if (check?.withdrawn_at) return NextResponse.json({ error: 'No se pudo deshacer el retiro (regla de protección). Reporta este caso.' }, { status: 409 })
+
+  // Devolver el crédito al precio congelado, exactamente al revés que el retiro.
+  // El precio que se MUESTRA se recalcula solo —tarifa × créditos del acta—;
+  // esto mantiene coherente el snapshot que queda de respaldo.
+  const { data: enr } = await sb.from('academic_student_enrollments')
+    .select('id, list_price, credit_rate').eq('student_id', b.student_id).eq('program_id', b.program_id)
+    .order('list_price', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
+  let delta = 0, new_list_price: number | null = null
+  const credits = g.credits != null ? Number(g.credits) : 0
+  if (enr && enr.list_price != null && enr.credit_rate != null && credits > 0) {
+    delta = Math.round(Number(enr.credit_rate) * credits * 100) / 100
+    new_list_price = Math.round((Number(enr.list_price) + delta) * 100) / 100
+    await sb.from('academic_student_enrollments').update({ list_price: new_list_price }).eq('id', enr.id)
+  }
+
+  return NextResponse.json({ ok: true, delta, new_list_price, credits, course_name: g.course_name })
 }
