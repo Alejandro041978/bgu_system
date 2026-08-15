@@ -64,6 +64,28 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
     grades = r.error ? (await base()).data : r.data
   }
 
+  // ---------------------------------------------------------------------------
+  // Qué asignaturas tiene REGISTRADAS. Sale del registro por asignatura, no de
+  // que exista una fila en la tabla de notas.
+  //
+  // Es la diferencia entre "no la ha empezado" y "no la tiene": lo primero se
+  // paga y lo segundo no, y de ahí sale el precio oficial. Deducirlo de la
+  // existencia de una fila obligaba a inventar filas sin nota —4.111 de plan—
+  // dentro de la tabla de calificaciones.
+  //
+  // Se comprobó matrícula a matrícula antes de cambiarlo: de 2.040, coinciden
+  // 2.038. La única que se mueve es la de Pablo Cusi, y sube: cursa dos
+  // programas que comparten asignaturas y hasta ahora se le contaban en uno
+  // solo. La institución cobra en los dos (Dirección, 14-08-2026).
+  // ---------------------------------------------------------------------------
+  const { data: matriculas } = await sb.from('academic_course_enrollments')
+    .select('course_id, status').eq('student_id', studentId)
+  const registradas = new Set<string>()
+  for (const m of (matriculas ?? []) as { course_id: string; status: string }[]) {
+    if (m.status === 'retirada') continue
+    registradas.add(String(m.course_id))
+  }
+
   const { data: tcs } = await sb.from('transfer_credits').select('id, kind')
     .eq('student_id', studentId).eq('dest_program_id', programId)
   const kindByTc = new Map<string, string>()
@@ -83,7 +105,10 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: ActaRow[] = (courses ?? []).map((c: any) => {
-    const base = { code: c.code, name: c.name, credits: c.credits, registrada: true }
+    // Registrada = está en su registro por asignatura, o se la convalidaron.
+    // Ya no "tiene una fila en notas".
+    const registrada = registradas.has(String(c.id)) || transferMap.has(c.id)
+    const base = { code: c.code, name: c.name, credits: c.credits, registrada }
     if (transferMap.has(c.id)) {
       const tm = transferMap.get(c.id)!
       if (tm.kind === 'validacion') { summary.validation++; return { ...base, status: 'validation' as const, grade: tm.grade } }
@@ -117,7 +142,7 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
     summary.pendiente++
     // registrada=false sólo si NO tiene ninguna fila: o se retiró de ella, o
     // nunca entró a su registro (un IW, que sí puede llevar menos).
-    return { ...base, status: 'pendiente' as const, grade: null, registrada: matches.length > 0 }
+    return { ...base, status: 'pendiente' as const, grade: null }
   })
 
   return {

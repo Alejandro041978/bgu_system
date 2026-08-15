@@ -83,6 +83,9 @@ export function resolverAsignatura(
     // El alumno está en dos programas que comparten el nombre de la asignatura
     // (93 notas). Se elige de forma determinista —por id— y se marca ambigua
     // para que aparezca en la revisión, en vez de decidirlo en silencio.
+    //
+    // Quien construye el REGISTRO no debe usar esto: necesita las dos, no una.
+    // Ver resolverTodasLasAsignaturas.
     const elegido = [...hits].sort((a, b) => a.id.localeCompare(b.id))[0]
     return { course_id: elegido.id, program_id: elegido.program_id, ambiguo: true, motivo: null }
   }
@@ -93,6 +96,36 @@ export function resolverAsignatura(
     return { course_id: null, program_id: null, ambiguo: false, motivo: 'otro_programa' }
   }
   return { course_id: null, program_id: null, ambiguo: false, motivo: 'fuera_de_malla' }
+}
+
+// ---------------------------------------------------------------------------
+// TODAS las asignaturas del plan a las que corresponde una nota.
+//
+// Existe porque una misma nota puede pertenecer a dos mallas a la vez. Nueve
+// estudiantes cursan Administración y Contabilidad, que comparten dieciocho
+// asignaturas: cuando alguno aprueba "Taxation" lo hace una vez y le cuenta en
+// los dos bachilleres.
+//
+// La regla de la institución es que en ese caso se paga en los dos programas
+// (Dirección, 14-08-2026). Así que el registro necesita una fila por malla, no
+// una elegida entre las dos: si solo se abriera una, el otro programa contaría
+// 87 créditos en vez de 120 y su precio oficial caería sin que nadie lo haya
+// decidido.
+//
+// resolverAsignatura sigue existiendo para quien necesita UNA respuesta —el
+// importador tiene que escribir la nota en un sitio— pero el registro usa ésta.
+// ---------------------------------------------------------------------------
+export function resolverTodasLasAsignaturas(
+  nota: { course_name: string | null },
+  programasDelAlumno: string[] | null | undefined,
+  idx: ReturnType<typeof indexarMalla>,
+): CursoMalla[] {
+  if (!programasDelAlumno?.length) return []
+  const k = courseNameKey(nota.course_name)
+  if (!k) return []
+  const hits: CursoMalla[] = []
+  for (const p of programasDelAlumno) hits.push(...(idx.porProgNombre.get(`${p}|${k}`) ?? []))
+  return [...new Map(hits.map(h => [h.id, h])).values()]
 }
 
 // Estado del intento, leído de la nota.

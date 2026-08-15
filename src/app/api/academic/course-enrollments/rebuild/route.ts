@@ -5,7 +5,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isStudentUser } from '@/lib/student-identity'
 import { guardSuperadmin } from '@/lib/api-guard'
 import {
-  indexarMalla, resolverAsignatura, estadoDeNota, ordenarIntentos,
+  indexarMalla, resolverAsignatura, resolverTodasLasAsignaturas, estadoDeNota, ordenarIntentos,
   type NotaMin, type CursoMalla, type MotivoSinResolver,
 } from '@/lib/course-enrollments'
 import { courseNameKey } from '@/lib/course-match'
@@ -141,13 +141,21 @@ export async function POST(req: NextRequest) {
       }
       continue
     }
-    if (r.ambiguo) {
+    // Una nota puede pertenecer a DOS mallas a la vez: nueve estudiantes cursan
+    // dos programas que comparten dieciocho asignaturas. Se abre matrícula en
+    // cada una, porque la institución cobra en los dos programas (Dirección,
+    // 14-08-2026). Elegir una sola dejaba al otro programa en 87 créditos de
+    // 120 y le bajaba el precio oficial sin que nadie lo decidiera.
+    const destinos = resolverTodasLasAsignaturas(n, progsOf.get(stu.id), idx)
+    if (destinos.length > 1) {
       ambiguasN++
-      if (ambiguas.length < 40) ambiguas.push(`${n.document_number} · ${n.course_name}`)
+      if (ambiguas.length < 40) ambiguas.push(`${n.document_number} · ${n.course_name} → ${destinos.length} mallas`)
     }
-    const k = `${stu.id}|${r.course_id}`
-    if (!porIntento.has(k)) porIntento.set(k, { student_id: stu.id, course_id: r.course_id, program_id: r.program_id, notas: [] })
-    porIntento.get(k)!.notas.push(n)
+    for (const d of (destinos.length ? destinos : [{ id: r.course_id, program_id: r.program_id }])) {
+      const k = `${stu.id}|${d.id}`
+      if (!porIntento.has(k)) porIntento.set(k, { student_id: stu.id, course_id: d.id, program_id: d.program_id, notas: [] })
+      porIntento.get(k)!.notas.push(n)
+    }
   }
 
   // 2. Un intento por nota, numerado por periodo
