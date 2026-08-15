@@ -154,9 +154,9 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
     {
       clave: 'inscripciones_en_notas',
       titulo: 'Inscripciones sin calificar dentro de la tabla de notas',
-      explica: 'Filas sin nota que ocupan la tabla de calificaciones. Las 4.111 de plan ya se movieron al registro; éstas son inscripciones de SystemActiva y Moodle que aún no tienen nota.',
-      siSube: 'Este número solo debería BAJAR, según se vayan calificando o moviendo al registro. Que suba significa que alguien volvió a crear inscripciones aquí.',
-      n: inscripciones.length, esperado: inscripciones.length,
+      explica: 'Filas sin nota que ocupan la tabla de calificaciones. Las 4.111 de plan y las 6.585 de SystemActiva ya se movieron al registro. Deben quedar 53: las de asignaturas que no están en ninguna malla, a la espera de Registros.',
+      siSube: 'Alguien volvió a crear inscripciones aquí, o entraron notas nuevas sin calificar. Lo segundo es normal si el campus abrió aulas hoy; lo primero no.',
+      n: inscripciones.length, esperado: 53,
       ejemplos: [...porFuente.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${v} de ${k}`),
     },
   ]
