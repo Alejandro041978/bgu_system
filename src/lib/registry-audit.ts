@@ -1,0 +1,173 @@
+import { estadoDeNota } from './course-enrollments'
+
+// ---------------------------------------------------------------------------
+// Auditor del registro curricular.
+//
+// El 15 de agosto de 2026 el registro por asignatura pasó a ser la fuente de
+// qué tiene inscrito un estudiante, y de ahí sale el precio oficial. Antes eso
+// se deducía de que existiera una fila en la tabla de notas, lo que obligaba a
+// crear 4.111 filas sin calificación dentro de las calificaciones.
+//
+// El riesgo del modelo nuevo no es que falle de golpe: es que las dos tablas se
+// separen despacio y nadie lo note hasta que un precio salga raro. Los cuatro
+// contrastes de aquí son los que se corrieron a mano durante la migración; esto
+// los deja corriendo solos.
+//
+// Cada uno tiene un valor esperado. No se trata de que todo sea cero —dos de
+// ellos arrastran deuda histórica conocida— sino de que no SUBAN.
+// ---------------------------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SB = any
+
+export interface Hallazgo {
+  clave: string
+  titulo: string
+  explica: string
+  // Qué significa que este número crezca.
+  siSube: string
+  n: number
+  esperado: number
+  ejemplos: string[]
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function todo(sb: SB, tabla: string, cols: string, orden: string): Promise<any[]> {
+  const out: unknown[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from(tabla).select(cols).order(orden).range(from, from + 999)
+    // Un fallo NO puede devolver lista vacía: la pantalla diría "todo en orden",
+    // que es la mentira más cara de este ERP.
+    if (error) throw new Error(`${tabla}: ${error.message}`)
+    out.push(...(data ?? []))
+    if ((data ?? []).length < 1000) break
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return out as any[]
+}
+
+export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; totales: Record<string, number> }> {
+  const [notas, ce, est, cursos, progs, cats, sems, enr] = await Promise.all([
+    todo(sb, 'academic_grades', 'external_id, document_number, student_name, course_id, course_name, source, withdrawn_at, final_grade, retake_grade, passing_score, semester_id, course_enrollment_id', 'external_id'),
+    todo(sb, 'academic_course_enrollments', 'id, student_id, course_id, attempt, status', 'id'),
+    todo(sb, 'academic_students', 'id, document_number', 'id'),
+    todo(sb, 'academic_courses', 'id, program_id, name', 'id'),
+    todo(sb, 'academic_programs', 'id, name, category_id', 'id'),
+    todo(sb, 'academic_programs_category', 'id, passing_score', 'id'),
+    todo(sb, 'academic_semesters', 'id, name, end_date', 'id'),
+    todo(sb, 'academic_student_enrollments', 'student_id, program_id, enrollment_date', 'id'),
+  ])
+
+  const sidPorDoc = new Map<string, string>(est.map(e => [String(e.document_number), String(e.id)]))
+  const progDeCurso = new Map<string, string>(cursos.map(c => [String(c.id), String(c.program_id)]))
+  const nomCurso = new Map<string, string>(cursos.map(c => [String(c.id), String(c.name)]))
+  const minCat = new Map<string, number | null>(cats.map(c => [String(c.id), c.passing_score]))
+  const minProg = new Map<string, number | null>(progs.map(p => [String(p.id), minCat.get(String(p.category_id)) ?? null]))
+  const semFin = new Map<string, string | null>(sems.map(s => [String(s.id), s.end_date]))
+  const semNom = new Map<string, string>(sems.map(s => [String(s.id), String(s.name)]))
+  const ingreso = new Map<string, string>()
+  for (const e of enr) {
+    const d = e.enrollment_date ? String(e.enrollment_date).slice(0, 10) : null
+    if (!d) continue
+    const k = `${e.student_id}|${e.program_id}`
+    if (!ingreso.has(k) || d < ingreso.get(k)!) ingreso.set(k, d)
+  }
+
+  // ---- 1. Notas sin matrícula ---------------------------------------------
+  const claveCE = new Set(ce.map(r => `${r.student_id}|${r.course_id}`))
+  const sinMatricula: string[] = []
+  let nSinMatricula = 0
+  for (const n of notas) {
+    if (n.withdrawn_at || !n.course_id) continue
+    const sid = sidPorDoc.get(String(n.document_number))
+    if (!sid || claveCE.has(`${sid}|${n.course_id}`)) continue
+    nSinMatricula++
+    if (sinMatricula.length < 10) sinMatricula.push(`${n.student_name} · ${n.course_name}`)
+  }
+
+  // ---- 2. El estado de la matrícula no sigue a su nota --------------------
+  const notaDeMat = new Map<string, Record<string, unknown> & { v: number | null }>()
+  for (const n of notas) {
+    if (!n.course_enrollment_id) continue
+    const k = String(n.course_enrollment_id)
+    const v = (n.retake_grade ?? n.final_grade) as number | null
+    const prev = notaDeMat.get(k)
+    if (!prev || (v != null && (prev.v == null || Number(v) > Number(prev.v)))) notaDeMat.set(k, { ...n, v })
+  }
+  const desfase: string[] = []
+  let nDesfase = 0
+  for (const r of ce) {
+    const n = notaDeMat.get(String(r.id))
+    if (!n) continue
+    const min = minProg.get(progDeCurso.get(String(r.course_id)) ?? '') ?? null
+    const esperado = estadoDeNota(n as never, min)
+    if (esperado === r.status) continue
+    nDesfase++
+    if (desfase.length < 10) {
+      desfase.push(`${n.student_name} · ${nomCurso.get(String(r.course_id)) ?? ''} · dice ${r.status}, la nota (${n.v ?? '—'}) dice ${esperado}`)
+    }
+  }
+
+  // ---- 3. Notas en un semestre que cerró antes del ingreso ----------------
+  const cerrado: string[] = []
+  let nCerrado = 0
+  for (const n of notas) {
+    if (n.withdrawn_at || !n.semester_id || !n.course_id) continue
+    const sid = sidPorDoc.get(String(n.document_number))
+    const prog = progDeCurso.get(String(n.course_id))
+    const i = sid && prog ? ingreso.get(`${sid}|${prog}`) : null
+    const fin = semFin.get(String(n.semester_id))
+    if (!i || !fin || String(fin).slice(0, 10) >= i) continue
+    nCerrado++
+    if (cerrado.length < 10) {
+      cerrado.push(`${n.student_name} · ${n.course_name} · ingresó ${i}, figura en ${semNom.get(String(n.semester_id))} (cerró ${String(fin).slice(0, 10)})`)
+    }
+  }
+
+  // ---- 4. Inscripciones que siguen en la tabla de notas -------------------
+  const inscripciones = notas.filter(n => !n.withdrawn_at && (n.retake_grade ?? n.final_grade) == null)
+  const porFuente = new Map<string, number>()
+  for (const n of inscripciones) porFuente.set(String(n.source), (porFuente.get(String(n.source)) ?? 0) + 1)
+
+  const hallazgos: Hallazgo[] = [
+    {
+      clave: 'sin_matricula',
+      titulo: 'Notas sin matrícula en el registro',
+      explica: 'Una nota cuya asignatura no está en el registro del estudiante. El acta no la ve y no cuenta en su precio oficial.',
+      siSube: 'Algún camino de escritura está creando notas sin abrir la matrícula. Los tres conocidos —Moodle, el editor y la reconstrucción— sí la abren.',
+      n: nSinMatricula, esperado: 0, ejemplos: sinMatricula,
+    },
+    {
+      clave: 'estado_desfasado',
+      titulo: 'El estado de la matrícula no coincide con su nota',
+      explica: 'La matrícula dice aprobada y la nota es reprobatoria, o al revés. De este estado leen los egresados y los carruseles.',
+      siSube: 'Se corrigió una nota sin sincronizar su matrícula. El cron nocturno lo cura solo; si crece entre corridas, hay un escritor nuevo que no lo hace.',
+      n: nDesfase, esperado: 8, ejemplos: desfase,
+    },
+    {
+      clave: 'semestre_cerrado',
+      titulo: 'Notas en un semestre que cerró antes de que el estudiante ingresara',
+      explica: 'El periodo de la nota es anterior a su matrícula: cursó algo en un semestre en el que todavía no existía como estudiante.',
+      siSube: 'Deuda heredada de SystemActiva. Las de Moodle se corrigieron el 15-08 y están en cero; si el número sube, algo volvió a fechar mal.',
+      n: nCerrado, esperado: nCerrado, ejemplos: cerrado,
+    },
+    {
+      clave: 'inscripciones_en_notas',
+      titulo: 'Inscripciones sin calificar dentro de la tabla de notas',
+      explica: 'Filas sin nota que ocupan la tabla de calificaciones. Las 4.111 de plan ya se movieron al registro; éstas son inscripciones de SystemActiva y Moodle que aún no tienen nota.',
+      siSube: 'Este número solo debería BAJAR, según se vayan calificando o moviendo al registro. Que suba significa que alguien volvió a crear inscripciones aquí.',
+      n: inscripciones.length, esperado: inscripciones.length,
+      ejemplos: [...porFuente.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${v} de ${k}`),
+    },
+  ]
+
+  return {
+    hallazgos,
+    totales: {
+      notas: notas.length,
+      matriculas: ce.length,
+      con_calificacion: notas.filter(n => (n.retake_grade ?? n.final_grade) != null).length,
+      no_iniciadas: ce.filter(r => r.status === 'no_iniciada').length,
+    },
+  }
+}
