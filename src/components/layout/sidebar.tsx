@@ -155,7 +155,6 @@ const navigation: NavGroup[] = [
           { name: 'Auditor de Actas', href: '/academic/acta-audit', icon: ListChecks, pageKey: 'academic_acta_audit' },
           { name: 'Notas de campus externo', href: '/academic/external-campus-grades', icon: Globe, pageKey: 'academic_external_campus' },
           { name: 'Notas de Capstone', href: '/academic/capstone-grades', icon: GraduationCap, pageKey: 'academic_capstone' },
-          { name: 'Cargar Notas (CSV)', href: '/academic/grades-import', icon: Upload, pageKey: 'academic_grades_import' },
           { name: 'Sincronizar asignatura', href: '/academic/course-sync', icon: RefreshCw, pageKey: 'academic_course_sync' },
           { name: 'Exámenes · Control', href: '/academic/examenes', icon: FileCheck, pageKey: 'academic_exams' },
         ],
