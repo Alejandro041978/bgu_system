@@ -1,6 +1,7 @@
 import { moodleCall } from './moodle'
 import { rendidoPct, estadoAcademico, huboEvaluacionNueva, type ItemProceso } from './grade-status'
 import { importGrades, resolveImportTarget, fetchByIn, stableUuid, type ImportRow } from './grades-write'
+import { asegurarMatriculas, estadoDeNota, type MatriculaDeNota } from './course-enrollments'
 
 // ---------------------------------------------------------------------------
 // Importación de un acta de Moodle al expediente. Pipeline compartido entre
@@ -285,6 +286,10 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   }
 
   const rows: ImportRow[] = []
+  // La matrícula por asignatura de cada nota importada. El acta lee de aquí
+  // desde el paso 2, así que escribir solo la nota dejaría la asignatura fuera
+  // del expediente —y del precio— hasta que el cron nocturno lo reconstruyera.
+  const matriculas: MatriculaDeNota[] = []
   // Espejo del detalle: los ítems del aula tal cual (nombre + ponderación +
   // nota), en el formato del Acta Detallada ({n, pct, val, desc}). No hay
   // mapeo contra casillas: el acta es auto-descriptiva y Moodle es la fuente
@@ -359,6 +364,22 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       passing_score: null,
     }
     rows.push(fila)
+    matriculas.push({
+      student_id: stu.id,
+      document_number: String(stu.document_number ?? ''),
+      course_id: destCourse.id,
+      program_id: destCourse.program_id ?? null,
+      attempt: target.intento ?? 1,
+      semester_id: semesterId,
+      term_year: termYear,
+      term_block: termBlock,
+      status: estadoDeNota({
+        ...fila, withdrawn_at: null, synced_at: null,
+        course_code: fila.course_code ?? null, course_name: fila.course_name,
+        retake_grade: null, passing_score: passing,
+      } as never),
+      source: 'moodle',
+    })
 
     // SOLO ítems con ponderación. Los ítems sin peso no entran al acta aunque
     // tengan nota: son asistencia a sincrónicas, simulacros, evaluaciones
@@ -383,6 +404,36 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     origin: 'moodle', userId,
     reason: `Importación de acta Moodle (aula ${courseid}) → ${destCourse.code ?? ''} ${destCourse.name ?? ''}`,
   })
+
+  // La matrícula por asignatura, en la misma corrida que la nota.
+  //
+  // Antes esto lo hacía solo el cron nocturno, y entre la importación y las
+  // 4:45 la asignatura no existía en el registro: el acta —que lee de ahí desde
+  // el paso 2— la daba por no registrada, y el precio oficial del estudiante no
+  // la contaba. Unas horas al día, todos los días, sin ruido.
+  let matriculasEscritas = 0
+  if (!result.errors.length && matriculas.length) {
+    const sids = [...new Set(matriculas.map(m => m.student_id))]
+    const enrPrograma = new Map<string, string>()
+    if (destCourse.program_id) {
+      for (let i = 0; i < sids.length; i += 200) {
+        const { data } = await sb.from('academic_student_enrollments')
+          .select('id, student_id').eq('program_id', destCourse.program_id).in('student_id', sids.slice(i, i + 200))
+        for (const e of (data ?? []) as { id: string; student_id: string }[]) {
+          if (!enrPrograma.has(e.student_id)) enrPrograma.set(e.student_id, e.id)
+        }
+      }
+    }
+    const r = await asegurarMatriculas(
+      sb,
+      matriculas.map(m => ({ ...m, program_enrollment_id: enrPrograma.get(m.student_id) ?? null })),
+      'importacion-moodle',
+    )
+    matriculasEscritas = r.escritas
+    // Un fallo aquí no invalida la importación —la nota ya está escrita— pero
+    // tiene que verse: sin matrícula, esa nota no entra al acta.
+    if (r.error) result.errors.push(`Matrículas por asignatura: ${r.error}`)
+  }
 
   // Marca de origen: toda fila del aula (rellenada, actualizada o nueva) queda
   // con su moodle_course_id — de esto dependen el candado de acta y la

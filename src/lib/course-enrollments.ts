@@ -142,6 +142,54 @@ export function estadoDeNota(n: NotaMin & { source?: string | null }): EstadoMat
   return Number(v) >= Number(n.passing_score ?? 70) ? 'aprobada' : 'reprobada'
 }
 
+// ---------------------------------------------------------------------------
+// Abrir (o poner al día) la matrícula por asignatura de una nota importada.
+//
+// Existe porque el acta ya no pregunta "¿hay fila en notas?" sino "¿está en su
+// registro?" (paso 2, 14-08-2026). Si el importador solo escribiera la nota, la
+// asignatura quedaría fuera del acta y fuera del precio hasta que el cron
+// nocturno reconstruyera el registro — horas después, y sin que nadie lo note.
+//
+// Es idempotente: la llave es (student_id, course_id, attempt), así que
+// reimportar el aula no duplica. El estado se recalcula en cada pasada, que es
+// lo que hace que "en curso" pase a "aprobada" cuando llega la nota.
+//
+// No decide el intento: se lo da quien llama, que es quien sabe si esta nota es
+// el primer intento o un recursado.
+// ---------------------------------------------------------------------------
+export interface MatriculaDeNota {
+  student_id: string
+  document_number: string | null
+  course_id: string
+  program_id: string | null
+  program_enrollment_id?: string | null
+  attempt: number
+  semester_id?: string | null
+  term_year?: number | null
+  term_block?: string | null
+  status: EstadoMatricula
+  source: string
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function asegurarMatriculas(sb: any, filas: MatriculaDeNota[], abiertoPor = 'importacion'): Promise<{ escritas: number; error?: string }> {
+  if (!filas.length) return { escritas: 0 }
+  // Una nota por asignatura e intento: si el aula trae dos veces al mismo
+  // alumno, gana la última.
+  const unicas = new Map<string, MatriculaDeNota>()
+  for (const f of filas) unicas.set(`${f.student_id}|${f.course_id}|${f.attempt}`, f)
+  const lote = [...unicas.values()].map(f => ({ ...f, opened_by: abiertoPor }))
+
+  let escritas = 0
+  for (let i = 0; i < lote.length; i += 400) {
+    const { error } = await sb.from('academic_course_enrollments')
+      .upsert(lote.slice(i, i + 400), { onConflict: 'student_id,course_id,attempt' })
+    if (error) return { escritas, error: error.message }
+    escritas += Math.min(400, lote.length - i)
+  }
+  return { escritas }
+}
+
 // Orden de los intentos de un mismo estudiante en una misma asignatura: por
 // periodo y, a igualdad, por fecha de sincronización. El intento 1 es el más
 // antiguo. SystemActiva ya lo modelaba así — hay estudiantes con la misma
