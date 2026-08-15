@@ -131,7 +131,21 @@ export function resolverTodasLasAsignaturas(
 // Estado del intento, leído de la nota.
 export type EstadoMatricula = 'no_iniciada' | 'en_curso' | 'aprobada' | 'reprobada' | 'retirada'
 
-export function estadoDeNota(n: NotaMin & { source?: string | null }): EstadoMatricula {
+// El mínimo lo decide la CATEGORÍA del programa y se pasa desde fuera. La nota
+// ya no lo guarda: el importador de Moodle lo dejó de escribir a propósito
+// —"el mínimo no se guarda en la nota, es la regla de la categoría y se
+// resuelve al leer"— así que caer a un 70 fijo juzgaba con vara de bachiller
+// los programas de Master y Doctorado, donde son 80.
+//
+// Pasó: 45 matrículas quedaron 'aprobada' con notas de 65,6, 46 y hasta 1. No
+// movía el precio —eso depende de estar registrado— pero sí los egresados y los
+// carruseles, que leen estado y contaban como cubierta una asignatura
+// reprobada. Es el mismo error que ya se corrigió en el acta y volvió a
+// aparecer aquí: la categoría manda.
+export function estadoDeNota(
+  n: NotaMin & { source?: string | null },
+  minimoDeCategoria?: number | null,
+): EstadoMatricula {
   if (n.withdrawn_at) return 'retirada'
   // Una fila de plan es una asignatura inscrita que nadie ha empezado. No es
   // "en curso": el estudiante no ha entrado al aula ni rendido nada, y llamarlo
@@ -139,7 +153,8 @@ export function estadoDeNota(n: NotaMin & { source?: string | null }): EstadoMat
   if (String(n.source ?? '') === 'plan') return 'no_iniciada'
   const v = n.retake_grade ?? n.final_grade ?? null
   if (v == null) return 'en_curso'
-  return Number(v) >= Number(n.passing_score ?? 70) ? 'aprobada' : 'reprobada'
+  const min = minimoDeCategoria ?? n.passing_score ?? 70
+  return Number(v) >= Number(min) ? 'aprobada' : 'reprobada'
 }
 
 // ---------------------------------------------------------------------------

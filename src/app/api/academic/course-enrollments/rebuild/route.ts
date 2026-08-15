@@ -71,7 +71,11 @@ export async function POST(req: NextRequest) {
   const students = await todo(sb, 'academic_students', 'id, document_number', 'id')
   const progEnr = await todo(sb, 'academic_student_enrollments', 'id, student_id, program_id, term_year', 'id')
   const courses = await todo(sb, 'academic_courses', 'id, program_id, name, code', 'id') as CursoMalla[]
-  const programs = await todo(sb, 'academic_programs', 'id, name', 'id')
+  const programs = await todo(sb, 'academic_programs', 'id, name, category_id', 'id')
+  const cats = await todo(sb, 'academic_programs_category', 'id, passing_score', 'id')
+  // El mínimo aprobatorio es de la CATEGORÍA del programa, no de la nota.
+  const minCat = new Map<string, number | null>(cats.map((c: { id: string; passing_score: number | null }) => [String(c.id), c.passing_score]))
+  const minPrograma = new Map<string, number | null>(programs.map((p: { id: string; category_id: string | null }) => [String(p.id), minCat.get(String(p.category_id)) ?? null]))
   const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
   const todasLasNotas = await todo(sb, 'academic_grades',
     'external_id, document_number, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, semester_id, withdrawn_at, synced_at, source, course_enrollment_id',
@@ -184,7 +188,7 @@ export async function POST(req: NextRequest) {
         // El periodo con la nomenclatura del ERP. term_year/term_block se
         // siguen copiando mientras existan, pero éste es el que manda.
         semester_id: n.semester_id ?? null,
-        status: estadoDeNota(n),
+        status: estadoDeNota(n, minPrograma.get(String(grupo.program_id ?? '')) ?? null),
         source: plan ? 'plan' : (n.source === 'moodle' ? 'moodle' : 'systemactiva'),
         opened_by: 'reconstruccion',
       })

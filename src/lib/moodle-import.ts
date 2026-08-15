@@ -376,8 +376,8 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       status: estadoDeNota({
         ...fila, withdrawn_at: null, synced_at: null,
         course_code: fila.course_code ?? null, course_name: fila.course_name,
-        retake_grade: null, passing_score: passing,
-      } as never),
+        retake_grade: null,
+      } as never, passing),
       source: 'moodle',
     })
 
