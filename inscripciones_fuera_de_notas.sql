@@ -45,15 +45,29 @@ WHERE g.withdrawn_at IS NULL
   AND g.course_id    IS NOT NULL
 ORDER BY g.external_id, (ce.id = g.course_enrollment_id) DESC, ce.attempt DESC;
 
--- El tope. Si el número no es el que se midió, algo cambió desde entonces y
--- nada de lo que sigue es de fiar: aborta la transacción entera.
+-- El tope.
+--
+-- La primera versión exigía exactamente 6585 y abortó con 6584: entre la
+-- medición y la corrida, la sincronización del campus de las 17:35 reescribió
+-- 25 filas por external_id y una cayó sobre una inscripción vacía y le puso la
+-- nota. Eso no es un error, es el mecanismo por el que estas filas se van
+-- calificando. Un número exacto convierte el funcionamiento normal en fallo.
+--
+-- Lo que sí sería un error es que SUBA: significaría que algo volvió a crear
+-- inscripciones dentro de las calificaciones, y entonces no sabemos qué
+-- estaríamos borrando. También aborta si cae demasiado, porque una caída
+-- brusca no la explica el campus calificando de a poco.
 DO $$
 DECLARE n int;
 BEGIN
   SELECT count(*) INTO n FROM candidatas;
-  IF n <> 6585 THEN
-    RAISE EXCEPTION 'Se esperaban 6585 inscripciones sin calificar y hay %. No se borra nada.', n;
+  IF n > 6585 THEN
+    RAISE EXCEPTION 'Hay % inscripciones sin calificar y se midieron 6585. Subió: algo las está creando. No se borra nada.', n;
   END IF;
+  IF n < 6400 THEN
+    RAISE EXCEPTION 'Hay solo % inscripciones sin calificar de las 6585 medidas. Cayó demasiado para ser el campus calificando. No se borra nada.', n;
+  END IF;
+  RAISE NOTICE 'Se van a sacar % inscripciones de la tabla de calificaciones.', n;
 END $$;
 
 -- ---------------------------------------------------------------------------
@@ -106,7 +120,9 @@ WHERE g.external_id = c.external_id;
 
 COMMIT;
 
--- Cómo quedó. Debe decir: respaldadas 6585 · sin calificar que quedan 53.
+-- Cómo quedó. Deben quedar 53 sin calificar: las que no tienen course_id.
+-- Las respaldadas serán 6585 o unas pocas menos, según cuántas haya
+-- calificado el campus mientras tanto.
 SELECT
   (SELECT count(*) FROM academic_grades_inscripciones_2026_08_15) AS respaldadas,
   (SELECT count(*) FROM academic_grades
