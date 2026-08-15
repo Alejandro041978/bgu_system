@@ -81,9 +81,15 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
   const { data: matriculas } = await sb.from('academic_course_enrollments')
     .select('course_id, status').eq('student_id', studentId)
   const registradas = new Set<string>()
+  // Y si la está CURSANDO. Hasta ahora eso se deducía de que existiera una fila
+  // de nota vacía: 6.638 inscripciones de SystemActiva sin calificar viven en la
+  // tabla de calificaciones solo para sostener ese "en proceso". El registro ya
+  // lo dice, y lo dice mejor.
+  const cursando = new Set<string>()
   for (const m of (matriculas ?? []) as { course_id: string; status: string }[]) {
     if (m.status === 'retirada') continue
     registradas.add(String(m.course_id))
+    if (m.status === 'en_curso') cursando.add(String(m.course_id))
   }
 
   const { data: tcs } = await sb.from('transfer_credits').select('id, kind')
@@ -138,7 +144,14 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
       if (passed) { summary.aprobado++; return { ...base, status: 'aprobado' as const, grade: best.v } }
       summary.desaprobado++; return { ...base, status: 'desaprobado' as const, grade: best.v }
     }
-    if (empezadas.length) { summary.en_proceso++; return { ...base, status: 'en_proceso' as const, grade: null } }
+    // "En proceso" sale del registro o de que exista una inscripción sin nota.
+    // Las dos vías dicen lo mismo hoy; la segunda desaparece cuando esas 6.638
+    // inscripciones salgan de la tabla de calificaciones, y por eso se pone
+    // primero la que va a quedar.
+    if (cursando.has(String(c.id)) || empezadas.length) {
+      summary.en_proceso++
+      return { ...base, status: 'en_proceso' as const, grade: null }
+    }
     summary.pendiente++
     // registrada=false sólo si NO tiene ninguna fila: o se retiró de ella, o
     // nunca entró a su registro (un IW, que sí puede llevar menos).
