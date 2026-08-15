@@ -10,18 +10,20 @@
 // y las 10 finales sencillamente no existían para nadie: ni para el acta, ni
 // para el padrón, ni para Registros.
 //
-// Las filas que faltan nacen con source='plan': ocupan su lugar en el registro
-// sin fingir actividad académica. No tienen nota, ni periodo, ni aula, y el
-// resto del ERP las ignora (ver grade-sources.ts) — en particular el precio
-// oficial, que sale de lo que el estudiante LLEVA y no de lo que le queda.
+// Las filas que faltan nacen en academic_course_enrollments con estado
+// 'no_iniciada': ocupan su lugar en el registro sin fingir actividad académica.
+// No tienen nota, ni periodo, ni aula.
 //
-// Cuando el estudiante empieza de verdad la asignatura, la importación de
-// Moodle no crea una fila nueva: resolveImportTarget encuentra ésta vacía y la
-// RELLENA (action 'fill'). Por eso el plan no duplica nada.
+// Hasta el 15-08-2026 nacían en academic_grades con source='plan', y eran 4.111
+// filas sin calificación dentro de la tabla de calificaciones. Ese atajo costó
+// caro: trece archivos tenían que filtrarlas para no contarlas como notas, el
+// numerador de intentos etiquetaba recursados que no existían, y una fila de
+// plan conviviendo con su nota real duplicaba la asignatura en pantalla.
+//
+// Ahora van donde corresponde. Una asignatura que nadie ha cursado es una
+// matrícula, no una calificación.
 // ---------------------------------------------------------------------------
 import { courseNameKey } from './course-match'
-import { FUENTE_PLAN } from './grade-sources'
-import { stableUuid } from './grades-write'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any
@@ -57,32 +59,28 @@ export function huecosDeRegistro(
     .map(c => ({ course_id: c.id, code: c.code, name: c.name, credits: c.credits }))
 }
 
-// external_id determinista (la columna es uuid): correr esto dos veces no
-// duplica nada, y si la asignatura ya nació por otra vía el upsert no la pisa.
-export function idDePlan(documento: string, courseId: string): string {
-  return stableUuid(`plan:${documento}:${courseId}`)
-}
-
+// La matrícula de una asignatura que el estudiante tiene inscrita y no ha
+// empezado. Intento 1: no compite con nada, porque si hubiera un intento real
+// esta asignatura no sería un hueco.
 export function filaDePlan(
-  estudiante: { id: string; document_number: string; email: string | null; nombre: string },
+  estudiante: { id: string; document_number: string },
   hueco: Hueco,
+  programId: string,
+  programEnrollmentId: string | null,
 ): Record<string, unknown> {
   return {
-    external_id: idDePlan(estudiante.document_number, hueco.course_id),
+    student_id: estudiante.id,
     document_number: estudiante.document_number,
-    email: estudiante.email,
-    student_name: estudiante.nombre,
     course_id: hueco.course_id,
-    course_code: hueco.code,
-    course_name: hueco.name,
-    credits: hueco.credits,
-    term_year: null, term_block: null,
-    final_grade: null, retake_grade: null, passing_score: null,
-    source: FUENTE_PLAN,
-    // 'no_iniciada' no es 'pendiente': pendiente en esta tabla significa
-    // "cursando, sin concluir". Esto es "todavía no empieza".
-    estado_academico: 'no_iniciada',
-    synced_at: new Date().toISOString(),
+    program_id: programId,
+    program_enrollment_id: programEnrollmentId,
+    attempt: 1,
+    // Sin periodo: no se cursa todavía. Fecharla sería afirmar cuándo va a
+    // ocurrir algo que aún no ocurre.
+    semester_id: null, term_year: null, term_block: null,
+    status: 'no_iniciada',
+    source: 'plan',
+    opened_by: 'plan-curricular',
   }
 }
 
@@ -103,8 +101,9 @@ export async function completarRegistroDeMatricula(
     .select('id, code, name, credits').eq('program_id', programId)
   if (!(malla ?? []).length) return { creadas: 0 }
 
-  const { data: notas } = await sb.from('academic_grades')
-    .select('course_name, course_id, source').eq('document_number', s.document_number)
+  // Lo que ya tiene registrado sale del REGISTRO, no de la tabla de notas.
+  const { data: yaTiene } = await sb.from('academic_course_enrollments')
+    .select('course_id').eq('student_id', studentId)
   const { data: tcs } = await sb.from('transfer_credits')
     .select('id').eq('student_id', studentId).eq('dest_program_id', programId).eq('status', 'active')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,13 +114,16 @@ export async function completarRegistroDeMatricula(
     items = data ?? []
   }
 
-  const huecos = huecosDeRegistro(malla ?? [], notas ?? [], items)
+  const huecos = huecosDeRegistro(
+    malla ?? [],
+    ((yaTiene ?? []) as { course_id: string }[]).map(r => ({ course_id: r.course_id, course_name: null })),
+    items,
+  )
   if (!huecos.length) return { creadas: 0 }
-  const est = {
-    id: s.id, document_number: String(s.document_number), email: s.email ?? null,
-    nombre: [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' ').replace(/\s+/g, ' '),
-  }
-  return escribirPlan(sb, huecos.map(h => filaDePlan(est, h)))
+  const { data: pe } = await sb.from('academic_student_enrollments')
+    .select('id').eq('student_id', studentId).eq('program_id', programId).limit(1).maybeSingle()
+  const est = { id: s.id, document_number: String(s.document_number) }
+  return escribirPlan(sb, huecos.map(h => filaDePlan(est, h, programId, pe?.id ?? null)))
 }
 
 // ---------------------------------------------------------------------------
@@ -153,13 +155,13 @@ async function todo(sb: SB, tabla: string, cols: string): Promise<any[]> {
 }
 
 export async function analizarCobertura(sb: SB): Promise<MatriculaIncompleta[]> {
-  const [cats, progs, courses, studs, enrs, grades, tcs, tItems] = await Promise.all([
+  const [cats, progs, courses, studs, enrs, matriculas, tcs, tItems] = await Promise.all([
     todo(sb, 'academic_programs_category', 'id, name'),
     todo(sb, 'academic_programs', 'id, name, category_id'),
     todo(sb, 'academic_courses', 'id, program_id, name, code, credits'),
     todo(sb, 'academic_students', 'id, document_number, first_name, last_name, second_last_name, email, situation'),
     todo(sb, 'academic_student_enrollments', 'id, student_id, program_id, status'),
-    todo(sb, 'academic_grades', 'document_number, course_name, course_id, source'),
+    todo(sb, 'academic_course_enrollments', 'student_id, course_id'),
     todo(sb, 'transfer_credits', 'id, student_id, dest_program_id, status'),
     todo(sb, 'transfer_credit_items', 'transfer_credit_id, dest_course_id, dest_course_name'),
   ])
@@ -173,17 +175,13 @@ export async function analizarCobertura(sb: SB): Promise<MatriculaIncompleta[]> 
   }
   const stu = new Map(studs.map(s => [s.id, s]))
 
-  const notasDe = new Map<string, { course_name: string | null; course_id: string | null }[]>()
-  for (const g of grades) {
-    // Una VALIDACIÓN cubre la asignatura: el estudiante no tiene que cursarla.
-    // Se saltaba junto con las convalidaciones, y por eso a Renzo se le creó
-    // una fila "No iniciada" de English Composition II que ya tenía validada.
-    // Las convalidaciones sí se saltan aquí porque llegan por su propia vía
-    // (transfer_credit_items); las validaciones no tienen otra vía que ésta.
-    if (g.source === 'convalidacion') continue
-    const d = String(g.document_number ?? '')
-    if (!notasDe.has(d)) notasDe.set(d, [])
-    notasDe.get(d)!.push(g)
+  // Lo que ya tiene registrado sale del REGISTRO por asignatura. Antes salía de
+  // la tabla de notas, y por eso había que crear filas sin nota ahí dentro.
+  const registradoDe = new Map<string, { course_name: string | null; course_id: string | null }[]>()
+  for (const m of matriculas) {
+    const k = String(m.student_id ?? '')
+    if (!registradoDe.has(k)) registradoDe.set(k, [])
+    registradoDe.get(k)!.push({ course_id: m.course_id, course_name: null })
   }
   const itemsDe = new Map<string, typeof tItems>()
   for (const i of tItems) {
@@ -205,7 +203,7 @@ export async function analizarCobertura(sb: SB): Promise<MatriculaIncompleta[]> 
     if (!s || !p) continue
     const cursos = malla.get(e.program_id) ?? []
     if (!cursos.length) continue
-    const huecos = huecosDeRegistro(cursos, notasDe.get(String(s.document_number ?? '')) ?? [], convDe.get(`${e.student_id}|${e.program_id}`) ?? [])
+    const huecos = huecosDeRegistro(cursos, registradoDe.get(String(s.id)) ?? [], convDe.get(`${e.student_id}|${e.program_id}`) ?? [])
     if (!huecos.length) continue
     out.push({
       enrollment_id: e.id, student_id: s.id, program_id: p.id,
@@ -231,23 +229,34 @@ export async function completarCobertura(
   const omitidas = elegidas.filter(m => m.exenta).length
   const aplicables = elegidas.filter(m => !m.exenta)
 
+  // La matrícula de programa, para colgar de ella la de cada asignatura.
+  const pes = await todo(sb, 'academic_student_enrollments', 'id, student_id, program_id')
+  const peDe = new Map<string, string>()
+  for (const p of pes) {
+    const k = `${p.student_id}|${p.program_id}`
+    if (!peDe.has(k)) peDe.set(k, p.id)
+  }
+
   const filas: Record<string, unknown>[] = []
   for (const m of aplicables) {
     if (!m.documento) continue
-    const est = { id: m.student_id, document_number: m.documento, email: m.email, nombre: m.estudiante }
-    for (const h of m.huecos) filas.push(filaDePlan(est, h))
+    const est = { id: m.student_id, document_number: m.documento }
+    for (const h of m.huecos) {
+      filas.push(filaDePlan(est, h, m.program_id, peDe.get(`${m.student_id}|${m.program_id}`) ?? null))
+    }
   }
   const r = await escribirPlan(sb, filas)
   return { matriculas: aplicables.length, asignaturas: r.creadas, omitidas_por_iw: omitidas, error: r.error }
 }
 
-// Escribe las filas que falten. ignoreDuplicates: si alguien ya cursó la
-// asignatura entre la lectura y la escritura, gana la fila real.
+// Escribe las matrículas que falten. ignoreDuplicates: si el estudiante empezó
+// la asignatura entre la lectura y la escritura, gana la fila real —la que ya
+// tiene estado y periodo— y esta "no_iniciada" no la pisa.
 export async function escribirPlan(sb: SB, filas: Record<string, unknown>[]): Promise<{ creadas: number; error?: string }> {
   let creadas = 0
   for (let i = 0; i < filas.length; i += 500) {
     const lote = filas.slice(i, i + 500)
-    const { error } = await sb.from('academic_grades').upsert(lote, { onConflict: 'external_id', ignoreDuplicates: true })
+    const { error } = await sb.from('academic_course_enrollments').upsert(lote, { onConflict: 'student_id,course_id,attempt', ignoreDuplicates: true })
     if (error) return { creadas, error: error.message }
     creadas += lote.length
   }
