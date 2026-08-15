@@ -205,6 +205,45 @@ export async function asegurarMatriculas(sb: any, filas: MatriculaDeNota[], abie
   return { escritas }
 }
 
+// ---------------------------------------------------------------------------
+// Poner al día el estado de la matrícula tras editar una nota a mano.
+//
+// El editor manual corrige notas que ya existen, así que su matrícula también
+// existe: aquí no falta la fila, se queda vieja. Corregir un 40 a 85 dejaba la
+// nota aprobada y la matrícula diciendo 'reprobada' hasta el cron de las 4:45.
+//
+// No mueve el precio —eso depende de estar registrado, no del estado— pero sí
+// los egresados y los carruseles, que leen estado. Y el que corrige una nota es
+// justamente quien espera ver el efecto en el acto.
+//
+// Nunca lanza: la nota ya está guardada y auditada. Si esto falla, el cron
+// nocturno converge igual.
+// ---------------------------------------------------------------------------
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function sincronizarEstadoDeMatricula(sb: any, externalId: string): Promise<void> {
+  try {
+    const { data: nota } = await sb.from('academic_grades')
+      .select('course_enrollment_id, final_grade, retake_grade, passing_score, source, withdrawn_at')
+      .eq('external_id', externalId).maybeSingle()
+    if (!nota?.course_enrollment_id) return
+
+    const { data: mat } = await sb.from('academic_course_enrollments')
+      .select('id, program_id, status').eq('id', nota.course_enrollment_id).maybeSingle()
+    if (!mat) return
+
+    // El mínimo es de la categoría del programa, no de la nota.
+    let minimo: number | null = null
+    if (mat.program_id) {
+      const { data: prog } = await sb.from('academic_programs')
+        .select('category:academic_programs_category(passing_score)').eq('id', mat.program_id).maybeSingle()
+      minimo = prog?.category?.passing_score ?? null
+    }
+    const quiere = estadoDeNota(nota as never, minimo)
+    if (quiere === mat.status) return
+    await sb.from('academic_course_enrollments').update({ status: quiere }).eq('id', mat.id)
+  } catch { /* el cron converge */ }
+}
+
 // Orden de los intentos de un mismo estudiante en una misma asignatura: por
 // periodo y, a igualdad, por fecha de sincronización. El intento 1 es el más
 // antiguo. SystemActiva ya lo modelaba así — hay estudiantes con la misma

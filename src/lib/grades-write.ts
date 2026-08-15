@@ -2,6 +2,7 @@ import { createHash } from 'crypto'
 import { recomputeStudentByDocument } from './graduates'
 import { advanceCarousels } from './carousel'
 import { filaDeCurso } from './course-match'
+import { sincronizarEstadoDeMatricula } from './course-enrollments'
 
 // academic_grades.external_id es uuid: los ids legibles ("moodle:...",
 // "csv:...", "reg-...") NO caben en la columna. Toda importación deriva su
@@ -125,6 +126,11 @@ export async function applyGradeEdit(
   patch.edited_by = userId
   const { error: uErr } = await sb.from('academic_grades').update(patch).eq('external_id', externalId)
   if (uErr) return { ok: false, changed: [], note: uErr.message }
+
+  // El estado de su matrícula por asignatura, que es de donde leen los
+  // egresados y los carruseles. Sin esto, corregir un 40 a 85 dejaba la nota
+  // aprobada y la matrícula en 'reprobada' hasta el cron de las 4:45.
+  await sincronizarEstadoDeMatricula(sb, externalId)
 
   // Efectos inmediatos: egreso/situación y avance de carrusel (una nota
   // cerrada puede completar el carrusel actual). Si fallan no rompen la
