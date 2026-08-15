@@ -141,7 +141,12 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       clave: 'estado_desfasado',
       titulo: 'El estado de la matrícula no coincide con su nota',
       explica: 'La matrícula dice aprobada y la nota es reprobatoria, o al revés. De este estado leen los egresados y los carruseles.',
-      siSube: 'Se corrigió una nota sin sincronizar su matrícula. El cron nocturno lo cura solo; si crece entre corridas, hay un escritor nuevo que no lo hace.',
+      // Los 8 de base son una sola familia: las notas de "Assessment of the
+      // Individual and the Environment", que no existe en ninguna malla y que
+      // la reconstrucción colgó de una matrícula de Psychological First Aid
+      // adivinando por nombre. Mientras Registros no diga si son la misma
+      // asignatura, ese desfase no se puede cerrar sin inventar la respuesta.
+      siSube: 'Por encima de 8 significa que se corrigió una nota sin sincronizar su matrícula. El cron nocturno lo cura solo; si crece entre corridas, hay un escritor nuevo que no lo hace. Los 8 de base son las notas de Assessment of the Individual ligadas a Psychological First Aid, a la espera de Registros.',
       n: nDesfase, esperado: 8, ejemplos: desfase,
     },
     {
