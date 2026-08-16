@@ -13,8 +13,10 @@ import { estadoDeNota } from './course-enrollments'
 // contrastes de aquí son los que se corrieron a mano durante la migración; esto
 // los deja corriendo solos.
 //
-// Cada uno tiene un valor esperado. No se trata de que todo sea cero —dos de
-// ellos arrastran deuda histórica conocida— sino de que no SUBAN.
+// Cada uno tiene un valor esperado. Tres están en cero y el de los semestres
+// heredados arrastra 698 casos de SystemActiva que nadie va a reescribir. Lo
+// que importa no es que sean cero, sino que no SUBAN. Ninguno se compara
+// consigo mismo: eso los dejaba en verde por construcción.
 // ---------------------------------------------------------------------------
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -152,15 +154,19 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       clave: 'semestre_cerrado',
       titulo: 'Notas en un semestre que cerró antes de que el estudiante ingresara',
       explica: 'El periodo de la nota es anterior a su matrícula: cursó algo en un semestre en el que todavía no existía como estudiante.',
+      // Fijo en 698, no en sí mismo: comparado consigo mismo el contraste
+      // estaba en verde por construcción y no habría avisado nunca. Subió de
+      // 666 a 698 el 15-08 al escribirle el course_id a las 51 notas
+      // huérfanas, que hasta entonces no se podían contrastar contra nada.
       siSube: 'Deuda heredada de SystemActiva. Las de Moodle se corrigieron el 15-08 y están en cero; si el número sube, algo volvió a fechar mal.',
-      n: nCerrado, esperado: nCerrado, ejemplos: cerrado,
+      n: nCerrado, esperado: 698, ejemplos: cerrado,
     },
     {
       clave: 'inscripciones_en_notas',
       titulo: 'Inscripciones sin calificar dentro de la tabla de notas',
-      explica: 'Filas sin nota que ocupan la tabla de calificaciones. Las 4.111 de plan y las 6.584 de SystemActiva ya se movieron al registro. Quedan 44, de cuatro asignaturas que no están en ninguna malla: Qualitative Research II (19), Leadership and Managing Team Dynamics (19), Business Leadership & Entrepreneurship (5) y Capstone of Hotel Management (1). Salen en cuanto Registros diga a qué asignatura corresponden.',
+      explica: 'Filas sin nota que ocupan la tabla de calificaciones. Las 4.111 de plan y las 6.584 de SystemActiva ya se movieron al registro. Desde el 15-08-2026 debe ser cero: la tabla de calificaciones guarda solo calificaciones.',
       siSube: 'Alguien volvió a crear inscripciones aquí, o entraron notas nuevas sin calificar. Lo segundo es normal si el campus abrió aulas hoy; lo primero no.',
-      n: inscripciones.length, esperado: 44,
+      n: inscripciones.length, esperado: 0,
       ejemplos: [...porFuente.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${v} de ${k}`),
     },
   ]
