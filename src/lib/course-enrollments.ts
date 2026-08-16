@@ -231,6 +231,25 @@ export async function sincronizarEstadoDeMatricula(sb: any, externalId: string):
       .select('id, program_id, status').eq('id', nota.course_enrollment_id).maybeSingle()
     if (!mat) return
 
+    // El estado sale de la MEJOR nota de la matrícula, no de la que llega.
+    //
+    // Antes se escribía con la nota recibida y punto. Como el importador llama
+    // a esto por nota, en una asignatura con dos notas ganaba la última en
+    // procesarse: a Heidy Mendoza un "1" heredado de SystemActiva le pisó un
+    // 82,5 de Moodle y su matrícula quedó reprobada. El acta siempre se quedó
+    // con la mejor; esto no lo hacía, y por eso las dos podían discrepar.
+    const { data: hermanas } = await sb.from('academic_grades')
+      .select('final_grade, retake_grade, passing_score, source, withdrawn_at')
+      .eq('course_enrollment_id', mat.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const activas = ((hermanas ?? []) as any[]).filter(n => !n.withdrawn_at)
+    const conValor = activas.filter(n => (n.retake_grade ?? n.final_grade) != null)
+    // Retirada solo si NO queda ninguna viva; si hay nota, manda la más alta;
+    // si ninguna tiene nota todavía, cualquiera dice lo mismo: en curso.
+    const manda = conValor.length
+      ? conValor.reduce((a, b) => (Number(b.retake_grade ?? b.final_grade) > Number(a.retake_grade ?? a.final_grade) ? b : a))
+      : (activas[0] ?? nota)
+
     // El mínimo es de la categoría del programa, no de la nota.
     let minimo: number | null = null
     if (mat.program_id) {
@@ -238,7 +257,7 @@ export async function sincronizarEstadoDeMatricula(sb: any, externalId: string):
         .select('category:academic_programs_category(passing_score)').eq('id', mat.program_id).maybeSingle()
       minimo = prog?.category?.passing_score ?? null
     }
-    const quiere = estadoDeNota(nota as never, minimo)
+    const quiere = estadoDeNota(manda as never, minimo)
     if (quiere === mat.status) return
     await sb.from('academic_course_enrollments').update({ status: quiere }).eq('id', mat.id)
   } catch { /* el cron converge */ }

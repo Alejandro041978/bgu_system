@@ -141,13 +141,12 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       clave: 'estado_desfasado',
       titulo: 'El estado de la matrícula no coincide con su nota',
       explica: 'La matrícula dice aprobada y la nota es reprobatoria, o al revés. De este estado leen los egresados y los carruseles.',
-      // Los 8 de base son una sola familia: las notas de "Assessment of the
-      // Individual and the Environment", que no existe en ninguna malla y que
-      // la reconstrucción colgó de una matrícula de Psychological First Aid
-      // adivinando por nombre. Mientras Registros no diga si son la misma
-      // asignatura, ese desfase no se puede cerrar sin inventar la respuesta.
-      siSube: 'Por encima de 8 significa que se corrigió una nota sin sincronizar su matrícula. El cron nocturno lo cura solo; si crece entre corridas, hay un escritor nuevo que no lo hace. Los 8 de base son las notas de Assessment of the Individual ligadas a Psychological First Aid, a la espera de Registros.',
-      n: nDesfase, esperado: 8, ejemplos: desfase,
+      // Cero desde el 15-08-2026. Los 8 de base eran las notas de "Assessment
+      // of the Individual and the Environment": Dirección confirmó que es la
+      // asignatura que hoy se llama Psychological First Aid en Clinical
+      // Psychology, se les escribió el course_id y el desfase se cerró.
+      siSube: 'Se corrigió una nota sin sincronizar su matrícula. El cron nocturno lo cura solo; si crece entre corridas, hay un escritor que no lo hace. Ojo con las asignaturas con dos notas: el estado sale de la MÁS ALTA, igual que el acta.',
+      n: nDesfase, esperado: 0, ejemplos: desfase,
     },
     {
       clave: 'semestre_cerrado',
@@ -159,9 +158,9 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
     {
       clave: 'inscripciones_en_notas',
       titulo: 'Inscripciones sin calificar dentro de la tabla de notas',
-      explica: 'Filas sin nota que ocupan la tabla de calificaciones. Las 4.111 de plan y las 6.585 de SystemActiva ya se movieron al registro. Deben quedar 53: las de asignaturas que no están en ninguna malla, a la espera de Registros.',
+      explica: 'Filas sin nota que ocupan la tabla de calificaciones. Las 4.111 de plan y las 6.584 de SystemActiva ya se movieron al registro. Quedan 44, de cuatro asignaturas que no están en ninguna malla: Qualitative Research II (19), Leadership and Managing Team Dynamics (19), Business Leadership & Entrepreneurship (5) y Capstone of Hotel Management (1). Salen en cuanto Registros diga a qué asignatura corresponden.',
       siSube: 'Alguien volvió a crear inscripciones aquí, o entraron notas nuevas sin calificar. Lo segundo es normal si el campus abrió aulas hoy; lo primero no.',
-      n: inscripciones.length, esperado: 53,
+      n: inscripciones.length, esperado: 44,
       ejemplos: [...porFuente.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${v} de ${k}`),
     },
   ]
