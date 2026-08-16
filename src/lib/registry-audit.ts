@@ -14,7 +14,7 @@ import { estadoDeNota } from './course-enrollments'
 // los deja corriendo solos.
 //
 // Cada uno tiene un valor esperado. Tres están en cero y el de los semestres
-// heredados arrastra 698 casos de SystemActiva que nadie va a reescribir. Lo
+// heredados arrastra 666 casos de SystemActiva que nadie va a reescribir. Lo
 // que importa no es que sean cero, sino que no SUBAN. Ninguno se compara
 // consigo mismo: eso los dejaba en verde por construcción.
 // ---------------------------------------------------------------------------
@@ -155,11 +155,10 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       titulo: 'Notas en un semestre que cerró antes de que el estudiante ingresara',
       explica: 'El periodo de la nota es anterior a su matrícula: cursó algo en un semestre en el que todavía no existía como estudiante.',
       // Fijo en 698, no en sí mismo: comparado consigo mismo el contraste
-      // estaba en verde por construcción y no habría avisado nunca. Subió de
-      // 666 a 698 el 15-08 al escribirle el course_id a las 51 notas
-      // huérfanas, que hasta entonces no se podían contrastar contra nada.
+      // estaba en verde por construcción y no habría avisado nunca. Son 666 tras sacar las inscripciones sin calificar de la tabla el
+      // 15-08: nadie va a reescribir esos periodos de SystemActiva.
       siSube: 'Deuda heredada de SystemActiva. Las de Moodle se corrigieron el 15-08 y están en cero; si el número sube, algo volvió a fechar mal.',
-      n: nCerrado, esperado: 698, ejemplos: cerrado,
+      n: nCerrado, esperado: 666, ejemplos: cerrado,
     },
     {
       clave: 'inscripciones_en_notas',
