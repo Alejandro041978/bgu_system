@@ -1,3 +1,6 @@
+-- NO CORRER salvo que Registros diga que el 1 sí era una calificación.
+-- Este fichero DESHACE el borrado: repone las filas.
+--
 -- Las dos notas de "1" borradas el 15-08-2026 por indicación de Registros.
 -- Para reponerlas, correr este INSERT.
 INSERT INTO academic_grades ("external_id", "document_number", "email", "student_name", "course_code", "course_name", "credits", "term_year", "term_block", "final_grade", "retake_grade", "passing_score", "group_number", "updated_at", "synced_at", "source", "edited_at", "edited_by", "locked_at", "moodle_course_id", "withdrawn_at", "withdrawn_by", "course_id", "course_enrollment_id", "rendido_pct", "estado_academico", "last_evaluated_at", "locked_by", "intento", "semester_id")
