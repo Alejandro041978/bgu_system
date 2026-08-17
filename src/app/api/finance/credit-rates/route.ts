@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { guardStaff } from '@/lib/api-guard'
+import { rellenarTarifasFaltantes } from '@/lib/credit-rates'
 
 export const revalidate = 0
 
@@ -59,7 +60,23 @@ export async function POST(req: NextRequest) {
     created_by: user.email ?? user.id,
   }).select('id').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true, id: data.id })
+
+  // Publicar una tarifa alcanza a quien se quedó sin ella.
+  //
+  // El snapshot solo corre al crear la matrícula, así que hasta hoy publicar el
+  // precio de un programa nuevo no le ponía precio oficial a nadie: 824
+  // matrículas de Continuing Education seguían en blanco meses después. Cada
+  // una recibe la tarifa vigente EN SU FECHA de matrícula, no la de hoy, y
+  // nunca se pisa una ya congelada.
+  //
+  // No rompe la publicación si falla: la versión ya quedó guardada, que es lo
+  // que el usuario pidió. El relleno se informa aparte.
+  let relleno: { rellenadas: number; sin_tarifa: number } | null = null
+  let relleno_error: string | null = null
+  try { relleno = await rellenarTarifasFaltantes(db()) }
+  catch (e) { relleno_error = e instanceof Error ? e.message : 'no se pudo rellenar' }
+
+  return NextResponse.json({ ok: true, id: data.id, relleno, relleno_error })
 }
 
 // DELETE ?id= → solo versiones con vigencia FUTURA (corrección antes de que
