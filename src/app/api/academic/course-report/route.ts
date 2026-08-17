@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
-import { sameCourse } from '@/lib/course-match'
+import { sameCourse, filaDeCurso } from '@/lib/course-match'
 import { fetchByIn } from '@/lib/grades-write'
 
 export const revalidate = 0
@@ -70,9 +70,10 @@ export async function GET(req: NextRequest) {
       'student_id, course_code, course_name, term_year, term_block, final_grade, retake_grade, process_grades, grades',
       'student_id', sids)
     const rows = details
-      .filter(d =>
-        (course.code && d.course_code && String(d.course_code) === String(course.code)) ||
-        sameCourse(d.course_name, course.name))
+      // academic_grade_details no guarda course_id, así que aquí el nombre es
+      // lo único que hay. Lo que sí se quita es el código: emparejaba por
+      // número de orden y podía traer la asignatura de otro programa.
+      .filter(d => sameCourse(d.course_name, course.name))
       .map(d => ({
         student_id: d.student_id,
         name: nameOf.get(d.student_id) ?? '?',
@@ -125,7 +126,11 @@ export async function GET(req: NextRequest) {
   {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const g of grades as any[]) {
-      if (!((course.code && g.course_code && String(g.course_code) === String(course.code)) || sameCourse(g.course_name, course.name))) continue
+      // course_id primero. El código NO sirve para emparejar: 14.682 de las
+      // 14.692 notas llevan un course_code que coincide con el código de
+      // alguna malla, porque los de SystemActiva son números de orden y el
+      // 101–105 de Clinical Psychology es también el de Mental Health.
+      if (!filaDeCurso(g, course)) continue
       const stu = byDoc.get(String(g.document_number))
       const efectiva = g.retake_grade ?? g.final_grade
       const umbral = g.passing_score ?? passing

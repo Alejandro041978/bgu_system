@@ -167,14 +167,24 @@ export async function createExamRequest(
   // la asignatura (para que no caiga en "Sin programa")
   let enrollmentId: string | null = null
   let convocatoriaId: string | null = null
-  if (course.course_code) {
-    const { data: enr } = await sb.from('academic_student_enrollments')
-      .select('id, program_id, convocatoria_id').eq('student_id', studentId)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const e of (enr ?? []) as any[]) {
-      const { count } = await sb.from('academic_courses')
-        .select('id', { count: 'exact', head: true }).eq('program_id', e.program_id).eq('code', course.course_code)
-      if ((count ?? 0) > 0) { enrollmentId = e.id; convocatoriaId = e.convocatoria_id ?? null; break }
+  // A qué matrícula colgarlo: la del programa que contiene ESTA asignatura,
+  // buscada por course_id.
+  //
+  // Antes se buscaba por código —`.eq('code', course.course_code)`— y eso podía
+  // cobrarle al programa equivocado: los códigos de SystemActiva son números de
+  // orden, y 14.682 de las 14.692 notas llevan uno que coincide con el código
+  // de alguna malla. Un estudiante de Clinical Psychology y Mental Health tiene
+  // el 101–105 repetido en los dos.
+  const { data: nota } = await sb.from('academic_grades')
+    .select('course_id').eq('external_id', gradeExternalId).maybeSingle()
+  if (nota?.course_id) {
+    const { data: destino } = await sb.from('academic_courses')
+      .select('program_id').eq('id', nota.course_id).maybeSingle()
+    if (destino?.program_id) {
+      const { data: enr } = await sb.from('academic_student_enrollments')
+        .select('id, program_id, convocatoria_id').eq('student_id', studentId).eq('program_id', destino.program_id)
+        .limit(1).maybeSingle()
+      if (enr) { enrollmentId = enr.id; convocatoriaId = enr.convocatoria_id ?? null }
     }
   }
 
