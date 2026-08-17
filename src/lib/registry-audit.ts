@@ -14,7 +14,7 @@ import { estadoDeNota } from './course-enrollments'
 // los deja corriendo solos.
 //
 // Cada uno tiene un valor esperado. Cuatro están en cero y el de los semestres
-// heredados arrastra 672 casos de SystemActiva que nadie va a reescribir. Lo
+// heredados arrastra 673 casos de SystemActiva que nadie va a reescribir. Lo
 // que importa no es que sean cero, sino que no SUBAN. Ninguno se compara
 // consigo mismo: eso los dejaba en verde por construcción.
 // ---------------------------------------------------------------------------
@@ -168,6 +168,16 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
   // que en realidad fue el primer intento.
   const matriculasConNota = new Set<string>()
   for (const n of notas) if (n.course_enrollment_id) matriculasConNota.add(String(n.course_enrollment_id))
+  // La mejor nota CALIFICADA de cada matrícula, para el contraste 7.
+  const notasDeMatricula = new Map<string, { valor: number; fuente: string }[]>()
+  for (const n of notas) {
+    if (!n.course_enrollment_id || n.withdrawn_at) continue
+    const v = (n.retake_grade ?? n.final_grade) as number | null
+    if (v == null) continue
+    const k = String(n.course_enrollment_id)
+    const prev = notasDeMatricula.get(k)
+    if (!prev || Number(v) > prev[0].valor) notasDeMatricula.set(k, [{ valor: Number(v), fuente: String(n.source) }])
+  }
   const dupIntento: string[] = []
   let nDupIntento = 0
   const porPar = new Map<string, typeof ce>()
@@ -214,6 +224,46 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
     }
   }
 
+  // ---- 7. Dos calificaciones de la misma asignatura en el mismo periodo ---
+  //
+  // No es un error resuelto: es una pregunta abierta que se mide para que no
+  // crezca. La misma asignatura, el mismo semestre y DOS notas: 163 son un
+  // cruce Moodle + SystemActiva —la misma cursada anotada en los dos sistemas
+  // durante la migración— y 117 son dos filas de Activa entre sí.
+  //
+  // El acta no enseña nada mal: se queda con la más alta. Lo que está mal es
+  // el conteo de recursados, que cuenta 286 que probablemente no lo sean.
+  //
+  // No se fusionan todavía por decisión del usuario (16-08-2026): en 108 de
+  // ellos las dos notas caen a lados distintos del mínimo, así que elegir mal
+  // convierte un aprobado en reprobado. Se revisan buscando el patrón antes de
+  // tocar nada, y hasta entonces lo único que no puede pasar es que suban.
+  const dobleNota: string[] = []
+  let nDobleNota = 0
+  for (const [, filas] of porPar) {
+    if (filas.length < 2) continue
+    const porSemestre2 = new Map<string, typeof filas>()
+    for (const f of filas) {
+      const s = String(f.semester_id ?? 'sin')
+      if (s === 'sin') continue
+      if (!porSemestre2.has(s)) porSemestre2.set(s, [])
+      porSemestre2.get(s)!.push(f)
+    }
+    for (const [s, grupo] of porSemestre2) {
+      if (grupo.length < 2) continue
+      const calificadas = grupo.filter(f => (notasDeMatricula.get(String(f.id)) ?? []).length > 0)
+      if (calificadas.length < 2) continue
+      nDobleNota += calificadas.length - 1
+      if (dobleNota.length < 10) {
+        const notasDe = calificadas.map(f => {
+          const v = (notasDeMatricula.get(String(f.id)) ?? [])
+          return `${v[0].valor} (${v[0].fuente})`
+        })
+        dobleNota.push(`${nomCurso.get(String(grupo[0].course_id)) ?? ''} · ${semNom.get(s) ?? s} · ${notasDe.join(' vs ')}`)
+      }
+    }
+  }
+
   // ---- 4. Inscripciones que siguen en la tabla de notas -------------------
   const inscripciones = notas.filter(n => !n.withdrawn_at && (n.retake_grade ?? n.final_grade) == null)
   const porFuente = new Map<string, number>()
@@ -245,8 +295,8 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       // Fijo en 698, no en sí mismo: comparado consigo mismo el contraste
       // estaba en verde por construcción y no habría avisado nunca. Son 666 tras sacar las inscripciones sin calificar de la tabla el
       // 15-08: nadie va a reescribir esos periodos de SystemActiva.
-      siSube: 'Deuda heredada de SystemActiva. Las de Moodle se corrigieron el 15-08 y están en cero; si el número sube, algo volvió a fechar mal.',
-      n: nCerrado, esperado: 672, ejemplos: cerrado,
+      siSube: 'Deuda heredada de SystemActiva. Sube de a uno sin que nada esté roto cuando alguien se matricula en un SEGUNDO programa que comparte asignaturas: su nota vieja pasa a colgar también de la malla nueva, cuyo ingreso es posterior. Un salto grande sí sería un fechado malo.',
+      n: nCerrado, esperado: 673, ejemplos: cerrado,
     },
     {
       clave: 'sin_asignatura',
@@ -261,6 +311,13 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       explica: 'Dos intentos de la misma asignatura en el mismo semestre no son un recursado: son una inscripción contada dos veces. Y el número de intento de la nota tiene que ser el de su matrícula, o el acta rotula mal el recursado.',
       siSube: 'La reconstrucción abrió un intento de más, o alguien creó una matrícula que ya existía en ese periodo. De este número depende cuántos recursados dice la institución que hay.',
       n: nDupIntento, esperado: 0, ejemplos: dupIntento,
+    },
+    {
+      clave: 'doble_calificacion',
+      titulo: 'La misma asignatura con dos calificaciones en el mismo periodo',
+      explica: 'Dos intentos del mismo semestre y cada uno con su nota: 163 son un cruce Moodle + SystemActiva de la migración y 117 son dos filas de Activa. El acta no enseña nada mal —se queda con la más alta— pero el conteo de recursados los suma como si fueran cursadas distintas.',
+      siSube: 'No se fusionan todavía: en 108 de ellos las dos notas caen a lados distintos del mínimo, así que elegir mal convierte un aprobado en reprobado. Se está buscando el patrón antes de tocarlos. Lo único que no puede pasar es que SUBAN — eso sería un camino nuevo creando notas duplicadas hoy.',
+      n: nDobleNota, esperado: 291, ejemplos: dobleNota,
     },
     {
       clave: 'inscripciones_en_notas',
