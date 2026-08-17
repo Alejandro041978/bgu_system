@@ -34,6 +34,7 @@ const navigation: NavGroup[] = [
           { name: 'Registro Curricular', href: '/academic/curricular', icon: LogOut, pageKey: 'academic_curricular' },
           { name: 'Cobertura del registro', href: '/academic/curricular-coverage', icon: ListChecks, pageKey: 'academic_curricular_coverage' },
           { name: 'Auditor del Registro', href: '/academic/registry-audit', icon: ShieldCheck, pageKey: 'academic_registry_audit' },
+          { name: 'Efectividad de los IW', href: '/academic/iw-activity', icon: ShieldCheck, pageKey: 'academic_iw_activity' },
           { name: 'Estado de Cuenta', href: '/academic/account', icon: Wallet, pageKey: 'academic_account' },
           { name: 'Cambios en las Fichas', href: '/academic/student-audit', icon: History, pageKey: 'academic_student_audit' },
         ],
