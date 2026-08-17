@@ -79,8 +79,8 @@ export async function POST(req: NextRequest) {
   const minPrograma = new Map<string, number | null>(programs.map((p: { id: string; category_id: string | null }) => [String(p.id), minCat.get(String(p.category_id)) ?? null]))
   const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
   const todasLasNotas = await todo(sb, 'academic_grades',
-    'external_id, document_number, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, semester_id, withdrawn_at, synced_at, source, course_enrollment_id',
-    'external_id') as (NotaMin & { course_enrollment_id: string | null; semester_id: string | null })[]
+    'external_id, document_number, course_id, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, semester_id, withdrawn_at, synced_at, source, course_enrollment_id',
+    'external_id') as (NotaMin & { course_enrollment_id: string | null; semester_id: string | null; course_id: string | null })[]
 
   // Las filas de plan SÍ entran ahora, y ésa es la novedad de este paso: una
   // asignatura inscrita y sin empezar pertenece al REGISTRO, no a la tabla de
@@ -234,16 +234,47 @@ export async function POST(req: NextRequest) {
 
   // 4. Enlazar cada nota con su asignatura y su intento. Se releen los ids
   //    reales: si una matrícula ya existía, el upsert conservó el id anterior.
-  const reales = await todo(sb, 'academic_course_enrollments', 'id, student_id, course_id, attempt', 'id')
+  const reales = await todo(sb, 'academic_course_enrollments', 'id, student_id, course_id, attempt, semester_id', 'id')
   const idReal = new Map<string, string>()
   for (const e of reales) idReal.set(`${e.student_id}|${e.course_id}|${e.attempt}`, e.id)
+  // Por periodo, que es lo que de verdad identifica el intento. El número de
+  // intento se renumeró por cronología el 16-08 y ya no tiene por qué coincidir
+  // con el que calcula ordenarIntentos aquí: enlazar por número dejaba 709
+  // notas colgando del intento de otro semestre.
+  const porPeriodo = new Map<string, string>()
+  for (const e of reales) if (e.semester_id) porPeriodo.set(`${e.student_id}|${e.course_id}|${e.semester_id}`, e.id)
   const porId = new Map(nuevas.map(n => [String(n.id), n]))
+  const semDeNota = new Map<string, string | null>(grades.map(g => [String(g.external_id), g.semester_id ?? null]))
+
+  // Una nota de un estudiante con dos programas aparece DOS veces en `enlaces`,
+  // una por malla, con course_id distinto. El upsert va por external_id, así
+  // que solo puede quedar una — y la que quedaba era la del último lote, que
+  // además pisaba el course_id que el importador había escrito bien. 46 notas
+  // acabaron apuntando a la matrícula de otra asignatura.
+  //
+  // La nota se queda con SU asignatura: si ya trae course_id, manda ella y se
+  // enlaza con la matrícula de esa malla. El otro programa no pierde nada —su
+  // matrícula existe igual y de ahí sale su precio—; lo único que no se puede
+  // partir en dos es la fila de la nota.
+  const elegido = new Map<string, { external_id: string; course_id: string; course_enrollment_id: string }>()
+  const cursoDeNota = new Map<string, string | null>(grades.map(g => [String(g.external_id), (g as { course_id?: string | null }).course_id ?? null]))
+  for (const e of enlaces) {
+    const prev = elegido.get(e.external_id)
+    if (!prev) { elegido.set(e.external_id, e); continue }
+    const suyo = cursoDeNota.get(e.external_id)
+    if (suyo && String(e.course_id) === String(suyo)) elegido.set(e.external_id, e)
+  }
 
   let enlazadas = 0
-  for (let i = 0; i < enlaces.length; i += 500) {
-    const lote = enlaces.slice(i, i + 500).map(e => {
+  const unicos = [...elegido.values()]
+  for (let i = 0; i < unicos.length; i += 500) {
+    const lote = unicos.slice(i, i + 500).map(e => {
       const n = porId.get(e.course_enrollment_id)
-      const real = n ? idReal.get(`${n.student_id}|${n.course_id}|${n.attempt}`) : null
+      const sem = semDeNota.get(e.external_id)
+      const real = n
+        ? (sem ? porPeriodo.get(`${n.student_id}|${n.course_id}|${sem}`) : null)
+          ?? idReal.get(`${n.student_id}|${n.course_id}|${n.attempt}`)
+        : null
       return { external_id: e.external_id, course_id: e.course_id, course_enrollment_id: real ?? e.course_enrollment_id }
     })
     const { error } = await sb.from('academic_grades').upsert(lote, { onConflict: 'external_id' })
