@@ -52,6 +52,7 @@ export interface ResumenIW {
   moodle_disponible: boolean
   correo_disponible: boolean
   por_veredicto: Record<Veredicto, number>
+  sin_cuenta_que_mirar: number
   activos_ultimos_30_dias: number
   activos_despues_sin_suspender: number
   casos: CasoIW[]
@@ -111,6 +112,11 @@ export async function auditarActividadIW(sb: SB): Promise<ResumenIW> {
     const mUlt = m && m.lastaccess > 0 ? new Date(m.lastaccess * 1000).toISOString().slice(0, 10) : null
     // El correo institucional puede estar en email o en email_alt.
     const correos = [e.email, e.email_alt].filter(Boolean).map((x: string) => String(x).toLowerCase())
+    // OJO: el mapa de Google trae null cuando la cuenta EXISTE y nunca se usó,
+    // y no trae la clave cuando NO HAY cuenta. Confundir las dos convertía a
+    // 119 estudiantes sin correo institucional en "nunca entró", que es
+    // exactamente la mentira que este contraste tenía que evitar.
+    const tieneCuenta = correos.some(c => loginCorreo.has(c))
     let cUlt: string | null = null
     for (const c of correos) {
       const v = loginCorreo.get(c)
@@ -119,7 +125,9 @@ export async function auditarActividadIW(sb: SB): Promise<ResumenIW> {
     const cDia = cUlt ? cUlt.slice(0, 10) : null
 
     const ultimo = [mUlt, cDia].filter(Boolean).sort().pop() ?? null
-    const sabemos = (moodleOk && m !== undefined) || (correoOk && correos.length > 0)
+    // Solo se sabe algo si hay una cuenta que mirar: la de Moodle enlazada, o
+    // una de correo que exista de verdad en el directorio.
+    const sabemos = (moodleOk && m !== undefined) || (correoOk && tieneCuenta)
     const veredicto: Veredicto = !sabemos ? 'sin_dato'
       : !ultimo ? 'nunca_entro'
       : retiro.fecha && ultimo > retiro.fecha ? 'activo_despues'
@@ -146,6 +154,7 @@ export async function auditarActividadIW(sb: SB): Promise<ResumenIW> {
     vigentes: retiroDe.size,
     con_cuenta_moodle: ids.length,
     con_correo: casos.filter(c => c.correo_ultimo !== null).length,
+    sin_cuenta_que_mirar: por.sin_dato,
     moodle_disponible: moodleOk,
     correo_disponible: correoOk,
     por_veredicto: por,

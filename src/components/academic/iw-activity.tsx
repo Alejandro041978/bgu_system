@@ -25,8 +25,8 @@ interface Data {
 const ETIQUETA: Record<Veredicto, string> = {
   activo_despues: 'Entró DESPUÉS del retiro',
   coherente: 'Su último acceso es anterior al retiro',
-  nunca_entro: 'Nunca entró al campus ni al correo',
-  sin_dato: 'Sin dato para comprobarlo',
+  nunca_entro: 'Tiene cuenta y nunca la usó',
+  sin_dato: 'Sin cuenta que mirar — no se puede saber',
 }
 
 export function IWActivity() {
