@@ -24,10 +24,36 @@ export async function checkRequirements(
   //    puede tener cuotas futuras — para constancias y documentos ordinarios.
   if (kinds.has('no_debt') || kinds.has('no_overdue_debt')) {
     const hoy = new Date().toISOString().slice(0, 10)
-    const [{ data: ch }, { data: py }] = await Promise.all([
-      sb.from('account_charges').select('amount, due_date').eq('student_id', studentId),
-      sb.from('account_payments').select('amount').eq('student_id', studentId),
-    ])
+
+    // La deuda se mide en el PROGRAMA de la solicitud, no en todo el estudiante.
+    //
+    // Antes se sumaba cuanto debía en cualquier sitio, así que quien terminaba
+    // el bachiller con todo pagado no podía pedir su título si acababa de
+    // empezar un máster: las cuotas futuras del máster contaban como deuda del
+    // bachiller. Son dos contratos distintos y cada uno se paga por separado.
+    //
+    // Si la solicitud no lleva programa —o el estudiante no tiene matrícula en
+    // él— se cae a la cuenta global, que es la conservadora: mejor pedir de más
+    // que emitir un título con deuda.
+    let enrollmentIds: string[] = []
+    if (programId) {
+      const { data: es } = await sb.from('academic_student_enrollments')
+        .select('id').eq('student_id', studentId).eq('program_id', programId)
+      enrollmentIds = (es ?? []).map((e: { id: string }) => String(e.id))
+    }
+    const acotado = enrollmentIds.length > 0
+
+    const qCh = sb.from('account_charges').select('external_id, amount, due_date').eq('student_id', studentId)
+    const { data: ch } = acotado ? await qCh.in('enrollment_id', enrollmentIds) : await qCh
+    // Los pagos se atribuyen por su cuota: un pago suelto —sin cuota que lo
+    // explique— no descuenta deuda de ningún programa.
+    const { data: pyAll } = await sb.from('account_payments')
+      .select('amount, charge_external_id').eq('student_id', studentId)
+    const suyas = new Set((ch ?? []).map((c: { external_id: string }) => String(c.external_id)))
+    const py = acotado
+      ? (pyAll ?? []).filter((p: { charge_external_id: string | null }) => p.charge_external_id && suyas.has(String(p.charge_external_id)))
+      : (pyAll ?? [])
+
     const charged = (ch ?? []).reduce((s: number, c: { amount: number }) => s + Number(c.amount ?? 0), 0)
     // Exigible = vencimiento pasado o sin fecha (herencia sin due_date)
     const exigible = (ch ?? []).reduce((s: number, c: { amount: number; due_date: string | null }) =>
