@@ -78,6 +78,11 @@ export async function reflectItem(itemId: string): Promise<number | null> {
       student_name: tc?.student_name ?? null,
       course_code: course?.code ?? null,
       course_name: course?.name ?? item.dest_course_name ?? null,
+      // La asignatura de destino, que ya la tenemos aquí arriba para leer el
+      // curso. Faltaba, y es el mismo descuido que el del importador de Moodle:
+      // la nota quedaba colgando del nombre y solo se veía en el acta porque
+      // filaDeCurso cae a comparar textos cuando no hay id.
+      course_id: item.dest_course_id ?? null,
       credits: course?.credits ?? null,
       final_grade: converted,
       passing_score: destPassing,
