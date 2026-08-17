@@ -6,6 +6,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { filaDeCurso, sameCourse, courseNameKey } from '@/lib/course-match'
 import { esFilaDePlan } from '@/lib/grade-sources'
 import { etiquetaIntento } from '@/lib/grades-write'
+import { sincronizarEstadoDeMatricula } from '@/lib/course-enrollments'
 import { guardStaff, guardSuperadmin } from '@/lib/api-guard'
 import { guardPagina } from '@/lib/page-guard'
 
@@ -374,6 +375,14 @@ export async function POST(req: NextRequest) {
   const { data: check } = await sb.from('academic_grades').select('withdrawn_at').eq('external_id', b.external_id).maybeSingle()
   if (!check?.withdrawn_at) return NextResponse.json({ error: 'No se pudo marcar el retiro (regla de protección). Reporta este caso.' }, { status: 409 })
 
+  // Y sacarla del REGISTRO, que es de donde sale el precio oficial desde el
+  // 15-08-2026. Marcar la nota ya no basta: el acta pregunta si la asignatura
+  // está en academic_course_enrollments, no si existe una fila de nota. Sin
+  // esto el retiro no bajaba nada —la matrícula seguía diciendo 'en_curso'— y
+  // la reconstrucción nocturna tampoco lo arreglaba, porque solo crea las que
+  // faltan y no toca las que ya existen.
+  await sincronizarEstadoDeMatricula(sb, b.external_id)
+
   // Recalcular Total Tuition: bajar list_price por tarifa × créditos
   const { data: enr } = await sb.from('academic_student_enrollments')
     .select('id, list_price, credit_rate').eq('student_id', b.student_id).eq('program_id', b.program_id)
@@ -446,6 +455,11 @@ export async function DELETE(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   const { data: check } = await sb.from('academic_grades').select('withdrawn_at').eq('external_id', b.external_id).maybeSingle()
   if (check?.withdrawn_at) return NextResponse.json({ error: 'No se pudo deshacer el retiro (regla de protección). Reporta este caso.' }, { status: 409 })
+
+  // Y devolverla al registro. La misma llamada que en el retiro: recalcula el
+  // estado desde la nota, así que aquí sale de 'retirada' al que le toque —en
+  // curso si no tiene nota, aprobada o reprobada si la tiene—.
+  await sincronizarEstadoDeMatricula(sb, b.external_id)
 
   // Devolver el crédito al precio congelado, exactamente al revés que el retiro.
   // El precio que se MUESTRA se recalcula solo —tarifa × créditos del acta—;

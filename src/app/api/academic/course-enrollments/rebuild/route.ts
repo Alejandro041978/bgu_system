@@ -6,6 +6,7 @@ import { isStudentUser } from '@/lib/student-identity'
 import { guardSuperadmin } from '@/lib/api-guard'
 import {
   indexarMalla, resolverAsignatura, resolverTodasLasAsignaturas, estadoDeNota, ordenarIntentos,
+  sincronizarTodosLosEstados,
   type NotaMin, type CursoMalla, type MotivoSinResolver,
 } from '@/lib/course-enrollments'
 import { courseNameKey } from '@/lib/course-match'
@@ -250,8 +251,16 @@ export async function POST(req: NextRequest) {
     enlazadas += lote.length
   }
 
+  // 5. Poner al día los estados de TODAS las matrículas, no solo las nuevas.
+  //
+  //    El upsert de arriba lleva ignoreDuplicates: crea las que faltan y no
+  //    toca las que ya están. Sin este paso un estado viejo se quedaba viejo
+  //    para siempre, y el auditor decía "el cron nocturno lo cura solo" sin que
+  //    nadie lo curara. Ahora es verdad.
+  const estados = await sincronizarTodosLosEstados(sb)
+
   resumen.duracion_s = Math.round((Date.now() - t0) / 1000)
-  return NextResponse.json({ ...resumen, creadas, enlazadas })
+  return NextResponse.json({ ...resumen, creadas, enlazadas, estados })
 }
 
 export async function GET(req: NextRequest) {

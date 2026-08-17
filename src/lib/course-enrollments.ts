@@ -276,3 +276,77 @@ export function ordenarIntentos(notas: NotaMin[]): NotaMin[] {
     return String(a.synced_at ?? '').localeCompare(String(b.synced_at ?? ''))
   })
 }
+
+// ---------------------------------------------------------------------------
+// Poner al día TODOS los estados del registro, de una pasada.
+//
+// El auditor decía que "el cron nocturno lo cura solo" y no era verdad: la
+// reconstrucción nocturna crea las matrículas que faltan e ignora las que ya
+// existen —ignoreDuplicates—, así que un estado viejo se quedaba viejo para
+// siempre. El único que sincronizaba era el editor manual, nota a nota.
+//
+// Va en bloque a propósito: nota a nota son tres consultas por matrícula y
+// 25.000 matrículas no caben en el tiempo de una función. Así son cinco
+// lecturas y una escritura por estado distinto.
+//
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function sincronizarTodosLosEstados(sb: any): Promise<{ revisadas: number; corregidas: number; error?: string }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const todas = async (tabla: string, cols: string, orden: string): Promise<any[]> => {
+    const out: unknown[] = []
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from(tabla).select(cols).order(orden).range(from, from + 999)
+      if (error) throw new Error(`${tabla}: ${error.message}`)
+      out.push(...(data ?? []))
+      if ((data ?? []).length < 1000) break
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return out as any[]
+  }
+  try {
+    const [notas, ce, progs, cats] = await Promise.all([
+      todas('academic_grades', 'external_id, course_enrollment_id, withdrawn_at, final_grade, retake_grade, passing_score, source', 'external_id'),
+      todas('academic_course_enrollments', 'id, program_id, status', 'id'),
+      todas('academic_programs', 'id, category_id', 'id'),
+      todas('academic_programs_category', 'id, passing_score', 'id'),
+    ])
+    const minCat = new Map<string, number | null>(cats.map(c => [String(c.id), c.passing_score]))
+    const minProg = new Map<string, number | null>(progs.map(p => [String(p.id), minCat.get(String(p.category_id)) ?? null]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const porMatricula = new Map<string, any[]>()
+    for (const n of notas) {
+      if (!n.course_enrollment_id) continue
+      const k = String(n.course_enrollment_id)
+      if (!porMatricula.has(k)) porMatricula.set(k, [])
+      porMatricula.get(k)!.push(n)
+    }
+    const porEstado = new Map<string, string[]>()
+    let revisadas = 0
+    for (const m of ce) {
+      const hermanas = porMatricula.get(String(m.id))
+      if (!hermanas?.length) continue
+      revisadas++
+      const activas = hermanas.filter(n => !n.withdrawn_at)
+      const conValor = activas.filter(n => (n.retake_grade ?? n.final_grade) != null)
+      const manda = conValor.length
+        ? conValor.reduce((a, b) => (Number(b.retake_grade ?? b.final_grade) > Number(a.retake_grade ?? a.final_grade) ? b : a))
+        : (activas[0] ?? hermanas[0])
+      const quiere = estadoDeNota(manda as never, minProg.get(String(m.program_id)) ?? null)
+      if (quiere === m.status) continue
+      if (!porEstado.has(quiere)) porEstado.set(quiere, [])
+      porEstado.get(quiere)!.push(String(m.id))
+    }
+    let corregidas = 0
+    for (const [estado, ids] of porEstado) {
+      for (let i = 0; i < ids.length; i += 200) {
+        const trozo = ids.slice(i, i + 200)
+        const { error } = await sb.from('academic_course_enrollments').update({ status: estado }).in('id', trozo)
+        if (error) return { revisadas, corregidas, error: error.message }
+        corregidas += trozo.length
+      }
+    }
+    return { revisadas, corregidas }
+  } catch (e) {
+    return { revisadas: 0, corregidas: 0, error: e instanceof Error ? e.message : 'fallo al sincronizar estados' }
+  }
+}
