@@ -61,7 +61,7 @@ export function RegistryAudit() {
 
       {peor.length === 0 ? (
         <p className="text-sm text-green-800 bg-green-50 px-4 py-3 rounded-xl flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4" /> Los cuatro contrastes están en su valor esperado o por debajo.
+          <CheckCircle2 className="w-4 h-4" /> Todos los contrastes están en su valor esperado o por debajo.
         </p>
       ) : (
         <p className="text-sm text-amber-900 bg-amber-50 border border-amber-200 px-4 py-3 rounded-xl flex items-center gap-2">

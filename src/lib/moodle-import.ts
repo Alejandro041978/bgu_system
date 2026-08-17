@@ -352,6 +352,9 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       student_name: [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' '),
       course_code: destCourse.code,
       course_name: destCourse.name,
+      // El mismo id con el que se abre la matrícula tres líneas más abajo. Se
+      // conocía desde el principio y no se escribía en la nota.
+      course_id: destCourse.id,
       credits: destCourse.credits ?? null,
       term_year: termYear,
       term_block: termBlock,

@@ -163,6 +163,14 @@ export interface ImportRow {
   student_name?: string | null
   course_code?: string | null
   course_name: string | null
+  // La asignatura de la malla. NO es opcional de verdad: quien importa ya la
+  // resolvió —aula de Moodle → moodle_course_links → academic_courses— y con
+  // ella abre la matrícula. Faltaba aquí, y por eso 48 notas de Moodle nacieron
+  // sin asignatura: el upsert solo toca las columnas que se le pasan, así que
+  // las filas que ya venían de SystemActiva conservaban su course_id y solo se
+  // rompían las que el importador insertaba por primera vez. El acta lo tapaba
+  // cayendo a comparar por nombre.
+  course_id?: string | null
   credits?: number | null
   term_year?: number | null
   term_block?: string | null
@@ -341,7 +349,7 @@ export async function importGrades(
   const ids = rows.map(r => r.external_id)
   for (let i = 0; i < ids.length; i += 200) {
     const { data } = await sb.from('academic_grades')
-      .select('external_id, final_grade, retake_grade, edited_at, locked_at').in('external_id', ids.slice(i, i + 200))
+      .select('external_id, final_grade, retake_grade, edited_at, locked_at, course_id').in('external_id', ids.slice(i, i + 200))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const g of (data ?? []) as any[]) existing.set(g.external_id, g)
   }
@@ -408,6 +416,9 @@ export async function importGrades(
       student_name: r.student_name ?? null,
       course_code: r.course_code ?? null,
       course_name: r.course_name,
+      // Nunca a null si la fila ya tenía asignatura: un importador que no la
+      // resuelva no puede borrar la que ya estaba escrita.
+      course_id: r.course_id ?? existing.get(r.external_id)?.course_id ?? null,
       credits: r.credits ?? null,
       term_year: r.term_year ?? null,
       term_block: r.term_block ?? null,

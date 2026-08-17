@@ -9,12 +9,12 @@ import { estadoDeNota } from './course-enrollments'
 // crear 4.111 filas sin calificación dentro de las calificaciones.
 //
 // El riesgo del modelo nuevo no es que falle de golpe: es que las dos tablas se
-// separen despacio y nadie lo note hasta que un precio salga raro. Los cuatro
+// separen despacio y nadie lo note hasta que un precio salga raro. Los
 // contrastes de aquí son los que se corrieron a mano durante la migración; esto
 // los deja corriendo solos.
 //
-// Cada uno tiene un valor esperado. Tres están en cero y el de los semestres
-// heredados arrastra 666 casos de SystemActiva que nadie va a reescribir. Lo
+// Cada uno tiene un valor esperado. Cuatro están en cero y el de los semestres
+// heredados arrastra 672 casos de SystemActiva que nadie va a reescribir. Lo
 // que importa no es que sean cero, sino que no SUBAN. Ninguno se compara
 // consigo mismo: eso los dejaba en verde por construcción.
 // ---------------------------------------------------------------------------
@@ -75,16 +75,28 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
     if (!ingreso.has(k) || d < ingreso.get(k)!) ingreso.set(k, d)
   }
 
-  // ---- 1. Notas sin matrícula ---------------------------------------------
+  // ---- 1. Notas no enganchadas a su matrícula ------------------------------
+  //
+  // Dos formas de estar suelta, y las dos importan:
+  //   a) no hay matrícula para ese par (estudiante, asignatura)
+  //   b) la hay, pero la nota no apunta a ella (course_enrollment_id vacío)
+  // La (b) parecía inofensiva y no lo es: el contraste 2 recorre las notas por
+  // course_enrollment_id, así que una nota sin ligar deja a su matrícula sin
+  // vigilancia — puede quedarse con un estado viejo y nadie se entera.
   const claveCE = new Set(ce.map(r => `${r.student_id}|${r.course_id}`))
   const sinMatricula: string[] = []
   let nSinMatricula = 0
   for (const n of notas) {
     if (n.withdrawn_at || !n.course_id) continue
     const sid = sidPorDoc.get(String(n.document_number))
-    if (!sid || claveCE.has(`${sid}|${n.course_id}`)) continue
-    nSinMatricula++
-    if (sinMatricula.length < 10) sinMatricula.push(`${n.student_name} · ${n.course_name}`)
+    if (!sid) continue
+    if (!claveCE.has(`${sid}|${n.course_id}`)) {
+      nSinMatricula++
+      if (sinMatricula.length < 10) sinMatricula.push(`${n.student_name} · ${n.course_name} · no tiene matrícula`)
+    } else if (!n.course_enrollment_id) {
+      nSinMatricula++
+      if (sinMatricula.length < 10) sinMatricula.push(`${n.student_name} · ${n.course_name} · la matrícula existe, la nota no apunta a ella`)
+    }
   }
 
   // ---- 2. El estado de la matrícula no sigue a su nota --------------------
@@ -126,6 +138,23 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
     }
   }
 
+  // ---- 5. Notas sin asignatura de la malla --------------------------------
+  //
+  // Este contraste nació de un agujero del contraste 1: empieza saltando las
+  // filas sin course_id, así que era ciego justo a las rotas. Una nota sin
+  // asignatura no cuenta en el precio oficial y ningún otro contraste la ve;
+  // el acta la enseñaba igual porque, a falta de course_id, empareja por
+  // nombre — una red que ocultaba el error en vez de avisarlo.
+  const sinCurso: string[] = []
+  let nSinCurso = 0
+  for (const n of notas) {
+    if (n.withdrawn_at || n.course_id) continue
+    nSinCurso++
+    if (sinCurso.length < 10) {
+      sinCurso.push(`${n.student_name} · ${n.course_name} · ${n.source}${n.course_enrollment_id ? ' (su matrícula sí la tiene)' : ''}`)
+    }
+  }
+
   // ---- 4. Inscripciones que siguen en la tabla de notas -------------------
   const inscripciones = notas.filter(n => !n.withdrawn_at && (n.retake_grade ?? n.final_grade) == null)
   const porFuente = new Map<string, number>()
@@ -134,9 +163,9 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
   const hallazgos: Hallazgo[] = [
     {
       clave: 'sin_matricula',
-      titulo: 'Notas sin matrícula en el registro',
-      explica: 'Una nota cuya asignatura no está en el registro del estudiante. El acta no la ve y no cuenta en su precio oficial.',
-      siSube: 'Algún camino de escritura está creando notas sin abrir la matrícula. Los tres conocidos —Moodle, el editor y la reconstrucción— sí la abren.',
+      titulo: 'Notas no enganchadas a su matrícula',
+      explica: 'O la asignatura no está en el registro del estudiante —y entonces no cuenta en su precio oficial— o la matrícula existe pero la nota no apunta a ella, y ese caso deja a la matrícula fuera de toda vigilancia.',
+      siSube: 'Algún camino de escritura está creando notas sin abrir la matrícula o sin ligarlas. Los tres conocidos —Moodle, el editor y la reconstrucción— hacen las dos cosas.',
       n: nSinMatricula, esperado: 0, ejemplos: sinMatricula,
     },
     {
@@ -158,7 +187,14 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       // estaba en verde por construcción y no habría avisado nunca. Son 666 tras sacar las inscripciones sin calificar de la tabla el
       // 15-08: nadie va a reescribir esos periodos de SystemActiva.
       siSube: 'Deuda heredada de SystemActiva. Las de Moodle se corrigieron el 15-08 y están en cero; si el número sube, algo volvió a fechar mal.',
-      n: nCerrado, esperado: 666, ejemplos: cerrado,
+      n: nCerrado, esperado: 672, ejemplos: cerrado,
+    },
+    {
+      clave: 'sin_asignatura',
+      titulo: 'Notas que no apuntan a ninguna asignatura de la malla',
+      explica: 'La nota guarda el nombre del curso pero no su course_id. No cuenta en el precio oficial, y el acta la enseña solo porque, a falta de id, empareja por nombre.',
+      siSube: 'Un importador está escribiendo notas sin resolver la asignatura. El de Moodle la resuelve por moodle_course_links y desde el 15-08 la escribe; si esto sube, hay un camino nuevo que no lo hace.',
+      n: nSinCurso, esperado: 0, ejemplos: sinCurso,
     },
     {
       clave: 'inscripciones_en_notas',
