@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Loader2, RefreshCw, AlertTriangle, CheckCircle2, Link2 } from 'lucide-react'
 
 type Veredicto = 'coherente' | 'nunca_entro' | 'activo_despues' | 'sin_dato'
 
@@ -34,6 +34,8 @@ export function IWActivity() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filtro, setFiltro] = useState<Veredicto>('activo_despues')
+  const [vinculando, setVinculando] = useState(false)
+  const [vinculo, setVinculo] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -47,6 +49,28 @@ export function IWActivity() {
     } finally { setLoading(false) }
   }, [])
   useEffect(() => { load() }, [load])
+
+  // Vincula por tandas: cada estudiante cuesta hasta tres llamadas a Moodle y
+  // los 344 no caben en una sola corrida. Cada vínculo se guarda al momento,
+  // así que volver a pulsar continúa donde quedó.
+  const vincular = useCallback(async () => {
+    setVinculando(true); setVinculo(null)
+    try {
+      const r = await fetch('/api/academic/iw-activity', { method: 'POST' })
+      const d = await r.json().catch(() => ({ error: `El servidor respondió ${r.status}` }))
+      if (!r.ok || d.error) { setVinculo(d.error ?? 'No se pudo vincular'); return }
+      const s = d.resumen ?? {}
+      setVinculo(
+        `Procesados ${d.procesados} de ${d.pendientes_antes} pendientes · ` +
+        `vinculados ${s.vinculado ?? 0} · candidatos por confirmar ${s.candidato ?? 0} · ` +
+        `ambiguos ${s.ambiguo ?? 0} · sin cuenta ${s.sin_cuenta ?? 0}` +
+        (d.quedan ? ` · quedan ${d.quedan}: vuelve a pulsar` : ' · no queda ninguno')
+      )
+      await load()
+    } catch (e) {
+      setVinculo(e instanceof Error ? e.message : 'Error de red')
+    } finally { setVinculando(false) }
+  }, [load])
 
   if (loading && !data) return (
     <div className="flex flex-col items-center justify-center py-24 gap-3">
@@ -75,10 +99,22 @@ export function IWActivity() {
               de lo consumido se calculó sobre una foto que no era.
             </p>
           </div>
-          <button onClick={load} className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 shrink-0">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Volver a consultar
-          </button>
+          <div className="flex items-center gap-3 shrink-0">
+            <button onClick={vincular} disabled={vinculando}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 disabled:opacity-50">
+              <Link2 className={`w-3.5 h-3.5 ${vinculando ? 'animate-pulse' : ''}`} />
+              {vinculando ? 'Vinculando…' : 'Vincular cuentas de Moodle'}
+            </button>
+            <button onClick={load} className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800">
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Volver a consultar
+            </button>
+          </div>
         </div>
+        {vinculo && (
+          <p className="text-xs mt-3 px-3 py-2 rounded-lg bg-gray-50 text-gray-600">
+            {vinculo}
+          </p>
+        )}
         <p className="text-xs text-gray-400 mt-3">
           {data.vigentes} IW vigentes · {data.con_cuenta_moodle} con cuenta de Moodle · {data.con_correo} con acceso al correo registrado
           {!data.moodle_disponible && <span className="text-amber-600"> · Moodle no respondió</span>}

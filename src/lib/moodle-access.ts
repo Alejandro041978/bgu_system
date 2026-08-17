@@ -259,9 +259,19 @@ export interface LinkResult {
 //  - Llave fiable (idnumber/institucional/personal) → cachea moodle_user_id (vinculado).
 //  - Búsqueda por nombre → candidato (1 match) / ambiguo (varios), para revisar a mano.
 //  - Nada → sin_cuenta.
-export async function diagnoseLinks(sb: SB): Promise<{ rows: LinkResult[]; name_search: boolean }> {
-  const over = await overdueByStudent(sb)
-  const ids = [...over.keys()]
+// `soloEstos` acota el diagnóstico a una lista concreta. Sin él mira a los
+// deudores, que es para lo que nació —el motor de accesos necesita saber a
+// quién puede suspender—. Pero la pregunta "¿este retirado sigue entrando al
+// campus?" es de otra población: 344 de los 352 IW vigentes no tienen el
+// moodle_user_id guardado, y sin él no hay a quién preguntarle el último
+// acceso. Es el mismo trabajo, sobre otra lista.
+export async function diagnoseLinks(sb: SB, soloEstos?: string[]): Promise<{ rows: LinkResult[]; name_search: boolean }> {
+  let ids: string[]
+  if (soloEstos) ids = [...new Set(soloEstos)]
+  else {
+    const over = await overdueByStudent(sb)
+    ids = [...over.keys()]
+  }
   if (!ids.length) return { rows: [], name_search: true }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const info = new Map<string, any>()
@@ -272,7 +282,13 @@ export async function diagnoseLinks(sb: SB): Promise<{ rows: LinkResult[]; name_
     for (const s of data ?? []) info.set(s.id, s)
   }
   // Campus externo no usa nuestro Moodle → no se diagnostica.
-  const targets = ids.map(id => info.get(id)).filter(s => s && !s.moodle_user_id && !s.moodle_suspended && s.situation !== 'campus_socio')
+  //
+  // El filtro !moodle_suspended solo aplica al caso de los deudores: allí una
+  // cuenta ya suspendida no necesita vincularse porque no hay nada que hacerle.
+  // Cuando se pide una lista concreta la pregunta es otra —quién es este
+  // estudiante en Moodle— y suspendido o no da igual.
+  const targets = ids.map(id => info.get(id))
+    .filter(s => s && !s.moodle_user_id && s.situation !== 'campus_socio' && (soloEstos || !s.moodle_suspended))
   // Actualización tolerante (columna moodle_no_account opcional)
   const setNoAccount = async (id: string, v: boolean) => { try { await sb.from('academic_students').update({ moodle_no_account: v }).eq('id', id) } catch { /* sin columna */ } }
 
