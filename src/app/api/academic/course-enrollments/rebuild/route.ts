@@ -265,8 +265,30 @@ export async function POST(req: NextRequest) {
     if (suyo && String(e.course_id) === String(suyo)) elegido.set(e.external_id, e)
   }
 
+  // Y no se toca lo que ya está bien.
+  //
+  // Hasta hoy esto reescribía el enlace de las 14.677 notas cada noche, y esa
+  // reescritura diaria era el único punto del ERP capaz de deshacer una
+  // corrección hecha a mano: la de anoche movió 327 notas de matrícula y 46 de
+  // asignatura. Con el arreglo del course_id el simulacro bajó a 8 notas
+  // cambiando de asignatura y 319 barajándose entre intentos gemelos —menos
+  // daño, pero daño.
+  //
+  // Una nota ya enlazada a una matrícula de SU misma asignatura está bien: el
+  // importador la abrió y la ligó al crearla. Reconstruir deja de significar
+  // "reescribirlo todo" y pasa a significar "reparar lo que está roto", que es
+  // lo único que queda por hacer desde que el importador escribe el course_id.
+  const matriculaDe = new Map<string, { course_id: string }>()
+  for (const e of reales) matriculaDe.set(String(e.id), { course_id: String(e.course_id) })
+  const yaCorrectas = new Set<string>()
+  for (const n of grades) {
+    if (!n.course_enrollment_id || !n.course_id) continue
+    const m = matriculaDe.get(String(n.course_enrollment_id))
+    if (m && m.course_id === String(n.course_id)) yaCorrectas.add(String(n.external_id))
+  }
+
   let enlazadas = 0
-  const unicos = [...elegido.values()]
+  const unicos = [...elegido.values()].filter(e => !yaCorrectas.has(e.external_id))
   for (let i = 0; i < unicos.length; i += 500) {
     const lote = unicos.slice(i, i + 500).map(e => {
       const n = porId.get(e.course_enrollment_id)
