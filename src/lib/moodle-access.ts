@@ -16,6 +16,8 @@ export interface AccessRow {
   moodle_user_id: number | null
   no_account: boolean
   overdue: number
+  // Retiro involuntario vigente. Cierra el campus por sí solo, sin mirar deuda.
+  iw: boolean
   has_exception: boolean
   exception_id: string | null
   exception_expires: string | null
@@ -116,7 +118,25 @@ export async function selfServiceUsedThisSemester(sb: SB, studentId: string): Pr
 export async function planAccess(sb: SB): Promise<AccessRow[]> {
   const [over, exc] = await Promise.all([overdueByStudent(sb), activeExceptionMap(sb)])
   const { data: suspended } = await sb.from('academic_students').select('id').eq('moodle_suspended', true)
-  const ids = new Set<string>([...over.keys(), ...((suspended ?? []).map((s: { id: string }) => s.id))])
+
+  // Retiro involuntario vigente → campus cerrado (Dirección, 17-08-2026).
+  //
+  // Hasta hoy este motor solo miraba deuda, así que un retirado que no debía
+  // nada conservaba el aula abierta: 111 de los 191 IW con cuenta la tenían
+  // activa, y 42 habían entrado DESPUÉS de su retiro. El motor funcionaba —
+  // para lo que se diseñó, que es cobrar. Ejecutar un retiro nunca estuvo en
+  // su fórmula.
+  //
+  // El IW no cierra el correo ni el portal del estudiante: solo el campus.
+  const { data: retiros } = await sb.from('student_withdrawals')
+    .select('student_id').eq('type', 'IW').eq('status', 'vigente')
+  const iwVigente = new Set<string>((retiros ?? []).map((w: { student_id: string }) => String(w.student_id)))
+
+  const ids = new Set<string>([
+    ...over.keys(),
+    ...iwVigente,
+    ...((suspended ?? []).map((s: { id: string }) => s.id)),
+  ])
   if (!ids.size) return []
 
   const idArr = [...ids]
@@ -166,13 +186,22 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
     const isPartner = s.situation === 'campus_socio'
     if (isPartner && !cur) continue
     // Sin cuenta Moodle o campus externo → nunca 'suspend'
-    const desired = overdue > 0.005 && !hasExc && !noAccount && !isPartner
+    //
+    // El IW manda por encima de la excepción: la excepción es un permiso de
+    // días para que un DEUDOR termine algo, y un retirado no está terminando
+    // nada. Y manda por encima de la deuda en los dos sentidos — es lo que
+    // impide que pagar, o que le anulen las cuotas, le devuelva el aula. Sin
+    // esto, anular las cuotas de lo no consumido —el paso natural tras la
+    // liquidación— habría reabierto el campus a 79 retirados a la mañana
+    // siguiente, porque 'unsuspend' salta en cuanto la deuda llega a cero.
+    const esIW = iwVigente.has(id)
+    const desired = (esIW || (overdue > 0.005 && !hasExc)) && !noAccount && !isPartner
     const action: AccessRow['action'] = desired && !cur ? 'suspend' : (!desired && cur ? 'unsuspend' : 'none')
     rows.push({
       student_id: id, name: [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' '),
       document: s.document_number, email: s.email, email_alt: s.email_alt ?? null,
       external_id: s.external_id, moodle_user_id: s.moodle_user_id ?? null, no_account: noAccount,
-      overdue: Math.round(overdue * 100) / 100, has_exception: hasExc, exception_id: ex?.id ?? null,
+      overdue: Math.round(overdue * 100) / 100, iw: esIW, has_exception: hasExc, exception_id: ex?.id ?? null,
       exception_expires: ex?.expires_at ?? null, exception_source: ex?.source ?? null, exception_justification: ex?.justification ?? null,
       currently_suspended: cur, desired_suspended: desired, action,
     })

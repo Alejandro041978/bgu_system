@@ -5,7 +5,7 @@ import { Loader2, ShieldOff, ShieldCheck, Search, Clock, AlertTriangle, Plug, Li
 
 interface Row {
   student_id: string; name: string; document: string | null; email: string | null
-  overdue: number; has_exception: boolean; exception_id: string | null; exception_expires: string | null
+  overdue: number; iw?: boolean; has_exception: boolean; exception_id: string | null; exception_expires: string | null
   exception_source: string | null; exception_justification: string | null; no_account: boolean
   currently_suspended: boolean; desired_suspended: boolean; action: 'suspend' | 'unsuspend' | 'none'
 }
@@ -228,7 +228,11 @@ export function MoodleAccess() {
               {restringidos.map(r => (
                 <tr key={r.student_id} className="hover:bg-gray-50/50">
                   <td className="px-4 py-2"><span className="text-gray-800">{r.name}</span><span className="block text-[11px] text-gray-400 font-mono">{r.document ?? r.email}</span></td>
-                  <td className={`px-4 py-2 text-right tabular-nums font-medium ${r.overdue > 0 ? 'text-red-600' : 'text-gray-400'}`}>{money(r.overdue)}</td>
+                  <td className={`px-4 py-2 text-right tabular-nums font-medium ${r.overdue > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                    {money(r.overdue)}
+                    {/* Sin esto, una suspensión con deuda 0 no se puede explicar. */}
+                    {r.iw && <span className="block text-[10px] font-normal text-amber-700">retiro vigente</span>}
+                  </td>
                   <td className="px-4 py-2">
                     {r.no_account
                       ? <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">Sin cuenta</span>
