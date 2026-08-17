@@ -14,7 +14,7 @@ import { estadoDeNota } from './course-enrollments'
 // los deja corriendo solos.
 //
 // Cada uno tiene un valor esperado. Cuatro están en cero y el de los semestres
-// heredados arrastra 674 casos de SystemActiva que nadie va a reescribir. Lo
+// heredados arrastra 629 casos de SystemActiva que nadie va a reescribir. Lo
 // que importa no es que sean cero, sino que no SUBAN. Ninguno se compara
 // consigo mismo: eso los dejaba en verde por construcción.
 // ---------------------------------------------------------------------------
@@ -296,7 +296,7 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       // estaba en verde por construcción y no habría avisado nunca. Son 666 tras sacar las inscripciones sin calificar de la tabla el
       // 15-08: nadie va a reescribir esos periodos de SystemActiva.
       siSube: 'Deuda heredada de SystemActiva. Sube de a uno sin que nada esté roto cuando alguien se matricula en un SEGUNDO programa que comparte asignaturas: su nota vieja pasa a colgar también de la malla nueva, cuyo ingreso es posterior. Un salto grande sí sería un fechado malo.',
-      n: nCerrado, esperado: 674, ejemplos: cerrado,
+      n: nCerrado, esperado: 629, ejemplos: cerrado,
     },
     {
       clave: 'sin_asignatura',
@@ -317,7 +317,7 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       titulo: 'La misma asignatura con dos calificaciones en el mismo periodo',
       explica: 'Dos intentos del mismo semestre y cada uno con su nota: un cruce Moodle + SystemActiva de la migración, o dos filas de Activa entre sí. El acta no enseña nada mal —se queda con la más alta— pero el conteo de recursados los suma como si fueran cursadas distintas.',
       siSube: 'No se fusionan todavía: en 108 de ellos las dos notas caen a lados distintos del mínimo, así que elegir mal convierte un aprobado en reprobado. Se está buscando el patrón antes de tocarlos. Lo único que no puede pasar es que SUBAN — eso sería un camino nuevo creando notas duplicadas hoy.',
-      n: nDobleNota, esperado: 253, ejemplos: dobleNota,
+      n: nDobleNota, esperado: 239, ejemplos: dobleNota,
     },
     {
       clave: 'inscripciones_en_notas',
