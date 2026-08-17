@@ -50,8 +50,8 @@ async function todo(sb: SB, tabla: string, cols: string, orden: string): Promise
 
 export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; totales: Record<string, number> }> {
   const [notas, ce, est, cursos, progs, cats, sems, enr] = await Promise.all([
-    todo(sb, 'academic_grades', 'external_id, document_number, student_name, course_id, course_name, source, withdrawn_at, final_grade, retake_grade, passing_score, semester_id, course_enrollment_id', 'external_id'),
-    todo(sb, 'academic_course_enrollments', 'id, student_id, course_id, attempt, status', 'id'),
+    todo(sb, 'academic_grades', 'external_id, document_number, student_name, course_id, course_name, source, withdrawn_at, final_grade, retake_grade, passing_score, semester_id, course_enrollment_id, intento', 'external_id'),
+    todo(sb, 'academic_course_enrollments', 'id, student_id, course_id, attempt, status, semester_id', 'id'),
     todo(sb, 'academic_students', 'id, document_number', 'id'),
     todo(sb, 'academic_courses', 'id, program_id, name', 'id'),
     todo(sb, 'academic_programs', 'id, name, category_id', 'id'),
@@ -155,6 +155,65 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
     }
   }
 
+  // ---- 6. Intentos duplicados o mal numerados -----------------------------
+  //
+  // Un recursado es cursar la misma asignatura en OTRO periodo. Dos intentos
+  // de la misma asignatura en el MISMO semestre no son dos: son una
+  // inscripción contada dos veces, y así fue como el registro llegó a decir
+  // 855 recursados cuando eran 796.
+  //
+  // El número de intento también tiene que decir la verdad: se ordena por
+  // periodo, y el 'intento' que guarda la nota debe ser el mismo que el
+  // 'attempt' de su matrícula. Si discrepan, el acta rotula "Recursado 1" lo
+  // que en realidad fue el primer intento.
+  const matriculasConNota = new Set<string>()
+  for (const n of notas) if (n.course_enrollment_id) matriculasConNota.add(String(n.course_enrollment_id))
+  const dupIntento: string[] = []
+  let nDupIntento = 0
+  const porPar = new Map<string, typeof ce>()
+  for (const r of ce) {
+    // Las retiradas quedan fuera: retirarse de una asignatura y volver a
+    // inscribirse en el mismo periodo es una secuencia normal, no un duplicado.
+    if (r.status === 'retirada') continue
+    const k = `${r.student_id}|${r.course_id}`
+    if (!porPar.has(k)) porPar.set(k, [])
+    porPar.get(k)!.push(r)
+  }
+  for (const [, filas] of porPar) {
+    if (filas.length < 2) continue
+    const porSemestre = new Map<string, typeof filas>()
+    for (const f of filas) {
+      const s = String(f.semester_id ?? 'sin')
+      if (!porSemestre.has(s)) porSemestre.set(s, [])
+      porSemestre.get(s)!.push(f)
+    }
+    for (const [s, grupo] of porSemestre) {
+      if (grupo.length < 2 || s === 'sin') continue
+      // Solo cuentan las que NO tienen nota: ésas son inequívocamente una
+      // inscripción contada dos veces, y son las 59 que se borraron el 15-08.
+      // Cuando los dos intentos traen calificación propia el caso es otro
+      // —dos notas de Activa del mismo curso y periodo— y se mira aparte: aquí
+      // no se puede decidir cuál sobra sin inventárselo.
+      const sinNota = grupo.filter(f => !matriculasConNota.has(String(f.id)))
+      if (!sinNota.length) continue
+      nDupIntento += sinNota.length
+      if (dupIntento.length < 10) {
+        const c = nomCurso.get(String(grupo[0].course_id)) ?? ''
+        dupIntento.push(`${c} · ${grupo.length} intentos en ${semNom.get(s) ?? s}, ${sinNota.length} sin ninguna nota`)
+      }
+    }
+  }
+  const attemptDe = new Map<string, number>(ce.map(r => [String(r.id), Number(r.attempt)]))
+  for (const n of notas) {
+    if (n.withdrawn_at || !n.course_enrollment_id) continue
+    const a = attemptDe.get(String(n.course_enrollment_id))
+    if (a == null || Number(n.intento ?? 1) === a) continue
+    nDupIntento++
+    if (dupIntento.length < 10) {
+      dupIntento.push(`${n.student_name} · ${n.course_name} · la nota dice intento ${n.intento ?? 1} y su matrícula ${a}`)
+    }
+  }
+
   // ---- 4. Inscripciones que siguen en la tabla de notas -------------------
   const inscripciones = notas.filter(n => !n.withdrawn_at && (n.retake_grade ?? n.final_grade) == null)
   const porFuente = new Map<string, number>()
@@ -195,6 +254,13 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       explica: 'La nota guarda el nombre del curso pero no su course_id. No cuenta en el precio oficial, y el acta la enseña solo porque, a falta de id, empareja por nombre.',
       siSube: 'Un importador está escribiendo notas sin resolver la asignatura. El de Moodle la resuelve por moodle_course_links y desde el 15-08 la escribe; si esto sube, hay un camino nuevo que no lo hace.',
       n: nSinCurso, esperado: 0, ejemplos: sinCurso,
+    },
+    {
+      clave: 'intentos_duplicados',
+      titulo: 'Intentos duplicados o mal numerados',
+      explica: 'Dos intentos de la misma asignatura en el mismo semestre no son un recursado: son una inscripción contada dos veces. Y el número de intento de la nota tiene que ser el de su matrícula, o el acta rotula mal el recursado.',
+      siSube: 'La reconstrucción abrió un intento de más, o alguien creó una matrícula que ya existía en ese periodo. De este número depende cuántos recursados dice la institución que hay.',
+      n: nDupIntento, esperado: 0, ejemplos: dupIntento,
     },
     {
       clave: 'inscripciones_en_notas',
