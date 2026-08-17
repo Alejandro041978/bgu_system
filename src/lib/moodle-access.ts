@@ -171,6 +171,29 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
     catch { /* si el campus no responde, se cae a la anotación local */ }
   }
 
+  // Y de paso se corrige la creencia del ERP.
+  //
+  // Antes solo se escribía moodle_suspended al ACTUAR. Si el campus ya decía lo
+  // que queríamos, la acción era 'ninguna' y la anotación se quedaba como
+  // estaba: cuentas cerradas en Moodle que aquí figuraban abiertas durante
+  // meses. Se vio el 17-08, cuando el plan pedía suspender 245 y la anotación
+  // local decía 175 — y al revés, dos cuentas ya cerradas que aquí seguían en
+  // "activa". Otras pantallas leen esta columna, así que dejarla mintiendo
+  // barato no sale gratis.
+  const aCorregir: { id: string; v: boolean }[] = []
+  for (const id of idArr) {
+    const s = info.get(id)
+    const real = s ? realEnMoodle.get(Number(s.moodle_user_id)) : undefined
+    if (real !== undefined && real !== !!s.moodle_suspended) aCorregir.push({ id, v: real })
+  }
+  for (const v of [true, false]) {
+    const lote = aCorregir.filter(x => x.v === v).map(x => x.id)
+    for (let i = 0; i < lote.length; i += 200) {
+      try { await sb.from('academic_students').update({ moodle_suspended: v }).in('id', lote.slice(i, i + 200)) }
+      catch { /* la corrección es cortesía; el plan se calcula igual */ }
+    }
+  }
+
   const rows: AccessRow[] = []
   for (const id of idArr) {
     const s = info.get(id); if (!s) continue
