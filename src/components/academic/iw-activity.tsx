@@ -1,39 +1,44 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, RefreshCw, AlertTriangle, CheckCircle2, Link2 } from 'lucide-react'
+import { Loader2, RefreshCw, AlertTriangle, CheckCircle2, Link2, GraduationCap, Mail } from 'lucide-react'
 
-type Veredicto = 'coherente' | 'nunca_entro' | 'activo_despues' | 'sin_dato'
+type Veredicto = 'antes' | 'despues' | 'nunca' | 'sin_cuenta'
 
+interface Bloque {
+  con_cuenta: number; antes: number; despues: number; nunca: number
+  sin_cuenta: number; disponible: boolean
+}
 interface Caso {
   student_id: string; nombre: string; documento: string | null
   retiro: string | null; origen: string
-  moodle_ultimo: string | null; moodle_suspendido: boolean | null
-  correo_ultimo: string | null
+  moodle_ultimo: string | null; moodle_suspendido: boolean | null; moodle_veredicto: Veredicto
+  correo_ultimo: string | null; correo_veredicto: Veredicto
   dias_desde_el_ultimo_acceso: number | null
-  veredicto: Veredicto
 }
 interface Data {
-  vigentes: number; con_cuenta_moodle: number; con_correo: number
-  moodle_disponible: boolean; correo_disponible: boolean
-  por_veredicto: Record<Veredicto, number>
+  vigentes: number
+  campus: Bloque; correo: Bloque
+  activos_despues: number
   activos_ultimos_30_dias: number
   activos_despues_sin_suspender: number
   casos: Caso[]
 }
 
-const ETIQUETA: Record<Veredicto, string> = {
-  activo_despues: 'Entró DESPUÉS del retiro',
-  coherente: 'Su último acceso es anterior al retiro',
-  nunca_entro: 'Tiene cuenta y nunca la usó',
-  sin_dato: 'Sin cuenta que mirar — no se puede saber',
+type Filtro = { senal: 'campus' | 'correo'; v: Veredicto }
+
+const NOMBRE: Record<Veredicto, string> = {
+  antes: 'Último acceso ANTES del retiro',
+  despues: 'Último acceso DESPUÉS del retiro',
+  nunca: 'Nunca ingresó',
+  sin_cuenta: 'Sin cuenta',
 }
 
 export function IWActivity() {
   const [data, setData] = useState<Data | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filtro, setFiltro] = useState<Veredicto>('activo_despues')
+  const [filtro, setFiltro] = useState<Filtro>({ senal: 'campus', v: 'despues' })
   const [vinculando, setVinculando] = useState(false)
   const [vinculo, setVinculo] = useState<string | null>(null)
 
@@ -81,8 +86,41 @@ export function IWActivity() {
   if (error) return <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">{error}</p>
   if (!data) return null
 
-  const v = data.por_veredicto
-  const lista = data.casos.filter(c => c.veredicto === filtro)
+  const lista = data.casos.filter(c =>
+    (filtro.senal === 'campus' ? c.moodle_veredicto : c.correo_veredicto) === filtro.v)
+
+  const Bloque = ({ senal, b, icono, titulo }: { senal: 'campus' | 'correo'; b: Bloque; icono: React.ReactNode; titulo: string }) => {
+    const cuadra = b.antes + b.despues + b.nunca === b.con_cuenta
+    const celda = (v: Veredicto, n: number, destacar = false) => (
+      <button onClick={() => setFiltro({ senal, v })}
+        className={`text-left px-4 py-3 rounded-lg border transition w-full ${
+          filtro.senal === senal && filtro.v === v ? 'border-gray-800 bg-white' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
+        <p className={`text-xl font-bold tabular-nums ${destacar && n > 0 ? 'text-amber-600' : 'text-gray-700'}`}>{n.toLocaleString()}</p>
+        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{NOMBRE[v]}</p>
+      </button>
+    )
+    return (
+      <div className="bg-gray-50/70 border border-gray-200 rounded-xl p-4">
+        <div className="flex items-baseline justify-between mb-3">
+          <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">{icono} {titulo}</p>
+          <p className="text-xs text-gray-500">
+            con acceso: <strong className="text-gray-800 tabular-nums">{b.con_cuenta.toLocaleString()}</strong>
+            {!b.disponible && <span className="text-amber-600"> · no respondió</span>}
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {celda('antes', b.antes)}
+          {celda('despues', b.despues, true)}
+          {celda('nunca', b.nunca)}
+        </div>
+        <p className={`text-[11px] mt-2 ${cuadra ? 'text-gray-400' : 'text-red-600 font-medium'}`}>
+          {b.antes} + {b.despues} + {b.nunca} = {b.antes + b.despues + b.nunca}
+          {cuadra ? ` · cuadra con los ${b.con_cuenta} que tienen acceso` : ` · NO cuadra con ${b.con_cuenta}`}
+          {b.sin_cuenta > 0 && ` · ${b.sin_cuenta} sin cuenta, fuera del cálculo`}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-5">
@@ -94,9 +132,8 @@ export function IWActivity() {
               Eso es lo que dicen los papeles. Aquí se contrasta contra lo que hizo el estudiante.
             </p>
             <p className="text-xs text-gray-400">
-              Si alguien retirado sigue entrando al campus o al correo, o el retiro no se ejecutó, o se revirtió sin
-              dejar rastro. En los dos casos está usando servicios que la institución cree cerrados, y la liquidación
-              de lo consumido se calculó sobre una foto que no era.
+              Las dos señales se miden por separado y cada una cuadra sola. Ir al campus es ir a clase; el correo se
+              mira por inercia — por eso un acceso al campus posterior al retiro pesa mucho más que uno al correo.
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -110,25 +147,20 @@ export function IWActivity() {
             </button>
           </div>
         </div>
-        {vinculo && (
-          <p className="text-xs mt-3 px-3 py-2 rounded-lg bg-gray-50 text-gray-600">
-            {vinculo}
-          </p>
-        )}
-        <p className="text-xs text-gray-400 mt-3">
-          {data.vigentes} IW vigentes · {data.con_cuenta_moodle} con cuenta de Moodle · {data.con_correo} con acceso al correo registrado
-          {!data.moodle_disponible && <span className="text-amber-600"> · Moodle no respondió</span>}
-          {!data.correo_disponible && <span className="text-amber-600"> · el directorio de correo no respondió</span>}
-        </p>
+        {vinculo && <p className="text-xs mt-3 px-3 py-2 rounded-lg bg-gray-50 text-gray-600">{vinculo}</p>}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <p className="text-3xl font-bold text-gray-800 tabular-nums">{data.vigentes.toLocaleString()}</p>
+          <p className="text-xs text-gray-500">IW vigentes — con retiro y sin reincorporación</p>
+        </div>
       </div>
 
-      {v.activo_despues > 0 ? (
+      {data.activos_despues > 0 ? (
         <div className="text-sm text-amber-900 bg-amber-50 border border-amber-200 px-4 py-3 rounded-xl flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>
-            <strong>{v.activo_despues}</strong> retirados entraron después de su fecha de retiro.
+            <strong>{data.activos_despues}</strong> retirados entraron después de su fecha de retiro, por campus o por correo.
             {data.activos_ultimos_30_dias > 0 && <> {data.activos_ultimos_30_dias} lo hicieron en los últimos 30 días.</>}
-            {data.activos_despues_sin_suspender > 0 && <> Y <strong>{data.activos_despues_sin_suspender}</strong> conservan la cuenta de Moodle sin suspender.</>}
+            {data.activos_despues_sin_suspender > 0 && <> Y <strong>{data.activos_despues_sin_suspender}</strong> entraron al campus conservando la cuenta sin suspender.</>}
           </span>
         </div>
       ) : (
@@ -137,21 +169,16 @@ export function IWActivity() {
         </p>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {(Object.keys(ETIQUETA) as Veredicto[]).map(k => (
-          <button key={k} onClick={() => setFiltro(k)}
-            className={`text-left px-4 py-3 rounded-xl border transition ${filtro === k ? 'border-gray-800 bg-white' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
-            <p className={`text-2xl font-bold tabular-nums ${k === 'activo_despues' && v[k] > 0 ? 'text-amber-600' : 'text-gray-700'}`}>
-              {v[k].toLocaleString()}
-            </p>
-            <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{ETIQUETA[k]}</p>
-          </button>
-        ))}
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Bloque senal="campus" b={data.campus} titulo="Campus virtual" icono={<GraduationCap className="w-4 h-4 text-gray-400" />} />
+        <Bloque senal="correo" b={data.correo} titulo="Correo institucional" icono={<Mail className="w-4 h-4 text-gray-400" />} />
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100">
-          <p className="text-sm font-semibold text-gray-800">{ETIQUETA[filtro]}</p>
+          <p className="text-sm font-semibold text-gray-800">
+            {filtro.senal === 'campus' ? 'Campus' : 'Correo'} · {NOMBRE[filtro.v]}
+          </p>
           <p className="text-xs text-gray-400">{lista.length} casos</p>
         </div>
         <div className="overflow-x-auto">
@@ -176,11 +203,13 @@ export function IWActivity() {
                   <td className="px-3 py-2 text-gray-600 tabular-nums">{c.retiro ?? '—'}</td>
                   <td className="px-3 py-2 text-gray-500 text-xs">{c.origen}</td>
                   <td className="px-3 py-2 tabular-nums text-gray-600">
-                    {c.moodle_ultimo ?? '—'}
+                    {c.moodle_ultimo ?? (c.moodle_veredicto === 'nunca' ? 'nunca' : '—')}
                     {c.moodle_suspendido === false && <span className="ml-1.5 text-[10px] text-amber-600">activa</span>}
                     {c.moodle_suspendido === true && <span className="ml-1.5 text-[10px] text-gray-400">suspendida</span>}
                   </td>
-                  <td className="px-3 py-2 tabular-nums text-gray-600">{c.correo_ultimo ?? '—'}</td>
+                  <td className="px-3 py-2 tabular-nums text-gray-600">
+                    {c.correo_ultimo ?? (c.correo_veredicto === 'nunca' ? 'nunca' : '—')}
+                  </td>
                   <td className="px-5 py-2 text-right tabular-nums text-gray-500">
                     {c.dias_desde_el_ultimo_acceso != null ? `${c.dias_desde_el_ultimo_acceso} d` : '—'}
                   </td>
