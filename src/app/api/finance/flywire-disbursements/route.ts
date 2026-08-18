@@ -80,9 +80,34 @@ export async function PATCH(req: NextRequest) {
 
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  const b = await req.json().catch(() => null) as { disbursement_id?: string; operation_id?: string } | null
-  if (!b?.disbursement_id || !b?.operation_id) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
+  const b = await req.json().catch(() => null) as { disbursement_id?: string; operation_id?: string; desasociar?: boolean } | null
+  if (!b?.disbursement_id) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
   const sb = db()
+
+  // Deshacer una asociación.
+  //
+  // Asociar era un camino de ida: la pantalla dejaba unir un desembolso a una
+  // operación de Books y no había forma de separarlos. Hizo falta el día que
+  // un depósito de $12.263 se unió a un desembolso de $12.663 anotando la
+  // diferencia como comisión, y resultó que no era comisión sino un depósito
+  // mal contabilizado que contabilidad ya había corregido con otro asiento
+  // (18/08/2026). Una decisión que no se puede rehacer obliga a acertar a la
+  // primera, y aquí acertar depende de un dato que vive en Zoho.
+  if (b.desasociar) {
+    const { data: d } = await sb.from('flywire_disbursements')
+      .select('disbursement_id, matched_operation_id').eq('disbursement_id', b.disbursement_id).maybeSingle()
+    if (!d) return NextResponse.json({ error: 'Desembolso no encontrado' }, { status: 404 })
+    const opId = b.operation_id ?? d.matched_operation_id
+    if (!opId) return NextResponse.json({ error: 'Ese desembolso no está asociado a ninguna operación' }, { status: 400 })
+    await sb.from('books_operations').update({
+      flywire_disbursement_id: null, gestion_status: 'pendiente',
+      gestion_note: null, gestion_by: null, gestion_at: null,
+    }).eq('id', opId)
+    await sb.from('flywire_disbursements').update({ matched_operation_id: null }).eq('disbursement_id', b.disbursement_id)
+    return NextResponse.json({ ok: true, desasociado: true })
+  }
+
+  if (!b.operation_id) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
 
   const { data: d } = await sb.from('flywire_disbursements').select('disbursement_id, disbursement_date, amount').eq('disbursement_id', b.disbursement_id).maybeSingle()
   if (!d) return NextResponse.json({ error: 'Desembolso no encontrado' }, { status: 404 })

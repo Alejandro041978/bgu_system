@@ -127,6 +127,24 @@ export function BooksOperations() {
     load(account, status)
   }
 
+  // Soltar el cruce con un desembolso de Flywire.
+  //
+  // Asociar era un camino de ida y eso obliga a acertar a la primera. El caso
+  // que lo destapó: un depósito de $12.263 unido a un desembolso de $12.663
+  // anotando los $400 como comisión, cuando en realidad el depósito estaba mal
+  // contabilizado y contabilidad ya lo había corregido con otro asiento.
+  async function soltarDesembolso(o: Op) {
+    if (!o.flywire_disbursement_id) return
+    if (!confirm(`¿Soltar el cruce entre esta operación (${money(o.credit ?? o.amount)}) y el desembolso ${o.flywire_disbursement_id}?\n\n`
+      + `El desembolso vuelve a la lista de "sin cruce" y la operación queda pendiente. No se borra nada.`)) return
+    const d = await fetch('/api/finance/flywire-disbursements', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disbursement_id: o.flywire_disbursement_id, operation_id: o.id, desasociar: true }),
+    }).then(r => r.json())
+    if (d.error) { setError(d.error); return }
+    loadDisb(); load(account, status)
+  }
+
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = ''
     if (!file) return
@@ -394,6 +412,11 @@ export function BooksOperations() {
                     {o.gestion_status === 'asociada' && (
                       <button onClick={() => desasociar(o)}
                         className="block mt-1 text-[10px] text-red-500 hover:underline">✕ desasociar</button>
+                    )}
+                    {o.flywire_disbursement_id && (
+                      <button onClick={() => soltarDesembolso(o)}
+                        className="block mt-1 text-[10px] text-red-500 hover:underline"
+                        title={`Cruzada con el desembolso ${o.flywire_disbursement_id}`}>✕ soltar {o.flywire_disbursement_id}</button>
                     )}
                   </td>
                   <td className="px-3 py-2 text-xs text-gray-500">
