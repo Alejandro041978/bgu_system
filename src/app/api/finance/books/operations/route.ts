@@ -122,16 +122,38 @@ export async function POST(req: NextRequest) {
     })
   }
 
+  // Antes la clave era `categorized_transaction_id`, con este razonamiento: es
+  // único por línea, mientras que `transaction_id` se repite cuando una
+  // transacción toca la cuenta en varias líneas. El razonamiento es correcto y
+  // la conclusión no, porque ese id NO ES ESTABLE: al editar el movimiento en
+  // Zoho —por ejemplo, ponerle "Flywire" de referencia— Zoho reexpide la
+  // categorización con un id nuevo y el ERP la ve como una operación distinta.
+  //
+  // Así se colaron dos depósitos por duplicado, $18.459 contados dos veces, y
+  // uno de ellos ya estaba cruzado con su desembolso (18/08/2026).
+  //
+  // La clave de ahora identifica la LÍNEA sin depender de la categorización:
+  // qué transacción, en qué cuenta, de qué lado y por cuánto. Sobrevive a que
+  // alguien edite el movimiento, que es justo lo que hay que aguantar.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const claveEstable = (r: any): string => {
+    const txn = String(r.transaction_id ?? '')
+    const monto = r.credit_amount !== '' && r.credit_amount != null ? r.credit_amount : (r.debit_amount ?? '')
+    if (txn) return [txn, r.account_id ?? r.account_name ?? '', r.debit_or_credit ?? '', monto].join('|')
+    // Sin transaction_id no hay nada estable a lo que agarrarse: se conserva el
+    // hash de siempre, que al menos es determinista.
+    return createHash('sha1').update([r.account_name ?? r.account, r.transaction_date ?? r.date, r.transaction_type,
+      r.reference_number ?? r.entry_number, r.payee ?? r.contact_name ?? r.customer_name,
+      r.debit_amount ?? r.debit, r.credit_amount ?? r.credit, r.description].join('|')).digest('hex')
+  }
+
   // Filtrar a las 3 cuentas y upsert idempotente
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const num = (v: any): number | null => (v === '' || v == null) ? null : (Number.isFinite(Number(v)) ? Number(v) : null)
   const objetivo = rows.filter(r => CUENTAS.some(c => String(r.account_name ?? r.account ?? '').toLowerCase() === c.toLowerCase()))
   let upserted = 0
   const batchRows = objetivo.map(r => {
-    // `categorized_transaction_id` es único por línea; `transaction_id` puede
-    // repetirse si una transacción toca la cuenta en varias líneas.
-    const key = String(r.categorized_transaction_id ?? r.transaction_id ?? r.entity_id ?? '') ||
-      createHash('sha1').update([r.account_name ?? r.account, r.transaction_date ?? r.date, r.transaction_type, r.reference_number ?? r.entry_number, r.payee ?? r.contact_name ?? r.customer_name, r.debit_amount ?? r.debit, r.credit_amount ?? r.credit, r.description].join('|')).digest('hex')
+    const key = claveEstable(r)
     const debit = num(r.debit_amount ?? r.debit)
     const credit = num(r.credit_amount ?? r.credit)
     return {
@@ -149,12 +171,44 @@ export async function POST(req: NextRequest) {
       synced_at: new Date().toISOString(),
     }
   })
+  // Las filas guardadas con la clave vieja se pasan a la nueva ANTES del
+  // upsert. Sin esto, la primera sincronización tras el cambio no encontraría
+  // ninguna coincidencia y volvería a insertar las 893 operaciones enteras.
+  //
+  // Se hace aquí y no en una migración suelta a propósito: así no existe un
+  // momento en que el código y los datos estén en versiones distintas.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const guardadas: any[] = []
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await sb.from('books_operations').select('id, zoho_key, raw').order('id').range(desde, desde + 999)
+    if (error) return NextResponse.json({ error: 'al leer lo ya guardado: ' + error.message }, { status: 500 })
+    guardadas.push(...(data ?? []))
+    if ((data ?? []).length < 1000) break
+  }
+  const yaConNueva = new Set(guardadas.map(o => String(o.zoho_key)))
+  let renombradas = 0
+  const choques: string[] = []
+  for (const o of guardadas) {
+    const nueva = o.raw ? claveEstable(o.raw) : null
+    if (!nueva || nueva === String(o.zoho_key)) continue
+    // Si la clave nueva ya la tiene otra fila, son duplicados que hay que
+    // juntar a mano: renombrar reventaría contra el índice único.
+    if (yaConNueva.has(nueva)) { choques.push(String(o.zoho_key)); continue }
+    const { error } = await sb.from('books_operations').update({ zoho_key: nueva }).eq('id', o.id)
+    if (error) return NextResponse.json({ error: `al migrar la clave de ${o.zoho_key}: ${error.message}` }, { status: 500 })
+    yaConNueva.add(nueva); yaConNueva.delete(String(o.zoho_key)); renombradas++
+  }
+
   for (let i = 0; i < batchRows.length; i += 200) {
     const { error } = await sb.from('books_operations').upsert(batchRows.slice(i, i + 200), { onConflict: 'zoho_key' })
     if (error) return NextResponse.json({ error: 'upsert: ' + error.message, upserted }, { status: 500 })
     upserted += Math.min(200, batchRows.length - i)
   }
-  return NextResponse.json({ ok: true, periodo: { from, to }, filas_reporte: rows.length, objetivo: objetivo.length, upserted })
+  return NextResponse.json({
+    ok: true, periodo: { from, to }, filas_reporte: rows.length, objetivo: objetivo.length, upserted,
+    claves_migradas: renombradas,
+    ...(choques.length ? { aviso: `${choques.length} operación(es) duplicada(s) que hay que juntar a mano: ${choques.slice(0, 5).join(', ')}` } : {}),
+  })
 }
 
 // PATCH { id, gestion_status?, gestion_note? } → gestión de la operación
