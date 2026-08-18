@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Loader2, Upload, CheckCircle2, AlertTriangle } from 'lucide-react'
-import { parseCsv, indicesDeCabecera, esFecha, esImporte, esReferencia, ESTADOS_FLYWIRE, type FilaRechazada } from '@/lib/csv'
+import { parseCsv, indicesDeCabecera, esFecha, esImporte, esReferencia, motivoDeDescuadre, ESTADOS_FLYWIRE, type FilaRechazada } from '@/lib/csv'
 
 interface Row {
   reference: string; first_name: string; last_name: string; dni: string
@@ -67,6 +67,15 @@ export function FlywireImport() {
     // mirar la forma de cada uno para atraparlas todas.
     const rechazadas: FilaRechazada[] = []
     const valida = (r: string[], linea: number): boolean => {
+      // Si sobran campos, el resto de comprobaciones va a mirar la columna
+      // equivocada y dirá cosas como 'importe no numérico "elizabeth"'. Se
+      // informa de la causa —una coma dentro de un nombre sin comillas— en vez
+      // de la ristra de síntomas.
+      const descuadre = motivoDeDescuadre(r, parsed[0] ?? [])
+      if (descuadre) {
+        rechazadas.push({ linea, motivo: descuadre, crudo: r.join(',').slice(0, 160) })
+        return false
+      }
       const motivos: string[] = []
       if (!esReferencia((r[iRef] ?? '').trim())) motivos.push(`referencia inválida "${(r[iRef] ?? '').trim().slice(0, 20)}"`)
       if (!esImporte(r[iAmt] ?? '')) motivos.push(`importe no numérico "${(r[iAmt] ?? '').trim().slice(0, 20)}"`)

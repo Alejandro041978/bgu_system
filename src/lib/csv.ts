@@ -56,6 +56,26 @@ export function indicesDeCabecera(cabecera: string[]): Map<string, number> {
 
 export interface FilaRechazada { linea: number; motivo: string; crudo: string }
 
+/**
+ * Por qué una fila trae más campos de los que dice la cabecera.
+ *
+ * Flywire exporta los nombres SIN entrecomillar, así que "Paredes cordova,
+ * elizabeth" se parte en dos campos y corre todo lo que viene detrás: el
+ * importe pasa a ser un apellido y la fecha, un estado. Antes se rechazaba
+ * igual —bien— pero el motivo que salía era 'importe "elizabeth"', que
+ * describe el síntoma y esconde la causa.
+ *
+ * No se intenta recomponer la fila: cuál de los cuatro campos de nombre llevaba
+ * la coma es indecidible, y adivinarlo mal mete un importe equivocado en el
+ * estado de cuenta de alguien. Se rechaza diciendo qué pasó.
+ */
+export function motivoDeDescuadre(fila: string[], cabecera: string[]): string | null {
+  const sobran = fila.length - cabecera.length
+  if (sobran <= 0) return null
+  return `la fila trae ${fila.length} campos y la cabecera ${cabecera.length}: `
+    + `${sobran} coma${sobran > 1 ? 's' : ''} de más, casi siempre un nombre sin comillas`
+}
+
 // ── Validadores elementales ────────────────────────────────────────────────
 export const esFecha = (v: string): boolean =>
   /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?/.test(String(v ?? '').trim())
