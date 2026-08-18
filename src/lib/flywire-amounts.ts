@@ -77,7 +77,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100
 
 export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
   const [eventos, pagos, est] = await Promise.all([
-    todo(sb, 'flywire_events', 'payment_id, amount_to, event_type, received_at, raw', 'id'),
+    todo(sb, 'flywire_events', 'payment_id, amount_to, event_type, status, received_at, raw', 'id'),
     todo(sb, 'account_payments', 'id, student_id, amount, paid_date, flywire_payment_id, distributed_from_payment_id, transaction_reference', 'id'),
     todo(sb, 'academic_students', 'id, first_name, last_name, second_last_name, document_number', 'id'),
   ])
@@ -85,13 +85,28 @@ export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
   const nombre = new Map<string, string>(est.map(e => [String(e.id), [e.first_name, e.last_name, e.second_last_name].filter(Boolean).join(' ')]))
   const documento = new Map<string, string>(est.map(e => [String(e.id), String(e.document_number ?? '')]))
 
-  // El último evento con importe es el que manda: un giro pasa por initiated,
-  // guaranteed, processed y delivered, y el importe final es el de delivered.
-  const giro = new Map<string, { monto: number; fecha: string | null }>()
+  // El último evento manda: un giro pasa por initiated, guaranteed, processed y
+  // delivered, y solo el final dice qué pasó de verdad.
+  const ultimo = new Map<string, { monto: number; fecha: string | null; estado: string }>()
   for (const e of eventos.sort((a, b) => String(a.received_at).localeCompare(String(b.received_at)))) {
     if (!e.payment_id || e.amount_to == null) continue
     const fin = String((e.raw as { finished_date?: string } | null)?.finished_date ?? '').slice(0, 10) || null
-    giro.set(String(e.payment_id), { monto: r2(importeDelEvento(e)), fecha: fin })
+    ultimo.set(String(e.payment_id), { monto: r2(importeDelEvento(e)), fecha: fin, estado: String(e.status ?? '').toLowerCase() })
+  }
+
+  // Solo se exige lo ENTREGADO.
+  //
+  // La primera importación metió el CSV entero —iniciados, caducados,
+  // cancelados—, así que la tabla tiene 20.852 giros de los que 5.714 nunca
+  // llegaron a pagarse. Contarlos como dinero ausente daba un millón de
+  // dólares de falso faltante y enterraba los 49 casos que sí importan.
+  //
+  // Un giro cancelado no es un fallo del ERP: es un intento de pago que el
+  // estudiante no completó.
+  const giro = new Map<string, { monto: number; fecha: string | null }>()
+  for (const [id, u] of ultimo) {
+    if (u.estado !== 'delivered') continue
+    giro.set(id, { monto: u.monto, fecha: u.fecha })
   }
 
   // Lo que el ERP tiene por giro: el pago de origen MÁS sus abonos de
