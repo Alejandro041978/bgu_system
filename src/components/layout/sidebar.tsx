@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target, Gift, ShieldCheck, ShieldOff, PiggyBank,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone, CreditCard, RefreshCw, ListChecks, LayoutGrid, Globe, History,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone, CreditCard, RefreshCw, ListChecks, LayoutGrid, Globe, History, Scale,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -269,6 +269,7 @@ const navigation: NavGroup[] = [
           { name: 'Cargar Pagos Flywire', href: '/finance/flywire', icon: Upload, pageKey: 'finance_flywire_import' },
           { name: 'Pagos por Conciliar', href: '/finance/conciliar', icon: Link2, pageKey: 'finance_conciliar' },
           { name: 'Flywire · Sin conciliar', href: '/finance/flywire-unmatched', icon: FileWarning, pageKey: 'finance_flywire_unmatched' },
+          { name: 'Flywire · Cuadre de importes', href: '/finance/flywire-audit', icon: Scale, pageKey: 'finance_flywire_audit' },
           { name: 'Auditor de Conciliación', href: '/finance/reconciliation', icon: ShieldCheck, pageKey: 'finance_reconciliation' },
           { name: 'Otros Ingresos', href: '/finance/otros-ingresos', icon: Package, pageKey: 'finance_other_income' },
           { name: 'Acceso a Moodle', href: '/academic/moodle-access', icon: ShieldOff, pageKey: 'moodle_access' },

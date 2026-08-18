@@ -41,6 +41,11 @@ export interface CasoFlywire {
   nombre: string
   documento: string | null
   fecha: string | null
+  /** Cómo se identificó el pagador en Flywire. Es lo único que hay cuando el
+   *  giro no llegó a ser un pago de nadie. */
+  pagador: string | null
+  /** Quién tiene que hacer algo. Se deduce de si el pagador existe en el ERP. */
+  accion: 'Admisión' | 'Cobranzas' | 'Sistemas' | 'se puede conciliar'
 }
 
 export interface ResumenFlywire {
@@ -49,6 +54,7 @@ export interface ResumenFlywire {
   cuadran: number
   repartidos_ok: number      // usaron el distribuidor y cuadran
   por_clase: Record<ClaseDesvio, number>
+  dinero_por_clase: Record<ClaseDesvio, number>
   falta_dinero: number       // suma de lo que el ERP registró de menos
   sobra_dinero: number       // suma de lo que registró de más
   casos: CasoFlywire[]
@@ -75,6 +81,23 @@ const importeDelEvento = (e: { event_type: string | null; amount_to: number | nu
 
 const r2 = (n: number) => Math.round(n * 100) / 100
 
+// Un documento escrito a mano se compara sin espacios, puntos ni guiones, y
+// sin los ceros de cabecera: "0703648899" y "703648899" son la misma persona.
+const normDoc = (v: unknown): string =>
+  String(v ?? '').replace(/[\s.\-]/g, '').replace(/^0+/, '')
+
+// El crudo del evento tiene dos formas según de dónde venga: el webhook lo
+// anida en data.fields y la importación por CSV lo deja plano. Se leen las dos
+// porque un giro puede tener eventos de ambos tipos.
+function pagadorDelEvento(raw: unknown): { nombre: string | null; doc: string | null } {
+  const r = (raw ?? {}) as Record<string, unknown>
+  const f = ((r.data as Record<string, unknown> | undefined)?.fields ?? r) as Record<string, unknown>
+  const nombre = [f.first_name ?? f.student_first_name, f.last_name ?? f.student_last_name]
+    .filter(Boolean).join(' ').trim() || null
+  const doc = normDoc(f.dni ?? f.student_id) || null
+  return { nombre, doc }
+}
+
 export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
   const [eventos, pagos, est] = await Promise.all([
     todo(sb, 'flywire_events', 'payment_id, amount_to, event_type, status, received_at, raw', 'id'),
@@ -87,11 +110,18 @@ export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
 
   // El último evento manda: un giro pasa por initiated, guaranteed, processed y
   // delivered, y solo el final dice qué pasó de verdad.
-  const ultimo = new Map<string, { monto: number; fecha: string | null; estado: string }>()
+  const ultimo = new Map<string, { monto: number; fecha: string | null; estado: string; pagador: string | null; doc: string | null }>()
   for (const e of eventos.sort((a, b) => String(a.received_at).localeCompare(String(b.received_at)))) {
     if (!e.payment_id || e.amount_to == null) continue
     const fin = String((e.raw as { finished_date?: string } | null)?.finished_date ?? '').slice(0, 10) || null
-    ultimo.set(String(e.payment_id), { monto: r2(importeDelEvento(e)), fecha: fin, estado: String(e.status ?? '').toLowerCase() })
+    const quien = pagadorDelEvento(e.raw)
+    const previo = ultimo.get(String(e.payment_id))
+    ultimo.set(String(e.payment_id), {
+      monto: r2(importeDelEvento(e)), fecha: fin, estado: String(e.status ?? '').toLowerCase(),
+      // El nombre no viene en todos los avisos: se conserva el que ya se tenía.
+      pagador: quien.nombre ?? previo?.pagador ?? null,
+      doc: quien.doc ?? previo?.doc ?? null,
+    })
   }
 
   // Solo se exige lo ENTREGADO.
@@ -103,10 +133,20 @@ export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
   //
   // Un giro cancelado no es un fallo del ERP: es un intento de pago que el
   // estudiante no completó.
-  const giro = new Map<string, { monto: number; fecha: string | null }>()
+  const giro = new Map<string, { monto: number; fecha: string | null; pagador: string | null; doc: string | null }>()
   for (const [id, u] of ultimo) {
     if (u.estado !== 'delivered') continue
-    giro.set(id, { monto: u.monto, fecha: u.fecha })
+    giro.set(id, { monto: u.monto, fecha: u.fecha, pagador: u.pagador, doc: u.doc })
+  }
+
+  // Para el giro que no llegó a ser pago de nadie, lo único que hay es el
+  // documento con el que el pagador se identificó. Que exista o no un
+  // estudiante con ese documento es justo lo que decide a quién le toca:
+  // Admisión si todavía no está en el ERP, Cobranzas si ya está.
+  const porDocumento = new Map<string, string>()
+  for (const e of est) {
+    const d = normDoc(e.document_number)
+    if (d) porDocumento.set(d, String(e.id))
   }
 
   // Lo que el ERP tiene por giro: el pago de origen MÁS sus abonos de
@@ -157,9 +197,12 @@ export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
     const sid = dueño.get(id) ?? suelto?.student_id ?? null
     if (nFilas === 0) {
       // Flywire lo mandó y en el ERP no hay ni rastro.
+      const suyo = g.doc ? porDocumento.get(g.doc) ?? null : null
       casos.push({
         giro: id, flywire: g.monto, erp: 0, diferencia: g.monto, filas: 0, clase: 'no_registrado',
-        student_id: null, nombre: '(sin identificar)', documento: null, fecha: g.fecha,
+        student_id: suyo, nombre: suyo ? (nombre.get(suyo) ?? '—') : '(no está en el ERP)',
+        documento: g.doc, fecha: g.fecha, pagador: g.pagador,
+        accion: suyo ? 'Cobranzas' : 'Admisión',
       })
       continue
     }
@@ -173,7 +216,8 @@ export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
         casos.push({
           giro: id, flywire: g.monto, erp, diferencia: 0, filas: nFilas, clase: 'partido',
           student_id: sid, nombre: sid ? (nombre.get(sid) ?? '—') : '—',
-          documento: sid ? (documento.get(sid) ?? null) : null, fecha: g.fecha ?? fechaPago.get(id) ?? null,
+          documento: sid ? (documento.get(sid) ?? null) : g.doc, fecha: g.fecha ?? fechaPago.get(id) ?? null,
+          pagador: g.pagador, accion: 'Sistemas',
         })
       }
       continue
@@ -181,15 +225,23 @@ export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
     casos.push({
       giro: id, flywire: g.monto, erp, diferencia: dif, filas: nFilas, clase: 'suma_distinta',
       student_id: sid, nombre: sid ? (nombre.get(sid) ?? '—') : '—',
-      documento: sid ? (documento.get(sid) ?? null) : null, fecha: g.fecha ?? fechaPago.get(id) ?? null,
+      documento: sid ? (documento.get(sid) ?? null) : g.doc, fecha: g.fecha ?? fechaPago.get(id) ?? null,
+      pagador: g.pagador, accion: 'Cobranzas',
     })
   }
 
   const por: Record<ClaseDesvio, number> = { partido: 0, suma_distinta: 0, no_registrado: 0 }
-  for (const c of casos) por[c.clase]++
+  const dinero: Record<ClaseDesvio, number> = { partido: 0, suma_distinta: 0, no_registrado: 0 }
+  for (const c of casos) {
+    por[c.clase]++
+    // Lo que hay en juego: en el no registrado es el giro entero, en el desvío
+    // solo la diferencia, y en el partido nada —la suma ya cuadra—.
+    dinero[c.clase] = r2(dinero[c.clase] + (c.clase === 'no_registrado' ? c.flywire : Math.abs(c.diferencia)))
+  }
   const soloSuma = casos.filter(c => c.clase === 'suma_distinta')
 
   return {
+    dinero_por_clase: dinero,
     giros_conocidos: giro.size,
     giros_en_el_erp: [...giro.keys()].filter(k => (filas.get(k) ?? 0) + (porTexto.get(k)?.n ?? 0) > 0).length,
     cuadran,
