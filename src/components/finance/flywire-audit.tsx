@@ -26,6 +26,7 @@ interface Data {
   repartidos_ok: number
   por_clase: Record<Clase, number>
   dinero_por_clase: Record<Clase, number>
+  resueltos_a_mano: number
   falta_dinero: number
   sobra_dinero: number
   casos: Caso[]
@@ -114,9 +115,9 @@ export function FlywireAudit() {
           <p className="text-[11px] text-gray-400">{((d.cuadran / Math.max(1, d.giros_conocidos)) * 100).toFixed(2)}%</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-          <p className="text-[11px] text-gray-500">Repartidos con el distribuidor</p>
-          <p className="text-lg font-bold text-gray-900">{d.repartidos_ok.toLocaleString('es')}</p>
-          <p className="text-[11px] text-gray-400">cuadran, no son desvío</p>
+          <p className="text-[11px] text-gray-500">Resueltos a mano</p>
+          <p className="text-lg font-bold text-gray-900">{d.resueltos_a_mano.toLocaleString('es')}</p>
+          <p className="text-[11px] text-gray-400">descartados o a Otros Ingresos</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <p className="text-[11px] text-gray-500">Por revisar</p>

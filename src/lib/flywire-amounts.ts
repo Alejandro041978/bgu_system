@@ -55,6 +55,8 @@ export interface ResumenFlywire {
   repartidos_ok: number      // usaron el distribuidor y cuadran
   por_clase: Record<ClaseDesvio, number>
   dinero_por_clase: Record<ClaseDesvio, number>
+  /** Giros que alguien descartó o llevó a Otros Ingresos: no se preguntan más. */
+  resueltos_a_mano: number
   falta_dinero: number       // suma de lo que el ERP registró de menos
   sobra_dinero: number       // suma de lo que registró de más
   casos: CasoFlywire[]
@@ -133,9 +135,20 @@ export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
   //
   // Un giro cancelado no es un fallo del ERP: es un intento de pago que el
   // estudiante no completó.
+  // Un giro que alguien ya resolvió a mano sale de aquí. Se resuelve con un
+  // evento de tipo 'resolution': 'descartado' cuando no era de un estudiante
+  // —pruebas del portal, tasas sueltas— y 'otros_ingresos' cuando el dinero es
+  // real pero se llevó a su propia página. En los dos casos hay una decisión
+  // humana detrás, y repetir la pregunta es ruido: la bandeja de conciliación
+  // ya los descuenta, y este contraste no los descontaba (18/08/2026).
+  const resueltos = new Set<string>(
+    eventos.filter(e => String(e.event_type) === 'resolution' && e.payment_id).map(e => String(e.payment_id)),
+  )
+
   const giro = new Map<string, { monto: number; fecha: string | null; pagador: string | null; doc: string | null }>()
   for (const [id, u] of ultimo) {
     if (u.estado !== 'delivered') continue
+    if (resueltos.has(id)) continue
     giro.set(id, { monto: u.monto, fecha: u.fecha, pagador: u.pagador, doc: u.doc })
   }
 
@@ -241,6 +254,7 @@ export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
   const soloSuma = casos.filter(c => c.clase === 'suma_distinta')
 
   return {
+    resueltos_a_mano: resueltos.size,
     dinero_por_clase: dinero,
     giros_conocidos: giro.size,
     giros_en_el_erp: [...giro.keys()].filter(k => (filas.get(k) ?? 0) + (porTexto.get(k)?.n ?? 0) > 0).length,
