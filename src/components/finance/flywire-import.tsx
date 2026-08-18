@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Loader2, Upload, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { parseCsv, indicesDeCabecera, esFecha, esImporte, esReferencia, ESTADOS_FLYWIRE, type FilaRechazada } from '@/lib/csv'
 
 interface Row {
   reference: string; first_name: string; last_name: string; dni: string
@@ -16,20 +17,8 @@ interface Counts {
   revertido: number; posible_duplicado: number; sin_estudiante: number; nombre_ambiguo: number
 }
 
-// Parser CSV con comillas
-function parseCsv(text: string): string[][] {
-  const lines = text.split(/\r?\n/).filter(l => l.trim())
-  return lines.map(l => {
-    const out: string[] = []; let cur = '', q = false
-    for (const ch of l) {
-      if (ch === '"') q = !q
-      else if (ch === ',' && !q) { out.push(cur); cur = '' }
-      else cur += ch
-    }
-    out.push(cur)
-    return out
-  })
-}
+// El parser vive en @/lib/csv: entiende comillas escapadas y saltos de línea
+// dentro de campo, cosas que el de aquí no hacía.
 
 const CURRENCIES = new Set(['USD', 'PEN', 'EUR', 'COP', 'CLP', 'MXN', 'DOP', 'HNL', 'ARS', 'BOB', 'BRL', 'CRC', 'GTQ', 'NIO', 'PAB', 'PYG', 'UYU', 'VES', 'GBP', 'CAD'])
 
@@ -56,19 +45,41 @@ export function FlywireImport() {
   const [includeDups, setIncludeDups] = useState(false)
   const [excluded, setExcluded] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
+  const [rechazadas, setRechazadas] = useState<FilaRechazada[]>([])
   const [result, setResult] = useState<{ inserted: number; updated: number; enriched: number; associated: number; linked: number; activadas: number; errors: string[] } | null>(null)
 
   async function onFile(f: File) {
-    setFileName(f.name); setCounts(null); setDetalle([]); setResult(null)
+    setFileName(f.name); setCounts(null); setDetalle([]); setResult(null); setRechazadas([])
     const text = await f.text()
     const parsed = parseCsv(text)
-    const header = parsed[0]
-    const col = (n: string) => header.indexOf(n)
+    const idx = indicesDeCabecera(parsed[0] ?? [])
+    const col = (n: string) => idx.get(n.toLowerCase()) ?? -1
     const iRef = col('Transfer Reference'), iFn = col('Student First Name'), iLn = col('Student Last Name')
     const iDni = col('DNI'), iAmt = col('Transfer Amount'), iCf = col('Country From'), iCu = col('Currency From')
     const iMet = col('Payment Method'), iSt = col('Payment Status'), iFd = col('Transfer Finished Date')
     if (iRef < 0 || iSt < 0 || iAmt < 0) { alert('El CSV no parece un reporte de Flywire (faltan columnas)'); return }
-    const out: Row[] = parsed.slice(1).map(r => {
+
+    // Cada fila se comprueba ANTES de aceptarla.
+    //
+    // Sin esto entraron filas con las columnas corridas: importe 72.313.558
+    // —que era el DNI—, estado "online", fecha "delivered". El giro real era de
+    // $150. Ninguno de esos valores es posible en su campo, así que basta con
+    // mirar la forma de cada uno para atraparlas todas.
+    const rechazadas: FilaRechazada[] = []
+    const valida = (r: string[], linea: number): boolean => {
+      const motivos: string[] = []
+      if (!esReferencia((r[iRef] ?? '').trim())) motivos.push(`referencia inválida "${(r[iRef] ?? '').trim().slice(0, 20)}"`)
+      if (!esImporte(r[iAmt] ?? '')) motivos.push(`importe no numérico "${(r[iAmt] ?? '').trim().slice(0, 20)}"`)
+      const est = (r[iSt] ?? '').trim().toLowerCase()
+      if (est && !ESTADOS_FLYWIRE.has(est)) motivos.push(`estado desconocido "${est.slice(0, 20)}"`)
+      const fecha = (r[iFd] ?? '').trim()
+      if (fecha && !esFecha(fecha)) motivos.push(`fecha inválida "${fecha.slice(0, 20)}"`)
+      if (!motivos.length) return true
+      rechazadas.push({ linea, motivo: motivos.join(' · '), crudo: r.join(',').slice(0, 160) })
+      return false
+    }
+
+    const out: Row[] = parsed.slice(1).filter((r, i) => valida(r, i + 2)).map(r => {
       // El export trae Country From y Currency From invertidas: la moneda es el
       // valor que parezca código ISO; el otro es el país de origen del pago
       const a = (r[iCf] ?? '').trim(), b = (r[iCu] ?? '').trim()
@@ -87,6 +98,7 @@ export function FlywireImport() {
         finished_date: (r[iFd] ?? '').trim() || null,
       }
     }).filter(r => r.reference)
+    setRechazadas(rechazadas)
     setRows(out)
     preview(out, includeDups)
   }
@@ -126,6 +138,39 @@ export function FlywireImport() {
         <input type="file" accept=".csv" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f) }} />
       </label>
+
+      {rechazadas.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-3">
+            <p className="text-sm font-semibold text-red-800 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> {rechazadas.length} fila(s) rechazada(s): no se importarán
+            </p>
+            <p className="text-xs text-red-700 mt-1">
+              Sus columnas no tienen la forma que deben —un importe que no es número, una fecha que no es fecha, un
+              estado inexistente—. Casi siempre significa que la fila viene corrida. Antes entraban igual: así se
+              guardó un giro de $150 como si fuera de 72.313.558, que era el DNI.
+            </p>
+          </div>
+          <div className="max-h-56 overflow-auto border-t border-red-200">
+            <table className="w-full text-xs">
+              <tbody className="divide-y divide-red-100">
+                {rechazadas.slice(0, 50).map(r => (
+                  <tr key={r.linea} className="align-top">
+                    <td className="px-4 py-1.5 text-red-500 tabular-nums w-16">línea {r.linea}</td>
+                    <td className="px-2 py-1.5 text-red-800 font-medium w-72">{r.motivo}</td>
+                    <td className="px-4 py-1.5 text-red-400 font-mono truncate">{r.crudo}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {rechazadas.length > 50 && (
+            <p className="px-4 py-2 text-[11px] text-red-500 border-t border-red-200">
+              Se muestran las 50 primeras de {rechazadas.length}.
+            </p>
+          )}
+        </div>
+      )}
 
       {loading && <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>}
 
