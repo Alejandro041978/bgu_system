@@ -111,6 +111,18 @@ function metodoLegible(pm: any): string | null {
   return partes.filter(Boolean).join(' ') || null
 }
 
+// Una fecha que no es una fecha vale menos que ninguna.
+//
+// Las filas del CSV que llegaron con las columnas corridas dejaron cosas como
+// finished_date:"online" en el crudo. Devolver eso como fecha hacía que
+// registrar el pago desde la bandeja fallara contra Postgres —"invalid input
+// syntax for type date"— sin que la pantalla explicara nada. Devolviendo null,
+// quien llama usa su respaldo de siempre (la fecha del aviso) y el pago entra.
+const fechaONada = (v: unknown): string | null => {
+  const s = String(v ?? '').trim().slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s)) ? s : null
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function datosDePago(raw: any): DatosPago {
   const d = raw?.data ?? null
@@ -123,7 +135,7 @@ export function datosDePago(raw: any): DatosPago {
       importe: desdeSubunidades(d.amount_to != null ? Number(d.amount_to) : null, d.currency_to),
       moneda: d.currency_to ?? null,
       metodo: metodoLegible(d.payment_method),
-      fecha: d.finished_date ? String(d.finished_date).slice(0, 10) : null,
+      fecha: fechaONada(d.finished_date),
     }
   }
   const nombre = [raw?.first_name, raw?.last_name].filter(Boolean).join(' ').trim()
@@ -134,6 +146,6 @@ export function datosDePago(raw: any): DatosPago {
     importe: raw?.amount != null && raw.amount !== '' ? Number(raw.amount) : null,
     moneda: raw?.currency ?? null,
     metodo: metodoLegible(raw?.method),
-    fecha: raw?.finished_date ? String(raw.finished_date).slice(0, 10) : null,
+    fecha: fechaONada(raw?.finished_date),
   }
 }
