@@ -114,8 +114,38 @@ export async function POST(req: NextRequest) {
     rows?: { disbursement_id?: string; date?: string; amount?: number; currency?: string }[]
     commit?: boolean
   } | null
-  const rows = (b?.rows ?? []).filter(r => r.disbursement_id && Number(r.amount))
-  if (!rows.length) return NextResponse.json({ error: 'No se detectaron desembolsos válidos (revisa que el CSV tenga id, monto y fecha)' }, { status: 400 })
+  const crudas = (b?.rows ?? []).filter(r => r.disbursement_id && Number(r.amount))
+  if (!crudas.length) return NextResponse.json({ error: 'No se detectaron desembolsos válidos (revisa que el CSV tenga id, monto y fecha)' }, { status: 400 })
+
+  // Dos filas con el mismo identificador rompían el upsert con un error de
+  // Postgres —"ON CONFLICT DO UPDATE cannot affect row a second time"— que la
+  // pantalla mostraba como "falta correr flywire_disbursements.sql". Ni era eso
+  // ni había forma de adivinarlo desde el aviso.
+  //
+  // Hay dos casos y NO se tratan igual:
+  //
+  //  · la misma fila repetida (mismo importe y fecha): es ruido del export, se
+  //    queda una y no se pierde nada;
+  //  · el mismo identificador con importes distintos: eso es dinero que no
+  //    cuadra, y elegir uno por su cuenta es justo lo que no debe hacer un
+  //    importador. Se para y se dice cuáles son.
+  const porId = new Map<string, typeof crudas>()
+  for (const r of crudas) {
+    const k = String(r.disbursement_id)
+    porId.set(k, [...(porId.get(k) ?? []), r])
+  }
+  const enConflicto = [...porId.entries()].filter(([, v]) =>
+    new Set(v.map(r => `${Number(r.amount)}|${r.date ?? ''}`)).size > 1)
+  if (enConflicto.length) {
+    return NextResponse.json({
+      error: `El CSV trae ${enConflicto.length} identificador(es) repetido(s) con datos distintos, así que no se importa nada: `
+        + enConflicto.slice(0, 5).map(([k, v]) => `${k} (${v.map(r => `${r.date ?? 'sin fecha'} $${Number(r.amount)}`).join(' y ')})`).join('; ')
+        + (enConflicto.length > 5 ? ` …y ${enConflicto.length - 5} más` : '')
+        + '. Corrige el archivo o dale un identificador propio a cada desembolso.',
+    }, { status: 400 })
+  }
+  const rows = [...porId.values()].map(v => v[0])
+  const repetidas = crudas.length - rows.length
 
   const sb = db()
 
@@ -163,7 +193,7 @@ export async function POST(req: NextRequest) {
   // PREVIEW: no escribe nada
   if (!b?.commit) {
     return NextResponse.json({
-      preview: true, total: rows.length, already, matched: nuevos, unmatched: sinCruce,
+      preview: true, total: rows.length, already, matched: nuevos, unmatched: sinCruce, repetidas,
       sample: plan.slice(0, 6).map(p => ({ disbursement_id: p.row.disbursement_id, date: p.row.date, amount: Number(p.row.amount), estado: p.already ? 'ya conciliado' : p.op ? 'cruza (nuevo)' : 'sin cruce' })),
     })
   }
@@ -182,7 +212,16 @@ export async function POST(req: NextRequest) {
   let imported = 0
   for (let i = 0; i < disbRows.length; i += 200) {
     const { error } = await sb.from('flywire_disbursements').upsert(disbRows.slice(i, i + 200), { onConflict: 'disbursement_id' })
-    if (error) return NextResponse.json({ error: 'Falta correr flywire_disbursements.sql: ' + error.message, imported }, { status: 400 })
+    // Antes, CUALQUIER fallo aquí se anunciaba como "falta correr la
+    // migración". Es cierto solo cuando la tabla no existe; en los demás casos
+    // mandaba a buscar donde no era. Se distingue por el mensaje de Postgres.
+    if (error) {
+      const falta = /does not exist|schema cache|relation .* does not exist/i.test(String(error.message))
+      return NextResponse.json({
+        error: falta ? `Falta correr flywire_disbursements.sql: ${error.message}` : `No se pudo guardar: ${error.message}`,
+        imported,
+      }, { status: 400 })
+    }
     imported += Math.min(200, disbRows.length - i)
   }
   // Marcar como conciliadas SOLO las operaciones cruzadas NUEVAS (las ya

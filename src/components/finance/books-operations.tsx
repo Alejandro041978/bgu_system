@@ -22,7 +22,7 @@ interface Pago {
 interface Sug { operation_id: string; date: string | null; amount: number; diff: number; by?: 'ref' | 'fecha' }
 interface Disb { id: string; disbursement_id: string; disbursement_date: string | null; amount: number; currency: string | null; matched_operation_id: string | null; suggestion?: Sug | null }
 interface DisbRow { disbursement_id: string; date: string | null; amount: number; currency: string | null; count: number | null }
-interface Preview { total: number; already: number; matched: number; unmatched: number; sample: { disbursement_id: string; date: string | null; amount: number; estado: string }[]; cols: string }
+interface Preview { total: number; already: number; matched: number; unmatched: number; repetidas?: number; sample: { disbursement_id: string; date: string | null; amount: number; estado: string }[]; cols: string }
 
 const money = (n: number | null) => n == null ? '—' : `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
 
@@ -331,6 +331,7 @@ export function BooksOperations() {
             {preview.already > 0 && <span className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 tabular-nums">{preview.already} ya conciliados</span>}
             <span className="px-3 py-1.5 rounded-lg bg-green-50 border border-green-200 text-green-700 tabular-nums">{preview.matched} cruzan (nuevos)</span>
             <span className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 tabular-nums">{preview.unmatched} sin cruce</span>
+            {(preview.repetidas ?? 0) > 0 && <span className="px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-300 text-gray-600 tabular-nums">{preview.repetidas} fila(s) repetida(s) descartada(s)</span>}
           </div>
           <div className="text-xs text-gray-500">
             {preview.sample.map((s, i) => (
