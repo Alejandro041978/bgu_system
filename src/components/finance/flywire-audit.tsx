@@ -27,6 +27,7 @@ interface Data {
   por_clase: Record<Clase, number>
   dinero_por_clase: Record<Clase, number>
   resueltos_a_mano: number
+  en_vuelo: { total: number; sin_pago: number; viejos_sin_pago: Caso[] }
   falta_dinero: number
   sobra_dinero: number
   casos: Caso[]
@@ -125,6 +126,28 @@ export function FlywireAudit() {
         </div>
       </div>
 
+      {/* Aviso solo cuando hay algo que avisar: un giro sin estado final es
+          normal mientras es reciente, y deja de serlo pasado un mes. */}
+      {d.en_vuelo.viejos_sin_pago.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <p className="text-sm font-medium text-red-800">
+            {d.en_vuelo.viejos_sin_pago.length} giro{d.en_vuelo.viejos_sin_pago.length > 1 ? 's' : ''} llevan más de
+            un mes sin estado final y sin pago en el ERP
+          </p>
+          <p className="text-xs text-red-700 mt-1">
+            Flywire nunca mandó el aviso de entrega. Si el dinero llegó, no está registrado; si no llegó, el giro se
+            quedó a medias. En los dos casos hay que mirarlo en el portal.
+          </p>
+          <ul className="mt-2 space-y-0.5">
+            {d.en_vuelo.viejos_sin_pago.map(c => (
+              <li key={c.giro} className="text-xs text-red-800 font-mono">
+                {c.giro} · {money(c.flywire)} · {c.pagador ?? '—'} · {c.nombre}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Las tres clases, como pestañas: cada una es un trabajo distinto. */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {CLASES.map(c => {
@@ -221,7 +244,8 @@ export function FlywireAudit() {
       <p className="flex items-start gap-2 text-xs text-gray-400">
         <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
         Solo se exige lo <strong className="font-medium">entregado</strong>: un giro caducado o cancelado no es dinero que
-        haya llegado. Una diferencia en positivo significa que Flywire entregó más de lo que el ERP tiene registrado;
+        haya llegado. Hay {d.en_vuelo.total} giro{d.en_vuelo.total === 1 ? '' : 's'} todavía en vuelo
+        ({d.en_vuelo.sin_pago} sin pago aún), que no se cuentan aquí hasta que Flywire avise de la entrega. Una diferencia en positivo significa que Flywire entregó más de lo que el ERP tiene registrado;
         en negativo, que el ERP tiene de más. Lo que ocurra después con ese dinero —a qué cuota se aplica, si sobra o
         falta para cubrirla— es trabajo de Cobranzas y no se observa aquí.
       </p>

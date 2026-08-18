@@ -57,6 +57,9 @@ export interface ResumenFlywire {
   dinero_por_clase: Record<ClaseDesvio, number>
   /** Giros que alguien descartó o llevó a Otros Ingresos: no se preguntan más. */
   resueltos_a_mano: number
+  /** Giros sin estado final (initiated, guaranteed, processed) y sin pago en el
+   *  ERP. Mientras son recientes es normal; pasados 30 días, no. */
+  en_vuelo: { total: number; sin_pago: number; viejos_sin_pago: CasoFlywire[] }
   falta_dinero: number       // suma de lo que el ERP registró de menos
   sobra_dinero: number       // suma de lo que registró de más
   casos: CasoFlywire[]
@@ -100,7 +103,13 @@ function pagadorDelEvento(raw: unknown): { nombre: string | null; doc: string | 
   return { nombre, doc }
 }
 
-export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
+// Un giro sin estado final no es un fallo mientras sea reciente: está en
+// camino. Se vuelve un problema cuando pasan semanas, porque significa que el
+// aviso final nunca llegó y el dinero pudo entrar sin que nadie lo registre.
+const EN_VUELO = new Set(['initiated', 'guaranteed', 'processed', 'pending'])
+const DIAS_DE_GRACIA = 30
+
+export async function auditarImportesFlywire(sb: SB, hoy?: string): Promise<ResumenFlywire> {
   const [eventos, pagos, est] = await Promise.all([
     todo(sb, 'flywire_events', 'payment_id, amount_to, event_type, status, received_at, raw', 'id'),
     todo(sb, 'account_payments', 'id, student_id, amount, paid_date, flywire_payment_id, distributed_from_payment_id, transaction_reference', 'id'),
@@ -113,8 +122,12 @@ export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
   // El último evento manda: un giro pasa por initiated, guaranteed, processed y
   // delivered, y solo el final dice qué pasó de verdad.
   const ultimo = new Map<string, { monto: number; fecha: string | null; estado: string; pagador: string | null; doc: string | null }>()
+  // Cuándo se supo del giro por primera vez: es lo que permite distinguir un
+  // giro en camino de uno que se quedó a medias hace meses.
+  const visto = new Map<string, string>()
   for (const e of eventos.sort((a, b) => String(a.received_at).localeCompare(String(b.received_at)))) {
     if (!e.payment_id || e.amount_to == null) continue
+    if (!visto.has(String(e.payment_id))) visto.set(String(e.payment_id), String(e.received_at ?? '').slice(0, 10))
     const fin = String((e.raw as { finished_date?: string } | null)?.finished_date ?? '').slice(0, 10) || null
     const quien = pagadorDelEvento(e.raw)
     const previo = ultimo.get(String(e.payment_id))
@@ -243,6 +256,32 @@ export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
     })
   }
 
+  // El punto ciego de este contraste: al exigir 'delivered' se deja fuera todo
+  // lo que sigue en vuelo, así que un giro cuyo aviso final nunca llegó no
+  // aparece ni como bueno ni como malo. Se descubrió con el CSV de 2026: 74
+  // giros que Flywire daba por entregados seguían aquí como 'processed' o
+  // 'guaranteed' (18/08/2026). Aquellos ya tenían su pago, pero la clase era
+  // invisible, y una clase invisible acaba escondiendo un caso que no lo es.
+  const ahora = hoy ?? new Date().toISOString().slice(0, 10)
+  const diasDesde = (d: string | undefined): number =>
+    d ? Math.round((Date.parse(ahora) - Date.parse(d)) / 86400000) : 0
+  const viejosSinPago: CasoFlywire[] = []
+  let enVuelo = 0, enVueloSinPago = 0
+  for (const [id, u] of ultimo) {
+    if (!EN_VUELO.has(u.estado) || resueltos.has(id)) continue
+    enVuelo++
+    if ((filas.get(id) ?? 0) + (porTexto.get(id)?.n ?? 0) > 0) continue
+    enVueloSinPago++
+    if (diasDesde(visto.get(id)) <= DIAS_DE_GRACIA) continue
+    const suyo = u.doc ? porDocumento.get(u.doc) ?? null : null
+    viejosSinPago.push({
+      giro: id, flywire: u.monto, erp: 0, diferencia: u.monto, filas: 0, clase: 'no_registrado',
+      student_id: suyo, nombre: suyo ? (nombre.get(suyo) ?? '—') : `(en "${u.estado}" desde hace ${diasDesde(visto.get(id))} días)`,
+      documento: u.doc, fecha: u.fecha ?? visto.get(id) ?? null, pagador: u.pagador,
+      accion: suyo ? 'Cobranzas' : 'Sistemas',
+    })
+  }
+
   const por: Record<ClaseDesvio, number> = { partido: 0, suma_distinta: 0, no_registrado: 0 }
   const dinero: Record<ClaseDesvio, number> = { partido: 0, suma_distinta: 0, no_registrado: 0 }
   for (const c of casos) {
@@ -255,6 +294,7 @@ export async function auditarImportesFlywire(sb: SB): Promise<ResumenFlywire> {
 
   return {
     resueltos_a_mano: resueltos.size,
+    en_vuelo: { total: enVuelo, sin_pago: enVueloSinPago, viejos_sin_pago: viejosSinPago },
     dinero_por_clase: dinero,
     giros_conocidos: giro.size,
     giros_en_el_erp: [...giro.keys()].filter(k => (filas.get(k) ?? 0) + (porTexto.get(k)?.n ?? 0) > 0).length,
