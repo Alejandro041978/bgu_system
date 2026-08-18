@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Loader2, Search, Pencil, X, ShieldCheck } from 'lucide-react'
 
 interface Fila {
-  external_id: string
+  external_id: string | null
+  enrollment_id: string | null
   document_number: string | null
   student_name: string | null
   course_name: string | null
@@ -21,6 +22,7 @@ interface Data {
   asignaturas: Asignatura[]
   filas: Fila[]
   total: number
+  sin_nota?: number
   limite?: number
   sin_alcance?: boolean
 }
@@ -78,7 +80,10 @@ export function ScopedGrades({ endpoint, explica }: { endpoint: string; explica:
     setGuardando(true); setErrEdit(null)
     const r = await fetch(endpoint, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ external_id: editando.external_id, changes: { final_grade: n }, reason: fMotivo.trim() }),
+      body: JSON.stringify({
+        ...(editando.external_id ? { external_id: editando.external_id } : { enrollment_id: editando.enrollment_id }),
+        changes: { final_grade: n }, reason: fMotivo.trim(),
+      }),
     })
     const d = await r.json().catch(() => ({ error: 'Error de red' }))
     setGuardando(false)
@@ -127,6 +132,7 @@ export function ScopedGrades({ endpoint, explica }: { endpoint: string; explica:
             <div className="px-4 py-2.5 border-b border-gray-100 flex items-baseline justify-between">
               <p className="text-xs text-gray-500">
                 {data.total} inscripcion{data.total === 1 ? '' : 'es'} en el ámbito
+                {(data.sin_nota ?? 0) > 0 && <span className="text-amber-600 font-medium"> · {data.sin_nota} sin nota</span>}
                 {data.limite && data.total > data.limite ? ` · se muestran ${data.limite}, afina la búsqueda` : ''}
               </p>
             </div>
@@ -147,7 +153,7 @@ export function ScopedGrades({ endpoint, explica }: { endpoint: string; explica:
                     const st = ESTADO[String(f.estado)] ?? { label: '—', cls: 'bg-gray-50 text-gray-400' }
                     const nota = f.retake_grade ?? f.final_grade
                     return (
-                      <tr key={f.external_id} className="hover:bg-gray-50/60">
+                      <tr key={f.external_id ?? f.enrollment_id ?? Math.random()} className="hover:bg-gray-50/60">
                         <td className="px-3 py-2.5">
                           <p className="text-gray-800">{f.student_name ?? '—'}</p>
                           <p className="text-[11px] text-gray-400">{f.document_number ?? '—'}</p>
