@@ -37,6 +37,10 @@
       "schedule": "45 4 * * *"
     },
     {
+      "path": "/api/cron/grade-status",
+      "schedule": "50 4 * * *"
+    },
+    {
       "path": "/api/cron/graduates",
       "schedule": "50 4 * * *"
     },

@@ -51,13 +51,23 @@ async function todo(sb: any, tabla: string, cols: string, orden: string) {
 //
 // Por omisión simula. Escribe con ?apply=1.
 // ---------------------------------------------------------------------------
+// El cron nocturno entra por el secreto, no por sesión: no hay ningún usuario
+// detrás. Solo abre esta reconstrucción, que es determinista —recalcula el
+// estado a partir de la nota y el mínimo, sin elegir ninguna de las dos— y por
+// tanto idempotente: correrla cada noche no cambia nada si ya está al día.
+function esCron(req: NextRequest): boolean {
+  const s = process.env.CRON_SECRET
+  return !!s && req.headers.get('x-cron-secret') === s
+}
+
 export async function POST(req: NextRequest) {
-  const g = await requireStaff(); if ('error' in g) return g.error
+  const cron = esCron(req)
+  if (!cron) { const g = await requireStaff(); if ('error' in g) return g.error }
   const apply = req.nextUrl.searchParams.get('apply') === '1'
   // Reescribe el veredicto (aprobado/reprobado/pendiente) de todo el expediente
   // de golpe. No elige la nota, pero decide lo que el acta dice de ella: se
   // aplica con la misma llave que editarla. Simular sigue abierto.
-  if (apply) { const s = await guardSuperadmin(); if (s) return s }
+  if (apply && !cron) { const s = await guardSuperadmin(); if (s) return s }
   const sb = db()
   const t0 = Date.now()
 
