@@ -143,6 +143,52 @@ export async function GET() {
   const porEstado = new Map<string, number>()
   for (const r of rows) porEstado.set(estadoDe(r), (porEstado.get(estadoDe(r)) ?? 0) + 1)
 
+  // ── Aulas que no están dando ninguna nota ─────────────────────────────────
+  //
+  // El auditor medía la ESTRUCTURA del aula —recursos, ponderaciones, escala— y
+  // daba por bueno todo lo que cumplía. Pero un aula puede cumplir la política
+  // entera y no entregar una sola nota al expediente, y eso no aparecía en
+  // ninguna parte: para enterarse había que abrir la vista previa de
+  // importación de esa aula concreta y contar a mano.
+  //
+  // Así estaba el aula 340 (MIS 470, 331 alumnos): política en verde, vínculo
+  // vivo, sync activo, importada cada día… y cero notas en el expediente desde
+  // siempre. Lo mismo en otras 115 aulas, 2.765 matrículas (19/08/2026).
+  //
+  // La señal no cuesta una llamada más a Moodle: el ERP ya sabe cuántas notas
+  // tiene de cada aula. Se pregunta por el RESULTADO —¿llegó algo?— en vez de
+  // por la causa, que puede ser cualquiera de muchas.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const notasPorAula = new Map<number, number>()
+  for (let from = 0; ; from += 1000) {
+    const { data } = await sb.from('academic_grades')
+      .select('moodle_course_id').not('moodle_course_id', 'is', null).order('external_id').range(from, from + 999)
+    const chunk = data ?? []
+    for (const g of chunk as { moodle_course_id: number }[]) {
+      notasPorAula.set(Number(g.moodle_course_id), (notasPorAula.get(Number(g.moodle_course_id)) ?? 0) + 1)
+    }
+    if (chunk.length < 1000) break
+  }
+  const { data: linksVivos } = await sb.from('moodle_course_links')
+    .select('aula_id, sync_enabled').is('replaced_at', null)
+  const sincronizables = new Set(
+    ((linksVivos ?? []) as { aula_id: number; sync_enabled: boolean }[])
+      .filter(l => l.sync_enabled).map(l => Number(l.aula_id)))
+
+  // Un aula "muda" es la que tiene todo a favor y aun así no ha entregado nada.
+  // Se exige vínculo con sync, alumnos dentro y que no sea capstone ni campus
+  // socio —en esas dos la nota nace fuera del aula y es normal que no importe—.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const esMuda = (r: any): boolean =>
+    sincronizables.has(Number(r.aula_id))
+    && Number(r.matriculados ?? 0) > 0
+    && !aulasCapstone.has(Number(r.aula_id))
+    && !(notasPorAula.get(Number(r.aula_id)) ?? 0)
+  const mudas = rows.filter(esMuda)
+  // Alumnos que no cruzan por no tener idnumber en Moodle. Es un arreglo
+  // distinto y de otro equipo: no se mezcla con el anterior.
+  const conAlumnosSinIdnumber = rows.filter(r => Number(r.sin_idnumber ?? 0) > 0)
+
   // Resumen por FAMILIA (la categoría padre de Moodle). Con la auditoría
   // partida por categorías, la foto deja de ser homogénea: cada familia tiene su
   // propia antigüedad. Sin esto, un "última auditoría" global mentiría — que es
@@ -239,6 +285,24 @@ export async function GET() {
     // Aulas donde el ERP NO puede matricular: sin este dato, el síntoma era una
     // importación que devolvía cero alumnos sin quejarse.
     sin_matricula_manual: rows.filter(r => r.manual_enrol === false).length,
+    // Lo que el equipo de eLearning tiene que arreglar para que fluya la
+    // importación, con nombre y apellido en vez de "revisa el campus".
+    sin_notas: {
+      aulas: mudas.length,
+      matriculas: mudas.reduce((s, r) => s + Number(r.matriculados ?? 0), 0),
+      lista: mudas
+        .sort((a, b) => Number(b.matriculados ?? 0) - Number(a.matriculados ?? 0))
+        .slice(0, 60)
+        .map(r => ({ aula_id: r.aula_id, shortname: r.shortname, matriculados: r.matriculados, linked_course: r.linked_course })),
+    },
+    sin_idnumber: {
+      aulas: conAlumnosSinIdnumber.length,
+      alumnos: conAlumnosSinIdnumber.reduce((s, r) => s + Number(r.sin_idnumber ?? 0), 0),
+      lista: conAlumnosSinIdnumber
+        .sort((a, b) => Number(b.sin_idnumber ?? 0) - Number(a.sin_idnumber ?? 0))
+        .slice(0, 60)
+        .map(r => ({ aula_id: r.aula_id, shortname: r.shortname, sin_idnumber: r.sin_idnumber, matriculados: r.matriculados })),
+    },
     // La marca viaja con cada fila para que la pantalla clasifique con el mismo
     // criterio que el resumen. Recalcularla allí a partir del nombre —lo único
     // que la fila trae— daría otro número, y ya sabemos cuánto se pierde así.
@@ -440,9 +504,18 @@ export async function POST(req: NextRequest) {
     // Cuántos estudiantes hay realmente. Un aula con 0 y estudiantes esperando
     // es el síntoma que hasta ahora pasaba desapercibido.
     let matriculados: number | null = null
+    // Alumnos que el ERP nunca podrá emparejar: el puente con Moodle es el
+    // idnumber contra external_id, y un idnumber vacío no cruza con nadie por
+    // bien configurado que esté el resto. En el aula 340 eran 10 de 331, y el
+    // auditor no lo decía en ninguna parte: había que abrir la vista previa de
+    // importación de esa aula concreta para enterarse (19/08/2026).
+    let sinIdnumber: number | null = null
     try {
       const todos = await moodleCall('core_enrol_get_enrolled_users', { courseid: c.id })
-      matriculados = Array.isArray(todos) ? todos.length : null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const arr = (Array.isArray(todos) ? todos : []) as any[]
+      matriculados = Array.isArray(todos) ? arr.length : null
+      sinIdnumber = arr.filter(u => !String(u.idnumber ?? '').trim()).length
     } catch { /* sin permiso para listar: queda null */ }
 
     try {
@@ -491,7 +564,7 @@ export async function POST(req: NextRequest) {
       let metodo = 'alumno'
       let desmatricular = false
       if (!readerId) {
-        if (!auditorId) return { ...base, ...vacio, enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, recursos, recursos_activos: recursosActivos, metodo: null, error: manualEnrol === false ? "el aula no tiene matriculación manual habilitada: el ERP no puede matricular" : "aula vacía y sin cuenta de servicio" }
+        if (!auditorId) return { ...base, ...vacio, enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, sin_idnumber: sinIdnumber, recursos, recursos_activos: recursosActivos, metodo: null, error: manualEnrol === false ? "el aula no tiene matriculación manual habilitada: el ERP no puede matricular" : "aula vacía y sin cuenta de servicio" }
         await moodleCall('enrol_manual_enrol_users', { enrolments: [{ roleid: MOODLE_STUDENT_ROLEID, userid: auditorId, courseid: c.id }] })
         readerId = auditorId
         metodo = 'auditor'
@@ -557,12 +630,12 @@ export async function POST(req: NextRequest) {
         escala_total: escala,
         cumple_pesos: sinEvaluaciones ? null : (sumaPesos == null ? null : Math.abs(sumaPesos - 100) <= 0.5),
         cumple_escala: sinEvaluaciones ? null : (escala == null ? null : escala === 100),
-        enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados,
+        enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, sin_idnumber: sinIdnumber,
         metodo: lectoresProbados > 1 ? `${metodo} (${lectoresProbados} lectores)` : metodo,
         error: manualEnrol === false ? "sin matriculación manual: el ERP no puede matricular aquí" : null,
       }
     } catch (e) {
-      return { ...base, ...vacio, enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, metodo: null, error: e instanceof Error ? e.message.slice(0, 120) : 'error' }
+      return { ...base, ...vacio, enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, sin_idnumber: sinIdnumber, metodo: null, error: e instanceof Error ? e.message.slice(0, 120) : 'error' }
     }
   }
 

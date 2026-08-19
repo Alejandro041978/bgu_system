@@ -24,6 +24,8 @@ interface Data {
   sin_evaluaciones: number; sin_ponderacion: number
   sin_datos: number; vinculadas: number; sin_matricula_manual: number; coefs_caducados?: number
   audited_at_mas_antigua?: string | null
+  sin_notas?: { aulas: number; matriculas: number; lista: { aula_id: number; shortname: string; matriculados: number | null; linked_course: string | null }[] }
+  sin_idnumber?: { aulas: number; alumnos: number; lista: { aula_id: number; shortname: string; sin_idnumber: number | null; matriculados: number | null }[] }
   excluidas?: number
   excluidas_por?: { ruta: string; nota: string | null; aulas: number }[]
   familias?: Familia[]
@@ -250,6 +252,55 @@ export function CampusAudit() {
 
       {d && d.total > 0 && (
         <>
+          {/* Lo que impide que las notas lleguen al expediente.
+              Va ARRIBA y aparte de la política porque es otro trabajo y otro
+              equipo: un aula puede cumplir la política entera y no entregar
+              una sola nota, y eso antes no se veía en ninguna pantalla. */}
+          {((d.sin_notas?.aulas ?? 0) > 0 || (d.sin_idnumber?.alumnos ?? 0) > 0) && (
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-rose-900">Impide que las notas lleguen al expediente</p>
+              {(d.sin_notas?.aulas ?? 0) > 0 && (
+                <details className="group">
+                  <summary className="cursor-pointer text-sm text-rose-800">
+                    <span className="font-bold">{d.sin_notas!.aulas}</span> aula(s) vinculadas y con alumnos que no han
+                    entregado <span className="font-bold">ninguna</span> nota — {d.sin_notas!.matriculas.toLocaleString('es')} matrículas dentro
+                  </summary>
+                  <p className="text-xs text-rose-700 mt-1.5 mb-2">
+                    Cumplen la política, el vínculo está vivo y el sync activo, pero el expediente no ha recibido nada de
+                    ellas. Revisa en Moodle si el libro de calificaciones tiene alguna actividad calificada y si el
+                    &quot;Total del curso&quot; está visible: el ERP solo importa al alumno cuyo total trae valor.
+                  </p>
+                  <ul className="space-y-0.5 max-h-56 overflow-auto">
+                    {d.sin_notas!.lista.map(a => (
+                      <li key={a.aula_id} className="text-xs text-rose-800 font-mono">
+                        {a.aula_id} · {a.shortname} · {a.matriculados ?? '—'} alumnos{a.linked_course ? ` → ${a.linked_course}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              {(d.sin_idnumber?.alumnos ?? 0) > 0 && (
+                <details className="group">
+                  <summary className="cursor-pointer text-sm text-rose-800">
+                    <span className="font-bold">{d.sin_idnumber!.alumnos}</span> alumno(s) sin <span className="font-mono">idnumber</span> en
+                    Moodle, repartidos en {d.sin_idnumber!.aulas} aula(s)
+                  </summary>
+                  <p className="text-xs text-rose-700 mt-1.5 mb-2">
+                    El puente con el ERP es el <span className="font-mono">idnumber</span> del usuario de Moodle. Vacío, no cruza
+                    con nadie: su nota no se importa por bien configurada que esté el aula.
+                  </p>
+                  <ul className="space-y-0.5 max-h-56 overflow-auto">
+                    {d.sin_idnumber!.lista.map(a => (
+                      <li key={a.aula_id} className="text-xs text-rose-800 font-mono">
+                        {a.aula_id} · {a.shortname} · {a.sin_idnumber} de {a.matriculados ?? '—'}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <button onClick={() => setFiltro('todas')} className={`rounded-lg p-3 text-left border ${filtro === 'todas' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'}`}>
               <p className="text-2xl font-bold text-gray-900">{d.total}</p>
