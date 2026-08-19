@@ -66,6 +66,17 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // ¿Hay alumno detrás de esta fila? Un valor por encima de cero acompañado de
+  // al menos una evaluación rendida. Un cero con las doce casillas vacías no es
+  // un cero: es una fila que nunca se usó.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tieneTrabajo = (d: any): boolean => {
+    const v = d.retake_grade ?? d.final_grade
+    if (v == null || Number(v) <= 0) return false
+    const p = Array.isArray(d.process_grades) ? d.process_grades : []
+    return p.some((x: { val?: number | null }) => x?.val != null && Number(x.val) > 0)
+  }
+
   const progByEnr = new Map<string, string>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const e of (enr ?? []) as any[]) progByEnr.set(e.id, e.academic_programs?.name ?? 'Programa')
@@ -89,9 +100,12 @@ export async function GET(req: NextRequest) {
   //      migración, con los códigos de orden de SystemActiva— y para quien
   //      lleva un solo programa no hay ambigüedad posible.
   //
-  // Lo que queda sin resolver son 10 filas de un estudiante con varios
-  // programas y sin course_id. Ahí "Sin programa" es la respuesta honesta:
-  // elegir uno sería inventarlo.
+  // Una asignatura pertenece SIEMPRE a un programa y solo a uno: el course_id
+  // es lo que las distingue, y dos asignaturas pueden llamarse igual en
+  // programas distintos. Así que "sin programa" no es un caso posible, es un
+  // dato roto — y por eso el último escalón no es un cajón silencioso sino una
+  // etiqueta que pide revisión. Tras descartar los restos de la migración, hoy
+  // no lo alcanza ninguna fila.
   const cursoAPrograma = new Map<string, string>()
   const idsCurso = [...new Set([...cursoByExt.values()].filter(Boolean).map(String))]
   for (let i = 0; i < idsCurso.length; i += 300) {
@@ -109,7 +123,7 @@ export async function GET(req: NextRequest) {
     if (enrollmentId && progByEnr.has(enrollmentId)) return progByEnr.get(enrollmentId)!
     const cid = cursoByExt.get(externalId)
     if (cid && cursoAPrograma.has(String(cid))) return cursoAPrograma.get(String(cid))!
-    return unicoPrograma ?? 'Sin programa'
+    return unicoPrograma ?? 'Programa sin identificar · revisar'
   }
 
   const malla = await codigosDeMalla(sb, [...cursoByExt.values()])
@@ -181,6 +195,20 @@ export async function GET(req: NextRequest) {
     // hecho académico y debe verse aunque además esté validada — justamente el
     // caso que el auditor de vínculos señala para que alguien lo revise.
     .filter(d => !(resueltas.has(courseNameKey(d.course_name)) && d.final_grade == null))
+    // Restos de la migración: filas de detalle cuya NOTA ya no existe.
+    //
+    // Al separar el registro curricular de las calificaciones se sacaron 6.638
+    // inscripciones sin calificar de academic_grades, pero su detalle se quedó
+    // aquí: 7.079 filas de 1.559 estudiantes que el acta seguía dibujando como
+    // asignaturas "En curso" sin nota. Son las que aparecían bajo "Sin
+    // programa", porque una fila sin nota no tiene course_id que consultar.
+    //
+    // No se ocultan todas a ciegas. Se conserva la que tenga TRABAJO detrás
+    // —una nota mayor que cero con alguna evaluación rendida—, porque esa no es
+    // un resto sino una calificación que perdió su fila y hay que verla para
+    // poder arreglarla. Son 3 en toda la base; las otras 7.076 no tienen ni una
+    // evaluación por encima de cero.
+    .filter(d => notaByExt.has(String(d.external_id)) || tieneTrabajo(d))
     .map(d => {
   // Las evaluaciones se normalizan al leer: fuera el "Total" sintético del
   // importador y fuera el agrupamiento de proceso de SystemActiva. Los pesos
