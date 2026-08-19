@@ -378,13 +378,33 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Vínculos aula → asignatura del ERP
+  // Vínculos aula → asignatura del ERP.
+  //
+  // Se leían solo de semester_offerings, y el vínculo que de verdad usa el
+  // importador vive en moodle_course_links. Dos tablas distintas para la misma
+  // pregunta: la pantalla decía "sin vincular" de 486 aulas que estaban
+  // vinculadas y llevaban meses importando notas — entre ellas la 712, que
+  // había importado esa misma mañana (19/08/2026). Un auditor que se equivoca
+  // en esa columna manda a vincular lo que ya está vinculado y esconde lo que
+  // de verdad falta.
+  //
+  // Manda moodle_course_links, que es la tabla del importador; la oferta se
+  // conserva como respaldo para las aulas que solo estén enlazadas por ahí.
+  const linkedBy = new Map<number, string>()
   const { data: offs } = await sb.from('semester_offerings')
     .select('moodle_course_id, course:academic_courses(code, name)').not('moodle_course_id', 'is', null)
-  const linkedBy = new Map<number, string>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const o of (offs ?? []) as any[]) {
     if (o.course) linkedBy.set(Number(o.moodle_course_id), `${o.course.code ?? ''} · ${o.course.name ?? ''}`)
+  }
+  const { data: mcl } = await sb.from('moodle_course_links')
+    .select('aula_id, sync_enabled, replaced_at, course:academic_courses(code, name)').is('replaced_at', null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const l of (mcl ?? []) as any[]) {
+    if (!l.course) continue
+    // Un vínculo con el sync apagado sigue siendo un vínculo, pero no importa
+    // notas: decirlo aquí evita buscar el fallo en el sitio equivocado.
+    linkedBy.set(Number(l.aula_id), `${l.course.code ?? ''} · ${l.course.name ?? ''}${l.sync_enabled ? '' : ' (sync apagado)'}`)
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
