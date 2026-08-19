@@ -70,6 +70,48 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const e of (enr ?? []) as any[]) progByEnr.set(e.id, e.academic_programs?.name ?? 'Programa')
 
+  // ── A qué programa pertenece cada asignatura ──────────────────────────────
+  //
+  // Se decidía solo por el enrollment_id de la fila de detalle, y 940 filas de
+  // 42 estudiantes no lo tienen: caían todas en "Sin programa" aunque la nota
+  // supiera perfectamente de qué programa es. Un Bachelor aparecía partido en
+  // dos bloques, uno con su nombre y otro sin él (18/08/2026).
+  //
+  // La cadena va de lo más específico a lo más general y se detiene en cuanto
+  // algo responde:
+  //
+  //   1. el enrollment de la fila, cuando lo hay;
+  //   2. el course_id de la nota. Es el identificador que ata una asignatura a
+  //      UN programa, y desde la separación del registro curricular es la vía
+  //      fiable: 699 de las 940 se resuelven aquí;
+  //   3. la única matrícula del estudiante. Solo si tiene una: 231 filas son
+  //      de asignaturas que nunca llegaron a tener nota —el resto de la
+  //      migración, con los códigos de orden de SystemActiva— y para quien
+  //      lleva un solo programa no hay ambigüedad posible.
+  //
+  // Lo que queda sin resolver son 10 filas de un estudiante con varios
+  // programas y sin course_id. Ahí "Sin programa" es la respuesta honesta:
+  // elegir uno sería inventarlo.
+  const cursoAPrograma = new Map<string, string>()
+  const idsCurso = [...new Set([...cursoByExt.values()].filter(Boolean).map(String))]
+  for (let i = 0; i < idsCurso.length; i += 300) {
+    const { data: cs } = await sb.from('academic_courses')
+      .select('id, academic_programs(name)').in('id', idsCurso.slice(i, i + 300))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const c of (cs ?? []) as any[]) {
+      if (c.academic_programs?.name) cursoAPrograma.set(String(c.id), c.academic_programs.name)
+    }
+  }
+  const programasDelAlumno = [...new Set([...progByEnr.values()])]
+  const unicoPrograma = programasDelAlumno.length === 1 ? programasDelAlumno[0] : null
+
+  const programaDe = (externalId: string, enrollmentId: string | null): string => {
+    if (enrollmentId && progByEnr.has(enrollmentId)) return progByEnr.get(enrollmentId)!
+    const cid = cursoByExt.get(externalId)
+    if (cid && cursoAPrograma.has(String(cid))) return cursoAPrograma.get(String(cid))!
+    return unicoPrograma ?? 'Sin programa'
+  }
+
   const malla = await codigosDeMalla(sb, [...cursoByExt.values()])
   // La nota mínima que se muestra es la REGLA de la categoría del programa, no
   // el número que vino pegado a la fila desde SystemActiva. Ese decía 75 en
@@ -154,7 +196,7 @@ export async function GET(req: NextRequest) {
     intento_label: etiquetaDeIntento(intentoDe.get(String(d.external_id)) ?? 1),
     descuadrado: ev.descuadrado,
     course_code: codigoVisible(cursoByExt.get(String(d.external_id)), malla, d.course_code),
-    program_name: d.enrollment_id ? (progByEnr.get(d.enrollment_id) ?? 'Sin programa') : 'Sin programa',
+    program_name: programaDe(String(d.external_id), d.enrollment_id ?? null),
     editable: editableByExt.get(String(d.external_id)) ?? false,
     // El ORIGEN real de la nota. La pantalla lo rotulaba "SystemActiva" a
     // secas, así que una nota recién traída de Moodle seguía diciendo que
