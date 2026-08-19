@@ -80,16 +80,27 @@ export function GradesTable(
     <div className="space-y-4">
       {Array.from(groups.entries()).map(([key, rows]) => {
         const [year, block] = key.split('·')
+        // "—" es lo que puso la clave cuando el dato no existe: no es un valor.
+        const periodo = year !== '—' && block !== '—' ? `Año ${year} · Bloque ${block}`
+          : year !== '—' ? `Año ${year}`
+            : block !== '—' ? `Bloque ${block}`
+              : null
         const withGrade = rows.filter(r => gradeInfo(r).value !== null)
         const avg = withGrade.length
           ? (withGrade.reduce((s, r) => s + (gradeInfo(r).value ?? 0), 0) / withGrade.length).toFixed(1)
           : null
         return (
           <div key={key} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {agrupacion !== 'ninguno' && (
+            {/* Año y bloque son el dato CRUDO que traía SystemActiva, y solo lo
+                traen las notas que vinieron de allí: el orden temporal se
+                decide con el semestre. Cuando faltan los dos, el encabezado
+                degeneraba en "Año — · Bloque —", que no informa de nada y
+                parece un dato roto. Se muestra el periodo solo cuando existe;
+                el promedio se mantiene, que sí dice algo. */}
+            {agrupacion !== 'ninguno' && (periodo || avg) && (
               <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
                 <Award className="w-4 h-4 text-blue-500" />
-                <p className="text-sm font-semibold text-gray-900">Año {year} · Bloque {block}</p>
+                <p className="text-sm font-semibold text-gray-900">{periodo ?? 'Sin periodo registrado'}</p>
                 {avg && <span className="ml-auto text-xs text-gray-500">Promedio: <span className="font-semibold text-gray-700">{avg}</span></span>}
               </div>
             )}

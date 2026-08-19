@@ -3,6 +3,7 @@ import { recomputeStudentByDocument } from './graduates'
 import { advanceCarousels } from './carousel'
 import { filaDeCurso } from './course-match'
 import { sincronizarEstadoDeMatricula } from './course-enrollments'
+import { estadoAcademico } from './grade-status'
 
 // academic_grades.external_id es uuid: los ids legibles ("moodle:...",
 // "csv:...", "reg-...") NO caben en la columna. Toda importación deriva su
@@ -124,6 +125,32 @@ export async function applyGradeEdit(
 
   patch.edited_at = new Date().toISOString()
   patch.edited_by = userId
+
+  // El estado de la nota se recalcula aquí.
+  //
+  // No se hacía, y el resultado era una nota de 100 sin estado: la matrícula
+  // pasaba a "aprobada" —eso sí se sincronizaba— pero la fila de la nota se
+  // quedaba con estado_academico en null y las pantallas que leen ese campo
+  // mostraban la casilla vacía. Se vio al cargar a mano las notas de campus
+  // externo (18/08/2026): cinco cienes y ningún "Aprobado".
+  //
+  // `cerrado` incluye el caso de que no haya rendido_pct. Ese porcentaje mide
+  // cuánto del aula se ha evaluado y solo existe para las notas de Moodle; si
+  // no lo hay, nadie está siguiendo un avance parcial y el valor que alguien
+  // escribe ES el resultado. Sin esta condición, escribir un 50 dejaría la
+  // asignatura "pendiente" para siempre en vez de desaprobada.
+  if ('final_grade' in patch || 'retake_grade' in patch) {
+    const valor = (('retake_grade' in patch ? patch.retake_grade : row.retake_grade) ?? null)
+      ?? (('final_grade' in patch ? patch.final_grade : row.final_grade) ?? null)
+    const rendido = row.rendido_pct == null ? null : Number(row.rendido_pct)
+    patch.estado_academico = estadoAcademico({
+      valor: valor == null ? null : Number(valor),
+      passing_score: row.passing_score == null ? null : Number(row.passing_score),
+      rendido_pct: rendido,
+      cerrado: row.locked_at != null || rendido == null,
+    })
+  }
+
   const { error: uErr } = await sb.from('academic_grades').update(patch).eq('external_id', externalId)
   if (uErr) return { ok: false, changed: [], note: uErr.message }
 
