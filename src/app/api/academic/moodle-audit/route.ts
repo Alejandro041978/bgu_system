@@ -605,6 +605,23 @@ export async function POST(req: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const esActivo = (i: any) => i.cmid == null || (visibleByCmid.get(Number(i.cmid)) ?? true)
       const mods = items.filter(i => i.itemtype === 'mod')
+
+      // ¿El informe de usuario publica las CALIFICACIONES?
+      //
+      // Es lo que lee la importación, y se puede apagar por curso desde
+      // Course grade settings → User report → "Show grades". Apagado, el
+      // informe sigue enseñando pesos, rangos y contribuciones, pero ni una
+      // nota: el servicio web devuelve los ítems sin valor y el ERP concluye
+      // que nadie tiene nota. El aula 340 llevaba así 415 alumnos y 331
+      // matrículas sin importar una sola vez (19/08/2026).
+      //
+      // La huella es inequívoca: Moodle solo expone la PONDERACIÓN de un ítem
+      // al usuario que tiene calificaciones ahí. Así que un lector con pesos y
+      // sin ninguna nota legible no es un alumno que no ha entregado nada — es
+      // un informe que no publica lo que ese alumno sacó.
+      const conPesoLeible = mods.filter(i => i.weightraw != null).length
+      const conNotaLeible = mods.filter(i => i.graderaw != null).length
+      const informeSinNotas = conPesoLeible > 0 ? conNotaLeible === 0 : null
       const modsActivos = mods.filter(esActivo)
       const conPeso = modsActivos.filter(i => (i.weightraw ?? 0) > 0)
       // Política: primer nivel (cuelga directo del curso), solo ACTIVOS
@@ -631,6 +648,7 @@ export async function POST(req: NextRequest) {
         cumple_pesos: sinEvaluaciones ? null : (sumaPesos == null ? null : Math.abs(sumaPesos - 100) <= 0.5),
         cumple_escala: sinEvaluaciones ? null : (escala == null ? null : escala === 100),
         enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, sin_idnumber: sinIdnumber,
+        informe_sin_notas: informeSinNotas,
         metodo: lectoresProbados > 1 ? `${metodo} (${lectoresProbados} lectores)` : metodo,
         error: manualEnrol === false ? "sin matriculación manual: el ERP no puede matricular aquí" : null,
       }
