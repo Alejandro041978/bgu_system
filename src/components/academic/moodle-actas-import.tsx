@@ -317,9 +317,18 @@ export function MoodleActasImport() {
 
       {error && <div className="text-sm bg-rose-50 text-rose-700 rounded-lg px-4 py-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4" />{error}</div>}
 
+      {/* Verde solo si de verdad fue bien. Con errores dentro, un recuadro verde
+          que dice "Acta importada" es lo que hizo falta para que nueve notas se
+          perdieran sin que nadie lo notara (20/08/2026). */}
       {result && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800 space-y-2">
-          <p className="flex items-center gap-2 font-semibold"><CheckCircle2 className="w-4 h-4" />Acta importada</p>
+        <div className={`border rounded-xl p-4 text-sm space-y-2 ${result.errors.length
+          ? 'bg-rose-50 border-rose-200 text-rose-800'
+          : 'bg-green-50 border-green-200 text-green-800'}`}>
+          <p className="flex items-center gap-2 font-semibold">
+            {result.errors.length
+              ? <><AlertTriangle className="w-4 h-4" />La importación no se completó</>
+              : <><CheckCircle2 className="w-4 h-4" />Acta importada</>}
+          </p>
           <p>
             {result.inserted} notas nuevas · {result.updated} actualizadas · {result.unchanged} sin cambios · {result.protected_rows} protegidas (editadas a mano)
             {result.locked_rows > 0 ? ` · ${result.locked_rows} selladas (acta cerrada)` : ''}

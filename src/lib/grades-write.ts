@@ -467,5 +467,35 @@ export async function importGrades(
     const { error } = await sb.from('academic_grades').upsert(batch, { onConflict: 'external_id' })
     if (error) { out.errors.push(error.message); return out }
   }
+
+  // Comprobar que lo escrito está escrito.
+  //
+  // El 20/08/2026 una importación del aula de MIS 470 anunció "9 notas nuevas",
+  // dejó sus 9 apuntes en grade_audit y sus 9 actas detalladas… y ninguna de
+  // las 9 filas quedó en academic_grades. El upsert no devolvió error, así que
+  // nada se quejó: la pantalla dijo "Acta importada" y hasta corrió el
+  // recálculo de egresados, que solo corre cuando no hay errores.
+  //
+  // No sé todavía por qué se perdieron. Lo que sí se puede garantizar es que no
+  // vuelva a pasar en silencio: se releen los identificadores que se acaban de
+  // escribir y, si falta alguno, se dice. Una importación que miente sobre lo
+  // que hizo es peor que una que falla.
+  if (toWrite.length) {
+    try {
+      const ids = toWrite.map(r => r.external_id)
+      const escritas = await fetchByIn(sb, 'academic_grades', 'external_id', 'external_id', ids)
+      const presentes = new Set(escritas.map((g: { external_id: string }) => String(g.external_id)))
+      const perdidas = ids.filter(id => !presentes.has(String(id)))
+      if (perdidas.length) {
+        out.errors.push(
+          `${perdidas.length} de ${ids.length} notas NO quedaron guardadas pese a que la base no dio error. `
+          + `No se hizo el recálculo. Vuelve a importar y, si se repite, avisa a Sistemas: ${perdidas.slice(0, 3).join(', ')}`,
+        )
+      }
+    } catch (e) {
+      // La comprobación no puede tumbar una importación que fue bien.
+      out.errors.push('no se pudo verificar lo escrito: ' + (e instanceof Error ? e.message : 'error'))
+    }
+  }
   return out
 }
