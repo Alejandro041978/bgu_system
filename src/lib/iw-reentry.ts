@@ -18,7 +18,7 @@
 // del estado de cuenta. Si el gestor y el estado de cuenta dijeran números
 // distintos, nadie sabría cuál creer.
 // ---------------------------------------------------------------------------
-import { randomUUID } from 'crypto'
+import { stableUuid } from './grades-write'
 import { getAccountStatement, computeTuition, type ProgramAccount } from './account-statement'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -349,8 +349,13 @@ export async function aplicarCaso(sb: SB, caso: Caso, preview: Preview, userEmai
         if (error) return { ok: false, error: `reactivar ${c.code}: ${error.message}` }
       } else {
         const previa = respaldo.enrollments.find(e => String(e.id) === c.enrollment_row_id)
-        const { error } = await sb.from('academic_course_enrollments').insert({
-          id: randomUUID(), student_id: caso.student_id,
+        // Identidad DETERMINISTA: si el sellado falla después de escribir y
+        // alguien reintenta, el upsert encuentra la misma fila en vez de crear
+        // una segunda. Pasó con el primer sellado (permission denied en la
+        // tabla de gestiones): el caso era "sin cambios" y no dolió, pero con
+        // cambios reales habría duplicado.
+        const { error } = await sb.from('academic_course_enrollments').upsert({
+          id: stableUuid(`iw-reentry:mat:${caso.kind}:${caso.trigger_id}:${c.course_id}`), student_id: caso.student_id,
           document_number: previa?.document_number ?? caso.document_number,
           course_id: c.course_id, program_id: previa?.program_id ?? null,
           program_enrollment_id: b.enrollment_id,
@@ -369,12 +374,13 @@ export async function aplicarCaso(sb: SB, caso: Caso, preview: Preview, userEmai
         const { error } = await sb.from('account_charges').update({ amount: q.nuevo_amount }).eq('external_id', q.external_id)
         if (error) return { ok: false, error: `reducir cuota: ${error.message}` }
       } else if (q.accion === 'crear') {
-        const { error } = await sb.from('account_charges').insert({
-          external_id: randomUUID(), student_id: caso.student_id,
+        const { error } = await sb.from('account_charges').upsert({
+          external_id: stableUuid(`iw-reentry:cuota:${caso.kind}:${caso.trigger_id}:${b.enrollment_id}`),
+          student_id: caso.student_id,
           enrollment_id: b.enrollment_id, amount: q.amount, due_date: q.due_date,
           charge_type: CHARGE_TUITION, source: 'erp',
           reference: caso.kind === 'IW' ? 'Liquidación IW' : 'Re-Entry',
-        })
+        }, { onConflict: 'external_id' })
         if (error) return { ok: false, error: `crear cuota: ${error.message}` }
       }
     }

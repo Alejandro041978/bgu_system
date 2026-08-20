@@ -24,3 +24,9 @@ ALTER TABLE iw_reentry_gestiones ENABLE ROW LEVEL SECURITY;
 
 COMMENT ON TABLE iw_reentry_gestiones IS
   'Gestiones autorizadas de IW/Re-Entry: ajuste de registro curricular y plan de pagos. El snapshot es auditoría y deshacer.';
+
+-- El cierre de seguridad de Supabase revocó los privilegios por defecto: una
+-- tabla nueva nace sin GRANT y el rol de servicio recibe "permission denied"
+-- aunque RLS ni siquiera aplique para él. Pasó al sellar la primera gestión
+-- (20/08/2026).
+GRANT ALL ON TABLE iw_reentry_gestiones TO service_role;
