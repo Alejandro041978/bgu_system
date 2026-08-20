@@ -255,8 +255,15 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gradesByDoc = new Map<string, any[]>()
   {
+    // course_id va en el select porque filaDeCurso empareja POR ÉL, y sin él
+    // cae al respaldo por nombre. Faltaba: el importador decidía a qué
+    // asignatura pertenece cada nota previa comparando textos, que es
+    // exactamente lo que dejamos de hacer en todo el ERP — dos asignaturas
+    // pueden llamarse igual en programas distintos, y el identificador existe
+    // para eso. Una columna que no se pide llega como undefined y el código de
+    // abajo no se entera (20/08/2026).
     const all = await fetchByIn(sb, 'academic_grades',
-      'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year, semester_id',
+      'external_id, document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year, semester_id',
       'document_number', docsImport, { orderBy: 'external_id' })
     // Cada nota previa viaja con la FECHA de su semestre: es con lo que se
     // decide si el intento que llega es posterior, y el año suelto no sirve.

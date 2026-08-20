@@ -166,13 +166,32 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gradesByDoc = new Map<string, any[]>()
   if (linkedCourse) {
+    // Le faltaban DOS columnas y cada una rompía algo distinto:
+    //
+    //  · course_id — filaDeCurso empareja por él; sin él caía al respaldo por
+    //    nombre, que es justo lo que dejamos de usar en el resto del ERP.
+    //  · semester_id — de él sale el "semester_start" con el que se decide si
+    //    un intento es POSTERIOR al anterior. Sin él, la previa comparaba por
+    //    term_year y la importación por semestre: dos respuestas distintas a
+    //    la misma pregunta, y por eso la previa anunciaba una cosa y el commit
+    //    hacía otra (20/08/2026).
+    //
+    // Una columna que no se pide llega como undefined y nadie se queja.
     const all = await fetchByIn(sb, 'academic_grades',
-      'external_id, document_number, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year',
+      'external_id, document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year, semester_id',
       'document_number', docsAula)
+    const { data: semAll } = await sb.from('academic_semesters').select('id, start_date')
+    const inicioSem = new Map<string, string>()
+    for (const s of (semAll ?? []) as { id: string; start_date: string | null }[]) {
+      if (s.start_date) inicioSem.set(String(s.id), String(s.start_date))
+    }
     for (const g of all) {
       const k = String(g.document_number)
       if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
-      gradesByDoc.get(k)!.push(g)
+      gradesByDoc.get(k)!.push({
+        ...g,
+        semester_start: g.semester_id ? (inicioSem.get(String(g.semester_id)) ?? null) : null,
+      })
     }
   }
 
@@ -180,11 +199,18 @@ export async function GET(req: NextRequest) {
   // un aula reutilizada entre cohortes tiene varias, y elegir una al azar
   // fechaba las notas con la cohorte equivocada.
   const { data: ofertasAula } = await sb.from('semester_offerings')
-    .select('semester:academic_semesters(year:academic_years(start_date))')
+    .select('semester:academic_semesters(start_date, year:academic_years(start_date))')
     .eq('moodle_course_id', String(courseid))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const inicios = ((ofertasAula ?? []) as any[])
     .map(o => o.semester?.year?.start_date).filter(Boolean).sort().reverse()
+  // El semestre del aula, que es con lo que el importador decide si un intento
+  // es posterior al anterior. La previa no lo pedía y comparaba por año, así
+  // que anunciaba un recursado donde el commit no lo abría (o al revés).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const semsAula = ((ofertasAula ?? []) as any[]).map(o => o.semester).filter(Boolean)
+    .sort((a, b) => String(b?.year?.start_date ?? '').localeCompare(String(a?.year?.start_date ?? '')))
+  const semesterStartAula: string | null = semsAula[0]?.start_date ? String(semsAula[0].start_date) : null
   const termYearAula: number | null = inicios.length ? Number(String(inicios[0]).slice(0, 4)) : null
 
   const politica = await aulaPolicy(sb, courseid, report)
@@ -214,7 +240,7 @@ export async function GET(req: NextRequest) {
         }))
       const r = resolveImportTarget(
         gradesByDoc.get(doc) ?? [], linkedCourse, stableUuid(`moodle:${courseid}:${ug.userid}`), passing,
-        { rendido_pct: rendidoPct(proc as ItemProceso[]), term_year: termYearAula },
+        { rendido_pct: rendidoPct(proc as ItemProceso[]), term_year: termYearAula, semester_start: semesterStartAula },
       )
       if (r.action === 'skip') { destino = 'ya registrada (histórico)'; yaRegistradas++ }
       else if (r.action === 'retake') {
