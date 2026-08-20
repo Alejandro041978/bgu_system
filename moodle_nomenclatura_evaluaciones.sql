@@ -41,11 +41,15 @@ ORDER BY items DESC
 LIMIT 100;
 
 
--- ═══ Q2 — Firmas por aula y categoría (cada familia en un renglón) ═════════
-SELECT cc.name AS categoria, s.firma, COUNT(*) AS aulas,
-       SUBSTRING(GROUP_CONCAT(s.shortname SEPARATOR ' | '), 1, 120) AS ejemplos
+-- ═══ Q2 — Firmas del campus: una fila por firma ════════════════════════════
+-- Agrupa por la FIRMA sola, sin partir por categoría: dos aulas con la misma
+-- estructura acumulan en el mismo renglón vivan donde vivan. Menos filas —
+-- firma · cuántas aulas la comparten · ejemplos de sus nombres.
+SELECT s.firma,
+       COUNT(*) AS aulas,
+       SUBSTRING(GROUP_CONCAT(s.shortname ORDER BY s.shortname SEPARATOR ' | '), 1, 300) AS ejemplos
 FROM (
-  SELECT t.courseid, c.shortname, c.category,
+  SELECT t.courseid, c.shortname,
          GROUP_CONCAT(CONCAT(t.n, '× ', t.tipo) ORDER BY t.tipo SEPARATOR ' + ') AS firma
   FROM (
     SELECT gi.courseid,
@@ -73,8 +77,7 @@ FROM (
       WHERE sub.id = c.category
         AND anc.name IN ('Aulas de Inducción', 'Excluidos ERP', 'Otros')
     )
-  GROUP BY t.courseid, c.shortname, c.category
+  GROUP BY t.courseid, c.shortname
 ) s
-JOIN mdl_course_categories cc ON cc.id = s.category
-GROUP BY cc.name, s.firma
-ORDER BY cc.name, aulas DESC;
+GROUP BY s.firma
+ORDER BY aulas DESC;
