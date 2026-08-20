@@ -341,7 +341,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       { id: destCourse.id, code: destCourse.code, name: destCourse.name },
       stableUuid(`moodle:${courseid}:${ug.userid}`),
       passing,
-      { rendido_pct: rendido, term_year: termYear, semester_start: semesterStart },
+      { rendido_pct: rendido, term_year: termYear, semester_start: semesterStart, valor: total },
     )
     if (target.action === 'skip') { yaRegistradas++; continue }
     if (target.action === 'fill') rellenadas++

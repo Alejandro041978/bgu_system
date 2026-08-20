@@ -243,7 +243,12 @@ export function resolveImportTarget(
   categoryPassing: number | null = null,
   // Evidencia del intento que se está importando: cuánto rindió y de qué
   // periodo es. Sin ella no se abre un recursado.
-  intentoNuevo?: { rendido_pct?: number | null; term_year?: number | null; semester_start?: string | null },
+  intentoNuevo?: {
+    rendido_pct?: number | null; term_year?: number | null; semester_start?: string | null
+    // El total que trae Moodle ahora. Es lo que distingue un recursado de una
+    // acumulación que continúa: ver la guarda de abajo.
+    valor?: number | null
+  },
 ): { action: 'skip' | 'fill' | 'new' | 'update' | 'retake'; external_id: string; shield: boolean; prev_value: number | null; intento?: number } {
   // Qué filas del estudiante son de ESTA asignatura. Por course_id, y por
   // nombre solo cuando la fila no lo trae.
@@ -325,7 +330,36 @@ export function resolveImportTarget(
   //   · y el periodo del intento nuevo es POSTERIOR al del anterior
   // Si el periodo de cualquiera de los dos se desconoce, no se abre nada: un
   // dato que falta no autoriza a crear una nota.
+  // La nota de Activa puede no ser un resultado final.
+  //
+  // Cuando se importó Activa, muchas actas seguían ABIERTAS: lo que se trajo
+  // fue la acumulación parcial de lo rendido hasta ese momento, no la nota de
+  // cierre. Un 69 así no significa "desaprobó" — significa "lleva 69 de 100
+  // puntos repartidos y aún le faltan evaluaciones".
+  //
+  // Después llega la integración con Moodle, ve una nota previa por debajo del
+  // mínimo y concluye que hay un segundo intento. No lo hay: es la MISMA
+  // cursada, cuyas notas restantes están llegando ahora.
+  //
+  // La huella es inconfundible: el total que trae Moodle es prácticamente el
+  // mismo número que ya había. Un recursado de verdad empieza de cero y
+  // acumula por su cuenta; que caiga a menos de dos puntos del anterior no es
+  // casualidad, es la misma acumulación vista un poco más adelante. Se
+  // encontraron 34 así (Roxana Gallegos 69 → 68,73 con 69,98% rendido; Víctor
+  // Ojeda 65 → 64,77 con 65,98%) — usuario, 20/08/2026.
+  const mismaAcumulacion = (g: { retake_grade?: number | null; final_grade?: number | null }): boolean => {
+    const nuevo = intentoNuevo?.valor
+    const anterior = val(g)
+    if (nuevo == null || anterior == null) return false
+    return Math.abs(Number(nuevo) - Number(anterior)) <= 2
+  }
+
   if (previa) {
+    if (mismaAcumulacion(previa)) {
+      // No es un intento nuevo: es la nota de siempre, que sigue subiendo. Se
+      // rellena la fila que ya existe en vez de crear una segunda.
+      return { action: 'fill', external_id: String(previa.external_id), shield: true, prev_value: val(previa) }
+    }
     const rindio = Number(intentoNuevo?.rendido_pct ?? 0) > 0
     // El "después" se mide con el SEMESTRE cuando se conoce. El año suelto
     // mentía: el aula 155 tiene oferta en dos años y term_year de las notas de
