@@ -24,6 +24,9 @@ FROM mdl_grade_items gi
 JOIN mdl_course c ON c.id = gi.courseid
 WHERE gi.itemtype = 'mod' AND gi.hidden = 0
   AND c.id <> 1
+  -- fuera los examenes complementarios: son aulas de servicio (COMP), no
+  -- asignaturas, y sus evaluaciones llevan nombres propios fuera de patron
+  AND c.shortname NOT LIKE '%Complementario%'
   -- fuera las categorías excluidas del auditor, con todo su subárbol
   AND NOT EXISTS (
     SELECT 1
@@ -60,6 +63,7 @@ FROM (
     AND c.shortname NOT LIKE '%Inducci%'
     AND c.shortname NOT LIKE '%Induction%'
     AND c.shortname NOT LIKE '%Demo%'
+    AND c.shortname NOT LIKE '%Complementario%'
     -- fuera las categorías excluidas del auditor, con todo su subárbol
     AND NOT EXISTS (
       SELECT 1
