@@ -1,14 +1,21 @@
 -- ---------------------------------------------------------------------------
--- Renombres de la familia "EO" (solo items VISIBLES, campus auditable).
--- MySQL 5.7 vía N8N, un paso por nodo, en orden.
+-- Renombres de la familia "EO" + convergencia de exámenes a la norma "Exam"
+-- (solo items VISIBLES, campus auditable). MySQL 5.7 vía N8N, un paso por nodo.
 --
 --   EO - Quiz Session        → Quiz Session
 --   EO - Module Test         → Module Test
 --   EO Module Test           → Module Test
 --   EO - Trabajo Final       → Final Subject Project      (fuente: mdl_assign)
 --   EO Trabajo Final         → Final Subject Project      (fuente: mdl_assign)
---   EO - Examen Final        → Final Test
---   EO - Examen Intermedio   → Midterm Test
+--   EO - Examen Final        → Final Exam
+--   EO - Examen Intermedio   → Midterm Exam
+--   Mindterm Test (typo jul.)→ Midterm Exam               (Master EN, 33 aulas)
+--   Midterm Test             → Midterm Exam
+--   Final Test               → Final Exam                  (Master EN)
+--
+-- Decreto 20/08/2026: los exámenes terminan en "Exam" (Final Exam, Midterm
+-- Exam), la norma que ya se aplicó al Bachelor en julio. "Module Test" NO se
+-- toca: es una de las cuatro familias decretadas y no es un examen.
 --
 -- El número se conserva: "EO Module Test 03" → "Module Test 03".
 --
@@ -16,12 +23,11 @@
 --   · La fuente del nombre depende del MÓDULO: quiz → mdl_quiz.name;
 --     assign → mdl_assign.name. El espejo (mdl_grade_items.itemname) se
 --     actualiza al final; si solo se toca el espejo, el recálculo lo revierte.
---   · REPLACE es sensible a mayúsculas: van las dos variantes de
---     "Final/final" e "Intermedio/intermedio" vistas en julio.
+--   · REPLACE es sensible a mayúsculas: van las variantes Final/final e
+--     Intermedio/intermedio vistas en julio.
 --   · Tras renombrar, PURGA DE CACHÉS obligatoria.
---   · Los "EO Trabajo Final (envío)/(evaluación)" son módulo WORKSHOP: si el
---     ensayo 1b los muestra, se dejan fuera — su fuente es otra tabla y esos
---     8 visibles siguen pendientes de decisión desde julio.
+--   · Los "Trabajo Final (envío)/(evaluación)" son módulo WORKSHOP: si el
+--     ensayo 1b los muestra, quedan fuera — pendientes desde julio.
 -- ---------------------------------------------------------------------------
 
 
@@ -34,7 +40,7 @@ SELECT id, shortname FROM mdl_course WHERE id IN (330, 425);
 -- quedaria = actual, esa variante no tiene regla: pegarla y se añade.
 SELECT c.id AS aula_id, c.shortname AS aula,
        gi.itemname AS actual,
-       REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+       REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
          gi.itemname,
          'EO - Quiz Session',      'Quiz Session'),
          'EO Quiz Session',        'Quiz Session'),
@@ -42,15 +48,21 @@ SELECT c.id AS aula_id, c.shortname AS aula,
          'EO Module Test',         'Module Test'),
          'EO - Trabajo Final',     'Final Subject Project'),
          'EO Trabajo Final',       'Final Subject Project'),
-         'EO - Examen Final',      'Final Test'),
-         'EO - Examen final',      'Final Test'),
-         'EO - Examen Intermedio', 'Midterm Test'),
-         'EO - Examen intermedio', 'Midterm Test') AS quedaria,
+         'EO - Examen Final',      'Final Exam'),
+         'EO - Examen final',      'Final Exam'),
+         'EO - Examen Intermedio', 'Midterm Exam'),
+         'EO - Examen intermedio', 'Midterm Exam'),
+         'Mindterm Test',          'Midterm Exam'),
+         'Midterm Test',           'Midterm Exam'),
+         'Final Test',             'Final Exam') AS quedaria,
        COALESCE(gi.itemmodule, 'manual') AS modulo
 FROM mdl_grade_items gi
 JOIN mdl_course c ON c.id = gi.courseid
 WHERE gi.itemtype = 'mod' AND gi.hidden = 0
-  AND LOWER(TRIM(gi.itemname)) REGEXP '^eo[[:space:]]*-?[[:space:]]*(quiz session|module test|trabajo final|examen (final|intermedio))'
+  AND (
+    LOWER(TRIM(gi.itemname)) REGEXP '^eo[[:space:]]*-?[[:space:]]*(quiz session|module test|trabajo final|examen (final|intermedio))'
+    OR LOWER(TRIM(gi.itemname)) REGEXP '^(mindterm|midterm|final) test'
+  )
   AND c.id <> 1
   AND c.shortname NOT LIKE '%Inducci%'  AND c.shortname NOT LIKE '%Induction%'
   AND c.shortname NOT LIKE '%Demo%'     AND c.shortname NOT LIKE '%Complementario%'
@@ -69,7 +81,10 @@ SELECT COALESCE(gi.itemmodule, 'manual') AS modulo, COUNT(*) AS items, COUNT(DIS
 FROM mdl_grade_items gi
 JOIN mdl_course c ON c.id = gi.courseid
 WHERE gi.itemtype = 'mod' AND gi.hidden = 0
-  AND LOWER(TRIM(gi.itemname)) REGEXP '^eo[[:space:]]*-?[[:space:]]*(quiz session|module test|trabajo final|examen (final|intermedio))'
+  AND (
+    LOWER(TRIM(gi.itemname)) REGEXP '^eo[[:space:]]*-?[[:space:]]*(quiz session|module test|trabajo final|examen (final|intermedio))'
+    OR LOWER(TRIM(gi.itemname)) REGEXP '^(mindterm|midterm|final) test'
+  )
   AND c.id <> 1
   AND c.shortname NOT LIKE '%Inducci%'  AND c.shortname NOT LIKE '%Induction%'
   AND c.shortname NOT LIKE '%Demo%'     AND c.shortname NOT LIKE '%Complementario%'
@@ -90,7 +105,10 @@ FROM mdl_grade_items gi
 JOIN mdl_course c ON c.id = gi.courseid
 WHERE gi.itemtype = 'mod' AND gi.hidden = 0
   AND gi.itemmodule IN ('quiz', 'assign')
-  AND LOWER(TRIM(gi.itemname)) REGEXP '^eo[[:space:]]*-?[[:space:]]*(quiz session|module test|trabajo final|examen (final|intermedio))'
+  AND (
+    LOWER(TRIM(gi.itemname)) REGEXP '^eo[[:space:]]*-?[[:space:]]*(quiz session|module test|trabajo final|examen (final|intermedio))'
+    OR LOWER(TRIM(gi.itemname)) REGEXP '^(mindterm|midterm|final) test'
+  )
   AND c.id <> 1
   AND c.shortname NOT LIKE '%Inducci%'  AND c.shortname NOT LIKE '%Induction%'
   AND c.shortname NOT LIKE '%Demo%'     AND c.shortname NOT LIKE '%Complementario%'
@@ -119,16 +137,19 @@ SELECT (SELECT COUNT(*) FROM mdl_gi_eo_bak_20260820)     AS gi_respaldadas,
 -- ═══ PASO 3 — UPDATE fuente QUIZ ════════════════════════════════════════════
 UPDATE mdl_quiz q
 JOIN mdl_gi_eo_bak_20260820 b ON b.itemmodule = 'quiz' AND b.iteminstance = q.id
-SET q.name = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+SET q.name = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
       q.name,
       'EO - Quiz Session',      'Quiz Session'),
       'EO Quiz Session',        'Quiz Session'),
       'EO - Module Test',       'Module Test'),
       'EO Module Test',         'Module Test'),
-      'EO - Examen Final',      'Final Test'),
-      'EO - Examen final',      'Final Test'),
-      'EO - Examen Intermedio', 'Midterm Test'),
-      'EO - Examen intermedio', 'Midterm Test');
+      'EO - Examen Final',      'Final Exam'),
+      'EO - Examen final',      'Final Exam'),
+      'EO - Examen Intermedio', 'Midterm Exam'),
+      'EO - Examen intermedio', 'Midterm Exam'),
+      'Mindterm Test',          'Midterm Exam'),
+      'Midterm Test',           'Midterm Exam'),
+      'Final Test',             'Final Exam');
 
 
 -- ═══ PASO 4 — UPDATE fuente ASSIGN (los Trabajo Final) ══════════════════════
@@ -143,7 +164,7 @@ SET a.name = REPLACE(REPLACE(
 -- ═══ PASO 5 — UPDATE del ESPEJO (mdl_grade_items) ═══════════════════════════
 UPDATE mdl_grade_items gi
 JOIN mdl_gi_eo_bak_20260820 b ON b.id = gi.id
-SET gi.itemname = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+SET gi.itemname = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
       gi.itemname,
       'EO - Quiz Session',      'Quiz Session'),
       'EO Quiz Session',        'Quiz Session'),
@@ -151,23 +172,32 @@ SET gi.itemname = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLAC
       'EO Module Test',         'Module Test'),
       'EO - Trabajo Final',     'Final Subject Project'),
       'EO Trabajo Final',       'Final Subject Project'),
-      'EO - Examen Final',      'Final Test'),
-      'EO - Examen final',      'Final Test'),
-      'EO - Examen Intermedio', 'Midterm Test'),
-      'EO - Examen intermedio', 'Midterm Test');
+      'EO - Examen Final',      'Final Exam'),
+      'EO - Examen final',      'Final Exam'),
+      'EO - Examen Intermedio', 'Midterm Exam'),
+      'EO - Examen intermedio', 'Midterm Exam'),
+      'Mindterm Test',          'Midterm Exam'),
+      'Midterm Test',           'Midterm Exam'),
+      'Final Test',             'Final Exam');
 
 
--- ═══ PASO 6 — VERIFICACIÓN (debe dar 0 / 0 / 0; pegar el resultado) ═════════
+-- ═══ PASO 6 — VERIFICACIÓN (debe dar 0 en las cuatro; pegar el resultado) ═══
 SELECT
   (SELECT COUNT(*) FROM mdl_grade_items gi
     JOIN mdl_gi_eo_bak_20260820 b ON b.id = gi.id
-    WHERE gi.itemname LIKE 'EO%')                                  AS gi_sin_renombrar,
+    WHERE gi.itemname LIKE 'EO%')                                   AS gi_con_eo,
+  (SELECT COUNT(*) FROM mdl_grade_items gi
+    JOIN mdl_gi_eo_bak_20260820 b ON b.id = gi.id
+    WHERE gi.itemname LIKE '%Mindterm%'
+       OR gi.itemname LIKE '%Midterm Test%'
+       OR gi.itemname LIKE '%Final Test%')                          AS gi_con_test,
   (SELECT COUNT(*) FROM mdl_quiz q
     JOIN mdl_gi_eo_bak_20260820 b ON b.itemmodule = 'quiz' AND b.iteminstance = q.id
-    WHERE q.name LIKE 'EO%')                                       AS quiz_sin_renombrar,
+    WHERE q.name LIKE 'EO%' OR q.name LIKE '%Mindterm%'
+       OR q.name LIKE '%Midterm Test%' OR q.name LIKE '%Final Test%') AS quiz_pendientes,
   (SELECT COUNT(*) FROM mdl_assign a
     JOIN mdl_gi_eo_bak_20260820 b ON b.itemmodule = 'assign' AND b.iteminstance = a.id
-    WHERE a.name LIKE 'EO%')                                       AS assign_sin_renombrar;
+    WHERE a.name LIKE 'EO%')                                        AS assign_pendientes;
 
 -- 6b — Muestra para verlo con los ojos.
 SELECT gi.courseid, gi.itemname, gi.itemmodule
