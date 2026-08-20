@@ -261,9 +261,21 @@ export async function GET(req: NextRequest) {
   // alumnos. Si el informe del profesor enseña un total y aquí viene vacío, la
   // diferencia está en lo que Moodle expone, no en cómo lo lee el ERP — y eso
   // se ve de un vistazo en vez de deducirse.
+  // Se eligen alumnos que TENGAN alguna actividad calificada. Los primeros del
+  // informe suelen ser cuentas sin actividad —profesores, gestores— y enseñar
+  // cuatro filas vacías no distingue "no hay notas" de "no llegan": justo lo
+  // que este bloque existe para separar.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conActividad = ((report?.usergrades ?? []) as any[]).filter(ug =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((ug.gradeitems ?? []) as any[]).some(i => i.itemtype === 'mod' && i.graderaw != null))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const muestra: any[] = conActividad.length
+    ? conActividad.slice(0, 4)
+    : ((report?.usergrades ?? []) as any[]).slice(0, 4)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const diagnostico = matched.every(m => m.total == null)
-    ? ((report?.usergrades ?? []) as any[]).slice(0, 4).map(ug => {
+    ? muestra.map(ug => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const it = ((ug.gradeitems ?? []) as any[]).find(i => i.itemtype === 'course')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
