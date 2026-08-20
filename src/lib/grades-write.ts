@@ -487,9 +487,22 @@ export async function importGrades(
       const presentes = new Set(escritas.map((g: { external_id: string }) => String(g.external_id)))
       const perdidas = ids.filter(id => !presentes.has(String(id)))
       if (perdidas.length) {
+        // El motivo suele estar escrito: el disparador de política anota cada
+        // fila que descarta en grade_policy_rejections. Decir "no se guardaron"
+        // sin el porqué obliga a repetir la investigación entera cada vez.
+        let porque = ''
+        try {
+          const docs = [...new Set(toWrite.map(r => r.document_number).filter(Boolean))] as string[]
+          const { data: rech } = await sb.from('grade_policy_rejections')
+            .select('motivo, rejected_at').in('document_number', docs)
+            .order('rejected_at', { ascending: false }).limit(20)
+          const motivos = [...new Set(((rech ?? []) as { motivo: string }[]).map(x => x.motivo))]
+          if (motivos.length) porque = ` La política de notas las rechazó: ${motivos[0]}`
+        } catch { /* si no se puede leer, el aviso vale igual */ }
         out.errors.push(
-          `${perdidas.length} de ${ids.length} notas NO quedaron guardadas pese a que la base no dio error. `
-          + `No se hizo el recálculo. Vuelve a importar y, si se repite, avisa a Sistemas: ${perdidas.slice(0, 3).join(', ')}`,
+          `${perdidas.length} de ${ids.length} notas NO quedaron guardadas pese a que la base no dio error.`
+          + porque
+          + ` No se hizo el recálculo. Identificadores: ${perdidas.slice(0, 3).join(', ')}`,
         )
       }
     } catch (e) {
