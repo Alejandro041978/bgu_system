@@ -2,25 +2,37 @@
 -- Censo de nomenclatura de evaluaciones — formato original del 20/07/2026,
 -- el que funcionó en la campaña de orden del campus. MySQL 5.7, vía N8N.
 --
--- Cambios respecto de julio: sin el filtro de "aulas con coef 0" (entonces
--- cazábamos aulas rotas; ahora es el campus entero) y con el pelado de
--- romanos del censo del Master (TRIM TRAILING en orden IV→III→II→I, nunca
--- REPLACE de letras sueltas, que corrompería palabras con I).
+-- Excluye las MISMAS categorías que el Auditor del Campus (tabla
+-- moodle_audit_exclusions del ERP, foto del 20/08/2026):
+--     Aulas de Inducción · Excluidos ERP · Otros          (56 aulas)
+-- La exclusión es por ANCESTRO real en el árbol de categorías —la categoría
+-- y todo lo que cuelgue de ella—, igual que la regla del auditor. Si algún
+-- día se declara una exclusión nueva en el ERP, hay que añadirla al IN (...)
+-- de las dos consultas.
 --
--- Solo VISIBLES (hidden = 0). Una consulta por nodo de N8N; si el resultado
--- sale repetido, el nodo está corriendo una vez por cada item de entrada →
--- "Execute Once".
+-- Solo VISIBLES (hidden = 0). Una consulta por nodo de N8N.
 -- ---------------------------------------------------------------------------
 
 
--- ═══ Q1 — Catálogo de tipos normalizados (todo el campus) ══════════════════
+-- ═══ Q1 — Catálogo de tipos normalizados (campus auditable) ════════════════
 SELECT TRIM(TRAILING ' I' FROM TRIM(TRAILING ' II' FROM TRIM(TRAILING ' III' FROM TRIM(TRAILING ' IV' FROM
          TRIM(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
            TRIM(gi.itemname),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9',''))
        )))) AS tipo,
        COUNT(*) AS items, COUNT(DISTINCT gi.courseid) AS aulas
 FROM mdl_grade_items gi
+JOIN mdl_course c ON c.id = gi.courseid
 WHERE gi.itemtype = 'mod' AND gi.hidden = 0
+  AND c.id <> 1
+  -- fuera las categorías excluidas del auditor, con todo su subárbol
+  AND NOT EXISTS (
+    SELECT 1
+    FROM mdl_course_categories sub
+    JOIN mdl_course_categories anc
+      ON anc.id = sub.id OR sub.path LIKE CONCAT(anc.path, '/%')
+    WHERE sub.id = c.category
+      AND anc.name IN ('Aulas de Inducción', 'Excluidos ERP', 'Otros')
+  )
 GROUP BY tipo
 ORDER BY items DESC
 LIMIT 100;
@@ -48,6 +60,15 @@ FROM (
     AND c.shortname NOT LIKE '%Inducci%'
     AND c.shortname NOT LIKE '%Induction%'
     AND c.shortname NOT LIKE '%Demo%'
+    -- fuera las categorías excluidas del auditor, con todo su subárbol
+    AND NOT EXISTS (
+      SELECT 1
+      FROM mdl_course_categories sub
+      JOIN mdl_course_categories anc
+        ON anc.id = sub.id OR sub.path LIKE CONCAT(anc.path, '/%')
+      WHERE sub.id = c.category
+        AND anc.name IN ('Aulas de Inducción', 'Excluidos ERP', 'Otros')
+    )
   GROUP BY t.courseid, c.shortname, c.category
 ) s
 JOIN mdl_course_categories cc ON cc.id = s.category
