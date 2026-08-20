@@ -146,7 +146,15 @@ export async function PATCH(req: NextRequest) {
       const nota = [w.note, `Reincorporado ${now.slice(0, 10)} por trámite ${tipo?.name ?? 'de reincorporación'} (pagado)`]
         .filter(Boolean).join(' · ')
       const { error: e } = await sb.from('student_withdrawals')
-        .update({ status: 'reincorporado', note: nota }).eq('id', w.id)
+        .update({
+          status: 'reincorporado', note: nota,
+          // El enlace estructural, no solo la nota: qué trámite y qué cuota
+          // pagada levantaron ESTE retiro. Con dos IW y dos Re-entry en el
+          // mismo expediente, el texto no distingue cuál fue de cuál.
+          reincorporated_at: now.slice(0, 10),
+          reincorporated_tramite_id: r.id,
+          reincorporated_charge_external_id: r.charge_external_id ?? null,
+        }).eq('id', w.id)
       if (!e) cerrados.push(`${w.type} ${w.resolution_number ?? w.withdrawal_date}`)
     }
 

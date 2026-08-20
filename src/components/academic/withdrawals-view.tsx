@@ -7,6 +7,7 @@ type Row = {
   id: string; student_id: string; type: 'IW' | 'LOA'; resolution_number: string | null
   withdrawal_date: string; expires_at: string | null; status: string; reason: string | null; note: string | null
   source: string; student_name: string; document_number: string | null; situation: string | null
+  reentry?: { reference: string | null; paid_date: string | null } | null
 }
 type Student = { id: string; name: string; document_number: string | null; email: string | null }
 
@@ -439,7 +440,17 @@ export function WithdrawalsView() {
                   <td className="px-4 py-2.5 text-xs font-mono text-gray-600">{r.resolution_number ?? '—'}</td>
                   <td className="px-4 py-2.5 text-xs text-gray-500">{fdate(r.withdrawal_date)}</td>
                   <td className="px-4 py-2.5 text-xs text-gray-500">{r.type === 'LOA' ? fdate(r.expires_at) : '—'}</td>
-                  <td className="px-4 py-2.5"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[r.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>{STATUS[r.status]?.label ?? r.status}</span></td>
+                  <td className="px-4 py-2.5">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[r.status]?.cls ?? 'bg-gray-100 text-gray-500'}`}>{STATUS[r.status]?.label ?? r.status}</span>
+                    {/* Qué Re-entry levantó ESTE retiro. Con dos IW y dos
+                        Re-entry en el mismo expediente, sin esto no se sabe
+                        cuál fue de cuál. */}
+                    {r.status === 'reincorporado' && r.type === 'IW' && (
+                      r.reentry
+                        ? <span className="block mt-0.5 text-[10px] text-gray-400 font-mono">Re-entry {r.reentry.reference ?? 's/ref'} · {fdate(r.reentry.paid_date)}</span>
+                        : <span className="block mt-0.5 text-[10px] text-amber-500">sin enlace a Re-entry</span>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {/* Solo el LOA se levanta desde aquí: es gratuito y su

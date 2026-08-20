@@ -37,12 +37,37 @@ export async function GET(req: NextRequest) {
   const { data, error } = await q.limit(2000)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // La referencia del pago que levantó cada retiro reincorporado. El enlace
+  // vive en reincorporated_charge_external_id; aquí se resuelve a lo que una
+  // persona reconoce: la referencia del giro y la fecha en que se pagó.
+  const chargeIds = [...new Set((data ?? [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((r: any) => r.reincorporated_charge_external_id).filter(Boolean))] as string[]
+  const pagoDe = new Map<string, { reference: string | null; paid_date: string | null }>()
+  for (let i = 0; i < chargeIds.length; i += 150) {
+    const { data: ps } = await sb.from('account_payments')
+      .select('charge_external_id, transaction_reference, paid_date')
+      .in('charge_external_id', chargeIds.slice(i, i + 150))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const p of (ps ?? []) as any[]) {
+      if (!pagoDe.has(String(p.charge_external_id))) {
+        pagoDe.set(String(p.charge_external_id), {
+          reference: p.transaction_reference ?? null,
+          paid_date: p.paid_date ? String(p.paid_date).slice(0, 10) : null,
+        })
+      }
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = (data ?? []).map((r: any) => ({
     ...r,
     student_name: [r.student?.first_name, r.student?.last_name, r.student?.second_last_name].filter(Boolean).join(' '),
     document_number: r.student?.document_number ?? null,
     situation: r.student?.situation ?? null,
+    reentry: r.reincorporated_charge_external_id
+      ? (pagoDe.get(String(r.reincorporated_charge_external_id)) ?? null)
+      : null,
   }))
   return NextResponse.json({ rows })
 }
