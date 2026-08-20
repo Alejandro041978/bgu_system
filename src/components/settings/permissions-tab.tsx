@@ -148,6 +148,7 @@ const PAGE_GROUPS = [
       { key: 'finance_conciliar', label: 'Finanzas · Pagos por Conciliar' },
       { key: 'finance_flywire_unmatched', label: 'Finanzas · Flywire sin conciliar' },
       { key: 'finance_flywire_audit', label: 'Finanzas · Flywire cuadre de importes' },
+      { key: 'academic_iw_reentry', label: 'Académico · Gestor IW / Re-Entry' },
       { key: 'finance_reconciliation', label: 'Finanzas · Auditor de Conciliación' },
       { key: 'finance_other_income', label: 'Finanzas · Otros Ingresos' },
       { key: 'finance_debt_report', label: 'Finanzas · Reporte de Deuda' },

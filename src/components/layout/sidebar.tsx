@@ -273,6 +273,7 @@ const navigation: NavGroup[] = [
           { name: 'Auditor de Conciliación', href: '/finance/reconciliation', icon: ShieldCheck, pageKey: 'finance_reconciliation' },
           { name: 'Otros Ingresos', href: '/finance/otros-ingresos', icon: Package, pageKey: 'finance_other_income' },
           { name: 'Acceso a Moodle', href: '/academic/moodle-access', icon: ShieldOff, pageKey: 'moodle_access' },
+          { name: 'Gestor IW · Re-Entry', href: '/academic/iw-reentry', icon: UserMinus, pageKey: 'academic_iw_reentry' },
           { name: 'Cashpay', href: '/finance/cashpay', icon: PiggyBank, pageKey: 'finance_cashpay' },
         ],
       },
