@@ -1,90 +1,97 @@
 -- ---------------------------------------------------------------------------
 -- Inventario de la NOMENCLATURA de evaluaciones del campus (MySQL 5.7).
 --
--- Son DOS consultas. En N8N se pega UNA por nodo: el nodo MySQL ejecuta una
--- sentencia por defecto, y pegarle dos SELECT seguidos falla.
+-- Son DOS consultas. En N8N se pega UNA por nodo.
 --
---   · CONSULTA 1 → qué nomenclaturas existen y cuáles se salen de la norma.
---   · CONSULTA 2 → en qué aulas están las que se salen, para repartir trabajo.
+-- Reglas (acordadas 20/08/2026):
+--   · Solo items VISIBLES (hidden = 0). Los ocultos no cuentan ni separan.
+--   · Los números y números romanos se quitan EN CUALQUIER POSICIÓN del
+--     nombre, no solo al final: "Test I Final Evaluation" y "Test II Final
+--     Evaluation" son la misma familia, "Test Final Evaluation".
+--   · "Quiz 1" y "Quiz 2" acumulan como "Quiz".
 --
 -- La norma declarada por la universidad son cuatro familias:
 --   Quiz Session · Module Test · Final Subject Project · Live Class Quiz
 --
--- Notas técnicas:
---   · Sin REGEXP_REPLACE (es de MySQL 8). La normalización quita el numeral
---     final con SUBSTRING_INDEX, en dos pasadas, porque hay sufijos
---     encadenados: "EO Module Test V 20" pierde primero el 20 y luego la V.
---   · CHAR_LENGTH y no LENGTH: LENGTH cuenta BYTES y con tildes ("Evaluación
---     Final 01") recortaría el nombre a mitad de letra.
---   · Solo lectura. Si el prefijo de tablas no es mdl_, cambiarlo.
+-- Técnica (5.7 no tiene REGEXP_REPLACE):
+--   · Dígitos: REPLACE anidado del 0 al 9 — un dígito nunca es parte de una
+--     palabra, así que quitarlo de cualquier posición es seguro.
+--   · Romanos: se quitan como PALABRA completa (' IV ' con espacios), nunca
+--     como letras sueltas — si no, la I de "Final" desaparecería.
+--   · Espacios dobles resultantes: colapsados con el truco '<>' / '><'.
+--   · CHAR_LENGTH-free: ya no se recorta por longitud, no hay riesgo de
+--     partir una tilde.
 -- ---------------------------------------------------------------------------
 
 
--- ═══ CONSULTA 1 — pegar SOLO esto en el primer nodo ═══════════════════════
+-- ═══ CONSULTA 1 — el inventario acumulado (pegar SOLO esto en el nodo) ═════
 SELECT
   CASE
-    WHEN f2.familia REGEXP 'Quiz Session'          THEN 'Quiz Session'
-    WHEN f2.familia REGEXP 'Module Test'           THEN 'Module Test'
-    WHEN f2.familia REGEXP 'Final Subject Project' THEN 'Final Subject Project'
-    WHEN f2.familia REGEXP 'Live Class Quiz'       THEN 'Live Class Quiz'
+    WHEN f.familia REGEXP 'Quiz Session'          THEN 'Quiz Session'
+    WHEN f.familia REGEXP 'Module Test'           THEN 'Module Test'
+    WHEN f.familia REGEXP 'Final Subject Project' THEN 'Final Subject Project'
+    WHEN f.familia REGEXP 'Live Class Quiz'       THEN 'Live Class Quiz'
     ELSE 'FUERA DE LA NORMA'
-  END                              AS norma,
-  f2.familia                       AS nomenclatura,
-  COUNT(*)                         AS items,
-  COUNT(DISTINCT f2.courseid)      AS aulas,
-  SUM(f2.oculto)                   AS items_ocultos,
-  MIN(f2.modulo)                   AS tipo_actividad
+  END                                                        AS norma,
+  f.familia                                                  AS nomenclatura,
+  COUNT(*)                                                   AS items_visibles,
+  COUNT(DISTINCT f.courseid)                                 AS aulas,
+  GROUP_CONCAT(DISTINCT f.modulo ORDER BY f.modulo SEPARATOR ', ') AS tipos_actividad
 FROM (
-  -- Segunda pasada: quita un sufijo más (números romanos, letras sueltas).
   SELECT
-    f1.courseid, f1.oculto, f1.modulo,
-    CASE
-      WHEN SUBSTRING_INDEX(f1.familia, ' ', -1) REGEXP '^[0-9IVXivx]+$'
-       AND f1.familia LIKE '% %'
-      THEN TRIM(SUBSTRING(f1.familia, 1,
-             CHAR_LENGTH(f1.familia) - CHAR_LENGTH(SUBSTRING_INDEX(f1.familia, ' ', -1))))
-      ELSE f1.familia
-    END AS familia
+    s.courseid,
+    s.modulo,
+    -- 3) colapsar los espacios que dejaron los números al irse, y recortar
+    TRIM(REPLACE(REPLACE(REPLACE(s.sin_romanos, ' ', '<>'), '><', ''), '<>', ' ')) AS familia
   FROM (
-    -- Primera pasada: quita el numeral final.
     SELECT
-      gi.courseid,
-      CASE WHEN gi.hidden > 0 THEN 1 ELSE 0 END               AS oculto,
-      COALESCE(gi.itemmodule, 'manual')                       AS modulo,
-      CASE
-        WHEN SUBSTRING_INDEX(TRIM(gi.itemname), ' ', -1) REGEXP '^[0-9IVXivx]+$'
-         AND TRIM(gi.itemname) LIKE '% %'
-        THEN TRIM(SUBSTRING(TRIM(gi.itemname), 1,
-               CHAR_LENGTH(TRIM(gi.itemname)) - CHAR_LENGTH(SUBSTRING_INDEX(TRIM(gi.itemname), ' ', -1))))
-        ELSE TRIM(gi.itemname)
-      END AS familia
-    FROM mdl_grade_items gi
-    JOIN mdl_course c ON c.id = gi.courseid
-    WHERE gi.itemtype IN ('mod', 'manual')   -- fuera los totales de curso y categoría
-      AND gi.itemname IS NOT NULL
-      AND TRIM(gi.itemname) <> ''
-      AND c.id <> 1                          -- fuera el "curso" del sitio
-  ) f1
-) f2
-GROUP BY norma, f2.familia
-ORDER BY norma, items DESC;
+      d.courseid,
+      d.modulo,
+      -- 2) quitar números romanos como PALABRA completa (de más largo a más corto)
+      REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+        CONCAT(' ', d.sin_digitos, ' '),
+        ' XII ', ' '), ' VIII ', ' '), ' VII ', ' '), ' III ', ' '),
+        ' XI ',  ' '), ' IX ',   ' '), ' VI ',  ' '), ' IV ',  ' '),
+        ' II ',  ' '), ' X ',    ' '), ' V ',   ' '), ' I ',   ' ') AS sin_romanos
+    FROM (
+      SELECT
+        gi.courseid,
+        COALESCE(gi.itemmodule, 'manual') AS modulo,
+        -- 1) quitar TODOS los dígitos, estén donde estén
+        REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+          TRIM(gi.itemname),
+          '0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','') AS sin_digitos
+      FROM mdl_grade_items gi
+      JOIN mdl_course c ON c.id = gi.courseid
+      WHERE gi.itemtype IN ('mod', 'manual')   -- fuera totales de curso y categoría
+        AND gi.hidden = 0                      -- SOLO visibles
+        AND gi.itemname IS NOT NULL
+        AND TRIM(gi.itemname) <> ''
+        AND c.id <> 1                          -- fuera el "curso" del sitio
+    ) d
+  ) s
+) f
+WHERE f.familia <> ''
+GROUP BY f.familia
+ORDER BY norma, items_visibles DESC;
 
 
--- ═══ CONSULTA 2 — pegar SOLO esto en el segundo nodo ══════════════════════
--- En qué aulas están las evaluaciones que se salen de la norma.
+-- ═══ CONSULTA 2 — dónde está lo que se sale de la norma (otro nodo) ════════
+-- Lista aula por aula las evaluaciones VISIBLES que no llevan ninguna de las
+-- cuatro nomenclaturas, con el nombre tal cual está en Moodle.
 SELECT
-  c.id                        AS aula_id,
-  c.shortname                 AS aula,
-  cat.name                    AS categoria,
-  gi.itemname                 AS evaluacion,
+  c.id                              AS aula_id,
+  c.shortname                       AS aula,
+  cat.name                          AS categoria,
+  gi.itemname                       AS evaluacion,
   COALESCE(gi.itemmodule, 'manual') AS tipo,
-  gi.aggregationcoef          AS coeficiente,
-  gi.grademax                 AS maximo,
-  CASE WHEN gi.hidden > 0 THEN 'oculto' ELSE '' END AS visibilidad
+  gi.aggregationcoef                AS coeficiente,
+  gi.grademax                       AS maximo
 FROM mdl_grade_items gi
-JOIN mdl_course c            ON c.id = gi.courseid
+JOIN mdl_course c                   ON c.id = gi.courseid
 LEFT JOIN mdl_course_categories cat ON cat.id = c.category
 WHERE gi.itemtype IN ('mod', 'manual')
+  AND gi.hidden = 0
   AND gi.itemname IS NOT NULL
   AND TRIM(gi.itemname) <> ''
   AND c.id <> 1
