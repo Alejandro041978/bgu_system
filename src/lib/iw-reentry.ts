@@ -181,6 +181,21 @@ async function contexto(sb: SB, caso: Caso) {
 function planCuotas(cuenta: ProgramAccount, tuitionObjetivo: number, dueNueva: string | null): { cuotas: CuotaCambio[]; pagado: number } {
   const tuition = cuenta.charges.filter(c => c.charge_type === CHARGE_TUITION)
   const pagado = r2(tuition.reduce((s, c) => s + Number(c.paid), 0))
+
+  // Si el plan YA está ajustado —una sola cuota impaga cuyo saldo es
+  // exactamente el saldo pendiente— no se toca nada. "Consolidar" una cuota
+  // sola es eliminarla y recrearla igual con otra fecha, y ese cambio de fecha
+  // no es gratis: borra la morosidad acumulada (una vencida desde mayo pasaba
+  // a vencida desde agosto) y altera el reporte de deuda. Se vio con Jefferson
+  // Aldazábal, cuyo IW se gestionó a mano antes de existir el gestor
+  // (20/08/2026). La consolidación con fecha del retiro se reserva para cuando
+  // hay algo que consolidar: varias impagas, o un monto que no cuadra.
+  const impagas = tuition.filter(c => c.balance > 0.005)
+  const saldoPendiente = r2(tuitionObjetivo - pagado)
+  if (impagas.length === 1 && impagas[0].paid <= 0.005 && Math.abs(impagas[0].amount - saldoPendiente) <= 0.01) {
+    return { cuotas: [], pagado }
+  }
+
   const cuotas: CuotaCambio[] = []
   for (const c of tuition) {
     if (c.balance <= 0.005) continue                       // pagada: intocable
