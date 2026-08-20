@@ -20,6 +20,11 @@ interface Preview {
   desaparecidos: { name: string; document: string; value: number | null }[]
   unmatched: { fullname: string; idnumber: string }[]
   matched: MatchedRow[]
+  diagnostico?: {
+    alumno: string; hay_item_total: boolean
+    graderaw: number | null; gradeformatted: string | null; grademax: number | null
+    actividades_con_nota: number; ejemplo: string[]
+  }[] | null
 }
 interface ImportResult {
   inserted: number; updated: number; unchanged: number; protected_rows: number; locked_rows: number
@@ -224,6 +229,46 @@ export function MoodleActasImport() {
                   </tbody>
                 </table>
               </div>
+              {/* Nadie tiene nota: en vez de dejarlo en "0 con nota final", se
+                  enseña qué devolvió Moodle para el Total del curso. Separa
+                  "no hay notas" de "hay notas y el total no llega". */}
+              {preview.diagnostico && preview.diagnostico.length > 0 && (
+                <details className="text-xs bg-amber-50 border border-amber-200 rounded-lg p-3" open>
+                  <summary className="cursor-pointer font-medium text-amber-900">
+                    Ningún alumno tiene nota final — qué devolvió Moodle
+                  </summary>
+                  <table className="mt-2 w-full">
+                    <thead>
+                      <tr className="text-[10px] uppercase text-amber-700">
+                        <th className="text-left py-1">Alumno</th>
+                        <th className="text-left">Total del curso</th>
+                        <th className="text-left">Actividades con nota</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-amber-900">
+                      {preview.diagnostico.map((d, i) => (
+                        <tr key={i} className="border-t border-amber-100">
+                          <td className="py-1 pr-2">{d.alumno}</td>
+                          <td className="pr-2 font-mono">
+                            {!d.hay_item_total ? 'el aula no expone el ítem'
+                              : d.graderaw != null ? `${d.graderaw}`
+                                : `vacío (muestra "${d.gradeformatted ?? '—'}")`}
+                          </td>
+                          <td className="font-mono">
+                            {d.actividades_con_nota}
+                            {d.ejemplo.length > 0 && <span className="text-amber-600"> · {d.ejemplo.join(' · ')}</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="mt-2 text-[11px] text-amber-700 leading-relaxed">
+                    Si hay actividades con nota y el total viene vacío, Moodle está ocultando el total a quien lee
+                    (revisa la visibilidad del ítem &quot;Course total&quot; y el ajuste de totales con ítems ocultos).
+                    Si tampoco hay actividades con nota, en esta aula no se ha calificado nada.
+                  </p>
+                </details>
+              )}
               {preview.unmatched.length > 0 && (
                 <details className="text-xs text-gray-500">
                   <summary className="cursor-pointer">Ver los {preview.unmatched.length} sin identificar</summary>

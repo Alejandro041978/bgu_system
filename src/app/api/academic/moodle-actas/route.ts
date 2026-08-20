@@ -249,9 +249,45 @@ export async function GET(req: NextRequest) {
     .filter(g => !docsEnAula.has(String(g.document_number ?? '')))
     .map(g => ({ name: g.student_name ?? '?', document: g.document_number ?? '', value: g.final_grade }))
 
+  // Diagnóstico del "Total del curso", solo cuando NADIE tiene nota.
+  //
+  // Un aula puede tener el libro lleno de calificaciones y devolver cero notas
+  // importables, y hasta ahora la pantalla solo sabía decir "0 con nota final".
+  // Eso obliga a adivinar: ¿no hay notas, están ocultas, el total no calcula?
+  // Con el aula 340 se probaron tres hipótesis a ciegas antes de mirar el dato
+  // (19/08/2026).
+  //
+  // Se muestra tal cual llega el ítem 'course' del webservice para los primeros
+  // alumnos. Si el informe del profesor enseña un total y aquí viene vacío, la
+  // diferencia está en lo que Moodle expone, no en cómo lo lee el ERP — y eso
+  // se ve de un vistazo en vez de deducirse.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const diagnostico = matched.every(m => m.total == null)
+    ? ((report?.usergrades ?? []) as any[]).slice(0, 4).map(ug => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const it = ((ug.gradeitems ?? []) as any[]).find(i => i.itemtype === 'course')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const conNota = ((ug.gradeitems ?? []) as any[]).filter(i => i.itemtype === 'mod' && i.graderaw != null)
+      return {
+        alumno: ug.userfullname ?? String(ug.userid),
+        hay_item_total: !!it,
+        graderaw: it?.graderaw ?? null,
+        gradeformatted: it?.gradeformatted ?? null,
+        grademax: it?.grademax ?? null,
+        // Moodle no expone un flag "hidden" en este informe: si el ítem está
+        // oculto para quien lee, sencillamente llega sin valor. Contar cuántas
+        // actividades SÍ traen nota separa "no hay notas" de "hay notas y el
+        // total no llega".
+        actividades_con_nota: conNota.length,
+        ejemplo: conNota.slice(0, 3).map(i => `${i.itemname ?? '?'}=${i.graderaw}`),
+      }
+    })
+    : null
+
   return NextResponse.json({
     courseid,
     politica,
+    diagnostico,
     alumnos_en_reporte: (report?.usergrades ?? []).length,
     matched_total: matched.length,
     con_nota: matched.filter(m => m.total != null).length,
