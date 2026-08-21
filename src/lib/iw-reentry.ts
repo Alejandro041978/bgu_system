@@ -303,9 +303,23 @@ export async function previewCaso(sb: SB, caso: Caso): Promise<Preview> {
       const plan = planCuotas(cuenta, tuitionDespues?.total ?? 0, caso.fecha)
       cuotas = plan.cuotas; pagado = plan.pagado
     } else {
-      pagado = r2(cuenta.charges.filter(c => c.charge_type === CHARGE_TUITION).reduce((s, c) => s + Number(c.paid), 0))
-      const diferencia = r2((tuitionDespues?.total ?? 0) - (tuitionAntes?.total ?? 0))
-      if (diferencia > 0.005) cuotas = [{ external_id: null, accion: 'crear', amount: diferencia, due_date: caso.fecha }]
+      // La regla 4 decía "una cuota por el diferencial entre el tuition
+      // anterior y el nuevo", y la primera versión la aplicó LITERAL: crear la
+      // cuota de la diferencia sin mirar el plan existente. Eso presupone que
+      // las cuotas vigentes ya suman el tuition anterior — y en los casos
+      // reales no es así: el IW de José Castillo nunca ajustó su plan, seguía
+      // con 19 cuotas impagas del plan original de 120 cr, y añadirle el
+      // diferencial habría cobrado dos veces (el usuario lo atrapó en la vista
+      // previa, 20/08/2026).
+      //
+      // La forma robusta es la misma consolidación del IW, apuntando al
+      // tuition NUEVO: fuera las impagas, las parciales a lo pagado, y una
+      // sola cuota por el saldo (total nuevo − pagado) con vencimiento el día
+      // del re-entry. Si el plan ya cuadraba con el tuition anterior, el
+      // resultado es exactamente el diferencial de la regla; si no cuadraba,
+      // queda saneado en el mismo acto.
+      const plan = planCuotas(cuenta, tuitionDespues?.total ?? 0, caso.fecha)
+      cuotas = plan.cuotas; pagado = plan.pagado
     }
 
     // Un bloque entra si hay algo que hacer O si el plan de cuotas no cuadra
