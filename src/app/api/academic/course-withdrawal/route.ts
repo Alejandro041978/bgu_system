@@ -197,9 +197,16 @@ export async function GET(req: NextRequest) {
   // iniciada", que es lo contrario de un retiro (20/08/2026). El registro
   // curricular tiene que leer del REGISTRO.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: matsRet } = await sb.from('academic_course_enrollments')
+  const { data: matsReg } = await sb.from('academic_course_enrollments')
     .select('id, course_id, status, closed_by, closed_at')
-    .eq('student_id', studentId).eq('program_id', programId).eq('status', 'retirada')
+    .eq('student_id', studentId).eq('program_id', programId)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const matsRet = ((matsReg ?? []) as any[]).filter(m => m.status === 'retirada')
+  // Matrículas vivas: la asignatura ESTÁ inscrita aunque no tenga fila de
+  // nota. El aviso de cobertura contaba filas y a Samuel Tejada le decía
+  // "faltan 11 por inscribir" con las 11 matriculadas (21/08/2026).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cursosVivos = new Set(((matsReg ?? []) as any[]).filter(m => m.status !== 'retirada').map(m => String(m.course_id)))
   const cursoDeMalla = new Map(malla.map(c => [String(c.id), c]))
   const yaRetiradaEnNotas = new Set(visibles.filter(r => r.withdrawn).map(r => courseNameKey(r.course_name)))
   const motivoDe = (cb: string | null) => {
@@ -210,7 +217,7 @@ export async function GET(req: NextRequest) {
     return 'Retirada'
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const retiradasRegistro = ((matsRet ?? []) as any[])
+  const retiradasRegistro = (matsRet as any[])
     .filter(m => cursoDeMalla.has(String(m.course_id)))
     .filter(m => !yaRetiradaEnNotas.has(courseNameKey(cursoDeMalla.get(String(m.course_id))!.name)))
     .map(m => {
@@ -227,7 +234,17 @@ export async function GET(req: NextRequest) {
   // Lo que la malla tiene y el estudiante no: ni nota, ni convalidación, ni
   // retiro en el registro.
   const conFila = new Set([...visibles, ...convRows, ...retiradasRegistro].map(r => courseNameKey(r.course_name)))
-  const faltantes = malla.filter(c => !conFila.has(courseNameKey(c.name))).map(c => ({
+  // Con matrícula viva pero sin fila de nota: inscrita, no "por inscribir".
+  const inscritasSinFila = malla
+    .filter(c => !conFila.has(courseNameKey(c.name)) && cursosVivos.has(String(c.id)))
+    .map(c => ({
+      external_id: `insc:${c.id}`, course_code: c.code, course_name: c.name,
+      credits: c.credits != null ? Number(c.credits) : null,
+      term: 'Inscrita · sin calificaciones',
+      status: 'inscrita', grade: null, has_grade: false, withdrawn: false, editable: false,
+      final_grade: null, retake_grade: null, kind: 'inscripcion' as const,
+    }))
+  const faltantes = malla.filter(c => !conFila.has(courseNameKey(c.name)) && !cursosVivos.has(String(c.id))).map(c => ({
     external_id: `falta:${c.id}`, course_code: c.code, course_name: c.name,
     credits: c.credits != null ? Number(c.credits) : null, term: '',
     status: 'no_iniciada', grade: null, has_grade: false, withdrawn: false, editable: false,
@@ -237,7 +254,7 @@ export async function GET(req: NextRequest) {
   // Se devuelve en el orden de la malla (nivel, código); lo que no está en la
   // malla —notas sueltas de la carga histórica— va al final.
   const orden = new Map(malla.map((c, i) => [courseNameKey(c.name), i]))
-  const todas = [...visibles, ...convRows, ...retiradasRegistro, ...faltantes]
+  const todas = [...visibles, ...convRows, ...retiradasRegistro, ...inscritasSinFila, ...faltantes]
     .sort((a, b) => (orden.get(courseNameKey(a.course_name)) ?? 9999) - (orden.get(courseNameKey(b.course_name)) ?? 9999)
       || String(a.course_name).localeCompare(String(b.course_name)))
 

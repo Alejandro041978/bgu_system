@@ -15,6 +15,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   desaprobado: { label: 'Desaprobado', cls: 'bg-red-50 text-red-700' },
   en_proceso: { label: 'En proceso', cls: 'bg-amber-50 text-amber-700' },
   convalidado: { label: 'Convalidado', cls: 'bg-violet-50 text-violet-700' },
+  inscrita: { label: 'Inscrita', cls: 'bg-sky-50 text-sky-700' },
   no_iniciada: { label: 'No iniciada', cls: 'bg-gray-100 text-gray-500' },
   sin_registrar: { label: 'Sin registrar', cls: 'bg-orange-50 text-orange-700' },
 }
