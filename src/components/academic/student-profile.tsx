@@ -1,7 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, Search, Save, RotateCcw, GraduationCap, User } from 'lucide-react'
+import { Loader2, Search, Save, RotateCcw, GraduationCap, User, MapPin, Wallet } from 'lucide-react'
+
+// Dónde está (convocatoria + carrusel) y cómo va la cobranza de cada
+// matrícula: lo trae el localizador y el estado de cuenta, no se replica aquí.
+interface Donde {
+  convocatoria: { id: string; name: string; semester: string | null } | null
+  carrusel: { label: string; status: string; next_label: string | null } | null
+}
+interface Cobranza { charged: number; paid: number; balance: number; overdue: number }
+const money = (n: number) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 interface Found { id: string; name: string; document_number: string | null; email: string | null }
 interface Enrollment {
@@ -53,6 +62,8 @@ export function StudentProfile() {
   const [results, setResults] = useState<Found[] | null>(null)
   const [student, setStudent] = useState<StudentRow | null>(null)
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
+  const [donde, setDonde] = useState<Record<string, Donde>>({})
+  const [cobranza, setCobranza] = useState<Record<string, Cobranza>>({})
   const [form, setForm] = useState<StudentRow>({})
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -83,6 +94,18 @@ export function StudentProfile() {
     window.history.replaceState(null, '', `?id=${id}`)
     setStudent(d.student)
     setEnrollments(d.enrollments ?? [])
+    // Carrusel y cobranza por matrícula, en paralelo y sin bloquear la ficha
+    setDonde({}); setCobranza({})
+    fetch(`/api/academic/student-locator?student_id=${id}`).then(r => r.json()).then(l => {
+      const m: Record<string, Donde> = {}
+      for (const e of (l.students?.[0]?.enrollments ?? []) as ({ enrollment_id: string } & Donde)[]) m[e.enrollment_id] = { convocatoria: e.convocatoria, carrusel: e.carrusel }
+      setDonde(m)
+    }).catch(() => {})
+    fetch(`/api/account/statement?student_id=${id}`).then(r => r.json()).then(s => {
+      const m: Record<string, Cobranza> = {}
+      for (const p of (s.programs ?? []) as { enrollment_id: string | null; totals: Cobranza }[]) if (p.enrollment_id) m[p.enrollment_id] = p.totals
+      setCobranza(m)
+    }).catch(() => {})
     setForm({
       first_name: d.student.first_name ?? '', last_name: d.student.last_name ?? '',
       second_last_name: d.student.second_last_name ?? '',
@@ -271,16 +294,56 @@ export function StudentProfile() {
             <p className="text-xs text-gray-500 uppercase tracking-wide">Matrículas</p>
             {enrollments.length === 0 ? (
               <p className="text-sm text-gray-400">Sin matrículas.</p>
-            ) : enrollments.map(e => (
-              <div key={e.id} className="flex items-center gap-2 text-sm border border-gray-100 rounded-lg px-3 py-2">
-                <GraduationCap className="w-4 h-4 text-gray-300 shrink-0" />
-                <span className="text-gray-800">{e.program}</span>
-                <span className="text-xs text-gray-400 ml-auto">
-                  {e.convocatoria ?? 'sin convocatoria'} · {fdate(e.fecha)}
-                </span>
-                <MoverConvocatoria enrollment={e} onMoved={() => open(student!.id)} />
-              </div>
-            ))}
+            ) : enrollments.map(e => {
+              const w = donde[e.id]
+              const c = cobranza[e.id]
+              return (
+                <div key={e.id} className="text-sm border border-gray-100 rounded-lg px-3 py-2 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-gray-300 shrink-0" />
+                    <span className="text-gray-800">{e.program}</span>
+                    <span className="text-xs text-gray-400 ml-auto">
+                      {e.convocatoria ?? 'sin convocatoria'} · {fdate(e.fecha)}
+                    </span>
+                    <MoverConvocatoria enrollment={e} onMoved={() => open(student!.id)} />
+                  </div>
+                  {/* Dónde está: carrusel y enlace a la convocatoria */}
+                  <div className="flex items-center gap-2 text-xs pl-6">
+                    <MapPin className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    {w === undefined ? (
+                      <span className="text-gray-300">…</span>
+                    ) : w.carrusel ? (
+                      <span className="text-gray-600">
+                        Carrusel <span className="font-medium text-gray-800">{w.carrusel.label}</span>
+                        <span className={`ml-1 px-1.5 py-0.5 rounded text-[11px] ${w.carrusel.status === 'activo' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{w.carrusel.status}</span>
+                        {w.carrusel.next_label && <span className="text-gray-400"> → siguiente {w.carrusel.next_label}</span>}
+                      </span>
+                    ) : (
+                      <span className="text-amber-700">Sin colocar en carrusel</span>
+                    )}
+                    {e.convocatoria_id && student && (
+                      <a href={`/academic/estudiantes-convocatoria?student_id=${student.id}`} className="ml-auto text-blue-600 hover:underline shrink-0">Ver en su convocatoria</a>
+                    )}
+                  </div>
+                  {/* Cobranza: resumen de una línea, el detalle vive en el estado de cuenta */}
+                  <div className="flex items-center gap-2 text-xs pl-6">
+                    <Wallet className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    {c === undefined ? (
+                      <span className="text-gray-300">…</span>
+                    ) : (
+                      <span className="text-gray-600">
+                        Facturado {money(c.charged)} · pagado <span className="text-green-700">{money(c.paid)}</span>
+                        · saldo <span className={c.balance > 0.005 ? 'text-gray-800 font-medium' : 'text-gray-400'}>{money(c.balance)}</span>
+                        {c.overdue > 0.005 && <span className="text-red-600 font-medium"> · vencido {money(c.overdue)}</span>}
+                      </span>
+                    )}
+                    {student && (
+                      <a href={`/academic/account?student=${student.id}`} className="ml-auto text-blue-600 hover:underline shrink-0">Estado de cuenta</a>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
             <p className="text-[11px] text-gray-400">Las matrículas se gestionan en Nueva Matrícula; las notas, en Calificaciones.</p>
           </div>
         </>

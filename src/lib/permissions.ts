@@ -153,6 +153,10 @@ export const API_ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/api/academic/registry-audit', 'academic_registry_audit'],
   ['/api/academic/iw-activity', 'academic_iw_activity'],
   ['/api/academic/convocatoria-students', 'academic_convocatoria_students'],
+  // Localizador (¿en qué convocatoria y carrusel está?): lo usan el buscador de
+  // Estudiantes por Convocatoria y la ficha del estudiante; va con la ficha,
+  // que es el permiso más amplio de los dos.
+  ['/api/academic/student-locator', 'academic_student_profile'],
   ['/api/academic/transfer-schemes', 'academic_transfer_schemes'],
   ['/api/academic/transfer-credits', 'academic_transfer_credits'],
   ['/api/academic/teaching-assignments', 'academic_teaching'],

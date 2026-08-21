@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, Users, CheckCircle2, ArrowRightCircle } from 'lucide-react'
+import { Loader2, Users, CheckCircle2, ArrowRightCircle, Search, MapPin } from 'lucide-react'
 
 interface Ref { id: string; name: string }
 interface Conv { id: string; name: string; semester: string; first_day: string | null }
@@ -18,6 +18,15 @@ interface Data {
   por_programa: { programa: string; n: number; sin_colocar: number }[]
   rows: Row[]
 }
+
+// Localizador: ¿en qué convocatoria y carrusel está un estudiante? (mismo
+// endpoint que usa la ficha del estudiante)
+interface LocEnr {
+  enrollment_id: string; program: string; fecha: string | null; status: string | null
+  convocatoria: { id: string; name: string; category_id: string | null; year_id: string | null; semester: string | null } | null
+  carrusel: { label: string; status: string; next_label: string | null } | null
+}
+interface LocStudent { id: string; name: string; document: string | null; situation: string | null; enrollments: LocEnr[] }
 
 const fdate = (d: string | null) => (d ? d.split('T')[0].split('-').reverse().join('/') : '—')
 
@@ -42,13 +51,60 @@ export function ConvocatoriaStudents() {
   const [choice, setChoice] = useState<Record<string, string>>({})
   const [placing, setPlacing] = useState<Record<string, boolean>>({})
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  // Localizador: buscar a cualquiera sin saber su convocatoria y saltar a ella
+  const [locQ, setLocQ] = useState('')
+  const [locHits, setLocHits] = useState<LocStudent[] | null>(null)
+  const [locBusy, setLocBusy] = useState(false)
+  const [pending, setPending] = useState<{ conv_id: string; student_id: string } | null>(null)
+  const [highlight, setHighlight] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/convocatorias').then(r => r.json()).then(d => {
       setCategories(d.categories ?? []); setYears(d.years ?? [])
-      if ((d.years ?? []).length) setYearId(d.years[0].id)
+      const id = new URLSearchParams(window.location.search).get('student_id')
+      // Enlace directo desde la ficha: /academic/estudiantes-convocatoria?student_id=<uuid>
+      if (id) {
+        fetch(`/api/academic/student-locator?student_id=${id}`).then(r => r.json()).then(l => {
+          const s: LocStudent | undefined = l.students?.[0]
+          if (!s) return
+          const conConv = s.enrollments.filter(e => e.convocatoria)
+          if (conConv.length === 1) jumpTo(s, conConv[0])
+          else { setLocQ(s.name); setLocHits([s]) }
+        })
+      } else if ((d.years ?? []).length) setYearId(d.years[0].id)
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Búsqueda del localizador con un pequeño retardo para no disparar por tecla
+  useEffect(() => {
+    const q = locQ.trim()
+    if (q.length < 2) { setLocHits(null); return }
+    const t = setTimeout(() => {
+      setLocBusy(true)
+      fetch(`/api/academic/student-locator?q=${encodeURIComponent(q)}`).then(r => r.json())
+        .then(d => { setLocHits(d.students ?? []); setLocBusy(false) })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [locQ])
+
+  // Saltar a la convocatoria de una matrícula: la cascada se mueve sola
+  // (categoría → año → convocatoria) y al cargar la tabla se resalta la fila.
+  function jumpTo(s: LocStudent, e: LocEnr) {
+    if (!e.convocatoria) return
+    setLocHits(null); setLocQ(s.name)
+    setPending({ conv_id: e.convocatoria.id, student_id: s.id })
+    if (e.convocatoria.category_id) setCategoryId(e.convocatoria.category_id)
+    if (e.convocatoria.year_id) setYearId(e.convocatoria.year_id)
+  }
+  useEffect(() => {
+    if (pending && convs.some(c => c.id === pending.conv_id)) setConvId(pending.conv_id)
+  }, [convs, pending])
+  useEffect(() => {
+    if (!pending || !data) return
+    setHighlight(pending.student_id); setPending(null)
+    setTimeout(() => document.getElementById(`stu-${pending.student_id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50)
+  }, [data, pending])
 
   // Convocatorias de la categoría en el año elegido (mismo endpoint de Gestión)
   useEffect(() => {
@@ -133,6 +189,46 @@ export function ConvocatoriaStudents() {
 
   return (
     <div className="space-y-4">
+      {/* Localizador: escribe un nombre o documento y salta a su convocatoria */}
+      <div className="relative">
+        <div className="relative">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input value={locQ} onChange={e => setLocQ(e.target.value)}
+            placeholder="¿Dónde está un estudiante? Nombre, documento o correo → salta a su convocatoria"
+            className="w-full border border-gray-200 rounded-lg pl-9 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
+          {locBusy && <Loader2 className="w-4 h-4 text-gray-400 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />}
+        </div>
+        {locHits && (
+          <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-96 overflow-auto divide-y divide-gray-50">
+            {locHits.length === 0 && <p className="px-4 py-3 text-sm text-gray-400">Sin resultados.</p>}
+            {locHits.map(s => (
+              <div key={s.id} className="px-4 py-2.5">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-gray-800">{s.name}</span>
+                  <span className="text-xs text-gray-400">{s.document ?? ''}</span>
+                  {s.situation && <span className={`text-[11px] px-1.5 py-0.5 rounded ${SIT_STYLE[s.situation] ?? 'bg-gray-100 text-gray-500'}`}>{s.situation}</span>}
+                  <a href={`/academic/students?id=${s.id}`} className="ml-auto text-[11px] text-blue-600 hover:underline">Ficha</a>
+                </div>
+                {s.enrollments.length === 0 && <p className="text-xs text-gray-400 mt-1">Sin matrículas.</p>}
+                {s.enrollments.map(e => (
+                  <div key={e.enrollment_id} className="flex items-center gap-2 mt-1 text-xs">
+                    <MapPin className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                    <span className="text-gray-700 truncate">{e.program}</span>
+                    <span className="text-gray-400 truncate">
+                      · {e.convocatoria ? e.convocatoria.name : 'sin convocatoria'}
+                      {e.carrusel ? ` · ${e.carrusel.label}` : ' · sin carrusel'}
+                    </span>
+                    {e.convocatoria && (
+                      <button onClick={() => jumpTo(s, e)} className="ml-auto shrink-0 text-blue-600 hover:underline font-medium">Ir a la convocatoria</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-3">
         <label className="min-w-[200px]">
           <span className="block text-xs text-gray-500 mb-1">Categoría</span>
@@ -221,7 +317,8 @@ export function ConvocatoriaStudents() {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {visible.map(r => (
-                      <tr key={r.student_id} className="hover:bg-gray-50/50 align-top">
+                      <tr key={r.student_id} id={`stu-${r.student_id}`}
+                        className={`align-top ${highlight === r.student_id ? 'bg-amber-50 ring-2 ring-inset ring-amber-300' : 'hover:bg-gray-50/50'}`}>
                         <td className="px-4 py-2.5 text-gray-800">{r.name}</td>
                         <td className="px-3 py-2.5 text-xs text-gray-500 font-mono">{r.document}</td>
                         <td className="px-3 py-2.5">
