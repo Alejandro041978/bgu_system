@@ -269,15 +269,23 @@ export async function previewCaso(sb: SB, caso: Caso): Promise<Preview> {
     }
 
     // Créditos: antes = los del acta (billable_credits del estado de cuenta).
-    // Después = delta sobre el mismo número, con la misma semántica del acta:
+    // Después = delta sobre el mismo número:
     //  · retirar quita los créditos de esa asignatura;
     //  · reactivar una retirada los devuelve;
-    //  · un intento nuevo sobre reprobada NO suma (la asignatura ya cuenta).
+    //  · un intento nuevo sobre reprobada SUMA sus créditos OTRA VEZ.
+    //
+    // Lo último es regla del usuario (20/08/2026, caso José Castillo):
+    // recursar consume créditos de nuevo — el programa completo más lo que va
+    // a re-cursar. La primera versión contaba por asignatura única (120 cr se
+    // quedaban en 120) y la corrección fue explícita: 40 asignaturas + 8
+    // recursadas = 144 cr facturables. La cascada no cambia: convalidaciones,
+    // beca y bono se aplican sobre la lista resultante, así que la beca cubre
+    // los recursados en la misma proporción que el resto.
     const antes = cuenta.billable_credits
     let delta = 0
     for (const c of cambios) {
       if (c.accion === 'retirar') delta -= c.credits
-      if (c.accion === 'reactivar') delta += c.credits
+      if (c.accion === 'reactivar' || c.accion === 'nuevo_intento') delta += c.credits
     }
     const despues = antes != null ? Math.max(0, antes + delta) : null
 
