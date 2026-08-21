@@ -94,7 +94,7 @@ export function TuitionAudit() {
                   <td className="px-4 py-2 text-right tabular-nums text-gray-500">
                     {money(r.list_price)}
                     {r.billable_credits != null && <div className="text-[11px] text-gray-400">{r.billable_credits} cr</div>}
-                    {r.sin_registro && <div className="text-[11px] text-amber-600" title="No tiene asignaturas en su registro curricular: el precio es el congelado en la matrícula">sin registro · precio congelado</div>}
+                    {r.sin_registro && <div className="text-[11px] text-amber-600" title="No tiene asignaturas en su registro curricular: lleva 0 créditos">sin registro curricular</div>}
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums text-teal-700">{r.transfer_savings > 0 ? money(r.transfer_savings) : '—'}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-violet-700">{r.beca > 0 ? `${money(r.beca)} (${r.scholarship_pct}%)` : '—'}</td>

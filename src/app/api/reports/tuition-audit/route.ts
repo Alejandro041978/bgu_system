@@ -129,17 +129,17 @@ export async function GET(req: NextRequest) {
     if (!tcCursos.has(k)) tcCursos.set(k, new Set())
     tcCursos.get(k)!.add(String(it.dest_course_id))
   }
-  // Devuelve null cuando el estudiante no tiene NADA en su registro (ni
-  // matrícula por asignatura ni convalidación): 149 matrículas, diplomados
-  // cortos sobre todo, cuya malla nunca se le registró. Calcularles $0 las
-  // escondería como "coinciden" (113 sin cuotas) o las observaría por la razón
-  // equivocada (36 con tuition facturado). Para ellas manda el snapshot y la
-  // fila se etiqueta "sin registro".
-  const creditosQueLleva = (studentId: string, programId: string): number | null => {
+  // Sin nada en el registro (ni matrícula por asignatura ni convalidación) el
+  // resultado es 0, igual que el estado de cuenta: cero créditos son cero de
+  // tuition y un plan con solo el enrollment está bien elaborado (Henry
+  // Aguirre, 21/08/2026). El primer intento caía al snapshot en esos casos y
+  // volvía a observar planes correctos. `sinRegistro` queda solo como
+  // información en la fila.
+  const creditosQueLleva = (studentId: string, programId: string): { creditos: number; sinRegistro: boolean } => {
     const vivas = vivasPorEstudiante.get(studentId) ?? []
     const registradas = new Set(vivas.map(v => v.course_id))
     const convalidadas = tcCursos.get(`${studentId}|${programId}`) ?? new Set<string>()
-    if (!vivas.length && !convalidadas.size) return null
+    const sinRegistro = !vivas.length && !convalidadas.size
     let total = 0
     for (const cid of mallaDePrograma.get(programId) ?? []) {
       if (registradas.has(cid) || convalidadas.has(cid)) total += creditoDeCurso.get(cid) ?? 0
@@ -151,7 +151,7 @@ export async function GET(req: NextRequest) {
       porCurso.set(v.course_id, (porCurso.get(v.course_id) ?? 0) + 1)
     }
     for (const [cid, n] of porCurso) if (n > 1) total += (n - 1) * (creditoDeCurso.get(cid) ?? 0)
-    return total
+    return { creditos: total, sinRegistro }
   }
 
   const mismatches = []
@@ -164,9 +164,10 @@ export async function GET(req: NextRequest) {
 
     // Igual que el estado de cuenta: con tarifa y programa se calcula; el
     // snapshot solo es respaldo cuando no se puede.
-    const creditos = e.credit_rate != null && e.program_id ? creditosQueLleva(String(e.student_id), String(e.program_id)) : null
+    const calc = e.credit_rate != null && e.program_id ? creditosQueLleva(String(e.student_id), String(e.program_id)) : null
+    const creditos = calc?.creditos ?? null
     const lista = creditos != null ? r2(Number(e.credit_rate) * creditos) : Number(e.list_price)
-    const sinRegistro = creditos == null
+    const sinRegistro = calc?.sinRegistro ?? false
     const cr = tcCredits.get(`${e.student_id}|${e.program_id}`) ?? 0
     const savings = e.credit_rate != null ? r2(cr * Number(e.credit_rate)) : 0
     const pct = pctByEnr.get(String(e.id)) ?? 0
