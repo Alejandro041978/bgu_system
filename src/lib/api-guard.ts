@@ -149,3 +149,23 @@ export async function esSuperadmin(user: { id: string; email?: string | null }):
 
   return !!lista
 }
+
+// ---------------------------------------------------------------------------
+// ¿Puede EDITAR esta página según su rol? Superadmin siempre; el resto, lo que
+// diga role_permissions.can_edit para la pageKey. Misma fuente que
+// /api/me/permissions (lo que ve la pantalla), para que un botón habilitado por
+// rol no lo rechace el endpoint.
+//
+// Nació con "Refacturar cuotas" (21/08/2026): el endpoint exigía superadmin a
+// secas y el permiso de editar Estado de cuenta no servía de nada.
+// ---------------------------------------------------------------------------
+export async function puedeEditarPagina(user: { id: string; email?: string | null }, pageKey: string): Promise<boolean> {
+  if (await esSuperadmin(user)) return true
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = admin() as any
+  const { data: emp } = await sb.from('hr_employees').select('role_id').eq('user_id', user.id).maybeSingle()
+  if (!emp?.role_id) return false
+  const { data: perm } = await sb.from('role_permissions')
+    .select('can_edit').eq('role_id', emp.role_id).eq('page_key', pageKey).maybeSingle()
+  return !!perm?.can_edit
+}

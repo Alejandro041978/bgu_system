@@ -186,10 +186,10 @@ function ProgramAccountView({ account, canGenerate, canDiscount = false, onChang
 
       {canGenerate && account.enrollment_id && (
         <div className="flex justify-end gap-2">
-          {/* Refacturar es del mismo peso que un descuento (reescribe el libro
-              de cuotas), así que va con el permiso de descuentos, no con el de
-              crear una cuota suelta. */}
-          {canDiscount && <RebillButton enrollmentId={account.enrollment_id} charges={account.charges} onChanged={onChanged} />}
+          {/* Refacturar reescribe el libro de cuotas: lo habilita el superadmin
+              o el permiso de EDITAR Estado de cuenta del rol (igual que el
+              endpoint). El descuento sigue siendo solo del superadmin. */}
+          {(canDiscount || puedeMover) && <RebillButton enrollmentId={account.enrollment_id} charges={account.charges} onChanged={onChanged} />}
           <NewChargeButton enrollmentId={account.enrollment_id} onChanged={onChanged} />
         </div>
       )}

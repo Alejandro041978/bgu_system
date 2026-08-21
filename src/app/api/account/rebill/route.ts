@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { isSuperadmin, isStudentUser } from '@/lib/student-identity'
+import { isStudentUser } from '@/lib/student-identity'
+import { puedeEditarPagina } from '@/lib/api-guard'
 import { rebillEnrollment } from '@/lib/billing'
 
 export const revalidate = 0
@@ -10,16 +11,17 @@ export const maxDuration = 60
 //   dry_run: true  → vista previa (qué se borra, qué se conserva, qué se crea)
 //   dry_run: false → lo aplica
 //
-// Reescribe el libro de cuotas, así que pide el mismo permiso que un descuento.
+// Reescribe el libro de cuotas. Lo puede hacer el superadmin y cualquier rol
+// con permiso de EDITAR Estado de cuenta (academic_account): antes exigía
+// superadmin a secas y el permiso por rol no servía de nada (21/08/2026).
 export async function POST(req: NextRequest) {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  // isSuperadmin() da true para quien no está en hr_employees, y un estudiante
-  // tampoco lo está: hay que rechazarlos explícitamente primero.
+  // Un estudiante tiene sesión y no tiene ficha: se rechaza explícitamente antes.
   if (await isStudentUser(user)) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
-  if (!(await isSuperadmin(user.id))) {
-    return NextResponse.json({ error: 'Solo el superadministrador puede refacturar cuotas' }, { status: 403 })
+  if (!(await puedeEditarPagina(user, 'academic_account'))) {
+    return NextResponse.json({ error: 'Refacturar cuotas requiere permiso de edición en Estado de cuenta' }, { status: 403 })
   }
 
   const b = await req.json().catch(() => null) as {
