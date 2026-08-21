@@ -186,3 +186,29 @@ export function creditosQueLleva(acta: Acta): number {
     .filter(c => c.registrada)
     .reduce((s, c) => s + Number(c.credits ?? 0), 0)
 }
+
+// Créditos EXTRA por intentos: cada recursado consume créditos otra vez (regla
+// del usuario 2026-08-20, caso Edwin Araca). El acta cuenta asignaturas únicas
+// —llevar MIC 108 tres veces sigue siendo una fila del acta—, así que los
+// intentos adicionales salen de las matrículas vivas: por cada asignatura con
+// n matrículas no retiradas, se facturan (n − 1) × créditos de más. Las
+// convalidadas no tienen matrícula, por eso esto SUMA sobre el acta en vez de
+// reemplazarla.
+export async function creditosExtraPorIntentos(sb: SB, studentId: string, programId: string): Promise<number> {
+  const { data } = await sb.from('academic_course_enrollments')
+    .select('course_id, program_id, status')
+    .eq('student_id', studentId)
+    .neq('status', 'retirada')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filas = ((data ?? []) as any[])
+    .filter(m => m.course_id && (m.program_id == null || String(m.program_id) === String(programId)))
+  const porCurso = new Map<string, number>()
+  for (const m of filas) porCurso.set(String(m.course_id), (porCurso.get(String(m.course_id)) ?? 0) + 1)
+  const conExtra = [...porCurso.entries()].filter(([, n]) => n > 1)
+  if (!conExtra.length) return 0
+  const { data: cursos } = await sb.from('academic_courses')
+    .select('id, credits').in('id', conExtra.map(([id]) => id))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cred = new Map(((cursos ?? []) as any[]).map(c => [String(c.id), Number(c.credits ?? 0)]))
+  return conExtra.reduce((s, [id, n]) => s + (n - 1) * (cred.get(id) ?? 0), 0)
+}

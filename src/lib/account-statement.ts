@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { computeActa, creditosQueLleva } from './acta'
+import { computeActa, creditosExtraPorIntentos, creditosQueLleva } from './acta'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -240,7 +240,9 @@ export async function getAccountStatement(
     if (e.program_id) {
       try {
         const acta = await computeActa(sb, student.id, String(e.program_id))
-        if (acta) creditos = creditosQueLleva(acta)
+        // Los recursados consumen créditos otra vez: el acta trae las
+        // asignaturas únicas y los intentos extra se suman aparte.
+        if (acta) creditos = creditosQueLleva(acta) + await creditosExtraPorIntentos(sb, student.id, String(e.program_id))
       } catch { /* sin acta: se cae al snapshot */ }
     }
     // Precio oficial = tarifa × créditos QUE SE CURSAN. Cero créditos son cero

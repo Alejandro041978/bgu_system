@@ -1,4 +1,4 @@
-import { computeActa, creditosQueLleva } from '@/lib/acta'
+import { computeActa, creditosExtraPorIntentos, creditosQueLleva } from '@/lib/acta'
 import { passingByCourse, passingFor } from '@/lib/passing-score'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -267,7 +267,9 @@ export async function GET(req: NextRequest) {
     try {
       const acta = await computeActa(sb, studentId, programId)
       if (acta) {
-        creditosQueLlevaTotal = creditosQueLleva(acta)
+        // Los recursados consumen créditos otra vez, misma regla que el
+        // estado de cuenta.
+        creditosQueLlevaTotal = creditosQueLleva(acta) + await creditosExtraPorIntentos(sb, studentId, programId)
         // Sin `> 0`, y a propósito: cero créditos son cero de tuition. La
         // condición confundía "no pude calcularlo" con "lo calculé y da cero",
         // y al retirado de todo le devolvía el precio congelado de su matrícula.
