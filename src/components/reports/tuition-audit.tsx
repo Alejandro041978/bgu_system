@@ -7,7 +7,7 @@ import { Loader2, ExternalLink, ShieldCheck, ShieldAlert, Search } from 'lucide-
 interface Row {
   student_id: string; student_name: string; document_number: string | null
   program_name: string | null; sigla: string | null
-  list_price: number; transfer_savings: number; scholarship_pct: number | null; beca: number
+  list_price: number; billable_credits: number | null; sin_registro: boolean; transfer_savings: number; scholarship_pct: number | null; beca: number
   bonus_pct: number | null; bonus: number
   expected_tuition: number; billed_tuition: number; diff: number
 }
@@ -91,7 +91,11 @@ export function TuitionAudit() {
                     <span className="block text-[11px] text-gray-400">{r.document_number} · {r.sigla}</span>
                   </td>
                   <td className="px-4 py-2 text-xs text-gray-600 max-w-52 truncate" title={r.program_name ?? ''}>{r.program_name}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-gray-500">{money(r.list_price)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-gray-500">
+                    {money(r.list_price)}
+                    {r.billable_credits != null && <div className="text-[11px] text-gray-400">{r.billable_credits} cr</div>}
+                    {r.sin_registro && <div className="text-[11px] text-amber-600" title="No tiene asignaturas en su registro curricular: el precio es el congelado en la matrícula">sin registro · precio congelado</div>}
+                  </td>
                   <td className="px-4 py-2 text-right tabular-nums text-teal-700">{r.transfer_savings > 0 ? money(r.transfer_savings) : '—'}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-violet-700">{r.beca > 0 ? `${money(r.beca)} (${r.scholarship_pct}%)` : '—'}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-emerald-700">{r.bonus > 0 ? `${money(r.bonus)} (${r.bonus_pct}%)` : '—'}</td>

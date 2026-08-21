@@ -10,11 +10,12 @@ export const maxDuration = 120
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function fetchAll(sb: any, t: string, s: string): Promise<any[]> {
+async function fetchAll(sb: any, t: string, s: string, orden?: string): Promise<any[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const o: any[] = []
   for (let f = 0; ; f += 1000) {
-    const { data, error } = await sb.from(t).select(s).range(f, f + 999)
+    const q = sb.from(t).select(s)
+    const { data, error } = await (orden ? q.order(orden) : q).range(f, f + 999)
     if (error) throw new Error(t + ': ' + error.message)
     o.push(...(data ?? [])); if ((data ?? []).length < 1000) break
   }
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ categories: cats })
   }
 
-  const [cats, progs, enrs, students, concepts, scholarships, bonuses, tcs, tcItems] = await Promise.all([
+  const [cats, progs, enrs, students, concepts, scholarships, bonuses, tcs, tcItems, matriculas, cursos] = await Promise.all([
     fetchAll(sb, 'academic_programs_category', 'id, name, sigla'),
     fetchAll(sb, 'academic_programs', 'id, name, category_id'),
     fetchAll(sb, 'academic_student_enrollments', 'id, student_id, program_id, list_price, credit_rate'),
@@ -56,6 +57,8 @@ export async function GET(req: NextRequest) {
     fetchAll(sb, 'bonuses', 'enrollment_id, percentage').catch(() => []),
     fetchAll(sb, 'transfer_credits', 'id, student_id, dest_program_id'),
     fetchAll(sb, 'transfer_credit_items', 'transfer_credit_id, dest_course_id'),
+    fetchAll(sb, 'academic_course_enrollments', 'id, student_id, course_id, program_id, status', 'id'),
+    fetchAll(sb, 'academic_courses', 'id, program_id, credits', 'id'),
   ])
 
   // Conceptos Tuition (por nombre/abreviatura)
@@ -97,6 +100,60 @@ export async function GET(req: NextRequest) {
   const catById = new Map(cats.map(c => [String(c.id), c]))
   const r2 = (n: number) => Math.round(n * 100) / 100
 
+  // ── Precio oficial CALCULADO, no el snapshot ────────────────────────────
+  // El auditor leía list_price congelado en la matrícula, y el estado de
+  // cuenta calcula tarifa × créditos que el estudiante lleva hoy (malla
+  // registrada + convalidadas + recursados). Con un IW consolidado por el
+  // gestor, o un recursado, los dos decían cosas distintas y la auditoría
+  // marcaba observados planes que estaban bien (21/08/2026). Misma regla que
+  // creditosQueLleva + creditosExtraPorIntentos, en bloque para ~2.000
+  // matrículas sin una consulta por cada una.
+  const creditoDeCurso = new Map<string, number>()
+  const mallaDePrograma = new Map<string, string[]>()
+  for (const c of cursos) {
+    creditoDeCurso.set(String(c.id), Number(c.credits ?? 0))
+    if (c.program_id) mallaDePrograma.set(String(c.program_id), [...(mallaDePrograma.get(String(c.program_id)) ?? []), String(c.id)])
+  }
+  // Matrículas vivas por estudiante: cuántas de cada asignatura y de qué programa
+  const vivasPorEstudiante = new Map<string, { course_id: string; program_id: string | null }[]>()
+  for (const m of matriculas) {
+    if (m.status === 'retirada' || !m.course_id) continue
+    const k = String(m.student_id)
+    vivasPorEstudiante.set(k, [...(vivasPorEstudiante.get(k) ?? []), { course_id: String(m.course_id), program_id: m.program_id ? String(m.program_id) : null }])
+  }
+  const tcCursos = new Map<string, Set<string>>()
+  for (const it of tcItems) {
+    const tc = tcInfo.get(String(it.transfer_credit_id))
+    if (!tc?.student_id || !tc?.dest_program_id || !it.dest_course_id) continue
+    const k = `${tc.student_id}|${tc.dest_program_id}`
+    if (!tcCursos.has(k)) tcCursos.set(k, new Set())
+    tcCursos.get(k)!.add(String(it.dest_course_id))
+  }
+  // Devuelve null cuando el estudiante no tiene NADA en su registro (ni
+  // matrícula por asignatura ni convalidación): 149 matrículas, diplomados
+  // cortos sobre todo, cuya malla nunca se le registró. Calcularles $0 las
+  // escondería como "coinciden" (113 sin cuotas) o las observaría por la razón
+  // equivocada (36 con tuition facturado). Para ellas manda el snapshot y la
+  // fila se etiqueta "sin registro".
+  const creditosQueLleva = (studentId: string, programId: string): number | null => {
+    const vivas = vivasPorEstudiante.get(studentId) ?? []
+    const registradas = new Set(vivas.map(v => v.course_id))
+    const convalidadas = tcCursos.get(`${studentId}|${programId}`) ?? new Set<string>()
+    if (!vivas.length && !convalidadas.size) return null
+    let total = 0
+    for (const cid of mallaDePrograma.get(programId) ?? []) {
+      if (registradas.has(cid) || convalidadas.has(cid)) total += creditoDeCurso.get(cid) ?? 0
+    }
+    // Recursados: (n − 1) × créditos por asignatura con n matrículas vivas
+    const porCurso = new Map<string, number>()
+    for (const v of vivas) {
+      if (v.program_id != null && v.program_id !== programId) continue
+      porCurso.set(v.course_id, (porCurso.get(v.course_id) ?? 0) + 1)
+    }
+    for (const [cid, n] of porCurso) if (n > 1) total += (n - 1) * (creditoDeCurso.get(cid) ?? 0)
+    return total
+  }
+
   const mismatches = []
   let auditadas = 0
   for (const e of enrs) {
@@ -105,7 +162,11 @@ export async function GET(req: NextRequest) {
     if (categoryFilter && String(prog?.category_id) !== categoryFilter) continue
     auditadas++
 
-    const lista = Number(e.list_price)
+    // Igual que el estado de cuenta: con tarifa y programa se calcula; el
+    // snapshot solo es respaldo cuando no se puede.
+    const creditos = e.credit_rate != null && e.program_id ? creditosQueLleva(String(e.student_id), String(e.program_id)) : null
+    const lista = creditos != null ? r2(Number(e.credit_rate) * creditos) : Number(e.list_price)
+    const sinRegistro = creditos == null
     const cr = tcCredits.get(`${e.student_id}|${e.program_id}`) ?? 0
     const savings = e.credit_rate != null ? r2(cr * Number(e.credit_rate)) : 0
     const pct = pctByEnr.get(String(e.id)) ?? 0
@@ -127,7 +188,7 @@ export async function GET(req: NextRequest) {
       program_name: prog?.name ?? null,
       category_id: prog?.category_id ?? null,
       sigla: catById.get(String(prog?.category_id))?.sigla ?? null,
-      list_price: lista, transfer_savings: savings, scholarship_pct: pct || null, beca,
+      list_price: lista, billable_credits: creditos, sin_registro: sinRegistro, transfer_savings: savings, scholarship_pct: pct || null, beca,
       bonus_pct: bonusPct || null, bonus,
       expected_tuition: esperado, billed_tuition: facturado, diff,
     })
