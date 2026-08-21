@@ -257,10 +257,16 @@ export function CurricularRecord() {
                       <td className="px-3 py-2 text-xs text-gray-400">{r.term || '—'}</td>
                       <td className="px-3 py-2"><span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Retirada</span></td>
                       <td className="px-3 py-2 text-right w-32">
-                        <button onClick={() => reinstate(r)} disabled={busy === r.external_id}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-40">
-                          <Undo2 className="w-3.5 h-3.5" />{busy === r.external_id ? 'Deshaciendo…' : 'Deshacer retiro'}
-                        </button>
+                        {/* Las retiradas del REGISTRO (sin nota: liquidación de
+                            IW, limpieza de ceros) no se deshacen desde aquí —
+                            no hay nota que restaurar; su vuelta es el gestor de
+                            Re-Entry o el deshacer de su propia limpieza. */}
+                        {r.external_id.startsWith('enr:')
+                          ? <span className="text-[11px] text-gray-400">del registro</span>
+                          : <button onClick={() => reinstate(r)} disabled={busy === r.external_id}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-40">
+                              <Undo2 className="w-3.5 h-3.5" />{busy === r.external_id ? 'Deshaciendo…' : 'Deshacer retiro'}
+                            </button>}
                       </td>
                     </tr>
                   ))}

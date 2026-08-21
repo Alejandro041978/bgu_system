@@ -187,8 +187,46 @@ export async function GET(req: NextRequest) {
     }
   })
 
-  // Lo que la malla tiene y el estudiante no: ni nota ni convalidación.
-  const conFila = new Set([...visibles, ...convRows].map(r => courseNameKey(r.course_name)))
+  // Retiradas que viven SOLO en el registro (sin fila de notas).
+  //
+  // La sección de retiradas se alimentaba de las notas con withdrawn_at, y una
+  // asignatura puede estar retirada sin tener nota: la liquidación de IW y la
+  // limpieza de ceros de Activa retiran la matrícula (status 'retirada' en
+  // academic_course_enrollments) y la nota o nunca existió o se borró. Esas
+  // desaparecían de la sección —y peor: al no tener fila caían en "No
+  // iniciada", que es lo contrario de un retiro (20/08/2026). El registro
+  // curricular tiene que leer del REGISTRO.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: matsRet } = await sb.from('academic_course_enrollments')
+    .select('id, course_id, status, closed_by, closed_at')
+    .eq('student_id', studentId).eq('program_id', programId).eq('status', 'retirada')
+  const cursoDeMalla = new Map(malla.map(c => [String(c.id), c]))
+  const yaRetiradaEnNotas = new Set(visibles.filter(r => r.withdrawn).map(r => courseNameKey(r.course_name)))
+  const motivoDe = (cb: string | null) => {
+    const s = String(cb ?? '')
+    if (s === 'cero-relleno-activa') return 'Retirada · limpieza de ceros de Activa'
+    if (s.startsWith('gestor-iw')) return 'Retirada · gestor IW'
+    if (s.startsWith('reentry')) return 'Retirada · re-entry'
+    return 'Retirada'
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const retiradasRegistro = ((matsRet ?? []) as any[])
+    .filter(m => cursoDeMalla.has(String(m.course_id)))
+    .filter(m => !yaRetiradaEnNotas.has(courseNameKey(cursoDeMalla.get(String(m.course_id))!.name)))
+    .map(m => {
+      const c = cursoDeMalla.get(String(m.course_id))!
+      return {
+        external_id: `enr:${m.id}`, course_code: c.code, course_name: c.name,
+        credits: c.credits != null ? Number(c.credits) : null,
+        term: `${motivoDe(m.closed_by)}${m.closed_at ? ` · ${String(m.closed_at).slice(0, 10)}` : ''}`,
+        status: 'retirada', grade: null, has_grade: false, withdrawn: true, editable: false,
+        final_grade: null, retake_grade: null, kind: 'inscripcion' as const,
+      }
+    })
+
+  // Lo que la malla tiene y el estudiante no: ni nota, ni convalidación, ni
+  // retiro en el registro.
+  const conFila = new Set([...visibles, ...convRows, ...retiradasRegistro].map(r => courseNameKey(r.course_name)))
   const faltantes = malla.filter(c => !conFila.has(courseNameKey(c.name))).map(c => ({
     external_id: `falta:${c.id}`, course_code: c.code, course_name: c.name,
     credits: c.credits != null ? Number(c.credits) : null, term: '',
@@ -199,7 +237,7 @@ export async function GET(req: NextRequest) {
   // Se devuelve en el orden de la malla (nivel, código); lo que no está en la
   // malla —notas sueltas de la carga histórica— va al final.
   const orden = new Map(malla.map((c, i) => [courseNameKey(c.name), i]))
-  const todas = [...visibles, ...convRows, ...faltantes]
+  const todas = [...visibles, ...convRows, ...retiradasRegistro, ...faltantes]
     .sort((a, b) => (orden.get(courseNameKey(a.course_name)) ?? 9999) - (orden.get(courseNameKey(b.course_name)) ?? 9999)
       || String(a.course_name).localeCompare(String(b.course_name)))
 
