@@ -17,6 +17,7 @@ interface Preview { caso: Caso; bloques: Bloque[]; sin_cambios: boolean }
 const money = (n: number | null | undefined) => n == null ? '—' : `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
 const ACCION: Record<string, string> = {
   retirar: 'Se retira (no cursada)', reactivar: 'Se reactiva (Re-Entry)', nuevo_intento: 'Nuevo intento (Re-Entry)',
+  ya_en_curso: 'Ya recursándose (sin acción)',
   eliminar: 'Eliminar cuota impaga', reducir: 'Reducir a lo pagado', crear: 'Crear cuota',
 }
 
@@ -135,7 +136,7 @@ export function IwReentryManager() {
                       {b.cursos.map(c => (
                         <li key={c.course_id + c.accion} className="text-xs flex items-baseline justify-between gap-2">
                           <span className="text-gray-700">{c.code ?? '—'} {c.name} <span className="text-gray-400">({c.credits} cr · {c.estado_actual})</span></span>
-                          <span className={`shrink-0 font-medium ${c.accion === 'retirar' ? 'text-rose-600' : 'text-emerald-700'}`}>{ACCION[c.accion]}</span>
+                          <span className={`shrink-0 font-medium ${c.accion === 'retirar' ? 'text-rose-600' : c.accion === 'ya_en_curso' ? 'text-gray-500' : 'text-emerald-700'}`}>{ACCION[c.accion]}</span>
                         </li>
                       ))}
                     </ul>

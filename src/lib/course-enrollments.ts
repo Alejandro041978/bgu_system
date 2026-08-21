@@ -143,7 +143,7 @@ export type EstadoMatricula = 'no_iniciada' | 'en_curso' | 'aprobada' | 'reproba
 // reprobada. Es el mismo error que ya se corrigió en el acta y volvió a
 // aparecer aquí: la categoría manda.
 export function estadoDeNota(
-  n: NotaMin & { source?: string | null },
+  n: NotaMin & { source?: string | null; estado_academico?: string | null },
   minimoDeCategoria?: number | null,
 ): EstadoMatricula {
   if (n.withdrawn_at) return 'retirada'
@@ -151,6 +151,16 @@ export function estadoDeNota(
   // "en curso": el estudiante no ha entrado al aula ni rendido nada, y llamarlo
   // en curso lo metería en los conteos de carga académica.
   if (String(n.source ?? '') === 'plan') return 'no_iniciada'
+  // El estado calculado MANDA sobre comparar la nota contra el mínimo: un
+  // acumulado de Moodle sobre el 100% del curso (57,83 con el aula a medias)
+  // no es un reprobado sino alguien cursando. Es la tercera vez que este error
+  // aparece —acta, luego aquí—: 595 matrículas quedaron 'reprobada' cursándose,
+  // y el gestor de Re-Entry proponía un tercer intento de lo que el estudiante
+  // ya estaba recursando (Samuel Tejada, 21/08/2026).
+  const est = String(n.estado_academico ?? '')
+  if (est === 'pendiente') return 'en_curso'
+  if (est === 'aprobado') return 'aprobada'
+  if (est === 'reprobado') return 'reprobada'
   const v = n.retake_grade ?? n.final_grade ?? null
   if (v == null) return 'en_curso'
   const min = minimoDeCategoria ?? n.passing_score ?? 70
@@ -223,7 +233,7 @@ export async function asegurarMatriculas(sb: any, filas: MatriculaDeNota[], abie
 export async function sincronizarEstadoDeMatricula(sb: any, externalId: string): Promise<void> {
   try {
     const { data: nota } = await sb.from('academic_grades')
-      .select('course_enrollment_id, final_grade, retake_grade, passing_score, source, withdrawn_at')
+      .select('course_enrollment_id, final_grade, retake_grade, passing_score, source, withdrawn_at, estado_academico')
       .eq('external_id', externalId).maybeSingle()
     if (!nota?.course_enrollment_id) return
 
@@ -239,7 +249,7 @@ export async function sincronizarEstadoDeMatricula(sb: any, externalId: string):
     // 82,5 de Moodle y su matrícula quedó reprobada. El acta siempre se quedó
     // con la mejor; esto no lo hacía, y por eso las dos podían discrepar.
     const { data: hermanas } = await sb.from('academic_grades')
-      .select('final_grade, retake_grade, passing_score, source, withdrawn_at')
+      .select('final_grade, retake_grade, passing_score, source, withdrawn_at, estado_academico')
       .eq('course_enrollment_id', mat.id)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const activas = ((hermanas ?? []) as any[]).filter(n => !n.withdrawn_at)
@@ -305,7 +315,7 @@ export async function sincronizarTodosLosEstados(sb: any): Promise<{ revisadas: 
   }
   try {
     const [notas, ce, progs, cats] = await Promise.all([
-      todas('academic_grades', 'external_id, course_enrollment_id, withdrawn_at, final_grade, retake_grade, passing_score, source', 'external_id'),
+      todas('academic_grades', 'external_id, course_enrollment_id, withdrawn_at, final_grade, retake_grade, passing_score, source, estado_academico', 'external_id'),
       todas('academic_course_enrollments', 'id, program_id, status', 'id'),
       todas('academic_programs', 'id, category_id', 'id'),
       todas('academic_programs_category', 'id, passing_score', 'id'),

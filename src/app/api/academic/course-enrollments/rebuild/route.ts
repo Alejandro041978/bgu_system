@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
   const minPrograma = new Map<string, number | null>(programs.map((p: { id: string; category_id: string | null }) => [String(p.id), minCat.get(String(p.category_id)) ?? null]))
   const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
   const todasLasNotas = await todo(sb, 'academic_grades',
-    'external_id, document_number, course_id, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, semester_id, withdrawn_at, synced_at, source, course_enrollment_id',
+    'external_id, document_number, course_id, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, semester_id, withdrawn_at, synced_at, source, course_enrollment_id, estado_academico',
     'external_id') as (NotaMin & { course_enrollment_id: string | null; semester_id: string | null; course_id: string | null })[]
 
   // Las filas de plan SÍ entran ahora, y ésa es la novedad de este paso: una

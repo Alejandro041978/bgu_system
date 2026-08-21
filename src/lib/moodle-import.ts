@@ -374,22 +374,6 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       passing_score: null,
     }
     rows.push(fila)
-    matriculas.push({
-      student_id: stu.id,
-      document_number: String(stu.document_number ?? ''),
-      course_id: destCourse.id,
-      program_id: destCourse.program_id ?? null,
-      attempt: target.intento ?? 1,
-      semester_id: semesterId,
-      term_year: termYear,
-      term_block: termBlock,
-      status: estadoDeNota({
-        ...fila, withdrawn_at: null, synced_at: null,
-        course_code: fila.course_code ?? null, course_name: fila.course_name,
-        retake_grade: null,
-      } as never, passing),
-      source: 'moodle',
-    })
 
     // SOLO ítems con ponderación. Los ítems sin peso no entran al acta aunque
     // tengan nota: son asistencia a sincrónicas, simulacros, evaluaciones
@@ -406,6 +390,26 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     fila.estado_academico = estadoAcademico({
       valor: total, passing_score: passing,
       rendido_pct: fila.rendido_pct, cerrado: false,
+    })
+
+    // La matrícula se abre DESPUÉS de calcular estado_academico: estadoDeNota
+    // lo necesita para no marcar 'reprobada' a quien va cursando (el acumulado
+    // 57,83 de un aula a medias no es un reprobado).
+    matriculas.push({
+      student_id: stu.id,
+      document_number: String(stu.document_number ?? ''),
+      course_id: destCourse.id,
+      program_id: destCourse.program_id ?? null,
+      attempt: target.intento ?? 1,
+      semester_id: semesterId,
+      term_year: termYear,
+      term_block: termBlock,
+      status: estadoDeNota({
+        ...fila, withdrawn_at: null, synced_at: null,
+        course_code: fila.course_code ?? null, course_name: fila.course_name,
+        retake_grade: null,
+      } as never, passing),
+      source: 'moodle',
     })
     detailByExternal.set(externalId, { student_id: stu.id, process, total })
   }

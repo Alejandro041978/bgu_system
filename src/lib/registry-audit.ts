@@ -50,7 +50,7 @@ async function todo(sb: SB, tabla: string, cols: string, orden: string): Promise
 
 export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; totales: Record<string, number> }> {
   const [notas, ce, est, cursos, progs, cats, sems, enr] = await Promise.all([
-    todo(sb, 'academic_grades', 'external_id, document_number, student_name, course_id, course_name, source, withdrawn_at, final_grade, retake_grade, passing_score, semester_id, course_enrollment_id, intento', 'external_id'),
+    todo(sb, 'academic_grades', 'external_id, document_number, student_name, course_id, course_name, source, withdrawn_at, final_grade, retake_grade, passing_score, semester_id, course_enrollment_id, intento, estado_academico', 'external_id'),
     todo(sb, 'academic_course_enrollments', 'id, student_id, course_id, attempt, status, semester_id', 'id'),
     todo(sb, 'academic_students', 'id, document_number', 'id'),
     todo(sb, 'academic_courses', 'id, program_id, name', 'id'),

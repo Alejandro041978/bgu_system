@@ -115,7 +115,9 @@ export interface CursoCambio {
   name: string
   credits: number
   estado_actual: string
-  accion: 'retirar' | 'reactivar' | 'nuevo_intento'
+  // 'ya_en_curso' es informativo: el recursado ya existe (se registró a mano
+  // antes de pasar por el gestor) y no se escribe nada.
+  accion: 'retirar' | 'reactivar' | 'nuevo_intento' | 'ya_en_curso'
 }
 export interface CuotaCambio {
   external_id: string | null
@@ -243,6 +245,12 @@ export async function previewCaso(sb: SB, caso: Caso): Promise<Preview> {
         const k = String(m.course_id)
         maxAttempt.set(k, Math.max(maxAttempt.get(k) ?? 0, Number(m.attempt ?? 1)))
       }
+      // Asignaturas que YA se están cursando: el recursado existe (se registró
+      // a mano antes del gestor). Proponer otro intento crearía un "recursado
+      // del recursado" — pasó con Samuel Tejada (LED 381, 21/08/2026): pagó el
+      // Re-Entry, le abrieron la asignatura manualmente y el gestor, mirando
+      // solo el último intento reprobado, quería abrir el tercero.
+      const yaEnCurso = new Set(delProgramaFinal.filter(m => String(m.status) === 'en_curso').map(m => String(m.course_id)))
       const vistos = new Set<string>()
       for (const m of delProgramaFinal) {
         const k = String(m.course_id)
@@ -252,13 +260,20 @@ export async function previewCaso(sb: SB, caso: Caso): Promise<Preview> {
         if (Number(m.attempt ?? 1) !== maxAttempt.get(k)) continue
         vistos.add(k)
         const c = cursos.get(k)
-        if (String(m.status) === 'retirada') {
+        if (!['retirada', 'reprobada'].includes(String(m.status))) continue
+        if (yaEnCurso.has(k)) {
+          cambios.push({
+            enrollment_row_id: String(m.id), course_id: k,
+            code: c?.code ?? null, name: c?.name ?? '?', credits: c?.credits ?? 0,
+            estado_actual: String(m.status), accion: 'ya_en_curso',
+          })
+        } else if (String(m.status) === 'retirada') {
           cambios.push({
             enrollment_row_id: String(m.id), course_id: k,
             code: c?.code ?? null, name: c?.name ?? '?', credits: c?.credits ?? 0,
             estado_actual: 'retirada', accion: 'reactivar',
           })
-        } else if (String(m.status) === 'reprobada') {
+        } else {
           cambios.push({
             enrollment_row_id: String(m.id), course_id: k,
             code: c?.code ?? null, name: c?.name ?? '?', credits: c?.credits ?? 0,
@@ -364,6 +379,9 @@ export async function aplicarCaso(sb: SB, caso: Caso, preview: Preview, userEmai
           .update({ status: 'retirada', closed_at: now, closed_by: `gestor-iw:${userEmail}` })
           .eq('id', c.enrollment_row_id)
         if (error) return { ok: false, error: `retirar ${c.code}: ${error.message}` }
+      } else if (c.accion === 'ya_en_curso') {
+        // Informativo: el recursado ya existe, no se escribe nada.
+        continue
       } else if (c.accion === 'reactivar') {
         const { error } = await sb.from('academic_course_enrollments')
           .update({ status: 'en_curso', closed_at: null, closed_by: null, opened_at: now, opened_by: `reentry:${userEmail}` })
