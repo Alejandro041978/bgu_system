@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, Plus, Trash2, Search, ArrowRight, FileCheck, AlertTriangle, X, Download } from 'lucide-react'
+import { Loader2, Plus, Trash2, Search, ArrowRight, FileCheck, AlertTriangle, X, Download, Pencil, Check } from 'lucide-react'
 import { convertGrade } from '@/lib/grade-convert'
 
 interface Course { id: string; name: string; code: string | null; credits: number | null }
@@ -251,8 +251,34 @@ function TransferDetail({ detail, program, scale, destPassing, isVal, annotation
   const [destCourse, setDestCourse] = useState('')
   const [grade, setGrade] = useState('')
   const [adding, setAdding] = useState(false)
+  // Una fila guardada queda SELLADA en lectura: solo el lápiz la abre, y ahí
+  // se edita todo (origen, créditos, nota y asignatura de destino). Antes los
+  // campos eran editables en la vista de lectura y cualquier clic los movía.
+  const [editing, setEditing] = useState<string | null>(null)
+  const [draft, setDraft] = useState<{ code: string; name: string; credits: string; grade: string; dest: string }>({ code: '', name: '', credits: '', grade: '', dest: '' })
+  const [savingRow, setSavingRow] = useState(false)
 
   const courses = program?.courses ?? []
+  function startEdit(it: TItem) {
+    setEditing(it.id)
+    setDraft({
+      code: it.origin_course_code ?? '', name: it.origin_course_name ?? '',
+      credits: it.origin_credits == null ? '' : String(it.origin_credits),
+      grade: it.origin_grade == null ? '' : String(it.origin_grade),
+      dest: courses.find(c => c.id === (it as { dest_course_id?: string | null }).dest_course_id)?.id ?? courses.find(c => c.name === it.dest_course_name)?.id ?? '',
+    })
+  }
+  async function saveEdit(it: TItem) {
+    if (!draft.name.trim()) return
+    setSavingRow(true)
+    const c = courses.find(x => x.id === draft.dest)
+    await updateItem(it.id, {
+      origin_course_code: draft.code, origin_course_name: draft.name.trim(),
+      origin_credits: draft.credits, origin_grade: draft.grade,
+      dest_course_id: draft.dest, dest_course_name: c?.name ?? '',
+    })
+    setSavingRow(false); setEditing(null)
+  }
   const preview = (scale && destPassing != null && grade !== '')
     ? convertGrade(Number(grade), scale, destPassing) : null
 
@@ -333,30 +359,43 @@ function TransferDetail({ detail, program, scale, destPassing, isVal, annotation
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
-          {items.map(it => (
-            <tr key={it.id}>
+          {items.map(it => editing === it.id ? (
+            <tr key={it.id} className="bg-blue-50/40">
+              <td className="py-2 pr-2"><input value={draft.code} onChange={e => setDraft(d => ({ ...d, code: e.target.value }))} placeholder="—" className="w-14 border border-blue-200 rounded px-2 py-1 text-sm bg-white" /></td>
+              <td className="py-2 pr-2"><input value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} className="w-full border border-blue-200 rounded px-2 py-1 text-sm bg-white" /></td>
+              <td className="py-2 pr-2"><input type="number" value={draft.credits} onChange={e => setDraft(d => ({ ...d, credits: e.target.value }))} placeholder="—" className="w-12 border border-blue-200 rounded px-2 py-1 text-sm bg-white" /></td>
+              <td className="py-2 pr-2"><input type="number" value={draft.grade} onChange={e => setDraft(d => ({ ...d, grade: e.target.value }))} placeholder="—" className="w-14 border border-blue-200 rounded px-2 py-1 text-sm bg-white" /></td>
               <td className="py-2 pr-2">
-                <input defaultValue={it.origin_course_code ?? ''} placeholder="—"
-                  onBlur={e => { if (String(it.origin_course_code ?? '') !== e.target.value) updateItem(it.id, { origin_course_code: e.target.value }) }}
-                  className="w-14 border border-gray-200 rounded px-2 py-1 text-sm" />
+                <select value={draft.dest} onChange={e => setDraft(d => ({ ...d, dest: e.target.value }))} className="w-full border border-blue-200 rounded px-2 py-1 text-sm bg-white">
+                  <option value="">Sin asignatura de destino</option>
+                  {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
               </td>
+              <td className="py-2 pr-2">
+                <span className="text-blue-700 font-semibold text-sm">
+                  {scale && destPassing != null && draft.grade !== '' ? convertGrade(Number(draft.grade), scale, destPassing) : '—'}
+                </span>
+              </td>
+              <td className="py-2 text-right whitespace-nowrap">
+                <button onClick={() => saveEdit(it)} disabled={savingRow || !draft.name.trim()} title="Guardar" className="text-green-600 hover:text-green-700 disabled:opacity-40 mr-2">
+                  {savingRow ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                </button>
+                <button onClick={() => setEditing(null)} title="Cancelar" className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+              </td>
+            </tr>
+          ) : (
+            <tr key={it.id} className="group">
+              <td className="py-2 pr-2 text-gray-600 font-mono text-xs">{it.origin_course_code ?? '—'}</td>
               <td className="py-2 pr-3 text-gray-800">{it.origin_course_name}</td>
-              <td className="py-2 pr-2">
-                <input type="number" defaultValue={it.origin_credits ?? ''} placeholder="—"
-                  onBlur={e => { if (String(it.origin_credits ?? '') !== e.target.value) updateItem(it.id, { origin_credits: e.target.value }) }}
-                  className="w-12 border border-gray-200 rounded px-2 py-1 text-sm" />
-              </td>
-              <td className="py-2 pr-2">
-                <input type="number" defaultValue={it.origin_grade ?? ''} placeholder="—"
-                  onBlur={e => { if (String(it.origin_grade ?? '') !== e.target.value) updateItem(it.id, { origin_grade: e.target.value }) }}
-                  className="w-14 border border-gray-200 rounded px-2 py-1 text-sm" />
-              </td>
-              <td className="py-2 pr-3 text-gray-600">{it.dest_course_name ?? '—'}</td>
+              <td className="py-2 pr-2 text-gray-700 tabular-nums">{it.origin_credits ?? '—'}</td>
+              <td className="py-2 pr-2 text-gray-700 tabular-nums">{it.origin_grade ?? '—'}</td>
+              <td className="py-2 pr-3 text-gray-600">{it.dest_course_name ?? <span className="text-amber-600">sin destino</span>}</td>
               <td className="py-2 pr-2">
                 <span className={`font-semibold ${it.converted_grade != null ? 'text-blue-700' : 'text-gray-300'}`}>{it.converted_grade ?? '—'}</span>
               </td>
-              <td className="py-2 text-right">
-                <button onClick={() => delItem(it.id)} className="text-gray-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+              <td className="py-2 text-right whitespace-nowrap">
+                <button onClick={() => startEdit(it)} title="Editar esta fila" className="text-gray-300 hover:text-blue-600 mr-2"><Pencil className="w-4 h-4" /></button>
+                <button onClick={() => delItem(it.id)} title="Eliminar" className="text-gray-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
               </td>
             </tr>
           ))}
