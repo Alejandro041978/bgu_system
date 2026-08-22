@@ -6,7 +6,7 @@ export const revalidate = 0
 export default function ActaDetallePage() {
   return (
     <>
-      <Topbar title="Acta Detallada" subtitle="Calificaciones" />
+      <Topbar title="Acta Detallada" subtitle="Cómo van todas sus notas: cada intento con sus parciales y su proceso" />
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <ActaDetalle />

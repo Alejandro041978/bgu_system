@@ -6,7 +6,7 @@ export const revalidate = 0
 export default function ActaPersonalPage() {
   return (
     <>
-      <Topbar title="Acta Personal" subtitle="Gestión académica" />
+      <Topbar title="Acta Personal" subtitle="Cómo va en su plan de estudios: el estado de cada asignatura de la malla" />
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <ActaPersonal />
