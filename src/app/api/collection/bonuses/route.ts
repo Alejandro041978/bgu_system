@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { guardStaff } from '@/lib/api-guard'
+import { creditosFacturablesEnBloque } from "@/lib/billable-credits"
 
 export const revalidate = 0
 
@@ -85,6 +86,9 @@ export async function GET(req: NextRequest) {
       .select('id, program_id, list_price, credit_rate, program:academic_programs(name)')
       .eq('student_id', studentId)
     const ids = (enrs ?? []).map((e: { id: string }) => e.id)
+    // Precio oficial calculado, igual que el estado de cuenta (no el snapshot).
+    const fact = await creditosFacturablesEnBloque(sb, ids)
+    for (const e of (enrs ?? []) as { id: string; list_price: number | null }[]) e.list_price = fact.get(String(e.id))?.lista ?? e.list_price
     const conBono = new Set<string>()
     if (ids.length) {
       const { data: act } = await sb.from('bonuses').select('enrollment_id').in('enrollment_id', ids)
@@ -135,6 +139,8 @@ export async function GET(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const e of (data ?? []) as any[]) enrById.set(String(e.id), e)
   }
+  const factTodo = await creditosFacturablesEnBloque(sb, enrIds)
+  for (const [id, e] of enrById) e.list_price = factTodo.get(id)?.lista ?? e.list_price
   const tcMap = await transferCreditsMap(sb)
   const becaMap = await scholarshipPctByEnrollment(sb, enrIds)
 

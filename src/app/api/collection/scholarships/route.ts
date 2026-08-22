@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { guardStaff } from '@/lib/api-guard'
+import { creditosFacturablesEnBloque } from "@/lib/billable-credits"
 
 export const revalidate = 0
 
@@ -85,6 +86,10 @@ export async function GET(req: NextRequest) {
       .select('id, program_id, list_price, credit_rate, program:academic_programs(name)')
       .eq('student_id', studentId)
     const ids = (enrs ?? []).map((e: { id: string }) => e.id)
+    // El precio oficial se CALCULA (tarifa × créditos que lleva), igual que el
+    // estado de cuenta; el snapshot list_price quedó congelado al ingresar.
+    const fact = await creditosFacturablesEnBloque(sb, ids)
+    for (const e of (enrs ?? []) as { id: string; list_price: number | null }[]) e.list_price = fact.get(String(e.id))?.lista ?? e.list_price
     const conBeca = new Set<string>()
     if (ids.length) {
       const { data: act } = await sb.from('scholarships').select('enrollment_id').in('enrollment_id', ids).is('revoked_at', null)
@@ -135,6 +140,8 @@ export async function GET(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const e of (data ?? []) as any[]) enrById.set(String(e.id), e)
   }
+  const factTodo = await creditosFacturablesEnBloque(sb, enrIds)
+  for (const [id, e] of enrById) e.list_price = factTodo.get(id)?.lista ?? e.list_price
   const tcMap = await transferCreditsMap(sb)
 
   const byProg = new Map<string, { program_name: string; count: number; total_amount: number; sin_monto: number }>()
@@ -175,6 +182,8 @@ export async function POST(req: NextRequest) {
   const { data: enr } = await sb.from('academic_student_enrollments')
     .select('id, student_id, program_id, list_price, credit_rate').eq('id', b.enrollment_id).maybeSingle()
   if (!enr || enr.student_id !== b.student_id) return NextResponse.json({ error: 'Matrícula no encontrada para ese estudiante' }, { status: 404 })
+  // Monto informativo con el precio CALCULADO, no el snapshot.
+  enr.list_price = (await creditosFacturablesEnBloque(sb, [String(enr.id)])).get(String(enr.id))?.lista ?? enr.list_price
 
   // Una beca activa por matrícula
   const { data: activa } = await sb.from('scholarships')

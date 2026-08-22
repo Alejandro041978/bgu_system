@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { guardStaff } from '@/lib/api-guard'
+import { creditosFacturablesEnBloque } from "@/lib/billable-credits"
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ categories: cats })
   }
 
-  const [cats, progs, enrs, students, concepts, scholarships, bonuses, tcs, tcItems, matriculas, cursos] = await Promise.all([
+  const [cats, progs, enrs, students, concepts, scholarships, bonuses, tcs, tcItems] = await Promise.all([
     fetchAll(sb, 'academic_programs_category', 'id, name, sigla'),
     fetchAll(sb, 'academic_programs', 'id, name, category_id'),
     fetchAll(sb, 'academic_student_enrollments', 'id, student_id, program_id, list_price, credit_rate'),
@@ -57,8 +58,6 @@ export async function GET(req: NextRequest) {
     fetchAll(sb, 'bonuses', 'enrollment_id, percentage').catch(() => []),
     fetchAll(sb, 'transfer_credits', 'id, student_id, dest_program_id'),
     fetchAll(sb, 'transfer_credit_items', 'transfer_credit_id, dest_course_id'),
-    fetchAll(sb, 'academic_course_enrollments', 'id, student_id, course_id, program_id, status', 'id'),
-    fetchAll(sb, 'academic_courses', 'id, program_id, credits', 'id'),
   ])
 
   // Conceptos Tuition (por nombre/abreviatura)
@@ -100,59 +99,9 @@ export async function GET(req: NextRequest) {
   const catById = new Map(cats.map(c => [String(c.id), c]))
   const r2 = (n: number) => Math.round(n * 100) / 100
 
-  // ── Precio oficial CALCULADO, no el snapshot ────────────────────────────
-  // El auditor leía list_price congelado en la matrícula, y el estado de
-  // cuenta calcula tarifa × créditos que el estudiante lleva hoy (malla
-  // registrada + convalidadas + recursados). Con un IW consolidado por el
-  // gestor, o un recursado, los dos decían cosas distintas y la auditoría
-  // marcaba observados planes que estaban bien (21/08/2026). Misma regla que
-  // creditosQueLleva + creditosExtraPorIntentos, en bloque para ~2.000
-  // matrículas sin una consulta por cada una.
-  const creditoDeCurso = new Map<string, number>()
-  const mallaDePrograma = new Map<string, string[]>()
-  for (const c of cursos) {
-    creditoDeCurso.set(String(c.id), Number(c.credits ?? 0))
-    if (c.program_id) mallaDePrograma.set(String(c.program_id), [...(mallaDePrograma.get(String(c.program_id)) ?? []), String(c.id)])
-  }
-  // Matrículas vivas por estudiante: cuántas de cada asignatura y de qué programa
-  const vivasPorEstudiante = new Map<string, { course_id: string; program_id: string | null }[]>()
-  for (const m of matriculas) {
-    if (m.status === 'retirada' || !m.course_id) continue
-    const k = String(m.student_id)
-    vivasPorEstudiante.set(k, [...(vivasPorEstudiante.get(k) ?? []), { course_id: String(m.course_id), program_id: m.program_id ? String(m.program_id) : null }])
-  }
-  const tcCursos = new Map<string, Set<string>>()
-  for (const it of tcItems) {
-    const tc = tcInfo.get(String(it.transfer_credit_id))
-    if (!tc?.student_id || !tc?.dest_program_id || !it.dest_course_id) continue
-    const k = `${tc.student_id}|${tc.dest_program_id}`
-    if (!tcCursos.has(k)) tcCursos.set(k, new Set())
-    tcCursos.get(k)!.add(String(it.dest_course_id))
-  }
-  // Sin nada en el registro (ni matrícula por asignatura ni convalidación) el
-  // resultado es 0, igual que el estado de cuenta: cero créditos son cero de
-  // tuition y un plan con solo el enrollment está bien elaborado (Henry
-  // Aguirre, 21/08/2026). El primer intento caía al snapshot en esos casos y
-  // volvía a observar planes correctos. `sinRegistro` queda solo como
-  // información en la fila.
-  const creditosQueLleva = (studentId: string, programId: string): { creditos: number; sinRegistro: boolean } => {
-    const vivas = vivasPorEstudiante.get(studentId) ?? []
-    const registradas = new Set(vivas.map(v => v.course_id))
-    const convalidadas = tcCursos.get(`${studentId}|${programId}`) ?? new Set<string>()
-    const sinRegistro = !vivas.length && !convalidadas.size
-    let total = 0
-    for (const cid of mallaDePrograma.get(programId) ?? []) {
-      if (registradas.has(cid) || convalidadas.has(cid)) total += creditoDeCurso.get(cid) ?? 0
-    }
-    // Recursados: (n − 1) × créditos por asignatura con n matrículas vivas
-    const porCurso = new Map<string, number>()
-    for (const v of vivas) {
-      if (v.program_id != null && v.program_id !== programId) continue
-      porCurso.set(v.course_id, (porCurso.get(v.course_id) ?? 0) + 1)
-    }
-    for (const [cid, n] of porCurso) if (n > 1) total += (n - 1) * (creditoDeCurso.get(cid) ?? 0)
-    return { creditos: total, sinRegistro }
-  }
+  // Precio oficial CALCULADO, no el snapshot: misma regla que el estado de
+  // cuenta, en bloque (lib/billable-credits).
+  const fact = await creditosFacturablesEnBloque(sb)
 
   const mismatches = []
   let auditadas = 0
@@ -164,7 +113,7 @@ export async function GET(req: NextRequest) {
 
     // Igual que el estado de cuenta: con tarifa y programa se calcula; el
     // snapshot solo es respaldo cuando no se puede.
-    const calc = e.credit_rate != null && e.program_id ? creditosQueLleva(String(e.student_id), String(e.program_id)) : null
+    const calc = e.credit_rate != null && e.program_id ? (fact.get(String(e.id)) ?? null) : null
     const creditos = calc?.creditos ?? null
     const lista = creditos != null ? r2(Number(e.credit_rate) * creditos) : Number(e.list_price)
     const sinRegistro = calc?.sinRegistro ?? false
