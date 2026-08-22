@@ -49,6 +49,7 @@ const navigation: NavGroup[] = [
           { name: 'Accesos al Portal', href: '/reports/accesos-portal', icon: LogIn, pageKey: 'report_portal_logins' },
           { name: 'Calificaciones', href: '/reports/grades', icon: Award, pageKey: 'report_grades' },
           { name: 'Egresados', href: '/reports/egresados', icon: GraduationCap, pageKey: 'report_graduates' },
+          { name: 'Auditor de carruseles', href: '/reports/carousel-audit', icon: Shield, pageKey: 'report_carousel_audit' },
           { name: 'Recaudación', href: '/finance/recaudacion', icon: Banknote, pageKey: 'finance_recaudacion' },
           { name: 'Reporte de Deuda', href: '/finance/debt-report', icon: FileWarning, pageKey: 'finance_debt_report' },
           { name: 'Relación de Deudores', href: '/finance/debtors', icon: UserMinus, pageKey: 'finance_debtors' },

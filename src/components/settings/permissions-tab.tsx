@@ -19,6 +19,7 @@ const PAGE_GROUPS = [
       { key: 'report_campus_audit', label: 'Reportes · Auditor del Campus' },
       { key: 'report_portal_logins', label: 'Reportes · Accesos al Portal' },
       { key: 'report_graduates', label: 'Reportes · Egresados' },
+      { key: 'report_carousel_audit', label: 'Reportes · Auditor de carruseles' },
       { key: 'report_grades', label: 'Reportes · Calificaciones' },
       { key: 'academic_curricular_coverage', label: 'Académico · Cobertura del registro' },
       { key: 'academic_collection_backfill', label: 'Académico · Colección por matrícula' },
