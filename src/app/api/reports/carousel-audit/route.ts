@@ -125,12 +125,22 @@ export async function GET(req: NextRequest) {
     add(`${t.student_id}|${t.dest_program_id}`, String(it.dest_course_id))
   }
 
-  // Membresía activa por estudiante × programa
+  // Membresía activa por estudiante × programa; y, si no la hay, la última
+  // completada: quien terminó el último carrusel ya no tiene membresía activa
+  // y sin esto caía en "Sin carrusel" en vez de en "Egresados" (22/08/2026).
   const miembroDe = new Map<string, Group>()
+  const completadaDe = new Map<string, Group>()
   for (const m of members) {
-    if (m.status !== 'activo') continue
     const g = groupOf.get(String(m.group_id))
-    if (g) miembroDe.set(`${m.student_id}|${g.program_id}`, g)
+    if (!g) continue
+    const k = `${m.student_id}|${g.program_id}`
+    if (m.status === 'activo') miembroDe.set(k, g)
+    else if (m.status === 'completado') {
+      // Se queda con la más avanzada de la cadena (la que no apunta a otra
+      // completada): basta con preferir la que no tiene siguiente.
+      const prev = completadaDe.get(k)
+      if (!prev || !g.next_group_id) completadaDe.set(k, g)
+    }
   }
 
   const out = programs.map(p => {
@@ -175,6 +185,22 @@ export async function GET(req: NextRequest) {
       if (!s) continue
       const base = { student_id: sid, name: nombre(s), document: s.document_number ?? null }
       const m = miembroDe.get(`${sid}|${p.id}`)
+      const comp = !m ? completadaDe.get(`${sid}|${p.id}`) : undefined
+      if (!m && comp && cadenaDe.has(comp.id)) {
+        // Sin membresía activa pero con carruseles completados: se evalúa su
+        // cadena. Si la cubre entera, es egresado por regla (el motor de egreso
+        // aún no lo tomó); si no, abandonó la cadena a medias.
+        const pos = posicion(sid, cadenaDe.get(comp.id)!)
+        if (!pos.group) {
+          egresados.n++; egresados.desfasados++
+          egresados.personas.push({ ...base, colocado: `${glabel(comp)} (completado)`, detalle: `${pos.motivo} · sigue como activo: pendiente motor de egreso`, desfase: true })
+        } else {
+          sinCarrusel.n++
+          sinCarrusel.personas.push({ ...base, colocado: `${glabel(comp)} (completado)`, detalle: `completó ${glabel(comp)} y no está en ningún carrusel; por regla iría a ${glabel(pos.group)} (${pos.motivo})`, desfase: true })
+          sinCarrusel.desfasados++
+        }
+        continue
+      }
       if (!m || !cadenaDe.has(m.id)) {
         // Sin carrusel. Con una sola cadena se anota a dónde iría por regla.
         let detalle: string | null = m ? `colocado en ${glabel(m)}, que no está en ninguna cadena` : null
