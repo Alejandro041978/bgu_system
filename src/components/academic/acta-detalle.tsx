@@ -34,6 +34,35 @@ function calcAverage(d: Detail): number | null {
   return weightedAvg(d.grades) ?? weightedAvg(d.process_grades)
 }
 
+// Resumen del detalle, como el del acta personal pero en su unidad: aquí cada
+// fila es un INTENTO, así que se cuentan intentos y, aparte, asignaturas.
+function ResumenDetalle({ courses }: { courses: Detail[] }) {
+  const clave = (d: Detail) => d.course_code ?? d.course_name ?? d.id
+  const asignaturas = new Set(courses.map(clave))
+  const porAsig = new Map<string, number>()
+  for (const d of courses) porAsig.set(clave(d), (porAsig.get(clave(d)) ?? 0) + 1)
+  const recursadas = [...porAsig.values()].filter(n => n > 1).length
+  const cuenta = (pref: string) => courses.filter(d => (statusOf(d)?.label ?? '').startsWith(pref)).length
+  const chips = [
+    { label: 'Intentos', n: courses.length, cls: 'bg-blue-600 text-white' },
+    { label: 'Asignaturas', n: asignaturas.size, cls: 'bg-gray-100 text-gray-700' },
+    { label: 'Aprobados', n: cuenta('Aprobado'), cls: 'bg-green-50 text-green-700' },
+    { label: 'Desaprobados', n: cuenta('Desaprobado'), cls: 'bg-red-50 text-red-700' },
+    { label: 'En curso', n: cuenta('En curso'), cls: 'bg-amber-50 text-amber-700' },
+    { label: 'Recursadas', n: recursadas, cls: 'bg-orange-50 text-orange-700' },
+  ]
+  return (
+    <div className="flex flex-wrap gap-2">
+      {chips.map(c => (
+        <span key={c.label} className={`inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-lg text-sm ${c.cls}`}>
+          <b className="tabular-nums">{c.n}</b> {c.label}
+        </span>
+      ))}
+      <span className="self-center text-[11px] text-gray-400">Cada fila es un intento: una asignatura recursada aparece tantas veces como se llevó.</span>
+    </div>
+  )
+}
+
 function statusOf(d: Detail): { label: string; cls: string } | null {
   // La etiqueta sale del estado calculado, NO de comparar la nota contra el
   // mínimo. La nota de Moodle es un acumulado sobre el 100% del curso: quien
@@ -160,6 +189,7 @@ export function ActaDetalle() {
       {!loading && [...byProgram.entries()].map(([prog, courses]) => (
         <div key={prog} className="space-y-3">
           <h2 className="text-base font-semibold text-gray-900">{prog}</h2>
+          <ResumenDetalle courses={courses} />
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <div className="divide-y divide-gray-50">
               {courses.map(d => {
