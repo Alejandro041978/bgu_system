@@ -45,6 +45,10 @@ export interface Caso {
   kind: 'IW' | 'REENTRY'
   trigger_id: string
   student_id: string
+  // La matrícula del retiro (IW) o la del programa del trámite (Re-Entry).
+  // El gestor opera SOLO sobre esa cuenta: retirado del Bachelor, su Master
+  // no se toca (22/08/2026). Null = retiro viejo sin matrícula: todas.
+  enrollment_id: string | null
   student_name: string
   document_number: string | null
   fecha: string | null          // fecha del retiro / del pago del trámite
@@ -61,17 +65,24 @@ export async function casosPendientes(sb: SB): Promise<Caso[]> {
   const hechas = new Set(gestiones.map(g => `${g.kind}|${g.trigger_id}`))
 
   const wds = await todo(sb, 'student_withdrawals',
-    'id, student_id, type, status, resolution_number, withdrawal_date, converted_to_id',
+    'id, student_id, enrollment_id, type, status, resolution_number, withdrawal_date, converted_to_id',
     q => q.eq('type', 'IW').eq('status', 'vigente'))
 
   const { data: tipos } = await sb.from('tramite_types').select('id').eq('reincorporates', true)
   const reentryTypes = (tipos ?? []).map((t: { id: string }) => String(t.id))
   const tramites = reentryTypes.length
-    ? await todo(sb, 'tramite_requests', 'id, student_id, status, paid_at, charge_external_id',
+    ? await todo(sb, 'tramite_requests', 'id, student_id, program_id, status, paid_at, charge_external_id',
       q => q.in('tramite_type_id', reentryTypes).not('paid_at', 'is', null))
     : []
 
   const sids = [...new Set([...wds.map(w => String(w.student_id)), ...tramites.map(t => String(t.student_id))])]
+  // Matrícula del programa de cada trámite (el Re-Entry es de un programa)
+  const matDe = new Map<string, string>()   // student|program → enrollment_id
+  for (let i = 0; i < sids.length; i += 150) {
+    const { data } = await sb.from('academic_student_enrollments').select('id, student_id, program_id').in('student_id', sids.slice(i, i + 150))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const e of (data ?? []) as any[]) if (!matDe.has(`${e.student_id}|${e.program_id}`)) matDe.set(`${e.student_id}|${e.program_id}`, String(e.id))
+  }
   const nombres = new Map<string, { name: string; doc: string | null }>()
   for (let i = 0; i < sids.length; i += 150) {
     const { data } = await sb.from('academic_students')
@@ -91,6 +102,7 @@ export async function casosPendientes(sb: SB): Promise<Caso[]> {
     const n = nombres.get(String(w.student_id))
     casos.push({
       kind: 'IW', trigger_id: String(w.id), student_id: String(w.student_id),
+      enrollment_id: w.enrollment_id ? String(w.enrollment_id) : null,
       student_name: n?.name ?? '—', document_number: n?.doc ?? null,
       fecha: w.withdrawal_date ?? null, detalle: w.resolution_number ?? 'IW sin resolución',
     })
@@ -100,6 +112,7 @@ export async function casosPendientes(sb: SB): Promise<Caso[]> {
     const n = nombres.get(String(t.student_id))
     casos.push({
       kind: 'REENTRY', trigger_id: String(t.id), student_id: String(t.student_id),
+      enrollment_id: t.program_id ? (matDe.get(`${t.student_id}|${t.program_id}`) ?? null) : null,
       student_name: n?.name ?? '—', document_number: n?.doc ?? null,
       fecha: t.paid_at ? String(t.paid_at).slice(0, 10) : null, detalle: `Trámite Re-Entry (${t.status})`,
     })
@@ -156,7 +169,8 @@ function participo(nota: any | undefined): boolean {
 
 async function contexto(sb: SB, caso: Caso) {
   const statement = await getAccountStatement({ studentId: caso.student_id })
-  const cuentas = statement.programs.filter(p => p.enrollment_id)
+  // Solo la cuenta de la matrícula del retiro / del programa del trámite.
+  const cuentas = statement.programs.filter(p => p.enrollment_id && (!caso.enrollment_id || String(p.enrollment_id) === caso.enrollment_id))
   const { data: grads } = await sb.from('student_graduations')
     .select('program_id').eq('student_id', caso.student_id)
   const terminados = new Set((grads ?? []).map((g: { program_id: string }) => String(g.program_id)))

@@ -141,13 +141,22 @@ export async function nextResolutionNumber(sb: any, studentId: string, type: 'IW
 // ---------------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function recomputeSituations(sb: any): Promise<{ activo: number; retiro_permanente: number; retiro_temporal: number; egresado: number; campus_socio: number; updated: number }> {
-  // Retiros vigentes
-  const wds = await readAll(sb, 'student_withdrawals', 'student_id, type, status')
-  const hasIW = new Set<string>(), hasLOA = new Set<string>()
-  for (const w of wds as { student_id: string; type: string; status: string }[]) {
+  // Retiros vigentes POR MATRÍCULA (regla del usuario, 22/08/2026): el retiro
+  // es de la matrícula. Un estudiante está retirado solo si TODAS sus
+  // matrículas vivas lo están; con un IW en el Bachelor y un Master en curso,
+  // sigue activo. Un retiro viejo sin matrícula enlazada (no debería quedar
+  // ninguno: los 514 se enlazaron) cae al comportamiento anterior: por
+  // estudiante.
+  const wds = await readAll(sb, 'student_withdrawals', 'student_id, enrollment_id, type, status')
+  const retiroDeMatricula = new Map<string, string>()   // enrollment_id → IW | LOA (IW pesa más)
+  const hasIWsuelto = new Set<string>(), hasLOAsuelto = new Set<string>()
+  for (const w of wds as { student_id: string; enrollment_id: string | null; type: string; status: string }[]) {
     if (w.status !== 'vigente') continue
-    if (w.type === 'IW') hasIW.add(w.student_id)
-    else if (w.type === 'LOA') hasLOA.add(w.student_id)
+    if (w.enrollment_id) {
+      const prev = retiroDeMatricula.get(w.enrollment_id)
+      if (!prev || w.type === 'IW') retiroDeMatricula.set(w.enrollment_id, w.type)
+    } else if (w.type === 'IW') hasIWsuelto.add(w.student_id)
+    else if (w.type === 'LOA') hasLOAsuelto.add(w.student_id)
   }
 
   // Egresos por (estudiante, programa) — tolerante a que la tabla no exista todavía
@@ -155,28 +164,31 @@ export async function recomputeSituations(sb: any): Promise<{ activo: number; re
   const gradPairs = new Set<string>(
     (grads as { student_id: string; program_id: string }[]).map(g => `${g.student_id}|${g.program_id}`))
 
-  // Programas de cada estudiante (para egresado y campus socio: AMBOS exigen
-  // que la condición se cumpla en todas sus matrículas)
   const partner = await readAll(sb, 'academic_programs', 'id, partner_campus')
   const partnerIds = new Set<string>((partner as { id: string; partner_campus: boolean }[]).filter(p => p.partner_campus).map(p => p.id))
-  const enrolls = await readAll(sb, 'academic_student_enrollments', 'student_id, program_id')
-  const progsOf = new Map<string, Set<string>>()
-  for (const e of enrolls as { student_id: string | null; program_id: string | null }[]) {
+  const enrolls = await readAll(sb, 'academic_student_enrollments', 'id, student_id, program_id')
+  const matsOf = new Map<string, { id: string; program_id: string }[]>()
+  for (const e of enrolls as { id: string; student_id: string | null; program_id: string | null }[]) {
     if (!e.student_id || !e.program_id) continue
-    if (!progsOf.has(e.student_id)) progsOf.set(e.student_id, new Set())
-    progsOf.get(e.student_id)!.add(e.program_id)
+    matsOf.set(e.student_id, [...(matsOf.get(e.student_id) ?? []), { id: e.id, program_id: e.program_id }])
   }
 
   const studs = await readAll(sb, 'academic_students', 'id, situation, situation_source')
   const counts = { activo: 0, retiro_permanente: 0, retiro_temporal: 0, egresado: 0, campus_socio: 0, updated: 0 }
   const changes: { id: string; situation: string }[] = []
   for (const s of studs as { id: string; situation: string; situation_source: string }[]) {
-    const programas = [...(progsOf.get(s.id) ?? [])]
+    const ms = matsOf.get(s.id) ?? []
+    // Vivas = no egresadas. Activas = vivas sin retiro vigente.
+    const vivas = ms.filter(m => !gradPairs.has(`${s.id}|${m.program_id}`))
+    const activas = vivas.filter(m => !retiroDeMatricula.has(m.id))
     let want: string
-    if (hasIW.has(s.id)) want = 'retiro_permanente'
-    else if (hasLOA.has(s.id)) want = 'retiro_temporal'
-    else if (programas.length > 0 && programas.every(p => gradPairs.has(`${s.id}|${p}`))) want = 'egresado'
-    else if (programas.length > 0 && programas.every(p => partnerIds.has(p))) want = 'campus_socio'
+    if (hasIWsuelto.has(s.id)) want = 'retiro_permanente'
+    else if (hasLOAsuelto.has(s.id)) want = 'retiro_temporal'
+    else if (ms.length > 0 && vivas.length === 0) want = 'egresado'
+    else if (vivas.length > 0 && activas.length === 0) {
+      want = vivas.some(m => retiroDeMatricula.get(m.id) === 'IW') ? 'retiro_permanente' : 'retiro_temporal'
+    }
+    else if (activas.length > 0 && activas.every(m => partnerIds.has(m.program_id))) want = 'campus_socio'
     else want = 'activo'
     counts[want as keyof typeof counts]++
     if (s.situation_source !== 'manual' && s.situation !== want) changes.push({ id: s.id, situation: want })

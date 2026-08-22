@@ -66,7 +66,9 @@ export async function GET() {
     const partnerPrograms = new Set<string>(
       (programs as { id: string; partner_campus: boolean | null }[]).filter(p => p.partner_campus).map(p => p.id))
 
-    const enrolls = await readAll(sb, 'academic_student_enrollments', 'student_id, program_id, enrollment_date')
+    const enrolls = await readAll(sb, 'academic_student_enrollments', 'id, student_id, program_id, enrollment_date')
+    const programDeMatricula = new Map<string, string>(
+      (enrolls as { id: string; program_id: string | null }[]).filter(e => e.program_id).map(e => [String(e.id), String(e.program_id)]))
     // Matrículas por estudiante, de la más reciente a la más antigua: para
     // ubicar un retiro en una categoría (el retiro no guarda programa).
     const enrollsOf = new Map<string, { program_id: string; fecha: string }[]>()
@@ -82,9 +84,11 @@ export async function GET() {
 
     // Retiros: la fuente es student_withdrawals, no la "situación" derivada.
     const wds = await readAll(sb, 'student_withdrawals',
-      'id, student_id, type, status, converted_to_id, reincorporated_charge_external_id, reincorporated_tramite_id, withdrawal_date')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const retiradosVigentes = new Set<string>()   // estudiantes con retiro vigente
+      'id, student_id, enrollment_id, type, status, converted_to_id, reincorporated_charge_external_id, reincorporated_tramite_id, withdrawal_date')
+    // Retiro vigente POR MATRÍCULA (el retiro es de la matrícula, 22/08/2026).
+    // Llave: enrollment_id; un retiro viejo sin matrícula (no debería quedar
+    // ninguno) marca por estudiante, como antes.
+    const retiradosVigentes = new Set<string>()
     type R3 = {
       loa_total: number; loa_revertidos: number; loa_convertidos: number; loa_vigentes: number; loa_otros: number
       iw_total: number; iw_reentry: number; iw_reincorporados: number; iw_vigentes: number; iw_otros: number
@@ -97,18 +101,21 @@ export async function GET() {
     })
     const r3 = zero3()
     const r3ByCat = new Map<string, R3>()
-    // Categoría de un retiro: la de la matrícula más reciente a la fecha del
-    // retiro (o la más reciente a secas). Una sola por retiro, para que las
-    // filas sumen el total. El retiro no guarda programa: es del estudiante.
-    const catDeRetiro = (studentId: string, fecha: string | null): string => {
+    // Categoría de un retiro: la de SU matrícula (enrollment_id). Solo si un
+    // retiro viejo no la tuviera se cae a la matrícula más reciente a la fecha.
+    const catDeRetiro = (studentId: string, enrollmentId: string | null, fecha: string | null): string => {
+      const pid = enrollmentId ? programDeMatricula.get(String(enrollmentId)) : undefined
+      if (pid) return catOfProgram.get(pid) ?? '__none__'
       const lista = enrollsOf.get(studentId) ?? []
       const f = String(fecha ?? '').slice(0, 10)
       const e = (f ? lista.find(x => x.fecha.slice(0, 10) <= f) : undefined) ?? lista[0]
       return e ? (catOfProgram.get(e.program_id) ?? '__none__') : '__none__'
     }
+    const marcarVigente = (w: { student_id: string; enrollment_id: string | null }) =>
+      retiradosVigentes.add(w.enrollment_id ? `enr:${w.enrollment_id}` : `stu:${w.student_id}`)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const w of wds as any[]) {
-      const catKey = catDeRetiro(String(w.student_id), w.withdrawal_date)
+      const catKey = catDeRetiro(String(w.student_id), w.enrollment_id ?? null, w.withdrawal_date)
       if (!r3ByCat.has(catKey)) r3ByCat.set(catKey, zero3())
       const c3 = r3ByCat.get(catKey)!
       const ambos = (k: keyof R3) => { r3[k]++; c3[k]++ }
@@ -116,12 +123,12 @@ export async function GET() {
         // Un LOA convertido ya es un IW: se cuenta una sola vez, en IW.
         if (w.converted_to_id) { ambos('loa_convertidos'); continue }
         ambos('loa_total')
-        if (w.status === 'vigente') { ambos('loa_vigentes'); retiradosVigentes.add(String(w.student_id)) }
+        if (w.status === 'vigente') { ambos('loa_vigentes'); marcarVigente(w) }
         else if (w.status === 'reincorporado') ambos('loa_revertidos')
         else ambos('loa_otros')
       } else if (w.type === 'IW') {
         ambos('iw_total')
-        if (w.status === 'vigente') { ambos('iw_vigentes'); retiradosVigentes.add(String(w.student_id)) }
+        if (w.status === 'vigente') { ambos('iw_vigentes'); marcarVigente(w) }
         else if (w.status === 'reincorporado') {
           // La distinción que pidió el usuario: ReEntry pagó su trámite;
           // Reincorporado es la reversión de la era sin cobro (los "en ámbar").
@@ -156,7 +163,7 @@ export async function GET() {
     const r2ByCat = new Map<string, R2>(); const r2Total = zero2()
     const seen = new Set<string>()
 
-    for (const e of enrolls as { student_id: string | null; program_id: string | null }[]) {
+    for (const e of enrolls as { id: string; student_id: string | null; program_id: string | null }[]) {
       if (!e.student_id || !e.program_id) continue
       const pair = `${e.student_id}|${e.program_id}`
       if (seen.has(pair)) continue
@@ -169,8 +176,8 @@ export async function GET() {
       c1.matriculados++; r1Total.matriculados++
       if (grad === 'titulado') { c1.titulados++; r1Total.titulados++; continue }
       if (grad) { c1.egresados++; r1Total.egresados++; continue }
-      // El retiro es del estudiante: arrastra sus matrículas no terminadas.
-      if (retiradosVigentes.has(e.student_id)) { c1.retirados++; r1Total.retirados++; continue }
+      // El retiro es de LA MATRÍCULA: retirado del Bachelor, su Master sigue activo.
+      if (retiradosVigentes.has(`enr:${e.id}`) || retiradosVigentes.has(`stu:${e.student_id}`)) { c1.retirados++; r1Total.retirados++; continue }
       c1.activos++; r1Total.activos++
 
       // R2: solo las activas
