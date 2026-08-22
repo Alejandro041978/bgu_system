@@ -12,7 +12,8 @@ type R3 = {
 }
 type Row1 = R1 & { category: string; sigla: string }
 type Row2 = R2 & { category: string; sigla: string }
-type Data = { r1: { rows: Row1[]; total: R1 }; r2: { rows: Row2[]; total: R2 }; r3: R3 }
+type Row3 = R3 & { category: string; sigla: string }
+type Data = { r1: { rows: Row1[]; total: R1 }; r2: { rows: Row2[]; total: R2 }; r3: R3 & { rows: Row3[] } }
 
 const n = (v: number) => v.toLocaleString('es')
 
@@ -138,7 +139,53 @@ export function StudentStatusReport() {
           Retirados netos = (LOA − revertidos) + (IW − ReEntry − Reincorporados). La unidad es el retiro:
           un estudiante retirado con dos programas pesa 2 matrículas en el reporte 1 y 1 retiro aquí.
           <b> ReEntry</b> pagó su trámite de $35; <b>Reincorporado</b> es la reversión de la era sin cobro.
+          La categoría de un retiro es la de la matrícula más reciente a la fecha del retiro.
         </p>
+        <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
+          <table className="w-full text-sm whitespace-nowrap">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50 text-[11px] text-gray-500 uppercase tracking-wide">
+                <th className="text-left px-4 py-3">Categoría</th>
+                <th className="text-right px-4 py-3">LOA</th>
+                <th className="text-right px-4 py-3">LOA revertidos</th>
+                <th className="text-right px-4 py-3">LOA vigentes</th>
+                <th className="text-right px-4 py-3">IW</th>
+                <th className="text-right px-4 py-3">ReEntry</th>
+                <th className="text-right px-4 py-3">Reincorporados</th>
+                <th className="text-right px-4 py-3">IW vigentes</th>
+                <th className="text-right px-4 py-3">Retirados netos</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {r3.rows.map(r => (
+                <tr key={r.category} className="hover:bg-gray-50/50">
+                  <td className="px-4 py-2.5 text-gray-700 font-medium" title={r.category}>{r.sigla}</td>
+                  <td className={`px-4 py-2.5 text-right ${r.loa_total ? 'text-orange-700' : 'text-gray-300'}`}>{n(r.loa_total)}</td>
+                  <td className={`px-4 py-2.5 text-right ${r.loa_revertidos ? 'text-gray-600' : 'text-gray-300'}`}>{n(r.loa_revertidos)}</td>
+                  <td className={`px-4 py-2.5 text-right font-semibold ${r.loa_vigentes ? 'text-orange-700' : 'text-gray-300'}`}>{n(r.loa_vigentes)}</td>
+                  <td className={`px-4 py-2.5 text-right ${r.iw_total ? 'text-rose-700' : 'text-gray-300'}`}>{n(r.iw_total)}</td>
+                  <td className={`px-4 py-2.5 text-right ${r.iw_reentry ? 'text-emerald-700' : 'text-gray-300'}`}>{n(r.iw_reentry)}</td>
+                  <td className={`px-4 py-2.5 text-right ${r.iw_reincorporados ? 'text-amber-700' : 'text-gray-300'}`}>{n(r.iw_reincorporados)}</td>
+                  <td className={`px-4 py-2.5 text-right font-semibold ${r.iw_vigentes ? 'text-rose-700' : 'text-gray-300'}`}>{n(r.iw_vigentes)}</td>
+                  <td className="px-4 py-2.5 text-right font-bold text-gray-900">{n(r.retirados_netos)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-gray-200 bg-gray-50 font-semibold">
+                <td className="px-4 py-3 text-gray-800">Total</td>
+                <td className="px-4 py-3 text-right text-orange-700">{n(r3.loa_total)}</td>
+                <td className="px-4 py-3 text-right text-gray-600">{n(r3.loa_revertidos)}</td>
+                <td className="px-4 py-3 text-right text-orange-700">{n(r3.loa_vigentes)}</td>
+                <td className="px-4 py-3 text-right text-rose-700">{n(r3.iw_total)}</td>
+                <td className="px-4 py-3 text-right text-emerald-700">{n(r3.iw_reentry)}</td>
+                <td className="px-4 py-3 text-right text-amber-700">{n(r3.iw_reincorporados)}</td>
+                <td className="px-4 py-3 text-right text-rose-700">{n(r3.iw_vigentes)}</td>
+                <td className="px-4 py-3 text-right text-gray-900">{n(r3.retirados_netos)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
             { label: 'LOA', value: r3.loa_total, cls: 'text-orange-700' },

@@ -66,7 +66,15 @@ export async function GET() {
     const partnerPrograms = new Set<string>(
       (programs as { id: string; partner_campus: boolean | null }[]).filter(p => p.partner_campus).map(p => p.id))
 
-    const enrolls = await readAll(sb, 'academic_student_enrollments', 'student_id, program_id')
+    const enrolls = await readAll(sb, 'academic_student_enrollments', 'student_id, program_id, enrollment_date')
+    // Matrículas por estudiante, de la más reciente a la más antigua: para
+    // ubicar un retiro en una categoría (el retiro no guarda programa).
+    const enrollsOf = new Map<string, { program_id: string; fecha: string }[]>()
+    for (const e of enrolls as { student_id: string | null; program_id: string | null; enrollment_date: string | null }[]) {
+      if (!e.student_id || !e.program_id) continue
+      enrollsOf.set(e.student_id, [...(enrollsOf.get(e.student_id) ?? []), { program_id: e.program_id, fecha: String(e.enrollment_date ?? '') }])
+    }
+    for (const l of enrollsOf.values()) l.sort((a, b) => b.fecha.localeCompare(a.fecha))
     const grads = await readAll(sb, 'student_graduations', 'student_id, program_id, titulacion_status')
     const gradOf = new Map<string, string>(
       (grads as { student_id: string; program_id: string; titulacion_status: string }[])
@@ -74,35 +82,56 @@ export async function GET() {
 
     // Retiros: la fuente es student_withdrawals, no la "situación" derivada.
     const wds = await readAll(sb, 'student_withdrawals',
-      'id, student_id, type, status, converted_to_id, reincorporated_charge_external_id, reincorporated_tramite_id')
+      'id, student_id, type, status, converted_to_id, reincorporated_charge_external_id, reincorporated_tramite_id, withdrawal_date')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const retiradosVigentes = new Set<string>()   // estudiantes con retiro vigente
-    const r3 = {
+    type R3 = {
+      loa_total: number; loa_revertidos: number; loa_convertidos: number; loa_vigentes: number; loa_otros: number
+      iw_total: number; iw_reentry: number; iw_reincorporados: number; iw_vigentes: number; iw_otros: number
+      retirados_netos: number
+    }
+    const zero3 = (): R3 => ({
       loa_total: 0, loa_revertidos: 0, loa_convertidos: 0, loa_vigentes: 0, loa_otros: 0,
       iw_total: 0, iw_reentry: 0, iw_reincorporados: 0, iw_vigentes: 0, iw_otros: 0,
       retirados_netos: 0,
+    })
+    const r3 = zero3()
+    const r3ByCat = new Map<string, R3>()
+    // Categoría de un retiro: la de la matrícula más reciente a la fecha del
+    // retiro (o la más reciente a secas). Una sola por retiro, para que las
+    // filas sumen el total. El retiro no guarda programa: es del estudiante.
+    const catDeRetiro = (studentId: string, fecha: string | null): string => {
+      const lista = enrollsOf.get(studentId) ?? []
+      const f = String(fecha ?? '').slice(0, 10)
+      const e = (f ? lista.find(x => x.fecha.slice(0, 10) <= f) : undefined) ?? lista[0]
+      return e ? (catOfProgram.get(e.program_id) ?? '__none__') : '__none__'
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const w of wds as any[]) {
+      const catKey = catDeRetiro(String(w.student_id), w.withdrawal_date)
+      if (!r3ByCat.has(catKey)) r3ByCat.set(catKey, zero3())
+      const c3 = r3ByCat.get(catKey)!
+      const ambos = (k: keyof R3) => { r3[k]++; c3[k]++ }
       if (w.type === 'LOA') {
         // Un LOA convertido ya es un IW: se cuenta una sola vez, en IW.
-        if (w.converted_to_id) { r3.loa_convertidos++; continue }
-        r3.loa_total++
-        if (w.status === 'vigente') { r3.loa_vigentes++; retiradosVigentes.add(String(w.student_id)) }
-        else if (w.status === 'reincorporado') r3.loa_revertidos++
-        else r3.loa_otros++
+        if (w.converted_to_id) { ambos('loa_convertidos'); continue }
+        ambos('loa_total')
+        if (w.status === 'vigente') { ambos('loa_vigentes'); retiradosVigentes.add(String(w.student_id)) }
+        else if (w.status === 'reincorporado') ambos('loa_revertidos')
+        else ambos('loa_otros')
       } else if (w.type === 'IW') {
-        r3.iw_total++
-        if (w.status === 'vigente') { r3.iw_vigentes++; retiradosVigentes.add(String(w.student_id)) }
+        ambos('iw_total')
+        if (w.status === 'vigente') { ambos('iw_vigentes'); retiradosVigentes.add(String(w.student_id)) }
         else if (w.status === 'reincorporado') {
           // La distinción que pidió el usuario: ReEntry pagó su trámite;
           // Reincorporado es la reversión de la era sin cobro (los "en ámbar").
-          if (w.reincorporated_charge_external_id) r3.iw_reentry++
-          else r3.iw_reincorporados++
-        } else r3.iw_otros++
+          if (w.reincorporated_charge_external_id) ambos('iw_reentry')
+          else ambos('iw_reincorporados')
+        } else ambos('iw_otros')
       }
     }
     r3.retirados_netos = r3.loa_vigentes + r3.iw_vigentes
+    for (const c3 of r3ByCat.values()) c3.retirados_netos = c3.loa_vigentes + c3.iw_vigentes
 
     // Carruseles activos por (estudiante, programa)
     const groups = await readAll(sb, 'academic_groups', 'id, program_id')
@@ -167,7 +196,7 @@ export async function GET() {
     return NextResponse.json({
       r1: { rows: toRows(r1ByCat, 'matriculados' as never), total: r1Total },
       r2: { rows: toRows(r2ByCat, 'activos' as never), total: r2Total },
-      r3,
+      r3: { ...r3, rows: toRows(r3ByCat, 'retirados_netos' as never) },
     })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'No se pudo armar el reporte' }, { status: 500 })
