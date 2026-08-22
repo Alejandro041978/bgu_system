@@ -186,11 +186,30 @@ async function contexto(sb: SB, caso: Caso) {
     for (const c of (data ?? []) as any[]) cursos.set(String(c.id), { code: c.code, name: c.name, credits: Number(c.credits ?? 0) })
   }
   const notas = await todo(sb, 'academic_grades',
-    'course_enrollment_id, final_grade, retake_grade, rendido_pct, withdrawn_at',
+    'course_enrollment_id, course_id, intento, final_grade, retake_grade, rendido_pct, withdrawn_at',
     q => q.eq('document_number', String(caso.document_number ?? '')), 'external_id')
+  // La nota de cada matrícula: por el enlace directo (course_enrollment_id)
+  // y, si la nota no lo tiene, por asignatura + intento y por asignatura. Sin
+  // el respaldo, una nota importada sin enlace era invisible y el gestor
+  // retiraba la asignatura como "no cursada" — a Osmar Medina le retiró
+  // BUS 340 con 69,98 % rendido (22/08/2026).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const porEnlace = new Map<string, any>(), porCursoIntento = new Map<string, any>(), porCurso = new Map<string, any>()
+  for (const n of notas) {
+    if (n.withdrawn_at) continue
+    if (n.course_enrollment_id) porEnlace.set(String(n.course_enrollment_id), n)
+    if (n.course_id) {
+      porCursoIntento.set(`${n.course_id}|${Number(n.intento ?? 1)}`, n)
+      const prev = porCurso.get(String(n.course_id))
+      if (!prev || participo(n)) porCurso.set(String(n.course_id), n)
+    }
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const notaDe = new Map<string, any>()
-  for (const n of notas) if (n.course_enrollment_id && !n.withdrawn_at) notaDe.set(String(n.course_enrollment_id), n)
+  for (const m of mats) {
+    const n = porEnlace.get(String(m.id)) ?? porCursoIntento.get(`${m.course_id}|${Number(m.attempt ?? 1)}`) ?? porCurso.get(String(m.course_id))
+    if (n) notaDe.set(String(m.id), n)
+  }
   return { cuentas, terminados, mats, cursos, notaDe }
 }
 
