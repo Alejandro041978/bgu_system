@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { wdb, nextResolutionNumber, recomputeSituations } from '@/lib/withdrawals'
+import { wdb, nextResolutionNumber, recomputeSituations, matriculaDelRetiro } from '@/lib/withdrawals'
 import { guardStaff } from '@/lib/api-guard'
 
 export const maxDuration = 120
@@ -23,7 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params
   const body = await req.json().catch(() => null) as {
     stage?: string; assigned_to?: string; call_notes?: string
-    outcome?: string; refund_requested?: boolean; resolution_number?: string; withdrawal_date?: string
+    outcome?: string; refund_requested?: boolean; resolution_number?: string; withdrawal_date?: string; enrollment_id?: string
   } | null
   if (!body) return NextResponse.json({ error: 'Cuerpo requerido' }, { status: 400 })
 
@@ -52,8 +52,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const type = body.outcome === 'LOA' ? 'LOA' : 'IW'
       const subtype = body.outcome === 'IW_voluntario' ? 'voluntario'
         : body.outcome === 'IW_administrativo' ? 'administrativo' : null
+      // El retiro es de la matrícula: con varias, la pantalla manda enrollment_id.
+      const mat = await matriculaDelRetiro(sb, reqRow.student_id, body.enrollment_id)
+      if (!mat.ok) return NextResponse.json({ error: mat.error, opciones: mat.opciones }, { status: 409 })
       const date = body.withdrawal_date || new Date().toISOString().slice(0, 10)
-      const resolution = body.resolution_number || await nextResolutionNumber(sb, reqRow.student_id, type, date)
+      const resolution = body.resolution_number || await nextResolutionNumber(sb, reqRow.student_id, type, date, mat.enrollment.id)
 
       let expires: string | null = null
       if (type === 'LOA') {
@@ -63,7 +66,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
 
       const { data: wd, error: wErr } = await sb.from('student_withdrawals').insert({
-        student_id: reqRow.student_id, type, subtype, resolution_number: resolution,
+        student_id: reqRow.student_id, enrollment_id: mat.enrollment.id, type, subtype, resolution_number: resolution,
         withdrawal_date: date, expires_at: expires, status: 'vigente', source: 'erp',
         reason: reqRow.reason ?? null, note: body.call_notes ?? reqRow.call_notes ?? null,
         created_by: user.id,

@@ -21,7 +21,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'student_id y type (IW|LOA) requeridos' }, { status: 400 })
   }
   const date = p.get('date') || new Date().toISOString().slice(0, 10)
-  const resolution_number = await nextResolutionNumber(wdb(), student_id, type, date)
+  // La familia del número sale de la matrícula elegida (Bachelor vs DCE).
+  const resolution_number = await nextResolutionNumber(wdb(), student_id, type, date, p.get('enrollment_id'))
   return NextResponse.json({
     resolution_number,
     // Sin categoría reconocida no se puede armar el consecutivo; el usuario lo escribe a mano.

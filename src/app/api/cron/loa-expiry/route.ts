@@ -12,15 +12,16 @@ async function run() {
   const today = new Date().toISOString().slice(0, 10)
 
   const { data: expired } = await sb.from('student_withdrawals')
-    .select('id, student_id, expires_at')
+    .select('id, student_id, expires_at, enrollment_id')
     .eq('type', 'LOA').eq('status', 'vigente')
     .not('expires_at', 'is', null).lte('expires_at', today)
 
   const converted: string[] = []
-  for (const loa of (expired ?? []) as { id: string; student_id: string; expires_at: string }[]) {
-    const resolution = await nextResolutionNumber(sb, loa.student_id, 'IW', loa.expires_at)
+  for (const loa of (expired ?? []) as { id: string; student_id: string; expires_at: string; enrollment_id: string | null }[]) {
+    const resolution = await nextResolutionNumber(sb, loa.student_id, 'IW', loa.expires_at, loa.enrollment_id)
+    // El IW hereda la matrícula del LOA: es el mismo retiro, que cambió de tipo.
     const { data: iw } = await sb.from('student_withdrawals').insert({
-      student_id: loa.student_id, type: 'IW', resolution_number: resolution,
+      student_id: loa.student_id, enrollment_id: loa.enrollment_id, type: 'IW', resolution_number: resolution,
       withdrawal_date: loa.expires_at, status: 'vigente', source: 'erp',
       note: 'Generado automáticamente: LOA vencido sin reincorporación.',
     }).select('id').single()

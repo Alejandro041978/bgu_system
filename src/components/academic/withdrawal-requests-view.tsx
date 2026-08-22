@@ -53,11 +53,26 @@ export function WithdrawalRequestsView() {
       ? 'No se generará ningún retiro; el estudiante se queda.'
       : 'Se generará el retiro con su número de resolución automáticamente.'}\n\n¿Confirmas?`)) return
     setSaving(true)
-    const res = await fetch(`/api/academic/withdrawal-requests/${r.id}`, {
+    // El retiro es de una matrícula: si el estudiante tiene varias, el servidor
+    // responde con las opciones y aquí se pregunta cuál.
+    let enrollment_id: string | undefined
+    let res = await fetch(`/api/academic/withdrawal-requests/${r.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ outcome, call_notes: notes || r.call_notes }),
     })
-    const d = await res.json()
+    let d = await res.json()
+    if (!res.ok && Array.isArray(d.opciones) && d.opciones.length > 1) {
+      const lista = d.opciones.map((o: { program: string; enrollment_date: string | null }, i: number) => `${i + 1}. ${o.program}${o.enrollment_date ? ` (${o.enrollment_date})` : ''}`).join('\n')
+      const elegido = prompt(`${r.student_name} tiene varias matrículas. ¿De cuál se retira? Escribe el número:\n\n${lista}`)
+      const idx = Number(elegido) - 1
+      if (!(idx >= 0 && idx < d.opciones.length)) { setSaving(false); return }
+      enrollment_id = d.opciones[idx].id
+      res = await fetch(`/api/academic/withdrawal-requests/${r.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ outcome, call_notes: notes || r.call_notes, enrollment_id }),
+      })
+      d = await res.json()
+    }
     setSaving(false)
     if (!res.ok) { alert(d.error ?? 'No se pudo resolver'); return }
     setOpen(null); setNotes(''); load()

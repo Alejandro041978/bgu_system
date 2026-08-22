@@ -73,10 +73,49 @@ export async function tokenForStudent(sb: any, studentId: string): Promise<strin
   return null
 }
 
-// Siguiente número de resolución para un estudiante y tipo de retiro.
+// ---------------------------------------------------------------------------
+// La matrícula a la que pertenece un retiro (regla del usuario, 22/08/2026: el
+// retiro es de la matrícula, no del estudiante). Con una sola matrícula se
+// asume; con varias hay que elegir, y si no se eligió se devuelven las
+// opciones para que la pantalla pregunte.
+// ---------------------------------------------------------------------------
+export interface OpcionMatricula { id: string; program_id: string; program: string; enrollment_date: string | null }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function nextResolutionNumber(sb: any, studentId: string, type: 'IW' | 'LOA', date: string): Promise<string | null> {
-  const token = await tokenForStudent(sb, studentId)
+export async function matriculaDelRetiro(sb: any, studentId: string, enrollmentId?: string | null):
+  Promise<{ ok: true; enrollment: OpcionMatricula } | { ok: false; error: string; opciones: OpcionMatricula[] }> {
+  const { data } = await sb.from('academic_student_enrollments')
+    .select('id, program_id, enrollment_date, program:academic_programs(name)')
+    .eq('student_id', studentId).order('enrollment_date', { ascending: false })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const opciones: OpcionMatricula[] = ((data ?? []) as any[]).map(e => ({
+    id: String(e.id), program_id: String(e.program_id ?? ''), program: e.program?.name ?? '(sin programa)',
+    enrollment_date: e.enrollment_date ? String(e.enrollment_date).slice(0, 10) : null,
+  }))
+  if (!opciones.length) return { ok: false, error: 'El estudiante no tiene ninguna matrícula: no hay de qué retirarlo.', opciones }
+  if (enrollmentId) {
+    const e = opciones.find(o => o.id === String(enrollmentId))
+    return e ? { ok: true, enrollment: e } : { ok: false, error: 'La matrícula indicada no es de este estudiante.', opciones }
+  }
+  if (opciones.length === 1) return { ok: true, enrollment: opciones[0] }
+  return { ok: false, error: 'El estudiante tiene varias matrículas: indica de cuál se retira (enrollment_id).', opciones }
+}
+
+// Token de categoría de UNA matrícula (el número de resolución lleva la
+// familia: …-IW-BACHELOR, …-IW-DCE).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function tokenForEnrollment(sb: any, enrollmentId: string): Promise<string | null> {
+  const { data } = await sb.from('academic_student_enrollments')
+    .select('program:academic_programs(category:academic_programs_category(name))').eq('id', enrollmentId).maybeSingle()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return tokenForCategory((data as any)?.program?.category?.name)
+}
+
+// Siguiente número de resolución para un estudiante y tipo de retiro. Con la
+// matrícula, la familia sale de SU programa (un alumno de Bachelor y DCE no
+// puede recibir un …-IW-BACHELOR por su diplomado).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function nextResolutionNumber(sb: any, studentId: string, type: 'IW' | 'LOA', date: string, enrollmentId?: string | null): Promise<string | null> {
+  const token = (enrollmentId ? await tokenForEnrollment(sb, enrollmentId) : null) ?? await tokenForStudent(sb, studentId)
   if (!token) return null
   const year = await academicYearLabel(sb, date)
   const { data } = await sb.from('student_withdrawals').select('resolution_number').not('resolution_number', 'is', null)

@@ -122,12 +122,20 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: 'Este trámite reincorpora, pero no tiene estudiante asociado.' }, { status: 409 })
       }
       const { data } = await sb.from('student_withdrawals')
-        .select('id, type, resolution_number, withdrawal_date, note')
+        .select('id, type, resolution_number, withdrawal_date, note, enrollment_id, enrollment:academic_student_enrollments!enrollment_id(program_id, program:academic_programs(name))')
         .eq('student_id', r.student_id).eq('status', 'vigente')
-      vigentes = data ?? []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const todos = (data ?? []) as any[]
+      // El Re-Entry levanta el retiro de SU programa, no "el del estudiante":
+      // con un IW en el Bachelor y otro en el Master, el trámite del Master no
+      // puede reincorporar al Bachelor (22/08/2026).
+      vigentes = r.program_id ? todos.filter(w => String(w.enrollment?.program_id ?? '') === String(r.program_id)) : todos
       if (!vigentes.length) {
+        const otros = todos.map(w => `${w.type} ${w.resolution_number ?? w.withdrawal_date} (${w.enrollment?.program?.name ?? 'sin matrícula'})`).join(', ')
         return NextResponse.json({
-          error: 'Este estudiante no tiene ningún retiro vigente que levantar. Revisa su expediente en Retiros antes de atender el trámite.',
+          error: todos.length
+            ? `Este estudiante no tiene un retiro vigente en el programa de este trámite. Sus retiros vigentes son de otro programa: ${otros}. Revisa el programa del trámite o su expediente en Retiros.`
+            : 'Este estudiante no tiene ningún retiro vigente que levantar. Revisa su expediente en Retiros antes de atender el trámite.',
         }, { status: 409 })
       }
     }

@@ -7,9 +7,12 @@ type Row = {
   id: string; student_id: string; type: 'IW' | 'LOA'; resolution_number: string | null
   withdrawal_date: string; expires_at: string | null; status: string; reason: string | null; note: string | null
   source: string; student_name: string; document_number: string | null; situation: string | null
+  enrollment_id?: string | null; program_name?: string | null
   reentry?: { reference: string | null; paid_date: string | null } | null
 }
 type Student = { id: string; name: string; document_number: string | null; email: string | null }
+// Las matrículas del estudiante: el retiro es de UNA de ellas.
+type Matricula = { id: string; program: string; convocatoria: string | null; fecha: string | null }
 
 const TYPE: Record<string, { label: string; cls: string }> = {
   IW:  { label: 'IW · Definitivo', cls: 'bg-rose-50 text-rose-700' },
@@ -85,7 +88,24 @@ export function WithdrawalsView() {
   const [q, setQ] = useState('')
   const [results, setResults] = useState<Student[]>([])
   const [student, setStudent] = useState<Student | null>(null)
+  const [matriculas, setMatriculas] = useState<Matricula[]>([])
+  const [enrollmentId, setEnrollmentId] = useState('')
   const [form, setForm] = useState({ type: 'LOA' as 'IW' | 'LOA', withdrawal_date: new Date().toISOString().slice(0, 10), resolution_number: '', reason: '', note: '' })
+
+  // Al elegir estudiante: sus matrículas. Con una sola se asume; con varias
+  // hay que elegir de cuál se retira.
+  useEffect(() => {
+    setMatriculas([]); setEnrollmentId('')
+    if (!student) return
+    let cancelled = false
+    fetch(`/api/students/${student.id}`).then(r => r.json()).then(d => {
+      if (cancelled) return
+      const ms: Matricula[] = (d.enrollments ?? []).map((e: Matricula) => ({ id: e.id, program: e.program, convocatoria: e.convocatoria, fecha: e.fecha }))
+      setMatriculas(ms)
+      if (ms.length === 1) setEnrollmentId(ms[0].id)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [student])
   const [numberHint, setNumberHint] = useState<string | null>(null)
   const [vigenteWarn, setVigenteWarn] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -109,18 +129,19 @@ export function WithdrawalsView() {
     setForm(f => ({ ...f, resolution_number: '' }))
   }
 
-  // Al elegir estudiante / cambiar tipo o fecha, proponer el consecutivo
+  // Al elegir estudiante y matrícula / cambiar tipo o fecha, proponer el
+  // consecutivo (la familia del número sale del programa de la matrícula)
   useEffect(() => {
     if (!student) return
     let cancelled = false
     ;(async () => {
-      const d = await fetch(`/api/academic/withdrawals/next-number?student_id=${student.id}&type=${form.type}&date=${form.withdrawal_date}`).then(r => r.json())
+      const d = await fetch(`/api/academic/withdrawals/next-number?student_id=${student.id}&type=${form.type}&date=${form.withdrawal_date}${enrollmentId ? `&enrollment_id=${enrollmentId}` : ''}`).then(r => r.json())
       if (cancelled) return
       setForm(f => ({ ...f, resolution_number: d.resolution_number ?? '' }))
       setNumberHint(d.warning ?? null)
     })()
     return () => { cancelled = true }
-  }, [student, form.type, form.withdrawal_date])
+  }, [student, enrollmentId, form.type, form.withdrawal_date])
 
   function resetForm() {
     setShowForm(false); setStudent(null); setQ(''); setResults([]); setNumberHint(null); setVigenteWarn(null)
@@ -136,23 +157,25 @@ export function WithdrawalsView() {
     ;(async () => {
       const d = await fetch('/api/academic/withdrawals?status=vigente').then(r => r.json()).catch(() => ({}))
       if (cancelled) return
+      // El retiro vigente que estorba es el de ESTA matrícula; uno en otro
+      // programa del mismo estudiante no impide retirarlo de este.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const v = (d.rows ?? []).find((r: any) => r.student_id === student.id)
+      const v = (d.rows ?? []).find((r: any) => r.student_id === student.id && (!enrollmentId || !r.enrollment_id || r.enrollment_id === enrollmentId))
       if (v?.type === 'IW') {
-        setVigenteWarn(`⚠ Ya tiene un retiro IW vigente (${v.resolution_number ?? 'sin resolución'}, ${v.withdrawal_date}). No se puede registrar otro hasta resolverlo (reincorporar o anular).`)
+        setVigenteWarn(`⚠ Esta matrícula ya tiene un retiro IW vigente (${v.resolution_number ?? 'sin resolución'}, ${v.withdrawal_date}). No se puede registrar otro hasta resolverlo (reincorporar o anular).`)
       } else if (v?.type === 'LOA') {
-        setVigenteWarn(`⚠ Tiene un LOA vigente (${v.resolution_number ?? 'sin resolución'}, ${v.withdrawal_date}). Puedes registrar un IW — el LOA se cerrará como convertido — pero NO otro LOA.`)
+        setVigenteWarn(`⚠ Esta matrícula tiene un LOA vigente (${v.resolution_number ?? 'sin resolución'}, ${v.withdrawal_date}). Puedes registrar un IW — el LOA se cerrará como convertido — pero NO otro LOA.`)
       }
     })()
     return () => { cancelled = true }
-  }, [student])
+  }, [student, enrollmentId])
 
   async function save() {
-    if (!student) return
+    if (!student || !enrollmentId) return
     setSaving(true)
     const res = await fetch('/api/academic/withdrawals', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student_id: student.id, ...form }),
+      body: JSON.stringify({ student_id: student.id, enrollment_id: enrollmentId, ...form }),
     })
     const d = await res.json()
     setSaving(false)
@@ -326,6 +349,20 @@ export function WithdrawalsView() {
                 </div>
                 <button onClick={clearStudent} className="text-xs text-blue-600 hover:underline">Cambiar</button>
               </div>
+              {/* De qué matrícula se retira: el retiro es de la matrícula, no
+                  del estudiante. Con una sola se asume; con varias se elige. */}
+              <div className="mt-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Matrícula de la que se retira *</label>
+                {matriculas.length === 0 ? (
+                  <p className="text-xs text-red-600">Este estudiante no tiene matrículas: no hay de qué retirarlo.</p>
+                ) : (
+                  <select value={enrollmentId} onChange={e => setEnrollmentId(e.target.value)}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${matriculas.length > 1 && !enrollmentId ? 'border-amber-400' : 'border-gray-300'}`}>
+                    {matriculas.length > 1 && <option value="">Elige la matrícula…</option>}
+                    {matriculas.map(m => <option key={m.id} value={m.id}>{m.program}{m.convocatoria ? ` · ${m.convocatoria}` : ''}{m.fecha ? ` · ${fdate(String(m.fecha).slice(0, 10))}` : ''}</option>)}
+                  </select>
+                )}
+              </div>
               {vigenteWarn && (
                 <p className="mt-2 text-xs bg-red-50 border border-red-100 text-red-700 rounded-lg px-3 py-2">{vigenteWarn}</p>
               )}
@@ -389,7 +426,7 @@ export function WithdrawalsView() {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={save} disabled={!student || saving}
+            <button onClick={save} disabled={!student || !enrollmentId || saving}
               className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium rounded-lg">
               {saving ? 'Guardando…' : 'Registrar retiro'}
             </button>
@@ -427,12 +464,12 @@ export function WithdrawalsView() {
                     {ficha ? (
                       <>
                         <p className="text-gray-800">{r.reason || <span className="text-gray-400 italic">sin motivo declarado</span>}</p>
-                        {r.note && <p className="text-[11px] text-gray-400">{r.note}</p>}
+                        <p className="text-[11px] text-gray-400">{r.program_name ? <span className="text-indigo-600">{r.program_name}</span> : <span className="text-amber-600">sin matrícula enlazada</span>}{r.note ? ` · ${r.note}` : ''}</p>
                       </>
                     ) : (
                       <>
                         <p className="text-gray-800">{r.student_name || 'Estudiante'}</p>
-                        <p className="text-[11px] text-gray-400">{r.document_number}{r.reason ? ` · ${r.reason}` : ''}</p>
+                        <p className="text-[11px] text-gray-400">{r.document_number}{r.program_name ? <> · <span className="text-indigo-600">{r.program_name}</span></> : ''}{r.reason ? ` · ${r.reason}` : ''}</p>
                       </>
                     )}
                   </td>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { wdb, nextResolutionNumber, recomputeSituations } from '@/lib/withdrawals'
+import { wdb, nextResolutionNumber, recomputeSituations, matriculaDelRetiro } from '@/lib/withdrawals'
 import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get('status')
 
   let q = sb.from('student_withdrawals')
-    .select('*, student:academic_students(first_name, last_name, second_last_name, document_number, email, situation)')
+    .select('*, student:academic_students(first_name, last_name, second_last_name, document_number, email, situation), enrollment:academic_student_enrollments!enrollment_id(program:academic_programs(name))')
     .order('withdrawal_date', { ascending: false })
   if (studentId) q = q.eq('student_id', studentId)
   if (type) q = q.eq('type', type)
@@ -65,6 +65,7 @@ export async function GET(req: NextRequest) {
     student_name: [r.student?.first_name, r.student?.last_name, r.student?.second_last_name].filter(Boolean).join(' '),
     document_number: r.student?.document_number ?? null,
     situation: r.student?.situation ?? null,
+    program_name: r.enrollment?.program?.name ?? null,
     reentry: r.reincorporated_charge_external_id
       ? (pagoDe.get(String(r.reincorporated_charge_external_id)) ?? null)
       : null,
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const body = await req.json().catch(() => null) as {
-    student_id?: string; type?: string; withdrawal_date?: string
+    student_id?: string; enrollment_id?: string; type?: string; withdrawal_date?: string
     resolution_number?: string; expires_at?: string; reason?: string; note?: string
   } | null
 
@@ -89,23 +90,30 @@ export async function POST(req: NextRequest) {
   }
   const sb = wdb()
 
-  // Regla de retiros vigentes:
-  //   IW vigente  → bloquea cualquier retiro nuevo (ya está retirado).
+  // El retiro es de la MATRÍCULA: con varias, hay que decir de cuál.
+  const mat = await matriculaDelRetiro(sb, body.student_id, body.enrollment_id)
+  if (!mat.ok) return NextResponse.json({ error: mat.error, opciones: mat.opciones }, { status: 409 })
+  const enrollmentId = mat.enrollment.id
+
+  // Regla de retiros vigentes, POR MATRÍCULA:
+  //   IW vigente  → bloquea cualquier retiro nuevo en esa matrícula.
   //   LOA vigente → bloquea otro LOA, pero PERMITE el IW (transición legítima:
   //     el LOA se cierra como 'convertido_iw', igual que hace el cron de
   //     vencimiento, enlazado por converted_to_id).
+  // Un retiro en OTRA matrícula del mismo estudiante no estorba: puede estar
+  // retirado del Bachelor y seguir en su Master.
   const { data: activo } = await sb.from('student_withdrawals')
     .select('id, type, resolution_number, withdrawal_date')
-    .eq('student_id', body.student_id).eq('status', 'vigente').limit(1).maybeSingle()
+    .eq('enrollment_id', enrollmentId).eq('status', 'vigente').limit(1).maybeSingle()
   if (activo && !(activo.type === 'LOA' && body.type === 'IW')) {
     return NextResponse.json({
-      error: `El estudiante ya tiene un retiro ${activo.type} vigente (${activo.resolution_number ?? 'sin resolución'}, ${activo.withdrawal_date}). Resuélvelo primero (reincorporación o anulación) antes de registrar otro.`,
+      error: `Esta matrícula (${mat.enrollment.program}) ya tiene un retiro ${activo.type} vigente (${activo.resolution_number ?? 'sin resolución'}, ${activo.withdrawal_date}). Resuélvelo primero (reincorporación o anulación) antes de registrar otro.`,
     }, { status: 409 })
   }
   const loaAConvertir = activo?.type === 'LOA' && body.type === 'IW' ? activo : null
 
   const date = body.withdrawal_date || new Date().toISOString().slice(0, 10)
-  const resolution = body.resolution_number || await nextResolutionNumber(sb, body.student_id, body.type, date)
+  const resolution = body.resolution_number || await nextResolutionNumber(sb, body.student_id, body.type, date, enrollmentId)
 
   // El LOA dura un semestre: por defecto vence a los 6 meses.
   let expires = body.expires_at ?? null
@@ -116,7 +124,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data, error } = await sb.from('student_withdrawals').insert({
-    student_id: body.student_id, type: body.type, resolution_number: resolution,
+    student_id: body.student_id, enrollment_id: enrollmentId, type: body.type, resolution_number: resolution,
     withdrawal_date: date, expires_at: body.type === 'LOA' ? expires : null,
     reason: body.reason || null, note: body.note || null,
     status: 'vigente', source: 'erp', created_by: user.id,
