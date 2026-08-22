@@ -224,6 +224,13 @@ export async function GET(req: NextRequest) {
     intento_label: etiquetaDeIntento(intentoDe.get(String(d.external_id)) ?? 1),
     descuadrado: ev.descuadrado,
     course_code: codigoVisible(cursoByExt.get(String(d.external_id)), malla, d.course_code),
+    // El nombre también es el de la malla (única fuente de nombres); el que
+    // trajo el sistema de origen queda aparte por si difiere.
+    course_name: malla.get(String(cursoByExt.get(String(d.external_id)) ?? ''))?.name ?? d.course_name,
+    source_name: (() => {
+      const mn = malla.get(String(cursoByExt.get(String(d.external_id)) ?? ''))?.name
+      return mn && courseNameKey(mn) !== courseNameKey(d.course_name) ? d.course_name : null
+    })(),
     program_name: programaDe(String(d.external_id), d.enrollment_id ?? null),
     editable: editableByExt.get(String(d.external_id)) ?? false,
     // El ORIGEN real de la nota. La pantalla lo rotulaba "SystemActiva" a

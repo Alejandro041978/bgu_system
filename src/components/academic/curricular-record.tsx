@@ -6,7 +6,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 interface Program { id: string; name: string }
-interface Row { external_id: string; course_code: string | null; course_name: string; credits: number | null; term: string; status: string; grade: number | null; has_grade: boolean; withdrawn: boolean; editable: boolean; final_grade: number | null; retake_grade: number | null; kind: 'inscripcion' | 'convalidacion' | 'sin_registrar' }
+interface Row { external_id: string; course_code: string | null; course_name: string; source_name?: string | null; credits: number | null; term: string; status: string; grade: number | null; has_grade: boolean; withdrawn: boolean; editable: boolean; final_grade: number | null; retake_grade: number | null; kind: 'inscripcion' | 'convalidacion' | 'sin_registrar' }
 interface Data { program: string; enrollment: { id: string; list_price: number | null; credit_rate: number | null } | null; creditos_activos: number; creditos_que_lleva: number | null; malla_total: number; sin_registrar: number; rows: Row[] }
 
 const money = (n: number) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -212,7 +212,7 @@ export function CurricularRecord() {
                     <tr key={r.external_id} className={`hover:bg-gray-50/50 ${r.kind === 'sin_registrar' ? 'bg-gray-50/40' : ''}`}>
                       <td className="px-5 py-2.5">
                         <p className="font-medium text-gray-800">{r.course_name}</p>
-                        {r.course_code && <p className="text-xs text-gray-400">{r.course_code}</p>}
+                        {r.course_code && <p className="text-xs text-gray-400">{r.course_code}{r.source_name && <span className="text-gray-300" title="Nombre con el que llegó la nota del sistema de origen"> · en el origen: {r.source_name}</span>}</p>}
                       </td>
                       <td className="px-3 py-2.5 text-center text-gray-500">{r.credits ?? '—'}</td>
                       <td className="px-3 py-2.5 text-xs text-gray-500">{r.term || '—'}</td>

@@ -103,9 +103,14 @@ export async function GET(req: NextRequest) {
     const cm = malla.find((c: { id: string; name: string | null; code: string | null; credits: number | null }) => filaDeCurso(g, c))
     return {
       external_id: g.external_id,
-      // El código de la malla, no el número de orden de SystemActiva.
+      // El código y el NOMBRE de la malla, no los que trajo SystemActiva: el
+      // plan de estudios es la única fuente de nombres. La nota guardaba
+      // "Business Leadership & Entrepreneurship" y la malla dice "Business
+      // Leadership" (LED 380): la misma asignatura salía dos veces con dos
+      // nombres (22/08/2026). El nombre de origen se conserva aparte.
       course_code: cm?.code ?? g.course_code,
-      course_name: g.course_name,
+      course_name: cm?.name ?? g.course_name,
+      source_name: cm && courseNameKey(cm.name) !== courseNameKey(g.course_name) ? g.course_name : null,
       credits: cm?.credits != null ? Number(cm.credits) : (g.credits != null ? Number(g.credits) : null),
       // El recursado se distingue del primer intento en el propio registro:
       // los dos existen y el acta se queda con el mejor.

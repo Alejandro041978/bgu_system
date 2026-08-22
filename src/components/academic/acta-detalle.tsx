@@ -7,7 +7,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 interface Slot { n: number; desc: string; pct: number | null; val: number | null }
 interface Detail {
   id: string; external_id: string; editable: boolean; program_name: string
-  course_code: string | null; course_name: string | null
+  course_code: string | null; course_name: string | null; source_name?: string | null
   term_year: number | null; term_block: string | null
   final_grade: number | null; retake_grade: number | null; makeup_grade: number | null
   extra_points: number | null; passing_score: number | null; max_score: number | null
@@ -211,7 +211,7 @@ export function ActaDetalle() {
                               </span>
                             )}
                           </p>
-                          {d.course_code && <p className="text-xs text-gray-400">{d.course_code}</p>}
+                          {d.course_code && <p className="text-xs text-gray-400">{d.course_code}{d.source_name && <span className="text-gray-300" title="Nombre con el que llegó la nota del sistema de origen"> · en el origen: {d.source_name}</span>}</p>}
                         </div>
                         <span className="text-sm font-semibold text-gray-900 w-12 text-right">{g(val)}</span>
                         {st && <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${st.cls}`}>{st.label}</span>}
