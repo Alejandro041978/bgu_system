@@ -295,22 +295,39 @@ export function CurricularRecord() {
 // calificación, lleva cuenta las que están en el registro (convalidadas
 // incluidas) más los recursados, y las dos cosas se cruzan pero no coinciden.
 function Desglose({ data }: { data: Data }) {
-  const PRIORIDAD = ['convalidado', 'aprobado', 'en_proceso', 'desaprobado', 'inscrita', 'no_iniciada']
-  const mejor = new Map<string, { status: string; credits: number }>()
+  // Por asignatura (una vez): su mejor calificación viva, si está convalidada,
+  // si está inscrita sin nota y si está retirada. Las cosas se CRUZAN —una
+  // asignatura puede estar convalidada y además tener nota (Venturo, LED 380),
+  // y en un upgrade las 19 retiradas son justamente las convalidadas— así que
+  // cada cuenta se explica por separado en vez de repartir cada asignatura en
+  // una sola casilla.
+  const PRIO = ['aprobado', 'en_proceso', 'desaprobado']
+  const porAsig = new Map<string, { credits: number; nota: string | null; conv: boolean; inscrita: boolean; retirada: boolean }>()
   for (const r of data.rows) {
-    if (r.kind === 'sin_registrar' || r.withdrawn || r.status === 'retirada') continue
+    if (r.kind === 'sin_registrar') continue
     const k = r.course_code ?? r.course_name
-    const st = r.kind === 'convalidacion' ? 'convalidado' : r.status
-    const prev = mejor.get(k)
-    if (!prev || PRIORIDAD.indexOf(st) < PRIORIDAD.indexOf(prev.status)) mejor.set(k, { status: st, credits: r.credits ?? 0 })
+    const a = porAsig.get(k) ?? { credits: r.credits ?? 0, nota: null, conv: false, inscrita: false, retirada: false }
+    if (r.kind === 'convalidacion') a.conv = true
+    else if (r.withdrawn || r.status === 'retirada') a.retirada = true
+    else if (r.status === 'inscrita' || r.status === 'no_iniciada') a.inscrita = true
+    else if (PRIO.includes(r.status) && (!a.nota || PRIO.indexOf(r.status) < PRIO.indexOf(a.nota))) a.nota = r.status
+    porAsig.set(k, a)
   }
-  const cr = (s: string) => [...mejor.values()].filter(x => x.status === s).reduce((a, x) => a + x.credits, 0)
-  const n = (s: string) => [...mejor.values()].filter(x => x.status === s).length
-  const conv = cr('convalidado'), apr = cr('aprobado'), proc = cr('en_proceso'), des = cr('desaprobado'), insc = cr('inscrita') + cr('no_iniciada')
-  const registradas = conv + apr + proc + des + insc
+  const L = [...porAsig.entries()]
+  const sum = (f: (a: typeof L[number][1]) => boolean) => L.filter(([, a]) => f(a)).reduce((s, [, a]) => s + a.credits, 0)
+  const cnt = (f: (a: typeof L[number][1]) => boolean) => L.filter(([, a]) => f(a)).length
+  const nombres = (f: (a: typeof L[number][1]) => boolean) => L.filter(([, a]) => f(a)).map(([k]) => k).join(', ')
+  // Activos: asignaturas con calificación viva
+  const apr = (a: typeof L[number][1]) => a.nota === 'aprobado', proc = (a: typeof L[number][1]) => a.nota === 'en_proceso', des = (a: typeof L[number][1]) => a.nota === 'desaprobado'
+  // Lleva: registradas = convalidadas ∪ con nota ∪ inscritas (una vez cada una)
+  const conv = (a: typeof L[number][1]) => a.conv
+  const soloNota = (a: typeof L[number][1]) => !a.conv && !!a.nota
+  const soloInsc = (a: typeof L[number][1]) => !a.conv && !a.nota && a.inscrita
+  const soloRet = (a: typeof L[number][1]) => !a.conv && !a.nota && !a.inscrita && a.retirada
+  const registradas = sum(conv) + sum(soloNota) + sum(soloInsc)
   const recursados = data.creditos_que_lleva != null ? Math.max(0, data.creditos_que_lleva - registradas) : 0
-  const retiradas = data.rows.filter(r => r.withdrawn || r.status === 'retirada').reduce((a, r) => a + (r.credits ?? 0), 0)
-  const sinReg = data.rows.filter(r => r.kind === 'sin_registrar').reduce((a, r) => a + (r.credits ?? 0), 0)
+  const convConNota = cnt(a => a.conv && !!a.nota), retConv = cnt(a => a.retirada && a.conv)
+  const sinReg = data.rows.filter(r => r.kind === 'sin_registrar').reduce((s, r) => s + (r.credits ?? 0), 0)
   const Chip = ({ label, cr, cls, title }: { label: string; cr: number; cls: string; title: string }) => (
     <span title={title} className={`inline-flex items-baseline gap-1 px-2 py-0.5 rounded-md text-xs ${cls} ${cr ? '' : 'opacity-40'}`}>
       <b className="tabular-nums">{cr}</b> {label}
@@ -319,28 +336,32 @@ function Desglose({ data }: { data: Data }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs text-gray-600 space-y-2">
       <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-gray-500">Créditos <b className="text-gray-800">activos {data.creditos_activos}</b> =</span>
+        <Chip label={`aprobadas (${cnt(apr)})`} cr={sum(apr)} cls="bg-green-50 text-green-700" title={nombres(apr) || 'Con calificación aprobatoria'} />
+        <span>+</span>
+        <Chip label={`en proceso (${cnt(proc)})`} cr={sum(proc)} cls="bg-amber-50 text-amber-700" title={nombres(proc) || 'Cursándose, con calificación parcial'} />
+        <span>+</span>
+        <Chip label={`desaprobadas (${cnt(des)})`} cr={sum(des)} cls="bg-red-50 text-red-700" title={nombres(des) || 'Con calificación desaprobatoria y sin recursado aprobado'} />
+        <span className="text-gray-400">· asignaturas con calificación viva, cada una una vez{convConNota ? ` (${convConNota} de ellas además convalidada: ${nombres(a => a.conv && !!a.nota)})` : ''}</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-gray-500">Créditos <b className="text-gray-800">que lleva {data.creditos_que_lleva ?? '—'}</b> =</span>
-        <Chip label={`convalidadas (${n('convalidado')})`} cr={conv} cls="bg-violet-50 text-violet-700" title="Validadas o convalidadas: en el registro sin cursarlas; cuentan para el precio" />
+        <Chip label={`convalidadas (${cnt(conv)})`} cr={sum(conv)} cls="bg-violet-50 text-violet-700" title="Validadas o convalidadas: en el registro sin cursarlas; cuentan para el precio" />
         <span>+</span>
-        <Chip label={`aprobadas (${n('aprobado')})`} cr={apr} cls="bg-green-50 text-green-700" title="Con calificación aprobatoria" />
+        <Chip label={`con nota y no convalidadas (${cnt(soloNota)})`} cr={sum(soloNota)} cls="bg-green-50 text-green-700" title="Aprobadas, en proceso o desaprobadas que no están convalidadas" />
         <span>+</span>
-        <Chip label={`en proceso (${n('en_proceso')})`} cr={proc} cls="bg-amber-50 text-amber-700" title="Cursándose, con calificación parcial" />
-        <span>+</span>
-        <Chip label={`desaprobadas (${n('desaprobado')})`} cr={des} cls="bg-red-50 text-red-700" title="Con calificación desaprobatoria y sin recursado aprobado" />
-        <span>+</span>
-        <Chip label={`inscritas sin nota (${n('inscrita') + n('no_iniciada')})`} cr={insc} cls="bg-sky-50 text-sky-700" title="Matriculadas que aún no tienen calificación" />
+        <Chip label={`inscritas sin nota (${cnt(soloInsc)})`} cr={sum(soloInsc)} cls="bg-sky-50 text-sky-700" title={nombres(soloInsc) || 'Matriculadas que aún no tienen calificación'} />
         <span>+</span>
         <Chip label="recursados" cr={recursados} cls="bg-orange-50 text-orange-700" title="Intentos adicionales: cada vez que se recursa una asignatura se consumen sus créditos otra vez" />
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-gray-500">Fuera del precio:</span>
-        <Chip label="retiradas" cr={retiradas} cls="bg-gray-100 text-gray-600" title="Salieron del registro: no se cobran" />
+        <Chip label={`retiradas (${cnt(soloRet)})`} cr={sum(soloRet)} cls="bg-gray-100 text-gray-600" title={nombres(soloRet) || 'Salieron del registro y no están por otra vía: no se cobran'} />
         <Chip label="sin registrar" cr={sinReg} cls="bg-orange-50 text-orange-700" title="Asignaturas de la malla que no están en su registro" />
-        <span className="text-gray-400">· malla completa {data.malla_total} asignaturas</span>
+        <span className="text-gray-400">· malla completa {data.malla_total} asignaturas{retConv ? ` · ${retConv} retiradas por convalidación (ya contadas como convalidadas)` : ''}</span>
       </div>
       <p className="text-[11px] text-gray-400">
-        <b>Créditos activos</b> ({data.creditos_activos}) = asignaturas con calificación (aprobadas + en proceso + desaprobadas), cada una una vez, sin convalidadas ni inscritas sin nota.
-        <b> Créditos que lleva</b> = todo lo que está en su registro más los recursados: es lo que se cobra.
+        <b>Activos</b> mide lo cursado con calificación; <b>que lleva</b> mide lo que está en su registro (convalidadas incluidas) más los recursados, y es lo que se cobra. Una asignatura convalidada que además tiene nota cuenta en los dos.
       </p>
     </div>
   )
