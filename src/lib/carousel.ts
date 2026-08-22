@@ -55,11 +55,18 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
     skipped_empty_group: 0, moodle_unenrols: 0, moodle_enrols: 0, errors: [], dry_run: dryRun,
   }
 
-  // Membresías activas (el universo a evaluar)
-  let q = sb.from('academic_group_students').select('group_id, student_id, status').eq('status', 'activo')
-  if (opts.studentId) q = q.eq('student_id', opts.studentId)
-  const { data: membershipsRaw } = await q
-  const memberships = (membershipsRaw ?? []) as { group_id: string; student_id: string }[]
+  // Membresías activas (el universo a evaluar). PAGINADO: PostgREST corta en
+  // 1.000 filas en silencio, y con 1.252 membresías activas el cron diario
+  // evaluaba solo las primeras mil — 252 estudiantes nunca avanzaban y nadie
+  // se enteraba (lo destapó el auditor de carruseles, 22/08/2026).
+  const memberships: { group_id: string; student_id: string }[] = []
+  for (let from = 0; ; from += 1000) {
+    let q = sb.from('academic_group_students').select('group_id, student_id, status').eq('status', 'activo')
+    if (opts.studentId) q = q.eq('student_id', opts.studentId)
+    const { data } = await q.order('student_id').order('group_id').range(from, from + 999)
+    memberships.push(...((data ?? []) as { group_id: string; student_id: string }[]))
+    if ((data ?? []).length < 1000) break
+  }
   result.memberships_checked = memberships.length
   if (!memberships.length) return result
 
@@ -93,16 +100,23 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
   const docs = [...new Set([...students.values()].map(s => String(s.document_number ?? '')).filter(Boolean))]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gradesByDoc = new Map<string, any[]>()
-  for (const part of chunk(docs, 200)) {
-    const { data } = await sb.from('academic_grades')
-      .select('document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
-      .in('document_number', part)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const g of (data ?? []) as any[]) {
-      if (!esIntento(g)) continue
-      const k = String(g.document_number)
-      if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
-      gradesByDoc.get(k)!.push(g)
+  // PAGINADO. Con 200 documentos por tanda la respuesta pasaba de 1.000 filas
+  // y PostgREST la cortaba en silencio: la mayoría de los estudiantes quedaba
+  // "sin notas" y el cron diario no avanzaba a NADIE desde hacía semanas —
+  // evaluado uno por uno sí avanzaba, evaluados todos juntos no (22/08/2026).
+  for (const part of chunk(docs, 50)) {
+    for (let from = 0; ; from += 1000) {
+      const { data } = await sb.from('academic_grades')
+        .select('document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
+        .in('document_number', part).order('external_id').range(from, from + 999)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const g of (data ?? []) as any[]) {
+        if (!esIntento(g)) continue
+        const k = String(g.document_number)
+        if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
+        gradesByDoc.get(k)!.push(g)
+      }
+      if ((data ?? []).length < 1000) break
     }
   }
 
@@ -115,12 +129,18 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
   }
   const tcIds = tcs.map(t => t.id)
   const itemsByTc = new Map<string, string[]>()
-  for (const part of chunk(tcIds, 200)) {
-    const { data } = await sb.from('transfer_credit_items').select('transfer_credit_id, dest_course_id').in('transfer_credit_id', part)
-    for (const it of (data ?? []) as { transfer_credit_id: string; dest_course_id: string | null }[]) {
-      if (!it.dest_course_id) continue
-      if (!itemsByTc.has(it.transfer_credit_id)) itemsByTc.set(it.transfer_credit_id, [])
-      itemsByTc.get(it.transfer_credit_id)!.push(it.dest_course_id)
+  // Paginado por la misma razón que las notas: 200 expedientes × 20 items
+  // superan el tope de 1.000 filas.
+  for (const part of chunk(tcIds, 40)) {
+    for (let from = 0; ; from += 1000) {
+      const { data } = await sb.from('transfer_credit_items').select('transfer_credit_id, dest_course_id')
+        .in('transfer_credit_id', part).order('transfer_credit_id').range(from, from + 999)
+      for (const it of (data ?? []) as { transfer_credit_id: string; dest_course_id: string | null }[]) {
+        if (!it.dest_course_id) continue
+        if (!itemsByTc.has(it.transfer_credit_id)) itemsByTc.set(it.transfer_credit_id, [])
+        itemsByTc.get(it.transfer_credit_id)!.push(it.dest_course_id)
+      }
+      if ((data ?? []).length < 1000) break
     }
   }
   const transferredOf = new Map<string, Set<string>>()  // `${student}|${program}`
@@ -152,10 +172,14 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
   // Membresías existentes por estudiante (cualquier estado), para no duplicar al avanzar
   const existingByStudent = new Map<string, Map<string, string>>() // student -> group -> status
   for (const part of chunk(studentIds, 200)) {
-    const { data } = await sb.from('academic_group_students').select('group_id, student_id, status').in('student_id', part)
-    for (const m of (data ?? []) as { group_id: string; student_id: string; status: string }[]) {
-      if (!existingByStudent.has(m.student_id)) existingByStudent.set(m.student_id, new Map())
-      existingByStudent.get(m.student_id)!.set(m.group_id, m.status)
+    for (let from = 0; ; from += 1000) {
+      const { data } = await sb.from('academic_group_students').select('group_id, student_id, status')
+        .in('student_id', part).order('student_id').order('group_id').range(from, from + 999)
+      for (const m of (data ?? []) as { group_id: string; student_id: string; status: string }[]) {
+        if (!existingByStudent.has(m.student_id)) existingByStudent.set(m.student_id, new Map())
+        existingByStudent.get(m.student_id)!.set(m.group_id, m.status)
+      }
+      if ((data ?? []).length < 1000) break
     }
   }
 
