@@ -239,9 +239,15 @@ export async function GET(req: NextRequest) {
   // Lo que la malla tiene y el estudiante no: ni nota, ni convalidación, ni
   // retiro en el registro.
   const conFila = new Set([...visibles, ...convRows, ...retiradasRegistro].map(r => courseNameKey(r.course_name)))
-  // Con matrícula viva pero sin fila de nota: inscrita, no "por inscribir".
+  // Con matrícula viva pero sin fila de nota VIVA: inscrita. Una nota retirada
+  // no cuenta como fila para esto — a José Castillo el Re-Entry le reactivó 7
+  // asignaturas (matrícula en_curso) cuyas notas viejas quedaron retiradas, y
+  // la pantalla las mostraba solo como "Retirada" mientras el precio sí las
+  // cobraba: 21 créditos que parecían "recursados" fantasma (23/08/2026). La
+  // fila retirada se sigue mostrando en su sección, como historia.
+  const conFilaViva = new Set([...visibles.filter(r => !r.withdrawn), ...convRows].map(r => courseNameKey(r.course_name)))
   const inscritasSinFila = malla
-    .filter(c => !conFila.has(courseNameKey(c.name)) && cursosVivos.has(String(c.id)))
+    .filter(c => !conFilaViva.has(courseNameKey(c.name)) && cursosVivos.has(String(c.id)))
     .map(c => ({
       external_id: `insc:${c.id}`, course_code: c.code, course_name: c.name,
       credits: c.credits != null ? Number(c.credits) : null,
