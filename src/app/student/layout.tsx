@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { CalendarDays, MessageCircle, LogOut, Award, ArrowLeft, Wallet, FileText, CalendarClock, PiggyBank, ClipboardList, Landmark, Gift, IdCard } from 'lucide-react'
+import { CalendarDays, MessageCircle, LogOut, Award, ArrowLeft, Wallet, FileText, CalendarClock, PiggyBank, ClipboardList, Landmark, Gift, IdCard, MonitorCheck } from 'lucide-react'
 import { BrandLogo } from '@/components/brand-logo'
 import Link from 'next/link'
 import { getEffectiveStudent, isSuperadmin } from '@/lib/student-identity'
@@ -66,6 +66,9 @@ export default async function StudentLayout({ children }: { children: React.Reac
           </Link>
           <Link href="/student/account" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
             <Wallet className="w-4 h-4" /> Estado de Cuenta
+          </Link>
+          <Link href="/student/campus-check" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
+            <MonitorCheck className="w-4 h-4" /> Verificar Campus
           </Link>
           <Link href="/student/moodle-exception" className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 transition-colors">
             <CalendarClock className="w-4 h-4" /> Excepción de Deuda
