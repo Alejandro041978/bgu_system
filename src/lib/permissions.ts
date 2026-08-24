@@ -109,6 +109,15 @@ export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/inbox/metrics', 'inbox_metrics'],
   ['/planning/plan', 'planning_plan'],
   ['/desk/metrics', 'desk_metrics'],
+  // Una página por campaña de Camila, cada una con su propio permiso: el
+  // seguimiento de cada campaña lo lleva una persona distinta (23/08/2026).
+  // Las específicas van ANTES de la genérica.
+  ['/campaigns/titulacion', 'campaign_titulacion'],
+  ['/campaigns/cobranza', 'campaign_cobranza'],
+  ['/campaigns/cashpay', 'campaign_cashpay'],
+  ['/campaigns/ausente', 'campaign_ausente'],
+  ['/campaigns/iw', 'campaign_iw'],
+  ['/campaigns/loa', 'campaign_loa'],
   ['/campaigns', 'seguimiento_campaigns'],
   ['/contracts', 'contracts'],
   ['/convenios', 'convenios'],
@@ -302,6 +311,12 @@ export const API_ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/api/students', 'academic_student_profile'],
   ['/api/zoho/tickets', 'desk'],
   ['/api/chat', 'chat'],
+  ['/api/campaigns/detail/titulacion', 'campaign_titulacion'],
+  ['/api/campaigns/detail/cobranza', 'campaign_cobranza'],
+  ['/api/campaigns/detail/cashpay', 'campaign_cashpay'],
+  ['/api/campaigns/detail/ausente', 'campaign_ausente'],
+  ['/api/campaigns/detail/iw', 'campaign_iw'],
+  ['/api/campaigns/detail/loa', 'campaign_loa'],
   ['/api/campaigns', 'seguimiento_campaigns'],
   ['/api/convenios', 'convenios'],
   ['/api/inbox', 'inbox'],
