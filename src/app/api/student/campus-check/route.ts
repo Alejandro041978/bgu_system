@@ -98,16 +98,41 @@ async function verificarCampus(sb: any, stu: any) {
     for (const a of (data ?? []) as any[]) nombreAula.set(Number(a.aula_id), a.shortname ?? String(a.aula_id))
   }
 
-  // Lo real: en qué aulas está matriculado HOY, preguntado a Moodle
+  // Lo real: en qué aulas está matriculado HOY, preguntado a Moodle.
+  //
+  // Camino ideal: core_enrol_get_users_courses (una sola llamada, y además
+  // permite listar aulas fuera de su ruta). El token del ERP no la tiene
+  // autorizada todavía (comprobado 23/08/2026: 13 funciones y esa no está),
+  // así que hay RESPALDO con core_enrol_get_enrolled_users —que sí está—
+  // preguntando aula por aula si el estudiante figura entre los matriculados.
   let realCourses: { id: number; fullname: string; shortname: string }[] | null = null
+  let realIds: Set<number> | null = null
+  let extrasDisponibles = false
   if (vivo && stu.moodle_user_id) {
+    const uid = Number(stu.moodle_user_id)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const r = await moodleCall('core_enrol_get_users_courses', { userid: Number(stu.moodle_user_id) }) as any[]
+      const r = await moodleCall('core_enrol_get_users_courses', { userid: uid }) as any[]
       realCourses = (r ?? []).map(c => ({ id: Number(c.id), fullname: String(c.fullname ?? ''), shortname: String(c.shortname ?? '') }))
-    } catch { realCourses = null }
+      realIds = new Set(realCourses.map(c => c.id))
+      extrasDisponibles = true
+    } catch {
+      // Respaldo: solo puede confirmar las aulas ESPERADAS, no descubrir extras.
+      const esperadas = [...new Set(links.map(l => Number(l.aula_id)))]
+      const set = new Set<number>()
+      let fallo = false
+      for (const aula of esperadas) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const users = await moodleCall('core_enrol_get_enrolled_users', {
+            courseid: aula, 'options[0][name]': 'userfields', 'options[0][value]': 'id',
+          }, { timeoutMs: 15000 }) as any[]
+          if ((users ?? []).some(u => Number(u.id) === uid)) set.add(aula)
+        } catch { fallo = true }
+      }
+      if (!fallo || set.size) realIds = set
+    }
   }
-  const realIds = realCourses ? new Set(realCourses.map(c => c.id)) : null
 
   const programs: ProgramaCheck[] = grupos.map((g: { id: string; program_id: string; abbreviation: string | null; name: string | null }) => {
     const enr = enrDe.get(String(g.program_id))
@@ -128,11 +153,13 @@ async function verificarCampus(sb: any, stu: any) {
     }
   })
 
-  // Aulas reales que el ERP no espera para este estudiante (información, no error)
-  const esperadas = new Set(programs.flatMap(p => p.courses.map(c => c.aula_id).filter(Boolean))) as Set<number>
-  const extras = (realCourses ?? []).filter(c => !esperadas.has(c.id)).map(c => ({ id: c.id, name: c.shortname || c.fullname }))
+  // Aulas reales que el ERP no espera (solo visibles por el camino ideal)
+  const esperadasSet = new Set(programs.flatMap(p => p.courses.map(c => c.aula_id).filter(Boolean))) as Set<number>
+  const extras = extrasDisponibles
+    ? (realCourses ?? []).filter(c => !esperadasSet.has(c.id)).map(c => ({ id: c.id, name: c.shortname || c.fullname }))
+    : []
 
-  return { account, programs, extras, moodle_ok: vivo && realCourses != null, checked_at: new Date().toISOString() }
+  return { account, programs, extras, moodle_ok: vivo && realIds != null, checked_at: new Date().toISOString() }
 }
 
 export async function GET() {
