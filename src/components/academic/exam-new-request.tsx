@@ -11,7 +11,7 @@ interface Elegibles {
     cumple_participacion: boolean
   }[]
   tipos: { id: string; name: string; price: number }[]
-  // El superadministrador ve además las que no llegan al 70% de participación.
+  // El superadministrador ve además las que no llegan al 50% de participación.
   puede_exceptuar: boolean
 }
 
@@ -22,7 +22,7 @@ interface Elegibles {
 // para cuando el estudiante no puede o no sabe pedirla.
 //
 // La lista de asignaturas no se escribe a mano: la calcula el servidor con la
-// MISMA regla que el portal —desaprobada y con al menos el 70% de la
+// MISMA regla que el portal —desaprobada y con al menos el 50% de la
 // ponderación rendida—. Registros no puede ofrecer aquí algo que el estudiante
 // no podría pedir por su cuenta; si una asignatura no aparece, no es que falte
 // buscarla, es que no califica.
@@ -39,7 +39,7 @@ export function NuevaSolicitudExamen({ onCerrar, onCreada }: {
   const [tipo, setTipo] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  // Motivo de la excepción, obligatorio cuando la asignatura no llega al 70%.
+  // Motivo de la excepción, obligatorio cuando la asignatura no llega al 50%.
   const [motivo, setMotivo] = useState('')
 
   async function buscar() {
@@ -127,7 +127,7 @@ export function NuevaSolicitudExamen({ onCerrar, onCreada }: {
           {elegido.elegibles.length === 0 ? (
             <p className="text-sm text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
               Este estudiante no tiene asignaturas que califiquen: hace falta estar desaprobado y haber rendido al
-              menos el 70% de la ponderación. Si una asignatura no aparece, no califica — no es que falte buscarla.
+              menos el 50% de la ponderación. Si una asignatura no aparece, no califica — no es que falte buscarla.
             </p>
           ) : (
             <>
@@ -138,7 +138,7 @@ export function NuevaSolicitudExamen({ onCerrar, onCreada }: {
                   <option key={e.grade_external_id} value={e.grade_external_id}>
                     {e.cumple_participacion ? '' : '⚠ '}
                     {e.course_name} — nota {e.final ?? '—'} de {e.passing ?? '—'} · rindió {e.pct_rendida}%
-                    {e.cumple_participacion ? '' : ' (no llega al 70%)'}
+                    {e.cumple_participacion ? '' : ' (no llega al 50%)'}
                   </option>
                 ))}
               </select>
@@ -148,7 +148,7 @@ export function NuevaSolicitudExamen({ onCerrar, onCreada }: {
                 <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 space-y-2">
                   <p className="text-xs text-amber-800">
                     <b>{cursoElegido?.course_name}</b> rindió el {cursoElegido?.pct_rendida}% de la ponderación
-                    y la regla pide 70%. Puedes autorizarlo igual, pero queda registrado como excepción con
+                    y la regla pide 50%. Puedes autorizarlo igual, pero queda registrado como excepción con
                     tu nombre.
                   </p>
                   <input value={motivo} onChange={e => setMotivo(e.target.value)}

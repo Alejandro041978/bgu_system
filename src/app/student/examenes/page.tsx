@@ -83,7 +83,7 @@ export default function StudentExamsPage() {
           data.eligible.length === 0 ? (
             <p className="text-sm text-gray-400 border border-dashed border-gray-200 rounded-lg px-4 py-6 text-center">
               No tienes asignaturas que cumplan los requisitos por ahora.<br />
-              <span className="text-xs">Subsanación: asignatura desaprobada con al menos el 70% de las evaluaciones rendidas.</span>
+              <span className="text-xs">Subsanación: asignatura desaprobada con al menos el 50% de las evaluaciones rendidas.</span>
             </p>
           ) : (
             <div className="space-y-2">
@@ -91,7 +91,7 @@ export default function StudentExamsPage() {
               <p className="text-[11px] text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
                 Requisitos: la asignatura debe estar <span className="font-medium text-gray-500">desaprobada</span> (promedio
                 por debajo del mínimo de tu programa) y debes haber <span className="font-medium text-gray-500">rendido al
-                menos el 70%</span> de las evaluaciones que componen la nota. Solo aparecen aquí las asignaturas que ya
+                menos el 50%</span> de las evaluaciones que componen la nota. Solo aparecen aquí las asignaturas que ya
                 cumplen ambas condiciones.
               </p>
               {data.eligible.map(e => (

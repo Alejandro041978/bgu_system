@@ -10,8 +10,13 @@ const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, pro
 // Exámenes solicitables (regla del usuario 2026-07-22). Subsanación:
 // elegible = asignatura DESAPROBADA en el promedio final cuya suma de
 // PONDERACIONES rendidas (evaluaciones con nota en el Acta Detallada,
-// process_grades: [{n, pct, val, desc}]) alcanza al menos el 70%.
+// process_grades: [{n, pct, val, desc}]) alcanza el mínimo de participación.
+//
+// El mínimo era 70% y bajó a 50% (regla del usuario, 23/08/2026). Si vuelve a
+// cambiar: además de esta constante, los textos de las dos pantallas
+// (student/examenes/page.tsx y exam-new-request.tsx) lo mencionan.
 // ---------------------------------------------------------------------------
+export const UMBRAL_PARTICIPACION = 50
 
 export interface EligibleCourse {
   grade_external_id: string
@@ -20,16 +25,16 @@ export interface EligibleCourse {
   final: number
   passing: number
   pct_rendida: number
-  /** Cumple el mínimo de participación (70% de la ponderación rendida). Solo es
-   *  false en el listado ampliado del superadministrador. */
+  /** Cumple el mínimo de participación (UMBRAL_PARTICIPACION de la ponderación
+   *  rendida). Solo es false en el listado ampliado del superadministrador. */
   cumple_participacion: boolean
 }
 
 /**
  * Asignaturas sobre las que se puede pedir un examen.
  *
- * Dos condiciones: estar DESAPROBADA, y haber rendido al menos el 70% de la
- * ponderación. La primera no se levanta nunca —un examen de subsanación sobre
+ * Dos condiciones: estar DESAPROBADA, y haber rendido al menos el
+ * UMBRAL_PARTICIPACION de la ponderación. La primera no se levanta nunca —un examen de subsanación sobre
  * una asignatura aprobada no significa nada—; la segunda sí, y solo para el
  * superadministrador, con `incluirSinParticipacion`.
  *
@@ -112,7 +117,7 @@ export async function eligibleCourses(
     // que sabemos de ella.
     if (!evals.length && !opciones.incluirSinParticipacion) continue
     const pctRendida = evals.reduce((s, e) => s + (e?.val != null ? Number(e?.pct ?? 0) : 0), 0)
-    const cumple = pctRendida >= 70
+    const cumple = pctRendida >= UMBRAL_PARTICIPACION
     if (!cumple && !opciones.incluirSinParticipacion) continue
 
     out.push({
@@ -157,7 +162,7 @@ export async function createExamRequest(
   const course = eleg.find(e => e.grade_external_id === gradeExternalId)
   if (!course) return { ok: false, error: 'La asignatura no cumple los requisitos para este examen (o ya tiene una solicitud activa)' }
   if (!course.cumple_participacion && !excepcion) {
-    return { ok: false, error: `Rindió el ${course.pct_rendida}% de la ponderación y hace falta al menos el 70%.` }
+    return { ok: false, error: `Rindió el ${course.pct_rendida}% de la ponderación y hace falta al menos el ${UMBRAL_PARTICIPACION}%.` }
   }
   if (excepcion && !excepcion.motivo.trim()) {
     return { ok: false, error: 'Una excepción sin motivo escrito no se puede autorizar.' }
