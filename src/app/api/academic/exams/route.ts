@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     const { data: stu } = await sb.from('academic_students')
       .select('id, first_name, last_name, second_last_name, document_number').eq('id', studentId).maybeSingle()
     if (!stu) return NextResponse.json({ error: 'Estudiante no encontrado' }, { status: 404 })
-    // El superadministrador ve además las desaprobadas que no llegan al 70% de
+    // El superadministrador ve además las desaprobadas que no llegan al 50% de
     // participación, marcadas como lo que son. Quien no lo es, ni las ve: no
     // tiene sentido mostrar una opción que el servidor va a rechazar.
     const auth = await createAuthClient()
@@ -179,7 +179,7 @@ export async function PATCH(req: NextRequest) {
 // Hasta ahora la única puerta era el portal del estudiante. Ésta es la segunda,
 // para los casos en que el estudiante no puede o no sabe pedirla, y pasa por el
 // mismo motor: la elegibilidad se revalida en el servidor con la misma regla
-// —desaprobada y con al menos el 70% de la ponderación rendida—, así que
+// —desaprobada y con al menos el 50% de la ponderación rendida—, así que
 // Registros no puede crear una solicitud que el estudiante no podría pedir.
 //
 // Se registra de qué puerta vino y quién la abrió. Genera un cargo real en el

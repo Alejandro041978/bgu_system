@@ -171,7 +171,7 @@ export function ExamsControl() {
       </div>
 
       <p className="text-[11px] text-gray-400">
-        Flujo: el estudiante solicita desde su portal (elegibilidad automática: desaprobada con ≥70% de ponderación rendida) → el cargo llega al estado de cuenta → al pagarse aparece aquí → notificas al estudiante con el link del examen → registras la nota → viaja al acta como recuperación (la mejor gana) y dispara carrusel/egreso.
+        Flujo: el estudiante solicita desde su portal (elegibilidad automática: desaprobada con ≥50% de ponderación rendida) → el cargo llega al estado de cuenta → al pagarse aparece aquí → notificas al estudiante con el link del examen → registras la nota → viaja al acta como recuperación (la mejor gana) y dispara carrusel/egreso.
       </p>
     </div>
   )
