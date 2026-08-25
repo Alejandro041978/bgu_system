@@ -77,11 +77,14 @@ SET gg.finalgrade = gg.finalgrade / gi.grademax * 5, gg.rawgrademax = 5, gg.rawg
 WHERE gi.courseid = 637 AND gi.itemtype = 'mod' AND gi.itemname LIKE 'Module Test%'
   AND gi.grademax > 0 AND gg.finalgrade IS NOT NULL;
 
--- 3c · Notas del libro: evaluación final (assign)
+-- 3c · Notas del libro: evaluación final. SOLO "Final Subject Project" — el
+-- inventario del 25/08 mostró TRES assign: el final de verdad (17761) y dos
+-- "EO Trabajo Final 17" viejos (5421 con 3 notas históricas, 15427 vacío) que
+-- se anulan en el 3h como los demás EO.
 UPDATE mdl_grade_grades gg
 JOIN mdl_grade_items gi ON gi.id = gg.itemid
 SET gg.finalgrade = gg.finalgrade / gi.grademax * 30, gg.rawgrademax = 30, gg.rawgrademin = 0
-WHERE gi.courseid = 637 AND gi.itemtype = 'mod' AND gi.itemmodule = 'assign'
+WHERE gi.courseid = 637 AND gi.itemtype = 'mod' AND gi.itemname LIKE 'Final Subject Project%'
   AND gi.grademax > 0 AND gg.finalgrade IS NOT NULL;
 
 -- 3d · Notas del libro: Live Class Quiz (a base 5)
@@ -106,15 +109,19 @@ SET q.grade = (CASE WHEN gi.itemname LIKE 'Quiz Session%' THEN 4.16667 ELSE 5 EN
 WHERE q.course = 637
   AND (gi.itemname LIKE 'Quiz Session%' OR gi.itemname LIKE 'Module Test%' OR gi.itemname LIKE 'Live Class Quiz%');
 
--- 3f · Módulo ASSIGN (evaluación final): notas y máximo
+-- 3f · Módulo ASSIGN: SOLO el del "Final Subject Project" (los EO viejos
+-- conservan su módulo tal cual; su ítem del libro queda en 0 en el 3h)
 UPDATE mdl_assign_grades ag
 JOIN mdl_assign a ON a.id = ag.assignment
+JOIN mdl_grade_items gi ON gi.itemmodule = 'assign' AND gi.iteminstance = a.id AND gi.itemtype = 'mod'
 SET ag.grade = ag.grade / a.grade * 30
-WHERE a.course = 637 AND a.grade > 0 AND ag.grade >= 0;
+WHERE a.course = 637 AND a.grade > 0 AND ag.grade >= 0
+  AND gi.itemname LIKE 'Final Subject Project%';
 
 UPDATE mdl_assign a
+JOIN mdl_grade_items gi ON gi.itemmodule = 'assign' AND gi.iteminstance = a.id AND gi.itemtype = 'mod'
 SET a.grade = 30
-WHERE a.course = 637;
+WHERE a.course = 637 AND gi.itemname LIKE 'Final Subject Project%';
 
 -- 3g · Ítems del libro: máximos por grupo y limpieza de pesos/overrides
 UPDATE mdl_grade_items gi
@@ -130,7 +137,7 @@ WHERE gi.courseid = 637 AND gi.itemtype = 'mod' AND gi.itemname LIKE 'Module Tes
 UPDATE mdl_grade_items gi
 SET gi.grademax = 30, gi.grademin = 0,
     gi.aggregationcoef = 0, gi.aggregationcoef2 = 0, gi.weightoverride = 0
-WHERE gi.courseid = 637 AND gi.itemtype = 'mod' AND gi.itemmodule = 'assign';
+WHERE gi.courseid = 637 AND gi.itemtype = 'mod' AND gi.itemname LIKE 'Final Subject Project%';
 
 -- Live Class Quiz: EXTRA CREDIT (coef = 1 en Natural) con máximo 5
 UPDATE mdl_grade_items gi
@@ -138,8 +145,9 @@ SET gi.grademax = 5, gi.grademin = 0,
     gi.aggregationcoef = 1, gi.aggregationcoef2 = 0, gi.weightoverride = 0
 WHERE gi.courseid = 637 AND gi.itemtype = 'mod' AND gi.itemname LIKE 'Live Class Quiz%';
 
--- 3h · Todo lo demás del aula (videos, podcasts, el ítem sobrante del PASO 1):
--- máximo 0 — no pesa y no infla la escala.
+-- 3h · Todo lo demás del aula: máximo 0 — no pesa y no infla la escala.
+-- Según el inventario: los 2 "EO Trabajo Final 17" viejos (las 3 notas de 5421
+-- quedan en el respaldo), el Foro de Discusión y los 24 videos/podcasts.
 UPDATE mdl_grade_items gi
 SET gi.grademax = 0, gi.grademin = 0,
     gi.aggregationcoef = 0, gi.aggregationcoef2 = 0, gi.weightoverride = 0
@@ -147,12 +155,13 @@ WHERE gi.courseid = 637 AND gi.itemtype = 'mod'
   AND gi.itemname NOT LIKE 'Quiz Session%'
   AND gi.itemname NOT LIKE 'Module Test%'
   AND gi.itemname NOT LIKE 'Live Class Quiz%'
-  AND gi.itemmodule <> 'assign';
+  AND gi.itemname NOT LIKE 'Final Subject Project%';
 
 
 -- ═══ PASO 4 · VERIFICAR Y RECALCULAR ═══
--- 4a · La suma de máximos no-extra debe dar 100 exacto (12×4.16667 + 4×5 + 30
--- = 100.00004) y los bonos 4 ítems de 5. Ajustar expectativa con el PASO 1.
+-- 4a · Esperado con el inventario del 25/08: suma_no_extra = 100.00004
+-- (12×4.16667 + 4×5 + 30), bonos = 4, anulados = 27 (2 EO + 1 foro + 24
+-- videos/podcasts).
 SELECT
   ROUND(SUM(CASE WHEN gi.aggregationcoef = 0 THEN gi.grademax ELSE 0 END), 3) AS suma_no_extra,
   SUM(CASE WHEN gi.aggregationcoef = 1 THEN 1 ELSE 0 END) AS bonos,
