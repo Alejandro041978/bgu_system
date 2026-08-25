@@ -249,6 +249,32 @@ export async function GET(req: NextRequest) {
     })
   }
 
+  // ?items=<aulaId> → estructura de evaluación tal como la reporta el WS
+  // (nombres de actividades y pesos, sin datos personales). Sirve para ver
+  // cómo llegan los ítems EXTRA CREDIT tras la conversión a Natural.
+  const itemsParam = req.nextUrl.searchParams.get('items')
+  if (itemsParam) {
+    await probe('estructura_items', async () => {
+      const courseid = Number(itemsParam)
+      const rep = await moodleCall('gradereport_user_get_grade_items', { courseid })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ugs = (rep?.usergrades ?? []) as any[]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items = ((ugs[0]?.gradeitems ?? []) as any[])
+      return {
+        courseid,
+        alumnos_en_reporte: ugs.length,
+        campos_de_un_item: items.length ? Object.keys(items[0]) : [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        items: items.map((i: any) => ({
+          itemname: i.itemname, itemtype: i.itemtype, itemmodule: i.itemmodule,
+          grademax: i.grademax, grademin: i.grademin,
+          weightraw: i.weightraw ?? null, weightformatted: i.weightformatted ?? null,
+        })),
+      }
+    })
+  }
+
   // Notas: probar el reporte de calificaciones en la primera aula con alumnos
   const target = aulas.find(a => a.matriculados > 0)
   if (target) {
