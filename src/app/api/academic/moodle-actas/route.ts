@@ -4,7 +4,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { moodleCall, moodleConfigured } from '@/lib/moodle'
 import { resolveImportTarget, fetchByIn, stableUuid } from '@/lib/grades-write'
 import { courseTotal, aulaPolicy, enrolledMap, importAula } from '@/lib/moodle-import'
-import { rendidoPct, type ItemProceso } from '@/lib/grade-status'
+import { rendidoPct, esItemBono, type ItemProceso } from '@/lib/grade-status'
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
@@ -232,7 +232,9 @@ export async function GET(req: NextRequest) {
       // pasara, volvería a anunciar algo distinto de lo que va a ocurrir.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const proc = ((ug.gradeitems ?? []) as any[])
-        .filter(i => i.itemtype === 'mod' && (i.weightraw ?? 0) > 0)
+        // Los bonos (Live Class Quiz, extra credit) no pesan en el 100%: fuera
+        // del rendido, igual que en el importador automático.
+        .filter(i => i.itemtype === 'mod' && (i.weightraw ?? 0) > 0 && !esItemBono(i.itemname))
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((i: any) => ({
           pct: i.weightraw != null ? Math.round(Number(i.weightraw) * 10000) / 100 : null,

@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { Search, Loader2, ChevronRight, ChevronDown, Pencil } from 'lucide-react'
 import { usePermissions } from '@/hooks/use-permissions'
 
-interface Slot { n: number; desc: string; pct: number | null; val: number | null }
+// extra = bono (Live Class Quiz): no pesa en el 100% y su val son PUNTOS
+// logrados (0–max) que suman por encima del promedio, no un porcentaje.
+interface Slot { n: number; desc: string; pct: number | null; val: number | null; extra?: boolean; max?: number | null }
 interface Detail {
   id: string; external_id: string; editable: boolean; program_name: string
   course_code: string | null; course_name: string | null; source_name?: string | null
@@ -245,8 +247,16 @@ function SlotTable({ title, slots }: { title: string; slots: Slot[] }) {
           {slots.map(s => (
             <tr key={s.n} className="border-t border-gray-50">
               <td className="px-2 py-1 text-gray-700">{s.desc}</td>
-              <td className="px-2 py-1 text-right text-gray-400">{s.pct != null ? `${s.pct}%` : '—'}</td>
-              <td className="px-2 py-1 text-right font-medium text-gray-800">{g(s.val)}</td>
+              <td className="px-2 py-1 text-right">
+                {s.extra
+                  ? <span className="inline-block px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 text-[11px] font-medium">Extra</span>
+                  : <span className="text-gray-400">{s.pct != null ? `${s.pct}%` : '—'}</span>}
+              </td>
+              <td className="px-2 py-1 text-right font-medium text-gray-800">
+                {s.extra
+                  ? (s.val == null ? '—' : <span className="text-violet-700">+{g(s.val)}{s.max != null ? ` / ${Number(s.max)}` : ''} pts</span>)
+                  : g(s.val)}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -291,9 +301,17 @@ function DetailPanel({ d, onEdit }: { d: Detail; onEdit?: () => void }) {
           // estará por debajo y eso no es una discrepancia sino aritmética.
           // Marcarlo "≠ difiere" hacía sospechar de un dato correcto.
           const enCurso = d.origen === 'moodle' && d.rendido_pct != null && Number(d.rendido_pct) < 99.5
-          const match = d.final_grade != null ? Math.abs(calc - Number(d.final_grade)) < 0.5 : null
+          // Los bonos suman por encima del promedio (tope 100): la comparación
+          // contra el final debe incluirlos o un alumno con bonos saldría
+          // "≠ difiere" teniendo el dato perfecto.
+          const bonos = [...(d.grades ?? []), ...(d.process_grades ?? [])]
+            .filter(s => s.extra && s.val != null)
+            .reduce((t, s) => t + Number(s.val), 0)
+          const esperado = Math.min(100, calc + bonos)
+          const match = d.final_grade != null ? Math.abs(esperado - Number(d.final_grade)) < 0.5 : null
           return (
             <span>Promedio <span className="text-gray-400">(de lo rendido)</span>: <b>{g(calc)}</b>
+              {bonos > 0 && <span className="ml-1 text-violet-700">+ {g(bonos)} de bonos</span>}
               {enCurso
                 ? <span className="ml-1 text-gray-400">— el total acumula sobre el 100% del curso</span>
                 : match === true ? <span className="ml-1 text-green-600">✓ coincide</span>

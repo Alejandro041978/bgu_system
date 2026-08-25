@@ -24,7 +24,9 @@
 // que nadie lo note. Normalizando aquí, el acta sale bien venga como venga.
 // ---------------------------------------------------------------------------
 
-export interface Slot { n?: number; desc: string; pct: number | null; val: number | null }
+// extra = bono (Live Class Quiz, extra credit en Moodle): no pesa en el 100%,
+// val son PUNTOS logrados (0–max). Queda fuera de suma() vía pct null.
+export interface Slot { n?: number; desc: string; pct: number | null; val: number | null; extra?: boolean; max?: number | null }
 
 // El contenedor del bloque de proceso viene con tres nombres distintos según de
 // dónde llegó el acta. "Notes" a secas es el mismo animal que "Process Notes":

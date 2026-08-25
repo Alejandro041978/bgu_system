@@ -73,7 +73,9 @@ export async function POST(req: NextRequest) {
     const a = audOf.get(id)
     if (!a) return 'el aula no está auditada'
     if (a.visible === false) return 'el aula está oculta'
-    if (a.escala_total != null && Number(a.escala_total) !== 100) return `la escala del total es ${a.escala_total}`
+    // Centésimas de tolerancia: bajo Natural la escala reporta 99.99999 o
+    // 100.00003 por los decimales periódicos de los pesos convertidos.
+    if (a.escala_total != null && Math.abs(Number(a.escala_total) - 100) > 0.02) return `la escala del total es ${a.escala_total}`
     if (a.suma_coeficientes == null) return 'el aula no tiene auditoría de ponderaciones'
     if (Math.abs(Number(a.suma_coeficientes) - 100) > 0.5) return `las ponderaciones suman ${a.suma_coeficientes}`
     return null

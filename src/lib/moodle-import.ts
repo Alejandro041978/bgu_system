@@ -1,5 +1,5 @@
 import { moodleCall } from './moodle'
-import { rendidoPct, estadoAcademico, huboEvaluacionNueva, type ItemProceso } from './grade-status'
+import { rendidoPct, estadoAcademico, huboEvaluacionNueva, esItemBono, type ItemProceso } from './grade-status'
 import { importGrades, resolveImportTarget, fetchByIn, stableUuid, type ImportRow } from './grades-write'
 import { asegurarMatriculas, estadoDeNota, type MatriculaDeNota } from './course-enrollments'
 
@@ -320,9 +320,16 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     // destino porque un recursado no se abre sin evidencia: las aulas se
     // reutilizan entre cohortes, así que "está matriculado" no significa que
     // esté cursando.
+    // Bonos (extra credit) aparte: bajo Natural, un Live Class Quiz rendido
+    // reporta weightraw > 0 igual que un ítem normal — sin separarlos, el acta
+    // sumaría 105% y el rendido nunca llegaría al 100. Entran al detalle como
+    // puntos extra (val = puntos logrados sobre max), no como porcentaje.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const itemsUsuario = ((ug.gradeitems ?? []) as any[])
-      .filter(i => i.itemtype === 'mod' && (i.weightraw ?? 0) > 0)
+      .filter(i => i.itemtype === 'mod' && (i.weightraw ?? 0) > 0 && !esItemBono(i.itemname))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const itemsBono = ((ug.gradeitems ?? []) as any[])
+      .filter(i => i.itemtype === 'mod' && esItemBono(i.itemname) && Number(i.grademax ?? 0) > 0)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const process = itemsUsuario.map((i: any, idx: number) => {
       let val: number | null = i.graderaw ?? null
@@ -334,6 +341,18 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
         val: val == null ? null : Math.round(val * 100) / 100,
         desc: i.itemname ?? '',
       }
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    itemsBono.forEach((i: any, idx: number) => {
+      process.push({
+        n: process.length + idx + 1,
+        pct: null,
+        val: i.graderaw == null ? null : Math.round(Number(i.graderaw) * 100) / 100,
+        desc: i.itemname ?? '',
+        extra: true,
+        max: Number(i.grademax),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
     })
     const rendido = rendidoPct(process as ItemProceso[])
 

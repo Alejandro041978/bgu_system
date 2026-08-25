@@ -21,7 +21,25 @@
 
 export type EstadoAcademico = 'aprobado' | 'reprobado' | 'pendiente'
 
-export interface ItemProceso { n?: number; pct: number | null; val: number | null; desc?: string }
+// Bonos del campus: evaluaciones "Live Class Quiz" (regla institucional,
+// 24/08/2026). En Moodle son EXTRA CREDIT bajo agregación Natural: suman hasta
+// 5 puntos por encima del promedio sin entrar en la base del 100%. El web
+// service NO trae la marca de extra credit —a un bono rendido le pone
+// weightraw > 0, igual que a un ítem normal—, así que la identificación es por
+// nombre: el mismo criterio con el que se convirtieron en Moodle.
+export const esItemBono = (nombre: string | null | undefined): boolean =>
+  /^\s*live\s*class\s*quiz/i.test(String(nombre ?? ''))
+
+export interface ItemProceso {
+  n?: number
+  pct: number | null
+  val: number | null
+  desc?: string
+  // Bono (extra credit): no pesa en el 100% — val son PUNTOS logrados (0–max),
+  // no porcentaje. Queda fuera de rendido_pct y de la suma de pesos.
+  extra?: boolean
+  max?: number | null
+}
 
 // Cuánto del curso está efectivamente calificado, en porcentaje.
 //
@@ -29,7 +47,11 @@ export interface ItemProceso { n?: number; pct: number | null; val: number | nul
 // un foro de peso 0 que nadie contesta no puede impedir que el registro se
 // complete. Si los ítems que suman el 100% están calificados, está completo.
 export function rendidoPct(items: ItemProceso[] | null | undefined): number | null {
-  const con = (items ?? []).filter(i => Number(i?.pct ?? 0) > 0)
+  // Los bonos no cuentan: son puntos extra, no parte del curso. Sin este
+  // filtro, quien rindió todo menos los bonos jamás llegaría al 99.5% y su
+  // registro no podría cerrarse. (El pct null ya los excluye; la marca extra
+  // es el cinturón por si algún bono llegara con pct.)
+  const con = (items ?? []).filter(i => !i?.extra && Number(i?.pct ?? 0) > 0)
   if (!con.length) return null
   const suma = con.reduce((s, i) => s + Number(i.pct), 0)
   if (suma <= 0) return null

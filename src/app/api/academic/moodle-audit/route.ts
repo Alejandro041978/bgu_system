@@ -5,6 +5,7 @@ import { moodleCall, moodleConfigured, MOODLE_STUDENT_ROLEID } from '@/lib/moodl
 import { randomBytes } from 'crypto'
 import { guardStaff } from '@/lib/api-guard'
 import { cargarExclusiones, estaExcluida } from '@/lib/moodle-audit-exclusions'
+import { esItemBono } from '@/lib/grade-status'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -623,9 +624,12 @@ export async function POST(req: NextRequest) {
       const conNotaLeible = mods.filter(i => i.graderaw != null).length
       const informeSinNotas = conPesoLeible > 0 ? conNotaLeible === 0 : null
       const modsActivos = mods.filter(esActivo)
-      const conPeso = modsActivos.filter(i => (i.weightraw ?? 0) > 0)
+      // Los bonos (Live Class Quiz, extra credit bajo Natural) no entran en la
+      // medición de pesos: un bono rendido reporta weightraw > 0 y sin esta
+      // exclusión el aula sumaría 105% y saldría "incumple" estando sana.
+      const conPeso = modsActivos.filter(i => (i.weightraw ?? 0) > 0 && !esItemBono(i.itemname))
       // Política: primer nivel (cuelga directo del curso), solo ACTIVOS
-      const topLevel = items.filter(i => i.itemtype !== 'course' && i.categoryid === rootId && esActivo(i))
+      const topLevel = items.filter(i => i.itemtype !== 'course' && i.categoryid === rootId && esActivo(i) && !esItemBono(i.itemname))
       // Si NINGÚN ítem reporta ponderación, el aula no usa (o no expone) pesos
       // — p. ej. agregación por media simple. Eso es "sin ponderación
       // reportada", un estado a investigar, NO un incumplimiento al 0%.
@@ -646,7 +650,10 @@ export async function POST(req: NextRequest) {
         suma_pesos: sumaPesos,
         escala_total: escala,
         cumple_pesos: sinEvaluaciones ? null : (sumaPesos == null ? null : Math.abs(sumaPesos - 100) <= 0.5),
-        cumple_escala: sinEvaluaciones ? null : (escala == null ? null : escala === 100),
+        // Tolerancia de centésimas: con Natural el total del curso es la suma
+        // de máximos y los pesos convertidos son decimales periódicos — un
+        // aula sana reporta 99.99999 o 100.00003.
+        cumple_escala: sinEvaluaciones ? null : (escala == null ? null : Math.abs(escala - 100) <= 0.02),
         enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, sin_idnumber: sinIdnumber,
         informe_sin_notas: informeSinNotas,
         metodo: lectoresProbados > 1 ? `${metodo} (${lectoresProbados} lectores)` : metodo,
