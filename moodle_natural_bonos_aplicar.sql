@@ -204,6 +204,11 @@ SET gi.grademax = gi.aggregationcoef * 100 / t.s,
 WHERE gi.itemtype = 'mod' AND gi.aggregationcoef > 0
   AND gi.itemname NOT LIKE 'Live Class Quiz%';
 
+-- 4f · ⚠️ ESTE PASO TENÍA UN BUG (corrida del 24/08/2026): como el 4e ya
+-- había dejado aggregationcoef = 0 en los ítems convertidos, este UPDATE
+-- también les puso máximo 0 a ELLOS, no solo a los que nunca pesaron. La
+-- condición correcta era por el coeficiente ORIGINAL (bak_nb_grade_items).
+-- La corrección está en moodle_natural_bonos_reparacion.sql. NO RE-CORRER.
 -- 4f · Ítems SIN PESO (videos, podcasts, EO viejos, copias): máximo 0.
 -- Siguen sin pesar y dejan de inflar la escala. Sus notas históricas quedan
 -- en el respaldo y en las tablas del módulo; el recálculo las muestra 0/0.
