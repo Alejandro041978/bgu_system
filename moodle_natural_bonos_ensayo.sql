@@ -70,8 +70,9 @@ FROM (
     COALESCE((
       SELECT SUM(gg.finalgrade / gi.grademax * gi.aggregationcoef)
       FROM mdl_grade_items gi
-      JOIN mdl_grade_grades gg ON gg.itemid = gi.id AND gg.userid = ggc.userid
-      WHERE gi.courseid = gic.courseid AND gi.itemtype = 'mod'
+      JOIN mdl_grade_grades gg ON gg.itemid = gi.id
+      WHERE gg.userid = ggc.userid
+        AND gi.courseid = gic.courseid AND gi.itemtype = 'mod'
         AND gi.aggregationcoef > 0 AND gi.grademax > 0
         AND gg.finalgrade IS NOT NULL
     ), 0) * 100 / (
