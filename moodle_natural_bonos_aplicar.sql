@@ -32,10 +32,16 @@ INSERT IGNORE INTO bak_nb_lote (courseid) VALUES
 --   176 "MAC 201 - Macroeconomics - BSBA4": max_diferencia 0.021 (2/6)
 DELETE FROM bak_nb_lote WHERE courseid IN (566, 176);
 
+-- PASO 1c · La guarda 2b encontró 9 aulas con subcategorías en el libro
+-- (parciales agrupados, categorías "Old", "Recursos calificados"…): la
+-- conversión plana les rompería el árbol. Fuera del lote, se convierten aparte.
+--   202, 383, 424, 480, 567, 731, 766, 767, 768
+DELETE FROM bak_nb_lote WHERE courseid IN (202, 383, 424, 480, 567, 731, 766, 767, 768);
+
 
 -- ═══ PASO 2 · GUARDAS (leer; si algo no cuadra, DETENER) ═══
--- 2a · Todas siguen en media ponderada y con pesos sanos (358 filas tras el
--- PASO 1b, y en_media_ponderada = ese mismo número)
+-- 2a · Todas siguen en media ponderada y con pesos sanos (349 filas tras los
+-- PASOS 1b y 1c, y en_media_ponderada = ese mismo número)
 SELECT COUNT(*) AS aulas_en_lote,
   SUM(CASE WHEN gc.aggregation = 10 THEN 1 ELSE 0 END) AS en_media_ponderada
 FROM bak_nb_lote l
