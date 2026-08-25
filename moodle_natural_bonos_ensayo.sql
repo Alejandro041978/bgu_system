@@ -53,11 +53,11 @@ ORDER BY estado, c.id;
 
 
 -- ═══ PASO 2 · ENSAYO POR ALUMNO: total actual vs total en Natural ═══
--- Para cada aula del censo: el total que Moodle tiene hoy (ítem course) contra
--- el total recalculado con la regla "peso → máximo". Deben coincidir:
--- max_diferencia ≤ 0.01 y con_diferencia = 0. Un aula que no cuadre NO se
--- convierte hasta entender por qué (típico: aggregateonlygraded = 1 con
--- alumnos a medias, o pesos que no suman 100).
+-- (versión final, con pesos NORMALIZADOS: sirve también para capstones 50/50)
+-- Para cada aula: el total que Moodle tiene hoy contra el total recalculado
+-- con la regla "peso → máximo". La vara: max_diferencia ≤ 0.01 y
+-- con_diferencia = 0. Las aulas que difieran se sacan del lote (PASO 1b del
+-- archivo de aplicación) y se revisan aparte.
 SELECT
   t.aula, t.shortname,
   COUNT(*) AS alumnos_comparados,
@@ -74,7 +74,11 @@ FROM (
       WHERE gi.courseid = gic.courseid AND gi.itemtype = 'mod'
         AND gi.aggregationcoef > 0 AND gi.grademax > 0
         AND gg.finalgrade IS NOT NULL
-    ), 0) AS total_natural
+    ), 0) * 100 / (
+      SELECT SUM(gi2.aggregationcoef)
+      FROM mdl_grade_items gi2
+      WHERE gi2.courseid = gic.courseid AND gi2.itemtype = 'mod' AND gi2.aggregationcoef > 0
+    ) AS total_natural
   FROM mdl_grade_items gic
   JOIN mdl_grade_grades ggc ON ggc.itemid = gic.id AND ggc.finalgrade IS NOT NULL
   JOIN mdl_course c ON c.id = gic.courseid
@@ -87,6 +91,10 @@ FROM (
       SELECT 1 FROM mdl_course_categories a
       WHERE a.name IN ('Aulas de Inducción', 'Excluidos ERP', 'Otros')
         AND (cc.id = a.id OR cc.path LIKE CONCAT(a.path, '/%'))
+    )
+    AND EXISTS (
+      SELECT 1 FROM mdl_grade_items gi3
+      WHERE gi3.courseid = gic.courseid AND gi3.itemtype = 'mod' AND gi3.aggregationcoef > 0
     )
 ) t
 GROUP BY t.aula, t.shortname
