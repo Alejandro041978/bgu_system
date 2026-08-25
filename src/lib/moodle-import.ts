@@ -60,7 +60,11 @@ export async function aulaPolicy(sb: any, courseid: number, report: any): Promis
 
   const violations: string[] = []
   if (visible === false) violations.push('el aula está oculta (no activa)')
-  if (escala != null && escala !== 100) violations.push(`la escala del total es ${escala}, no 100`)
+  // Tolerancia de centésimas: con agregación Natural el total del curso es la
+  // SUMA de los máximos de los ítems, y los pesos convertidos son decimales
+  // periódicos (12 × 4.16667 = 50.00004…): un aula perfectamente sana reporta
+  // 99.99999. Exigir el 100 exacto rechazaba todo el lote convertido.
+  if (escala != null && Math.abs(escala - 100) > 0.02) violations.push(`la escala del total es ${escala}, no 100`)
   if (sumaPesos == null) violations.push('el aula no tiene auditoría de ponderaciones — corre el Auditor (sincronización de coeficientes) antes de importar')
   else if (Math.abs(sumaPesos - 100) > 0.5) violations.push(`las ponderaciones configuradas suman ${sumaPesos}%, no 100% (auditoría del ${auditedAt ?? 'sin fecha'})`)
   return { suma_pesos: sumaPesos, escala, visible, audited_at: auditedAt, violations }
