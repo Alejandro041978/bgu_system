@@ -245,6 +245,9 @@ export function resolveImportTarget(
   // periodo es. Sin ella no se abre un recursado.
   intentoNuevo?: {
     rendido_pct?: number | null; term_year?: number | null; semester_start?: string | null
+    // El semestre del intento que llega: contra él se reconoce la MISMA
+    // cursada por dato exacto (previa del mismo semestre), no por heurística.
+    semester_id?: string | null
     // El total que trae Moodle ahora. Es lo que distingue un recursado de una
     // acumulación que continúa: ver la guarda de abajo.
     valor?: number | null
@@ -370,6 +373,18 @@ export function resolveImportTarget(
   }
 
   if (previa) {
+    // La MISMA cursada reconocida por DATO, no por heurística: la nota previa
+    // está sellada en el mismo semestre que el intento que llega. Pasa cuando
+    // una cohorte se muda de aula a mitad de curso (caso DBA, 27/08/2026):
+    // Activa congeló el acumulado (Vazquez, HRL 7615: 4.00) y el aula nueva
+    // siguió sumando (~29) — la huella de "±2 puntos" no lo reconoce porque el
+    // acumulado creció, y "posterior" tampoco porque es el mismo periodo. No
+    // es un recursado ni un histórico intocable: es la cursada avanzando, y su
+    // fila se rellena.
+    if (intentoNuevo?.semester_id != null && previa.semester_id != null
+        && String(previa.semester_id) === String(intentoNuevo.semester_id)) {
+      return { action: 'fill', external_id: String(previa.external_id), shield: true, prev_value: val(previa) }
+    }
     if (mismaAcumulacion(previa)) {
       // No es un intento nuevo: es la nota de siempre, que sigue subiendo. Se
       // rellena la fila que ya existe en vez de crear una segunda.

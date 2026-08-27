@@ -242,7 +242,7 @@ export async function GET(req: NextRequest) {
         }))
       const r = resolveImportTarget(
         gradesByDoc.get(doc) ?? [], linkedCourse, stableUuid(`moodle:${courseid}:${ug.userid}`), passing,
-        { rendido_pct: rendidoPct(proc as ItemProceso[]), term_year: termYearAula, semester_start: semesterStartAula, valor: total },
+        { rendido_pct: rendidoPct(proc as ItemProceso[]), term_year: termYearAula, semester_start: semesterStartAula, semester_id: semsAula[0]?.id ? String(semsAula[0].id) : null, valor: total },
       )
       if (r.action === 'skip') { destino = 'ya registrada (histórico)'; yaRegistradas++ }
       else if (r.action === 'retake') {
