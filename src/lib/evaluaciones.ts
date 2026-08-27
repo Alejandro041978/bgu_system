@@ -97,7 +97,12 @@ export function normalizarEvaluaciones(
     grades, process_grades: process, total_pct: total,
     ajuste: quitóTotal && aplanó ? 'ambos' : quitóTotal ? 'total_retirado' : aplanó ? 'proceso_aplanado' : 'ninguno',
     // Con evaluaciones y un total que no llega a 100 hay algo mal ponderado en
-    // el aula. Sin evaluaciones no se juzga: no hay nada que sumar.
-    descuadrado: (grades.length + process.length) > 0 && Math.abs(total - 100) > 0.6,
+    // el aula. Sin evaluaciones no se juzga: no hay nada que sumar. Y si
+    // NINGUNA declara peso tampoco: es un detalle descriptivo (p. ej. el
+    // reconstruido de las aulas de suma directa de 2023-25, donde el "peso"
+    // no existía como configuración) — no un aula mal ponderada.
+    descuadrado: (grades.length + process.length) > 0
+      && [...grades, ...process].some(s => s.pct != null)
+      && Math.abs(total - 100) > 0.6,
   }
 }
