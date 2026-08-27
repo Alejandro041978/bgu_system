@@ -284,6 +284,21 @@ export function resolveImportTarget(
   const own = matches.find(m => String(m.external_id) === fallbackExternalId)
     ?? matches.find(m => m.source === 'moodle' || m.source === 'csv')
   if (own) {
+    // Una fila con nota REAL jamás retrocede a vacío. Las aulas se
+    // reestructuran entre cohortes (los pesos migran a una generación nueva de
+    // evaluaciones) y desde ese momento el reporte de la cohorte antigua llega
+    // con total 0 y nada rendido: refrescar con eso borró las actas de la
+    // cohorte vieja de MBA 605 y compañía (detectado 26-08-2026; pisadas desde
+    // el 29-07). Si lo nuevo viene vacío y lo existente tiene valor, la fila
+    // (y su detalle) se respetan.
+    if (intentoNuevo !== undefined) {
+      const nuevoVacio = (intentoNuevo?.valor == null || Number(intentoNuevo.valor) === 0)
+        && !(Number(intentoNuevo?.rendido_pct ?? 0) > 0)
+      const existente = val(own)
+      if (nuevoVacio && existente != null && Number(existente) > 0) {
+        return { action: 'skip', external_id: String(own.external_id), shield: false, prev_value: existente }
+      }
+    }
     // shield: la fila rellenada sobre un external_id de Activa necesita seguir
     // blindada contra N8N; las nacidas de importación (source moodle/csv) no
     // (N8N nunca las toca). El external_id ya no dice el origen: lo dice source.
