@@ -129,9 +129,15 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   const { data: ofertas } = await sb.from('semester_offerings')
     .select('semester:academic_semesters(id, name, start_date, year:academic_years(start_date))')
     .eq('moodle_course_id', String(courseid))
+  // "Más reciente" por la FECHA DEL SEMESTRE, no por el año académico: FALL
+  // 2025 y SPRING 2026 son del mismo AY 25-26 y el orden por año los dejaba
+  // empatados — el importador seguía sellando con la oferta vieja aunque la
+  // nueva existiera (caso DBA 643, 27/08/2026). El año queda de respaldo para
+  // semestres sin fecha.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sems = ((ofertas ?? []) as any[]).map(o => o.semester).filter(Boolean)
-    .sort((a, b) => String(b?.year?.start_date ?? '').localeCompare(String(a?.year?.start_date ?? '')))
+    .sort((a, b) =>
+      String(b?.start_date ?? b?.year?.start_date ?? '').localeCompare(String(a?.start_date ?? a?.year?.start_date ?? '')))
   const sem = sems[0] ?? null
   const termYear: number | null = sem?.year?.start_date ? Number(String(sem.year.start_date).slice(0, 4)) : null
   const termBlock: string | null = sem?.name ? String(sem.name).trim().replace(/\s+/g, '_') : null

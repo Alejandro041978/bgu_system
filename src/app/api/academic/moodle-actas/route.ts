@@ -207,9 +207,12 @@ export async function GET(req: NextRequest) {
   // El semestre del aula, que es con lo que el importador decide si un intento
   // es posterior al anterior. La previa no lo pedía y comparaba por año, así
   // que anunciaba un recursado donde el commit no lo abría (o al revés).
+  // "Más reciente" por la fecha del SEMESTRE (el año académico empata a FALL
+  // 2025 con SPRING 2026 — mismo AY — y elegía al azar; igual que el importador).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const semsAula = ((ofertasAula ?? []) as any[]).map(o => o.semester).filter(Boolean)
-    .sort((a, b) => String(b?.year?.start_date ?? '').localeCompare(String(a?.year?.start_date ?? '')))
+    .sort((a, b) =>
+      String(b?.start_date ?? b?.year?.start_date ?? '').localeCompare(String(a?.start_date ?? a?.year?.start_date ?? '')))
   const semesterStartAula: string | null = semsAula[0]?.start_date ? String(semsAula[0].start_date) : null
   const termYearAula: number | null = inicios.length ? Number(String(inicios[0]).slice(0, 4)) : null
 
