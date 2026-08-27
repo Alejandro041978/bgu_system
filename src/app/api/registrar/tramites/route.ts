@@ -66,15 +66,17 @@ export async function POST(req: NextRequest) {
   const g = await requireStaff()
   if (g.error) return g.error
   const b = await req.json().catch(() => null) as
-    { student_id?: string; tramite_type_id?: string; request_note?: string } | null
+    { student_id?: string; tramite_type_id?: string; request_note?: string; program_id?: string } | null
   if (!b?.student_id || !b?.tramite_type_id) {
     return NextResponse.json({ error: 'Falta estudiante o trámite' }, { status: 400 })
   }
   const res = await createTramiteRequest({
-    studentId: b.student_id, tramiteTypeId: b.tramite_type_id,
+    studentId: b.student_id, tramiteTypeId: b.tramite_type_id, programId: b.program_id ?? null,
     requestNote: b.request_note ?? null, requestedBy: `admin:${g.user!.email ?? g.user!.id}`,
   })
-  if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.code ?? 500 })
+  // Cuando el requisito se cumple por más de un programa, `opciones` viaja al
+  // cliente para que el administrativo elija y reintente con program_id.
+  if (!res.ok) return NextResponse.json({ error: res.error, opciones: res.opciones ?? undefined }, { status: res.code ?? 500 })
   return NextResponse.json({ ok: true, id: res.id, status: res.status, charge: res.charge })
 }
 

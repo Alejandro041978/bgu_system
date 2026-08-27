@@ -5,6 +5,46 @@ const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, pro
 
 export interface CreateTramiteResult {
   ok: boolean; id?: string; status?: string; charge?: number; error?: string; code?: number
+  // Cuando el requisito se cumple por MÁS de un programa y no se indicó cuál,
+  // la pantalla debe hacer elegir entre estos.
+  opciones?: { id: string; name: string }[]
+}
+
+// La situación global es el AGREGADO de todas las matrículas: quien cursa un
+// doctorado siendo egresado del MBA figura "activo" — y a la vez ES egresado
+// del MBA. Los requisitos de situación se evalúan también por programa
+// (caso Arguello, 26/08/2026), igual que los retiros viven por matrícula.
+export async function programasQueCumplenSituacion(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sb: any, studentId: string, situacion: string,
+): Promise<{ id: string; name: string }[]> {
+  const req = situacion.trim().toLowerCase()
+  const ids = new Set<string>()
+
+  if (req === 'egresado') {
+    // Egresado por programa = fila en student_graduations (misma fuente que
+    // computeGraduates; un titulado nunca se des-titula por recalcular).
+    const { data } = await sb.from('student_graduations')
+      .select('program_id').eq('student_id', studentId)
+    for (const g of (data ?? []) as { program_id: string | null }[]) if (g.program_id) ids.add(g.program_id)
+  } else if (req === 'retiro_permanente' || req === 'retiro_temporal') {
+    // IW/LOA vigente por matrícula → el programa de esa matrícula.
+    const tipo = req === 'retiro_permanente' ? 'IW' : 'LOA'
+    const { data } = await sb.from('student_withdrawals')
+      .select('type, status, enrollment:academic_student_enrollments!enrollment_id(program_id)')
+      .eq('student_id', studentId).eq('status', 'vigente').eq('type', tipo)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const w of (data ?? []) as any[]) if (w.enrollment?.program_id) ids.add(String(w.enrollment.program_id))
+  } else {
+    return []   // 'activo' y demás no tienen lectura por-programa razonable
+  }
+
+  if (!ids.size) return []
+  const { data: progs } = await sb.from('academic_programs')
+    .select('id, name').in('id', [...ids])
+  return ((progs ?? []) as { id: string; name: string }[])
+    .map(p => ({ id: String(p.id), name: p.name ?? '—' }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
 
 // Crea la solicitud de trámite y su cuota. Mismo circuito que exámenes y
@@ -25,15 +65,41 @@ export async function createTramiteRequest(opts: {
     return { ok: false, error: `Este trámite requiere que respondas: "${type.request_note_label}"`, code: 400 }
   }
 
-  // Requisito de situación (Re-entry exige IW). Se valida en el servidor y no
-  // solo en la pantalla: el portal oculta el botón, pero la ruta también la
-  // puede llamar Registros en nombre del estudiante — y la regla es la misma
-  // para los dos.
+  // Requisito de situación (Re-entry exige IW; Paperwork Degree, egresado).
+  // Se valida en el servidor y no solo en la pantalla: el portal oculta el
+  // botón, pero la ruta también la puede llamar Registros en nombre del
+  // estudiante — y la regla es la misma para los dos.
+  //
+  // La situación GLOBAL no basta: es el agregado de todas las matrículas, y
+  // quien cursa un programa siendo egresado (o IW) de otro no la muestra. Si
+  // la global no cumple, se busca el requisito programa por programa y el
+  // trámite queda amarrado al programa que lo cumple.
+  let programaDelRequisito: string | null = null
   if (type.requires_situation) {
     const { data: stu } = await sb.from('academic_students')
       .select('situation').eq('id', opts.studentId).maybeSingle()
     const actual = String(stu?.situation ?? '').trim()
-    if (actual.toLowerCase() !== String(type.requires_situation).trim().toLowerCase()) {
+    let cumple = actual.toLowerCase() === String(type.requires_situation).trim().toLowerCase()
+    if (!cumple) {
+      const porPrograma = await programasQueCumplenSituacion(sb, opts.studentId, String(type.requires_situation))
+      if (porPrograma.length) {
+        if (opts.programId) {
+          if (porPrograma.some(p => p.id === String(opts.programId))) {
+            cumple = true
+            programaDelRequisito = String(opts.programId)
+          }
+        } else if (porPrograma.length === 1) {
+          cumple = true
+          programaDelRequisito = porPrograma[0].id
+        } else {
+          return {
+            ok: false, code: 409, opciones: porPrograma,
+            error: `Cumples "${type.requires_situation}" en más de un programa: indica para cuál pides el trámite.`,
+          }
+        }
+      }
+    }
+    if (!cumple) {
       return {
         ok: false, code: 409,
         error: type.requires_situation_note
@@ -76,7 +142,7 @@ export async function createTramiteRequest(opts: {
 
   const { data: row, error } = await sb.from('tramite_requests').insert({
     student_id: opts.studentId, tramite_type_id: opts.tramiteTypeId,
-    program_id: opts.programId ?? null, status,
+    program_id: opts.programId ?? programaDelRequisito, status,
     charge_external_id: chargeExternalId, request_note: nota,
     requested_by: opts.requestedBy,
     paid_at: status === 'pagado' ? new Date().toISOString() : null,

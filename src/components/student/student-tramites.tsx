@@ -38,30 +38,44 @@ export function StudentTramites() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const [situation, setSituation] = useState<string | null>(null)
+  // Programas donde el estudiante SÍ cumple cada requisito de situación: la
+  // situación global es el agregado de todas sus matrículas, y un egresado del
+  // MBA que cursa el doctorado figura "activo" — pero puede pedir trámites de
+  // egresado PARA el MBA.
+  const [programOptions, setProgramOptions] = useState<Record<string, { id: string; name: string }[]>>({})
+  const [programId, setProgramId] = useState('')
 
   const load = useCallback(async () => {
     const d = await fetch('/api/student/tramites').then(r => r.json())
     setTypes(d.types ?? []); setRequests(d.requests ?? []); setSituation(d.situation ?? null)
+    setProgramOptions(d.program_options ?? {})
     setLoading(false)
   }, [])
   useEffect(() => { load() }, [load])
 
   // Requisito de situación: se explica en la pantalla en vez de dejar que el
   // estudiante lo descubra al confirmar. El servidor lo valida igual.
-  const cumpleSituacion = (t: TramiteType) =>
+  const globalCumple = (t: TramiteType) =>
     !t.requires_situation ||
     String(situation ?? '').trim().toLowerCase() === t.requires_situation.trim().toLowerCase()
+  const programasQueCumplen = (t: TramiteType) =>
+    t.requires_situation ? (programOptions[t.requires_situation.trim().toLowerCase()] ?? []) : []
+  const cumpleSituacion = (t: TramiteType) => globalCumple(t) || programasQueCumplen(t).length > 0
 
   const selected = types.find(t => t.id === typeId)
   const noteMissing = !!selected?.request_note_label && !note.trim()
   const bloqueado = !!selected && !cumpleSituacion(selected)
+  // Cumple por programa (no en global): el trámite se pide PARA ese programa.
+  const opcionesPrograma = selected && !globalCumple(selected) ? programasQueCumplen(selected) : []
+  const programaFaltante = opcionesPrograma.length > 1 && !programId
 
   async function crear() {
-    if (!typeId || noteMissing) return
+    if (!typeId || noteMissing || programaFaltante) return
     setCreating(true); setMsg(null)
+    const elegido = programId || (opcionesPrograma.length === 1 ? opcionesPrograma[0].id : null)
     const res = await fetch('/api/student/tramites', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tramite_type_id: typeId, request_note: note.trim() || null }),
+      body: JSON.stringify({ tramite_type_id: typeId, request_note: note.trim() || null, program_id: elegido }),
     })
     const d = await res.json()
     setCreating(false); setConfirming(false)
@@ -72,7 +86,7 @@ export function StudentTramites() {
         ? 'Trámite solicitado. Se generó la cuota en tu estado de cuenta; al pagarla entra en atención.'
         : 'Trámite solicitado y en atención.',
     })
-    setOpen(false); setTypeId(''); setNote('')
+    setOpen(false); setTypeId(''); setNote(''); setProgramId('')
     load()
   }
 
@@ -102,7 +116,7 @@ export function StudentTramites() {
 
           <label className="block">
             <span className="block text-xs text-gray-500 mb-1">Trámite</span>
-            <select value={typeId} onChange={e => { setTypeId(e.target.value); setConfirming(false) }} className={inp}>
+            <select value={typeId} onChange={e => { setTypeId(e.target.value); setProgramId(''); setConfirming(false) }} className={inp}>
               <option value="">Seleccionar…</option>
               {types.map(t => (
                 <option key={t.id} value={t.id}>
@@ -118,6 +132,23 @@ export function StudentTramites() {
               {selected.description && <p>{selected.description}</p>}
               {selected.instructions && <p className="text-gray-500">{selected.instructions}</p>}
             </div>
+          )}
+
+          {/* Cumple el requisito por un programa concreto (no en global): se
+              dice cuál, y si son varios, el estudiante elige para cuál pide. */}
+          {selected && !bloqueado && opcionesPrograma.length === 1 && (
+            <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              Este trámite se pedirá para tu programa <strong>{opcionesPrograma[0].name}</strong>, donde figuras como “{selected.requires_situation}”.
+            </p>
+          )}
+          {selected && !bloqueado && opcionesPrograma.length > 1 && (
+            <label className="block">
+              <span className="block text-xs text-gray-500 mb-1">¿Para cuál de tus programas? <span className="text-red-500">*</span></span>
+              <select value={programId} onChange={e => setProgramId(e.target.value)} className={inp}>
+                <option value="">Seleccionar…</option>
+                {opcionesPrograma.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </label>
           )}
 
           {bloqueado && selected && (
@@ -158,8 +189,8 @@ export function StudentTramites() {
           )}
 
           {!confirming && (
-            <button onClick={() => { if (bloqueado) return; if (Number(selected?.price ?? 0) > 0) setConfirming(true); else crear() }}
-              disabled={!typeId || noteMissing || bloqueado || creating}
+            <button onClick={() => { if (bloqueado || programaFaltante) return; if (Number(selected?.price ?? 0) > 0) setConfirming(true); else crear() }}
+              disabled={!typeId || noteMissing || bloqueado || programaFaltante || creating}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white">
               {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}Solicitar
             </button>
