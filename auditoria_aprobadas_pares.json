@@ -1,0 +1,146 @@
+[
+ {
+  "eid": "cdb4881c-4ce3-4456-be7b-23153fddc332",
+  "doc": "71239446",
+  "nombre": "Lilian Melany Oviedo Cordova",
+  "curso": "STA 460 Advanced Statistics",
+  "aula": 137,
+  "sid": "1a94eb44-3f7d-42b3-8453-3865af21f3f3"
+ },
+ {
+  "eid": "3a4673e0-b948-448f-be97-3540ea1eee55",
+  "doc": "533140623",
+  "nombre": "Brenda Patricia Huanca Huanca",
+  "curso": "MBA 604 Information and Technology Management",
+  "aula": 345,
+  "sid": "4d65daf4-f808-4282-98d2-37d6bad9ca84"
+ },
+ {
+  "eid": "26fb1a4a-1cbb-4344-94ce-66939f026a9a",
+  "doc": "71229767",
+  "nombre": "Lenin Alexander Limache Gallegos",
+  "curso": "MAR 240 Marketing",
+  "aula": 324,
+  "sid": "6893ee1a-d625-42fc-b32b-3af6dd2df884"
+ },
+ {
+  "eid": "c9a7a8cb-0b33-44f6-87b3-c48947b3c9f6",
+  "doc": "0512198901605",
+  "nombre": "Katherine Sussette Dominguez  Julian",
+  "curso": "HCM 600 Strategic Management of Healthcare Organizations",
+  "aula": 357,
+  "sid": "1799effb-d4b3-4b74-9fed-69d3e2745c50"
+ },
+ {
+  "eid": "4f239f9d-930a-4716-86db-21c10fb1f5de",
+  "doc": "70536991",
+  "nombre": "Meyxu Adriana Lam Delerna",
+  "curso": "BUS 340 E-Business",
+  "aula": 304,
+  "sid": "923d8143-33c0-41bc-a29b-be413491a63d"
+ },
+ {
+  "eid": "a718c79d-fc43-420f-b2c7-7180f5386cfb",
+  "doc": "29707264",
+  "nombre": "Angel Alfonso Bobadilla Mamani",
+  "curso": "MAR 420 International Marketing",
+  "aula": 442,
+  "sid": "d548a959-f0d8-439f-baf9-5470f6b5a303"
+ },
+ {
+  "eid": "d1999ed7-b7b7-4d82-a5c0-678a88901311",
+  "doc": "70569764",
+  "nombre": "Karen Olenka Osco Quispe",
+  "curso": "BUS 350 Public Administration",
+  "aula": 134,
+  "sid": "f4c23ff4-180a-490d-a05d-7e10fca38ff9"
+ },
+ {
+  "eid": "0786036f-7adf-4135-b677-f146d228c820",
+  "doc": "43152334",
+  "nombre": "Edith Galesi Lopez Ticona",
+  "curso": "BUS 430 Emerging Technologies",
+  "aula": 135,
+  "sid": "1cfb6d6c-3950-4cb4-8424-fda4e6c96a0d"
+ },
+ {
+  "eid": "0bb0bb75-5517-4797-b9c9-23fe317c02d7",
+  "doc": "1047470353",
+  "nombre": "Ginna Maria Rengifo Cardenas",
+  "curso": "HCM 603 Hospital Management",
+  "aula": 434,
+  "sid": "f68072d8-019c-47b8-a6a8-4b92235f712e"
+ },
+ {
+  "eid": "87ffc498-2231-411b-8c27-851a1a7366b0",
+  "doc": "46172073",
+  "nombre": "Sanmy Fiorella Barrera Canales",
+  "curso": "MBA 603 Supply Chain Management",
+  "aula": 337,
+  "sid": "19042fcd-314d-4978-840a-c5a178d3c9b6"
+ },
+ {
+  "eid": "c81b2c0b-b5b7-4739-8e24-bacd029c0d67",
+  "doc": "74397097",
+  "nombre": "Maribel Viane Llanchipa Collatupa",
+  "curso": "MAR 420 International Marketing",
+  "aula": 442,
+  "sid": "cf2d6318-b574-4bb8-a416-8544f858576a"
+ },
+ {
+  "eid": "35ebdd0b-d27b-4a4b-afc0-1ea0d166c6d1",
+  "doc": "6856275",
+  "nombre": "Francisco Javier Gutierrez Galvan",
+  "curso": "102 Mental Disorders: Care Plans",
+  "aula": 401,
+  "sid": "cb6c7edc-485c-41d2-baf2-c081fa7e7581"
+ },
+ {
+  "eid": "dff41d9c-1123-4d83-8000-61e5b708fd92",
+  "doc": "71693591",
+  "nombre": "Carla Ximena Aurora Cerna Malca",
+  "curso": "103 Assessment of the Individual and the Environment",
+  "aula": 391,
+  "sid": "a3bab236-bca0-438f-a328-33576c3b26d2"
+ },
+ {
+  "eid": "b14689df-b4b9-4e22-8c63-1e898383342b",
+  "doc": "29656404",
+  "nombre": "Frida Fiorella Matos Angulo",
+  "curso": "PRO 604 Project Evaluation and Metrics",
+  "aula": 614,
+  "sid": "a553cd8d-6d75-4280-8bf5-5441a91b1000"
+ },
+ {
+  "eid": "c539835f-5841-4776-87b9-2c5f91e7e19b",
+  "doc": "47386385",
+  "nombre": "Lourdes Stefanny Heredia Herrera",
+  "curso": "PMB 270 Project Management",
+  "aula": 126,
+  "sid": "87f007f6-76ab-4ea4-9e65-822ac26a9dff"
+ },
+ {
+  "eid": "c3fd97c5-2c9a-4332-9eb4-d199f549a119",
+  "doc": "45922727",
+  "nombre": "Sharon Katherine Elera Celiz",
+  "curso": "ECT 103 Ethics and Critical Thinking",
+  "aula": 363,
+  "sid": "a728e1a2-cfb4-4e49-8559-38441aa5e9da"
+ },
+ {
+  "eid": "ac180f59-fc1e-4fe7-987d-d3b022197e8e",
+  "doc": "5496119",
+  "nombre": "Natalie Ligia Medina Renjel",
+  "curso": "103 Assessment of the Individual and the Environment",
+  "aula": 391,
+  "sid": "cdc7b249-860d-4e0b-a161-69683f14c0a2"
+ },
+ {
+  "eid": "b812a581-612c-4b2c-96c3-40d2fc0adda9",
+  "doc": "75255975",
+  "nombre": "Michael Jhonny Lee Maquera Ramos",
+  "curso": "PMB 270 Project Management",
+  "aula": 126,
+  "sid": "d37bf83e-460d-4544-a3f1-a93fad543c4a"
+ }
+]
