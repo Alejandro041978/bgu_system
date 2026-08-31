@@ -208,5 +208,4528 @@
    "closed_by": null
   },
   "notaB_eid": "95c098f1-7506-4be4-a09f-c7549604c560"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T16:22:49.295Z",
+  "notaA": {
+   "external_id": "117d5845-b485-4391-ad5e-dc3336b5cf24",
+   "document_number": "74958279",
+   "email": "alexandra.calderon@neumann.global",
+   "student_name": "Alexandra Carolina Calderon Chipana",
+   "course_code": "COM 450",
+   "course_name": "Business and Professional Communication",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 96,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-03-12T21:22:51.302+00:00",
+   "synced_at": "2026-07-04T20:33:50.299+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "34d8809e-6980-413e-93b8-dd21e2a63cd5",
+   "course_enrollment_id": "38d1a796-6c77-49db-9782-6836ade75269",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "detalleA": {
+   "id": "e6f59dbb-e5bd-4dd8-913f-2aa6303748bf",
+   "external_id": "117d5845-b485-4391-ad5e-dc3336b5cf24",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "enrollment_id": "6b43ab98-a7e9-4a5c-91af-c2b207f3353c",
+   "course_code": "208",
+   "course_name": "Business and Professional Communication",
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 96,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 50,
+     "val": 98.33,
+     "desc": "Process Notes"
+    },
+    {
+     "n": 2,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 3,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 4,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 5,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 6,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 7,
+     "pct": 30,
+     "val": 90,
+     "desc": "\tFinal Project"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 6.66,
+     "val": 90,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 6.76,
+     "val": 95,
+     "desc": "Assessment 15"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:50.274083+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "matriculaA": {
+   "id": "38d1a796-6c77-49db-9782-6836ade75269",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "document_number": "74958279",
+   "course_id": "34d8809e-6980-413e-93b8-dd21e2a63cd5",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "e1d3cedd-3a3f-494b-9446-16f9af93db60",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:50.235966+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67",
+   "closed_by": null
+  },
+  "notaB_eid": "4f76b5a4-656d-4771-a1ca-fab468c005da"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T16:24:15.203Z",
+  "notaA": {
+   "external_id": "51937665-3a58-4d20-afab-cc9b3df886e7",
+   "document_number": "74958279",
+   "email": "alexandra.calderon@neumann.global",
+   "student_name": "Alexandra Carolina Calderon Chipana",
+   "course_code": "ENG 101",
+   "course_name": "English Composition I",
+   "credits": 3,
+   "term_year": 2025,
+   "term_block": "1",
+   "final_grade": 93,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-06-03T21:55:37.517+00:00",
+   "synced_at": "2026-07-04T20:33:37.999+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "c2257f18-2f69-4893-9c4a-e860b533f295",
+   "course_enrollment_id": "7371152d-15b1-4017-b1e1-5d96a1e2960c",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 2,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "86089ad2-bc62-4c9e-a207-b584ae49c618",
+   "external_id": "51937665-3a58-4d20-afab-cc9b3df886e7",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "enrollment_id": "e1d3cedd-3a3f-494b-9446-16f9af93db60",
+   "course_code": "110",
+   "course_name": "English Composition I",
+   "term_year": 2025,
+   "term_block": "1",
+   "final_grade": 93,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": 93.47,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "\tAssessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "\tAssessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "\tAssessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "\tAssessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "\tAssessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "\tAssessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 18,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 19,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 20,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 21,
+     "pct": 30,
+     "val": 80,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:27:14.008146+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "7371152d-15b1-4017-b1e1-5d96a1e2960c",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "document_number": "74958279",
+   "course_id": "c2257f18-2f69-4893-9c4a-e860b533f295",
+   "program_id": "c8d7e55a-1877-4c3a-a23e-907ed607e8a4",
+   "program_enrollment_id": "6b43ab98-a7e9-4a5c-91af-c2b207f3353c",
+   "attempt": 2,
+   "term_year": 2025,
+   "term_block": "1",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:54.354069+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:54.354069+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "9a56a926-eb1e-4e18-a979-f8426b4e7360"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T16:24:27.058Z",
+  "notaA": {
+   "external_id": "eeaaff50-ae00-487d-839f-13ffadfd9ae3",
+   "document_number": "74958279",
+   "email": "alexandra.calderon@neumann.global",
+   "student_name": "Alexandra Carolina Calderon Chipana",
+   "course_code": "ENG 202",
+   "course_name": "English Composition II",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 97,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-05-12T15:39:50.809+00:00",
+   "synced_at": "2026-07-04T20:33:42.978+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "875c501d-454a-4ca9-b423-0ad733b39539",
+   "course_enrollment_id": "e31ee87b-7dbe-427c-9556-88cda1fec6f4",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "detalleA": {
+   "id": "b12d28a4-1be9-48f8-b8f2-3f3432977b37",
+   "external_id": "eeaaff50-ae00-487d-839f-13ffadfd9ae3",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "enrollment_id": "6b43ab98-a7e9-4a5c-91af-c2b207f3353c",
+   "course_code": "209",
+   "course_name": "English Composition II",
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 97,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": 96.5,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 95,
+     "desc": "Assessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 18,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 19,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 20,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 21,
+     "pct": 30,
+     "val": 90,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:27:21.379055+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "matriculaA": {
+   "id": "e31ee87b-7dbe-427c-9556-88cda1fec6f4",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "document_number": "74958279",
+   "course_id": "875c501d-454a-4ca9-b423-0ad733b39539",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "e1d3cedd-3a3f-494b-9446-16f9af93db60",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:58.709258+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:58.709258+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67",
+   "closed_by": null
+  },
+  "notaB_eid": "2b2e6c7e-7a95-4cee-a6fc-7a41a529e22d"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T16:24:38.926Z",
+  "notaA": {
+   "external_id": "e1754f59-9415-4c96-9f57-69f310aa05e3",
+   "document_number": "74958279",
+   "email": "alexandra.calderon@neumann.global",
+   "student_name": "Alexandra Carolina Calderon Chipana",
+   "course_code": "ECT 103",
+   "course_name": "Ethics and Critical Thinking",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 96,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-04-17T16:08:57.982+00:00",
+   "synced_at": "2026-07-04T20:33:41.682+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "d405bb8a-747c-4519-a9e4-e39fd207f47e",
+   "course_enrollment_id": "80a30e38-94db-40f2-b2f3-45cb03ca7b74",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "detalleA": {
+   "id": "cce517f8-16a9-4073-a9e0-da742e1417c9",
+   "external_id": "e1754f59-9415-4c96-9f57-69f310aa05e3",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "enrollment_id": "6b43ab98-a7e9-4a5c-91af-c2b207f3353c",
+   "course_code": "201",
+   "course_name": "Ethics and Critical Thinking",
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 96,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": 96.13,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 18,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 19,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 20,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 21,
+     "pct": 30,
+     "val": 90,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:44.53273+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "matriculaA": {
+   "id": "80a30e38-94db-40f2-b2f3-45cb03ca7b74",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "document_number": "74958279",
+   "course_id": "d405bb8a-747c-4519-a9e4-e39fd207f47e",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "e1d3cedd-3a3f-494b-9446-16f9af93db60",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:53.817858+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67",
+   "closed_by": null
+  },
+  "notaB_eid": "c7d6cac2-81b8-4849-a330-8ec7df97d8f1"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T16:24:52.293Z",
+  "notaA": {
+   "external_id": "3e539c23-cc4d-4447-a2ba-515db288ba0d",
+   "document_number": "74958279",
+   "email": "alexandra.calderon@neumann.global",
+   "student_name": "Alexandra Carolina Calderon Chipana",
+   "course_code": "PSY 106",
+   "course_name": "General Psychology",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 96,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-07-04T20:33:38.944+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "aa0fa961-0c30-4737-a556-4e0a85711632",
+   "course_enrollment_id": "274e993e-82b9-415c-90f9-c2a881844a4b",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "detalleA": {
+   "id": "6b997ab6-9be0-483f-9388-19277d27c0d5",
+   "external_id": "3e539c23-cc4d-4447-a2ba-515db288ba0d",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "enrollment_id": "6b43ab98-a7e9-4a5c-91af-c2b207f3353c",
+   "course_code": "101",
+   "course_name": "General Psychology",
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 96,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": null,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 90,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 90,
+     "desc": "Assessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 10,
+     "val": 90,
+     "desc": "Midterm Test"
+    },
+    {
+     "n": 17,
+     "pct": 10,
+     "val": 100,
+     "desc": "Final Test"
+    },
+    {
+     "n": 18,
+     "pct": 30,
+     "val": 95,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:27:21.112035+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "matriculaA": {
+   "id": "274e993e-82b9-415c-90f9-c2a881844a4b",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "document_number": "74958279",
+   "course_id": "aa0fa961-0c30-4737-a556-4e0a85711632",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "e1d3cedd-3a3f-494b-9446-16f9af93db60",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:53.148844+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:53.148844+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67",
+   "closed_by": null
+  },
+  "notaB_eid": "1ee5824c-2e85-45ba-a0bc-62a09f5d3597"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T16:26:04.607Z",
+  "notaA": {
+   "external_id": "f829c647-12a7-414c-a4d1-b4dc7d634065",
+   "document_number": "74958279",
+   "email": "alexandra.calderon@neumann.global",
+   "student_name": "Alexandra Carolina Calderon Chipana",
+   "course_code": "ENG 440",
+   "course_name": "Professional Writing in Business",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 95,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-07-04T20:33:42.978+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "3103fdfc-e154-4830-9926-1802026b254c",
+   "course_enrollment_id": "aceda62e-90cc-4c9f-9e03-8e88e6d0c0be",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "detalleA": {
+   "id": "943450cf-fc7b-4bab-9b44-f2bcf7f22cea",
+   "external_id": "f829c647-12a7-414c-a4d1-b4dc7d634065",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "enrollment_id": "6b43ab98-a7e9-4a5c-91af-c2b207f3353c",
+   "course_code": "206",
+   "course_name": "Professional Writing in Business",
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 95,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 50,
+     "val": null,
+     "desc": "Process Notes"
+    },
+    {
+     "n": 2,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 3,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 4,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 5,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 6,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 7,
+     "pct": 30,
+     "val": 85,
+     "desc": "Final Project"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 6.76,
+     "val": 100,
+     "desc": "Assessment 15"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:34.962263+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "matriculaA": {
+   "id": "aceda62e-90cc-4c9f-9e03-8e88e6d0c0be",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "document_number": "74958279",
+   "course_id": "3103fdfc-e154-4830-9926-1802026b254c",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "e1d3cedd-3a3f-494b-9446-16f9af93db60",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:56:00.64787+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:56:00.64787+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67",
+   "closed_by": null
+  },
+  "notaB_eid": "ffda402a-dcee-49f0-a430-1b70361fd41e"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T16:26:17.774Z",
+  "notaA": {
+   "external_id": "32fd76b8-d9c9-4fb8-9039-f2cf2a86f012",
+   "document_number": "74958279",
+   "email": "alexandra.calderon@neumann.global",
+   "student_name": "Alexandra Carolina Calderon Chipana",
+   "course_code": "TAX 300",
+   "course_name": "Taxation",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 83,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-02-25T20:24:18.347+00:00",
+   "synced_at": "2026-07-04T20:33:38.944+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "2b8a3a2b-d894-4c55-bbdc-771fa8a20b98",
+   "course_enrollment_id": "fc887d16-35b6-4c6f-8b7e-62de7f1343a9",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "detalleA": {
+   "id": "74e4712d-dc34-4715-8ecd-055731782373",
+   "external_id": "32fd76b8-d9c9-4fb8-9039-f2cf2a86f012",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "enrollment_id": "6b43ab98-a7e9-4a5c-91af-c2b207f3353c",
+   "course_code": "103",
+   "course_name": "Taxation",
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "final_grade": 83,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": 82.57,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 50,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 80,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 80,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 80,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 90,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 80,
+     "desc": "Assessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 10,
+     "val": 90,
+     "desc": "Midterm Test"
+    },
+    {
+     "n": 17,
+     "pct": 10,
+     "val": 85,
+     "desc": "Final Test"
+    },
+    {
+     "n": 18,
+     "pct": 30,
+     "val": 68,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:44.53273+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "matriculaA": {
+   "id": "fc887d16-35b6-4c6f-8b7e-62de7f1343a9",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "document_number": "74958279",
+   "course_id": "2b8a3a2b-d894-4c55-bbdc-771fa8a20b98",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "e1d3cedd-3a3f-494b-9446-16f9af93db60",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_FALL_2024",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:52.900587+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:52.900587+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67",
+   "closed_by": null
+  },
+  "notaB_eid": "5b655223-1d75-4449-af5b-d73c11994b41"
+ },
+ {
+  "opcion": "duplicado",
+  "aplicado_en": "2026-08-31T16:32:02.394Z",
+  "notaA": {
+   "external_id": "ec3efd90-2cd1-4590-9be9-fcdb0e5c9cbb",
+   "document_number": "48256392",
+   "email": "diego.choque@neumann.global",
+   "student_name": "Diego Rene Choque Ninaja",
+   "course_code": "MIC 108",
+   "course_name": "Microeconomics",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "3",
+   "final_grade": 88,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-07-04T20:33:38.389+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "92c94f70-458a-4093-b7ae-e7c78360aa6b",
+   "course_enrollment_id": "51f3f369-73eb-4c07-a36c-a86f8166e7fd",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "detalleA": {
+   "id": "1c4ea62a-8eb9-4433-b168-4a1e22467af2",
+   "external_id": "ec3efd90-2cd1-4590-9be9-fcdb0e5c9cbb",
+   "student_id": "0d86d21b-04e6-4024-8c47-b92917564770",
+   "enrollment_id": "3350f8c1-36c0-4c73-8c2b-7043048af071",
+   "course_code": "102",
+   "course_name": "Microeconomics",
+   "term_year": 2024,
+   "term_block": "3",
+   "final_grade": 88,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": null,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 80,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 80,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 80,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 70,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 80,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 90,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 90,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 90,
+     "desc": "Assessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 10,
+     "val": 85,
+     "desc": "Midterm Test"
+    },
+    {
+     "n": 17,
+     "pct": 10,
+     "val": 80,
+     "desc": "Final Test"
+    },
+    {
+     "n": 18,
+     "pct": 30,
+     "val": 87.5,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:27:08.417684+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  "matriculaA": {
+   "id": "51f3f369-73eb-4c07-a36c-a86f8166e7fd",
+   "student_id": "0d86d21b-04e6-4024-8c47-b92917564770",
+   "document_number": "48256392",
+   "course_id": "92c94f70-458a-4093-b7ae-e7c78360aa6b",
+   "program_id": "c8d7e55a-1877-4c3a-a23e-907ed607e8a4",
+   "program_enrollment_id": "019d210f-3080-7b7b-a48b-1d7000cb41cd",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "3",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:56:00.64787+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:56:00.64787+00:00",
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67",
+   "closed_by": null
+  },
+  "notaB_eid": "923d9378-5c96-43f2-a13b-80b81e52b3ee"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T16:37:28.261Z",
+  "notaA": {
+   "external_id": "f4ae73c6-a56e-4bde-ac1b-0781ae5d11f1",
+   "document_number": "48256392",
+   "email": "diego.choque@neumann.global",
+   "student_name": "Diego Rene Choque Ninaja",
+   "course_code": "PSY 106",
+   "course_name": "General Psychology",
+   "credits": 3,
+   "term_year": 2025,
+   "term_block": "AY_25-26_SUMMER_2026",
+   "final_grade": 68,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-07-10T17:23:25.267+00:00",
+   "synced_at": "2026-07-04T20:33:46.227+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "aa0fa961-0c30-4737-a556-4e0a85711632",
+   "course_enrollment_id": "d127f7e9-7088-45a3-a1d6-27798080a7fe",
+   "rendido_pct": null,
+   "estado_academico": "reprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 2,
+   "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781"
+  },
+  "detalleA": {
+   "id": "70c195cc-fd0f-4914-8b2f-80dfa011a202",
+   "external_id": "f4ae73c6-a56e-4bde-ac1b-0781ae5d11f1",
+   "student_id": "0d86d21b-04e6-4024-8c47-b92917564770",
+   "enrollment_id": "019d210f-3080-7b7b-a48b-1d7000cb41cd",
+   "course_code": "101",
+   "course_name": "General Psychology",
+   "term_year": 2025,
+   "term_block": "AY_25-26_SUMMER_2026",
+   "final_grade": null,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": null,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": null,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": null,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": null,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": null,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": null,
+     "desc": "Assessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": null,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": null,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 18,
+     "pct": 4,
+     "val": null,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 19,
+     "pct": 4,
+     "val": null,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 20,
+     "pct": 4,
+     "val": null,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 21,
+     "pct": 30,
+     "val": null,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:44.926721+00:00",
+   "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781"
+  },
+  "matriculaA": {
+   "id": "d127f7e9-7088-45a3-a1d6-27798080a7fe",
+   "student_id": "0d86d21b-04e6-4024-8c47-b92917564770",
+   "document_number": "48256392",
+   "course_id": "aa0fa961-0c30-4737-a556-4e0a85711632",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "3350f8c1-36c0-4c73-8c2b-7043048af071",
+   "attempt": 2,
+   "term_year": 2025,
+   "term_block": "AY_25-26_SUMMER_2026",
+   "status": "reprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:52.200972+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:52.200972+00:00",
+   "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781",
+   "closed_by": null
+  },
+  "notaB_eid": "a1a457ab-257a-4d40-a206-e530c5733c53"
+ },
+ {
+  "opcion": "duplicado",
+  "aplicado_en": "2026-08-31T16:46:01.506Z",
+  "notaA": {
+   "external_id": "204ff900-2fe0-4576-9d3a-99e01ee2e684",
+   "document_number": "74294203",
+   "email": "dulmespariguanaperca@gmail.com",
+   "student_name": "Dulmes Jaqueline Pariguana Perca",
+   "course_code": "MIC 108",
+   "course_name": "Microeconomics",
+   "credits": 3,
+   "term_year": 2025,
+   "term_block": "2",
+   "final_grade": 89,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-07-04T20:33:41.397+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "92c94f70-458a-4093-b7ae-e7c78360aa6b",
+   "course_enrollment_id": "4a0fc3e4-eb7c-4db4-ba02-10dbad4dc709",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "e105dabf-cea7-41e1-998b-a4b4df184e21",
+   "external_id": "204ff900-2fe0-4576-9d3a-99e01ee2e684",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "enrollment_id": "00d32b62-66ed-47af-af98-cc5d9bd02b63",
+   "course_code": "102",
+   "course_name": "Microeconomics",
+   "term_year": 2025,
+   "term_block": "2",
+   "final_grade": 89,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 50,
+     "val": null,
+     "desc": "Process Notes"
+    },
+    {
+     "n": 2,
+     "pct": 4,
+     "val": 80,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 3,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 4,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 5,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 6,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 7,
+     "pct": 30,
+     "val": 69.5,
+     "desc": "Final Project"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 6.66,
+     "val": 90,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 6.76,
+     "val": 90,
+     "desc": "Assessment 15"
+    }
+   ],
+   "created_at": "2026-07-09T01:27:09.207609+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "4a0fc3e4-eb7c-4db4-ba02-10dbad4dc709",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "document_number": "74294203",
+   "course_id": "92c94f70-458a-4093-b7ae-e7c78360aa6b",
+   "program_id": "c8d7e55a-1877-4c3a-a23e-907ed607e8a4",
+   "program_enrollment_id": "bdc01f50-40fa-4f57-81d0-faadc4db2bc8",
+   "attempt": 1,
+   "term_year": 2025,
+   "term_block": "2",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:51.875373+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:51.875373+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "bd2f8697-372f-46f4-a00b-14c147f0071d"
+ },
+ {
+  "opcion": "duplicado",
+  "aplicado_en": "2026-08-31T16:47:30.230Z",
+  "notaA": {
+   "external_id": "a4ef2ae2-9029-4a3d-92b5-60a78f4f5102",
+   "document_number": "74294203",
+   "email": "dulmespariguanaperca@gmail.com",
+   "student_name": "Dulmes Jaqueline Pariguana Perca",
+   "course_code": "ECT 103",
+   "course_name": "Ethics and Critical Thinking",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 94,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-04-17T16:09:19.633+00:00",
+   "synced_at": "2026-07-04T20:33:47.963+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "d405bb8a-747c-4519-a9e4-e39fd207f47e",
+   "course_enrollment_id": "e2d05591-5a3f-41ec-b13a-67c98f38137d",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "8c65154e-bcea-431b-bafe-25b65bddc90d",
+   "external_id": "a4ef2ae2-9029-4a3d-92b5-60a78f4f5102",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "enrollment_id": "bdc01f50-40fa-4f57-81d0-faadc4db2bc8",
+   "course_code": "201",
+   "course_name": "Ethics and Critical Thinking",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 94,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": 94.47,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 90,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 90,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 85,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 18,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 19,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 20,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 21,
+     "pct": 30,
+     "val": 90,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:44.53273+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "e2d05591-5a3f-41ec-b13a-67c98f38137d",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "document_number": "74294203",
+   "course_id": "d405bb8a-747c-4519-a9e4-e39fd207f47e",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "00d32b62-66ed-47af-af98-cc5d9bd02b63",
+   "attempt": 1,
+   "term_year": 2025,
+   "term_block": "2",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:55.403831+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "18cbf17c-5920-4c66-a81e-038318293c7b"
+ },
+ {
+  "opcion": "duplicado",
+  "aplicado_en": "2026-08-31T16:47:39.735Z",
+  "notaA": {
+   "external_id": "4f56d5cd-a4e8-4ee9-b4b6-6b9c701523c8",
+   "document_number": "74294203",
+   "email": "dulmespariguanaperca@gmail.com",
+   "student_name": "Dulmes Jaqueline Pariguana Perca",
+   "course_code": "ENG 101",
+   "course_name": "English Composition I",
+   "credits": 3,
+   "term_year": 2025,
+   "term_block": "2",
+   "final_grade": 96,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-06-03T23:03:21.085+00:00",
+   "synced_at": "2026-07-04T20:33:45.267+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "c2257f18-2f69-4893-9c4a-e860b533f295",
+   "course_enrollment_id": "1b37b422-ecbb-44ba-b912-0146c4bcb919",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 2,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "dd988b9f-cb2d-439e-878a-2508601c1013",
+   "external_id": "4f56d5cd-a4e8-4ee9-b4b6-6b9c701523c8",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "enrollment_id": "00d32b62-66ed-47af-af98-cc5d9bd02b63",
+   "course_code": "110",
+   "course_name": "English Composition I",
+   "term_year": 2025,
+   "term_block": "2",
+   "final_grade": 96,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": 95.87,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 85,
+     "desc": "\tAssessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "\tAssessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "\tAssessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "\tAssessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "\tAssessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 95,
+     "desc": "\tAssessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "\tAssessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 95,
+     "desc": "\tAssessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 90,
+     "desc": "\tAssessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 85,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 18,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 19,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 20,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 21,
+     "pct": 30,
+     "val": 95,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:27:00.853661+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "1b37b422-ecbb-44ba-b912-0146c4bcb919",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "document_number": "74294203",
+   "course_id": "c2257f18-2f69-4893-9c4a-e860b533f295",
+   "program_id": "c8d7e55a-1877-4c3a-a23e-907ed607e8a4",
+   "program_enrollment_id": "bdc01f50-40fa-4f57-81d0-faadc4db2bc8",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:54.354069+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:54.354069+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "b99c7e29-d75f-40d5-adc3-35e766232aa3"
+ },
+ {
+  "opcion": "duplicado",
+  "aplicado_en": "2026-08-31T16:47:49.511Z",
+  "notaA": {
+   "external_id": "54befd14-9d33-414f-941b-614e4e92e536",
+   "document_number": "74294203",
+   "email": "dulmespariguanaperca@gmail.com",
+   "student_name": "Dulmes Jaqueline Pariguana Perca",
+   "course_code": "COM 450",
+   "course_name": "Business and Professional Communication",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 94,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-03-12T21:23:56.46+00:00",
+   "synced_at": "2026-07-04T20:33:50.299+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "34d8809e-6980-413e-93b8-dd21e2a63cd5",
+   "course_enrollment_id": "e41122cb-cfae-4a48-be13-85ab64a4365c",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "73794b1d-f141-4a0e-9735-bc525e576e2f",
+   "external_id": "54befd14-9d33-414f-941b-614e4e92e536",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "enrollment_id": "bdc01f50-40fa-4f57-81d0-faadc4db2bc8",
+   "course_code": "208",
+   "course_name": "Business and Professional Communication",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 94,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 50,
+     "val": 94.34,
+     "desc": "Process Notes"
+    },
+    {
+     "n": 2,
+     "pct": 4,
+     "val": 90,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 3,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 4,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 5,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 6,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 7,
+     "pct": 30,
+     "val": 90,
+     "desc": "Final Project"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "\tAssessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "\tAssessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 6.66,
+     "val": 90,
+     "desc": "\tAssessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 6.66,
+     "val": 90,
+     "desc": "\tAssessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "\tAssessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 6.66,
+     "val": 80,
+     "desc": "\tAssessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 6.66,
+     "val": 85,
+     "desc": "\tAssessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "\tAssessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 6.66,
+     "val": 90,
+     "desc": "\tAssessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 6.76,
+     "val": 100,
+     "desc": "\tAssessment 15"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:50.274083+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "e41122cb-cfae-4a48-be13-85ab64a4365c",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "document_number": "74294203",
+   "course_id": "34d8809e-6980-413e-93b8-dd21e2a63cd5",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "00d32b62-66ed-47af-af98-cc5d9bd02b63",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:54.525954+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:54.525954+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "614cace0-1acf-4ce1-a4a9-ded1d368dfdb"
+ },
+ {
+  "opcion": "duplicado",
+  "aplicado_en": "2026-08-31T16:47:59.092Z",
+  "notaA": {
+   "external_id": "57e014dc-a4de-4a39-a26d-3a77deeaafe5",
+   "document_number": "74294203",
+   "email": "dulmespariguanaperca@gmail.com",
+   "student_name": "Dulmes Jaqueline Pariguana Perca",
+   "course_code": "TAX 300",
+   "course_name": "Taxation",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 91,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-07-04T20:33:40.822+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "2b8a3a2b-d894-4c55-bbdc-771fa8a20b98",
+   "course_enrollment_id": "6c76f7e1-dcfa-4187-8565-c7890abb9563",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "c55150d3-52fe-4ad7-bcf2-ba29645ab9b7",
+   "external_id": "57e014dc-a4de-4a39-a26d-3a77deeaafe5",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "enrollment_id": "bdc01f50-40fa-4f57-81d0-faadc4db2bc8",
+   "course_code": "103",
+   "course_name": "Taxation",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 91,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 50,
+     "val": null,
+     "desc": "Process Notes"
+    },
+    {
+     "n": 2,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 3,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 4,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 5,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 6,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 7,
+     "pct": 30,
+     "val": 80,
+     "desc": "Final Project"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 6.66,
+     "val": 90,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 6.66,
+     "val": 85,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 6.66,
+     "val": 85,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 6.66,
+     "val": 90,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 6.66,
+     "val": 90,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 6.66,
+     "val": 90,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 6.66,
+     "val": 85,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 6.76,
+     "val": 100,
+     "desc": "Assessment 15"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:31.033047+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "6c76f7e1-dcfa-4187-8565-c7890abb9563",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "document_number": "74294203",
+   "course_id": "2b8a3a2b-d894-4c55-bbdc-771fa8a20b98",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "00d32b62-66ed-47af-af98-cc5d9bd02b63",
+   "attempt": 1,
+   "term_year": 2025,
+   "term_block": "2",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:51.252197+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:51.252197+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "8ae624ee-ad94-4139-aa1f-539b3e0d1b64"
+ },
+ {
+  "opcion": "duplicado",
+  "aplicado_en": "2026-08-31T16:53:00.888Z",
+  "notaA": {
+   "external_id": "62483539-950a-4964-8f49-5494558caaf9",
+   "document_number": "74294203",
+   "email": "dulmespariguanaperca@gmail.com",
+   "student_name": "Dulmes Jaqueline Pariguana Perca",
+   "course_code": "PSY 106",
+   "course_name": "General Psychology",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 88,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-07-04T20:33:40.822+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "aa0fa961-0c30-4737-a556-4e0a85711632",
+   "course_enrollment_id": "299ebb4a-8e26-4871-be4c-9c5745117548",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "40d74274-0de9-4f50-9ad1-04e491c8086f",
+   "external_id": "62483539-950a-4964-8f49-5494558caaf9",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "enrollment_id": "bdc01f50-40fa-4f57-81d0-faadc4db2bc8",
+   "course_code": "101",
+   "course_name": "General Psychology",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 88,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": null,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 70,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 70,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 90,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 10,
+     "val": 100,
+     "desc": "Midterm Test"
+    },
+    {
+     "n": 17,
+     "pct": 10,
+     "val": 100,
+     "desc": "Final Test"
+    },
+    {
+     "n": 18,
+     "pct": 30,
+     "val": 70,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:27.801182+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "299ebb4a-8e26-4871-be4c-9c5745117548",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "document_number": "74294203",
+   "course_id": "aa0fa961-0c30-4737-a556-4e0a85711632",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "00d32b62-66ed-47af-af98-cc5d9bd02b63",
+   "attempt": 1,
+   "term_year": 2025,
+   "term_block": "2",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:50.919965+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:50.919965+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "d01ec137-a90f-491a-ac52-701fc9e4496a"
+ },
+ {
+  "opcion": "duplicado",
+  "aplicado_en": "2026-08-31T16:53:55.641Z",
+  "notaA": {
+   "external_id": "843be08c-1699-4467-916d-c5043f072268",
+   "document_number": "60064522",
+   "email": "gary.quispe@neumann.global",
+   "student_name": "Gary Alejandro Quispe  Caxi",
+   "course_code": "MIC 108",
+   "course_name": "Microeconomics",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SUMMER_2025",
+   "final_grade": 90.37,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-08-12T21:35:28.485+00:00",
+   "source": "moodle",
+   "edited_at": "2026-08-19T23:35:56.855+00:00",
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": 159,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "92c94f70-458a-4093-b7ae-e7c78360aa6b",
+   "course_enrollment_id": "247e354a-5d26-4421-a5e8-3b3d82d2621a",
+   "rendido_pct": 96.67,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": "2026-08-12T21:35:29.945+00:00",
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781"
+  },
+  "detalleA": {
+   "id": "e18a521e-edbc-4634-bdc7-e12df55bb94c",
+   "external_id": "843be08c-1699-4467-916d-c5043f072268",
+   "student_id": "6957fc58-9098-44e5-991a-327fb0c1a407",
+   "enrollment_id": "019dab4b-8efd-7b56-aacd-a789a295c906",
+   "course_code": "MIC 108",
+   "course_name": "Microeconomics",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SUMMER_2025",
+   "final_grade": 90.37,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Quiz Session 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 13,
+     "pct": 30,
+     "val": 90,
+     "desc": "Final Subject Project"
+    },
+    {
+     "n": 14,
+     "pct": 4,
+     "val": 95,
+     "desc": "EO Module Test I 16"
+    },
+    {
+     "n": 15,
+     "pct": 4,
+     "val": 100,
+     "desc": "EO Module Test II 17"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 100,
+     "desc": "EO Module Test III 18"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 90,
+     "desc": "EO Module Test IV 19"
+    },
+    {
+     "n": 18,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Quiz Session 13"
+    },
+    {
+     "n": 19,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Quiz Session 14"
+    },
+    {
+     "n": 20,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Quiz Session 15"
+    },
+    {
+     "n": 21,
+     "pct": 4,
+     "val": 95,
+     "desc": "EO Module Test V 20"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:44.926721+00:00",
+   "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+  },
+  "matriculaA": {
+   "id": "247e354a-5d26-4421-a5e8-3b3d82d2621a",
+   "student_id": "6957fc58-9098-44e5-991a-327fb0c1a407",
+   "document_number": "60064522",
+   "course_id": "92c94f70-458a-4093-b7ae-e7c78360aa6b",
+   "program_id": "c8d7e55a-1877-4c3a-a23e-907ed607e8a4",
+   "program_enrollment_id": "019dab4c-8d18-7ecb-8c70-93df0c16f01f",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SUMMER_2025",
+   "status": "aprobada",
+   "source": "moodle",
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:56.532027+00:00",
+   "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781",
+   "closed_by": null
+  },
+  "notaB_eid": "875ea5bc-eb23-4a6f-a68d-fff0b80929d6"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T16:54:13.312Z",
+  "notaA": {
+   "external_id": "21760c7c-29d8-49de-b69c-767bd3665f62",
+   "document_number": "60064522",
+   "email": "gary.quispe@neumann.global",
+   "student_name": "Gary Alejandro Quispe  Caxi",
+   "course_code": "PSY 106",
+   "course_name": "General Psychology",
+   "credits": 3,
+   "term_year": 2025,
+   "term_block": "AY_25-26_SUMMER_2026",
+   "final_grade": 100,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-07-10T17:23:25.323+00:00",
+   "synced_at": "2026-07-04T20:33:42.612+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "aa0fa961-0c30-4737-a556-4e0a85711632",
+   "course_enrollment_id": "5e0f5469-362e-4551-b08e-39fc945b659f",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 2,
+   "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781"
+  },
+  "detalleA": {
+   "id": "8540f937-9d66-454b-82dd-4c42aaeb0cf3",
+   "external_id": "21760c7c-29d8-49de-b69c-767bd3665f62",
+   "student_id": "6957fc58-9098-44e5-991a-327fb0c1a407",
+   "enrollment_id": "019dab4c-8d18-7ecb-8c70-93df0c16f01f",
+   "course_code": "101",
+   "course_name": "General Psychology",
+   "term_year": 2025,
+   "term_block": "AY_25-26_SUMMER_2026",
+   "final_grade": null,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": null,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": null,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": null,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": null,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": null,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": null,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": null,
+     "desc": "Assessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": null,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": null,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 18,
+     "pct": 4,
+     "val": null,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 19,
+     "pct": 4,
+     "val": null,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 20,
+     "pct": 4,
+     "val": null,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 21,
+     "pct": 30,
+     "val": null,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:44.926721+00:00",
+   "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781"
+  },
+  "matriculaA": {
+   "id": "5e0f5469-362e-4551-b08e-39fc945b659f",
+   "student_id": "6957fc58-9098-44e5-991a-327fb0c1a407",
+   "document_number": "60064522",
+   "course_id": "aa0fa961-0c30-4737-a556-4e0a85711632",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "019dab4b-8efd-7b56-aacd-a789a295c906",
+   "attempt": 2,
+   "term_year": 2025,
+   "term_block": "AY_25-26_SUMMER_2026",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:51.875373+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:51.875373+00:00",
+   "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781",
+   "closed_by": null
+  },
+  "notaB_eid": "ed0bad08-85d4-4488-a086-8c63e6074f7b"
+ },
+ {
+  "opcion": "duplicado",
+  "aplicado_en": "2026-08-31T16:59:57.431Z",
+  "notaA": {
+   "external_id": "fcb22570-4277-46af-9f4f-b0880f0af493",
+   "document_number": "232352108",
+   "email": "1996yessica18@gmail.com",
+   "student_name": "Yessica Carolina Chipana Telleria",
+   "course_code": "ENG 101",
+   "course_name": "English Composition I",
+   "credits": 3,
+   "term_year": 2025,
+   "term_block": "2",
+   "final_grade": 97,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-06-03T23:03:21.177+00:00",
+   "synced_at": "2026-07-04T20:33:45.267+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "c2257f18-2f69-4893-9c4a-e860b533f295",
+   "course_enrollment_id": "dab15187-37ad-4f4f-bdc8-a10ec818b43d",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "4d7e788d-fe18-4eb5-b707-bce44b3aa79c",
+   "external_id": "fcb22570-4277-46af-9f4f-b0880f0af493",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "enrollment_id": "66e3fda1-5490-445d-b290-251cff9eed32",
+   "course_code": "110",
+   "course_name": "English Composition I",
+   "term_year": 2025,
+   "term_block": "2",
+   "final_grade": 97,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": 97.47,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "\tAssessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "\tAssessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "\tAssessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "\tAssessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "\tAssessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 95,
+     "desc": "\tAssessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "\tAssessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "\tAssessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "\tAssessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 18,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 19,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 20,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 21,
+     "pct": 30,
+     "val": 95,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:27:00.853661+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "dab15187-37ad-4f4f-bdc8-a10ec818b43d",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "document_number": "232352108",
+   "course_id": "c2257f18-2f69-4893-9c4a-e860b533f295",
+   "program_id": "c8d7e55a-1877-4c3a-a23e-907ed607e8a4",
+   "program_enrollment_id": "2315791f-3535-45f4-91d3-59d4c8e1d6e5",
+   "attempt": 1,
+   "term_year": 2025,
+   "term_block": "2",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:54.837184+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "70abe6cc-858b-4f40-a83d-30ef4fb79fb2"
+ },
+ {
+  "opcion": "duplicado",
+  "aplicado_en": "2026-08-31T17:00:10.410Z",
+  "notaA": {
+   "external_id": "6b48706d-2ee5-4645-8b4a-a5f3a4c3eded",
+   "document_number": "232352108",
+   "email": "1996yessica18@gmail.com",
+   "student_name": "Yessica Carolina Chipana Telleria",
+   "course_code": "ECT 103",
+   "course_name": "Ethics and Critical Thinking",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 96,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-04-17T16:09:20.285+00:00",
+   "synced_at": "2026-07-04T20:33:48.233+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "d405bb8a-747c-4519-a9e4-e39fd207f47e",
+   "course_enrollment_id": "a99121a9-068a-4da9-b8d6-bfac8e408278",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "b8d4be4d-85e7-449f-8983-b107781e9a9d",
+   "external_id": "6b48706d-2ee5-4645-8b4a-a5f3a4c3eded",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "enrollment_id": "2315791f-3535-45f4-91d3-59d4c8e1d6e5",
+   "course_code": "201",
+   "course_name": "Ethics and Critical Thinking",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 96,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": 95.93,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 95,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 95,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 18,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 19,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 20,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 21,
+     "pct": 30,
+     "val": 90,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:44.53273+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "a99121a9-068a-4da9-b8d6-bfac8e408278",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "document_number": "232352108",
+   "course_id": "d405bb8a-747c-4519-a9e4-e39fd207f47e",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "66e3fda1-5490-445d-b290-251cff9eed32",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:55.403831+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "b357e77d-4d61-4575-afab-2a7d5fba6426"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T17:00:26.130Z",
+  "notaA": {
+   "external_id": "cedcba4b-9ade-4837-b4db-7ec52bafaca1",
+   "document_number": "232352108",
+   "email": "1996yessica18@gmail.com",
+   "student_name": "Yessica Carolina Chipana Telleria",
+   "course_code": "PSY 106",
+   "course_name": "General Psychology",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 92,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-07-04T20:33:40.539+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "aa0fa961-0c30-4737-a556-4e0a85711632",
+   "course_enrollment_id": "c8123a85-ce1c-4675-9286-059b856ec5bf",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "631be495-0e63-438b-ab6c-09ea17463807",
+   "external_id": "cedcba4b-9ade-4837-b4db-7ec52bafaca1",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "enrollment_id": "2315791f-3535-45f4-91d3-59d4c8e1d6e5",
+   "course_code": "101",
+   "course_name": "General Psychology",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 92,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 100,
+     "val": null,
+     "desc": "Total"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 90,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 3.34,
+     "val": 90,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 3.34,
+     "val": 100,
+     "desc": "Assessment 15"
+    },
+    {
+     "n": 16,
+     "pct": 10,
+     "val": 90,
+     "desc": "Midterm Test"
+    },
+    {
+     "n": 17,
+     "pct": 10,
+     "val": 100,
+     "desc": "Final Test"
+    },
+    {
+     "n": 18,
+     "pct": 30,
+     "val": 80,
+     "desc": "Final Project"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:27.801182+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "c8123a85-ce1c-4675-9286-059b856ec5bf",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "document_number": "232352108",
+   "course_id": "aa0fa961-0c30-4737-a556-4e0a85711632",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "66e3fda1-5490-445d-b290-251cff9eed32",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:54.354069+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:54.354069+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "89d608ba-f11b-49ea-a82b-2fe9105b09d9"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T17:00:37.598Z",
+  "notaA": {
+   "external_id": "3e745ff8-1b3f-41f3-9d07-2010d8b3f4a0",
+   "document_number": "232352108",
+   "email": "1996yessica18@gmail.com",
+   "student_name": "Yessica Carolina Chipana Telleria",
+   "course_code": "TAX 300",
+   "course_name": "Taxation",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 93,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-07-04T20:33:40.539+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "2b8a3a2b-d894-4c55-bbdc-771fa8a20b98",
+   "course_enrollment_id": "0af9cbf9-86e0-444b-b24c-bd6e8c20dc68",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "c1435406-7764-4209-8690-52976de6de87",
+   "external_id": "3e745ff8-1b3f-41f3-9d07-2010d8b3f4a0",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "enrollment_id": "2315791f-3535-45f4-91d3-59d4c8e1d6e5",
+   "course_code": "103",
+   "course_name": "Taxation",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 93,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 50,
+     "val": null,
+     "desc": "Process Notes"
+    },
+    {
+     "n": 2,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 3,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 4,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 5,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 6,
+     "pct": 4,
+     "val": 95,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 7,
+     "pct": 30,
+     "val": 80,
+     "desc": "Final Project"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 6.76,
+     "val": 100,
+     "desc": "Assessment 15"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:31.033047+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "0af9cbf9-86e0-444b-b24c-bd6e8c20dc68",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "document_number": "232352108",
+   "course_id": "2b8a3a2b-d894-4c55-bbdc-771fa8a20b98",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "66e3fda1-5490-445d-b290-251cff9eed32",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:53.148844+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:53.148844+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "d43403ef-3e32-4473-af59-390c0676e088"
+ },
+ {
+  "opcion": "dos",
+  "aplicado_en": "2026-08-31T17:02:41.486Z",
+  "notaA": {
+   "external_id": "8b065da0-15e1-4bfa-b769-97b1234e7580",
+   "document_number": "232352108",
+   "email": "1996yessica18@gmail.com",
+   "student_name": "Yessica Carolina Chipana Telleria",
+   "course_code": "COM 450",
+   "course_name": "Business and Professional Communication",
+   "credits": 3,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 95,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": "2026-03-12T21:23:56.788+00:00",
+   "synced_at": "2026-07-04T20:33:50.299+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "34d8809e-6980-413e-93b8-dd21e2a63cd5",
+   "course_enrollment_id": "9c012e28-2c46-434c-8b53-8f69abfda024",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 2,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "da7c2077-624d-49b0-8465-727d2cfccc35",
+   "external_id": "8b065da0-15e1-4bfa-b769-97b1234e7580",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "enrollment_id": "2315791f-3535-45f4-91d3-59d4c8e1d6e5",
+   "course_code": "208",
+   "course_name": "Business and Professional Communication",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "final_grade": 95,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 50,
+     "val": 97,
+     "desc": "Process Notes"
+    },
+    {
+     "n": 2,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 3,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 4,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 5,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 6,
+     "pct": 4,
+     "val": 90,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 7,
+     "pct": 30,
+     "val": 90,
+     "desc": "Final Project"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "\tAssessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "\tAssessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "\tAssessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "\tAssessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "\tAssessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "\tAssessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 6.66,
+     "val": 90,
+     "desc": "\tAssessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "\tAssessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 6.76,
+     "val": 95,
+     "desc": "\tAssessment 15"
+    }
+   ],
+   "created_at": "2026-07-09T01:26:50.274083+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "9c012e28-2c46-434c-8b53-8f69abfda024",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "document_number": "232352108",
+   "course_id": "34d8809e-6980-413e-93b8-dd21e2a63cd5",
+   "program_id": "bdc8dca3-f3c5-47fe-99a3-b858d9deceae",
+   "program_enrollment_id": "66e3fda1-5490-445d-b290-251cff9eed32",
+   "attempt": 1,
+   "term_year": 2024,
+   "term_block": "AY_24-25_SPRING_2025",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:55:56.819762+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:55:56.819762+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "0094e1a9-d434-44eb-ae50-39b9c79fef58"
  }
 ]
