@@ -5,7 +5,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isStudentUser } from '@/lib/student-identity'
 import { guardSuperadmin } from '@/lib/api-guard'
 import {
-  indexarMalla, resolverAsignatura, resolverTodasLasAsignaturas, estadoDeNota, ordenarIntentos,
+  indexarMalla, resolverAsignatura, estadoDeNota, ordenarIntentos,
   sincronizarTodosLosEstados,
   type NotaMin, type CursoMalla, type MotivoSinResolver,
 } from '@/lib/course-enrollments'
@@ -100,6 +100,8 @@ export async function POST(req: NextRequest) {
     !esFilaDePlan(n) || !conIntentoReal.has(`${n.document_number}|${courseNameKey(n.course_name)}`))
 
   const idx = indexarMalla(courses)
+  // El id de la asignatura manda sobre cualquier resolución por nombre.
+  const cursoPorId = new Map(courses.map(c => [String(c.id), { id: c.id, program_id: c.program_id ?? null }]))
   const stuByDoc = new Map<string, { id: string }>()
   for (const s of students) stuByDoc.set(String(s.document_number ?? ''), s)
   const progsOf = new Map<string, string[]>()
@@ -131,7 +133,10 @@ export async function POST(req: NextRequest) {
       continue
     }
     const r = resolverAsignatura(n, progsOf.get(stu.id), idx)
-    if (!r.course_id) {
+    // El id manda: una nota con course_id ya está resuelta, diga lo que diga
+    // su nombre. La resolución por nombre queda solo para las heredadas sin id.
+    const propioTemprano = n.course_id ? cursoPorId.get(String(n.course_id)) : null
+    if (!propioTemprano && !r.course_id) {
       const m = r.motivo ?? 'fuera_de_malla'
       sinResolver.set(m, (sinResolver.get(m) ?? 0) + 1)
       ejemplos[m] = ejemplos[m] ?? []
@@ -146,17 +151,23 @@ export async function POST(req: NextRequest) {
       }
       continue
     }
-    // Una nota puede pertenecer a DOS mallas a la vez: nueve estudiantes cursan
-    // dos programas que comparten dieciocho asignaturas. Se abre matrícula en
-    // cada una, porque la institución cobra en los dos programas (Dirección,
-    // 14-08-2026). Elegir una sola dejaba al otro programa en 87 créditos de
-    // 120 y le bajaba el precio oficial sin que nadie lo decidiera.
-    const destinos = resolverTodasLasAsignaturas(n, progsOf.get(stu.id), idx)
-    if (destinos.length > 1) {
+    // Una nota pertenece a UNA sola malla. Los programas son independientes y
+    // sus asignaturas también, aunque compartan nombre: nunca un programa se
+    // mezcla con otro (regla del usuario, 31-08-2026 — anula el criterio del
+    // 14-08 que abría matrícula en todas las mallas homónimas y llegó a
+    // fabricar 20 matrículas cruzadas en 8 estudiantes, con un egreso falso).
+    // La vía legítima entre programas es la convalidación, que decide Registros.
+    //
+    // El destino lo fija el course_id de la nota cuando existe (el id manda,
+    // nunca el nombre); el nombre solo resuelve las filas heredadas que aún no
+    // lo tienen, y siempre a un único curso.
+    const propio = propioTemprano
+    const d = propio ?? { id: r.course_id!, program_id: r.program_id }
+    if (r.ambiguo && !propio) {
       ambiguasN++
-      if (ambiguas.length < 40) ambiguas.push(`${n.document_number} · ${n.course_name} → ${destinos.length} mallas`)
+      if (ambiguas.length < 40) ambiguas.push(`${n.document_number} · ${n.course_name} → homónima en dos mallas, resuelta a una por id`)
     }
-    for (const d of (destinos.length ? destinos : [{ id: r.course_id, program_id: r.program_id }])) {
+    {
       const k = `${stu.id}|${d.id}`
       if (!porIntento.has(k)) porIntento.set(k, { student_id: stu.id, course_id: d.id, program_id: d.program_id, notas: [] })
       porIntento.get(k)!.notas.push(n)
