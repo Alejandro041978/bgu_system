@@ -1,0 +1,95 @@
+{
+ "aplicado_en": "2026-08-31T21:58:21.640Z",
+ "filas": [
+  {
+   "id": "a0961613-f7b2-4a82-b66a-a128ee9e7948",
+   "doc_viejo": ".4139326",
+   "doc_nuevo": "4139326",
+   "estudiante": "Evaristo Ivan Gonzalez"
+  },
+  {
+   "id": "2074ad7b-637e-417b-a68c-2e2e7eb7882f",
+   "doc_viejo": ".4139326",
+   "doc_nuevo": "4139326",
+   "estudiante": "Evaristo Ivan Gonzalez"
+  },
+  {
+   "id": "a8c0817b-a413-49d4-87f9-2b7c29d76c1d",
+   "doc_viejo": ".4139326",
+   "doc_nuevo": "4139326",
+   "estudiante": "Evaristo Ivan Gonzalez"
+  },
+  {
+   "id": "0787dbc0-2d2e-4106-8bed-0d125c8c77aa",
+   "doc_viejo": ".4139326",
+   "doc_nuevo": "4139326",
+   "estudiante": "Evaristo Ivan Gonzalez"
+  },
+  {
+   "id": "cf7f148d-1634-45e8-ae4c-8d1c65f3cd9d",
+   "doc_viejo": ".4139326",
+   "doc_nuevo": "4139326",
+   "estudiante": "Evaristo Ivan Gonzalez"
+  },
+  {
+   "id": "8557ba53-f45d-4252-8433-972a70def8d1",
+   "doc_viejo": "8131589.",
+   "doc_nuevo": "8131589",
+   "estudiante": "Rosalina Rosalba Romero"
+  },
+  {
+   "id": "83507aa5-ef64-414f-bd96-e94f969776a5",
+   "doc_viejo": "8131589.",
+   "doc_nuevo": "8131589",
+   "estudiante": "Rosalina Rosalba Romero"
+  },
+  {
+   "id": "f5d78943-fbd5-4880-8d2e-7fc7b8e110eb",
+   "doc_viejo": "8131589.",
+   "doc_nuevo": "8131589",
+   "estudiante": "Rosalina Rosalba Romero"
+  },
+  {
+   "id": "e0a51a40-7c5c-47ad-8a50-61cd61be8214",
+   "doc_viejo": "8131589.",
+   "doc_nuevo": "8131589",
+   "estudiante": "Rosalina Rosalba Romero"
+  },
+  {
+   "id": "6eabc7ba-fe1e-4dc1-913f-0459df3c4785",
+   "doc_viejo": "8131589.",
+   "doc_nuevo": "8131589",
+   "estudiante": "Rosalina Rosalba Romero"
+  },
+  {
+   "id": "bd6508ce-179b-40d9-837e-96ac425e9038",
+   "doc_viejo": "TIAI700213HMNRRS03",
+   "doc_nuevo": "TIAI790213HMNRRS03",
+   "estudiante": "Israel Alain Tirado"
+  },
+  {
+   "id": "0d0c236b-51a1-4cba-b96f-bda0aeedd419",
+   "doc_viejo": "TIAI700213HMNRRS03",
+   "doc_nuevo": "TIAI790213HMNRRS03",
+   "estudiante": "Israel Alain Tirado"
+  },
+  {
+   "id": "e8012c45-48c6-42e8-bb8b-0a7b0101fe70",
+   "doc_viejo": "TIAI700213HMNRRS03",
+   "doc_nuevo": "TIAI790213HMNRRS03",
+   "estudiante": "Israel Alain Tirado"
+  },
+  {
+   "id": "4721f13a-465d-4cff-9b5d-180f0dc0037e",
+   "doc_viejo": "TIAI700213HMNRRS03",
+   "doc_nuevo": "TIAI790213HMNRRS03",
+   "estudiante": "Israel Alain Tirado"
+  },
+  {
+   "id": "a72d934f-4ed7-4af5-9826-f84011de39e9",
+   "doc_viejo": "TIAI700213HMNRRS03",
+   "doc_nuevo": "TIAI790213HMNRRS03",
+   "estudiante": "Israel Alain Tirado"
+  }
+ ]
+}
