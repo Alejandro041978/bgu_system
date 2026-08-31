@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
   const sinResolver = new Map<MotivoSinResolver, number>()
   const ejemplos: Record<string, string[]> = {}
   const ambiguas: string[] = []
-  let ambiguasN = 0
+  const ambiguasN = 0
   // documento → programa al que apuntan sus notas no resueltas. Una nota cuya
   // asignatura existe pero en otro programa casi nunca es un error de nombre:
   // es una matrícula de programa que falta en el ERP (un estudiante que cursó
