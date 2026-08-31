@@ -36,7 +36,7 @@ export interface NotaMin {
   source: string | null
 }
 
-export type MotivoSinResolver = 'sin_alumno' | 'sin_programa' | 'otro_programa' | 'fuera_de_malla'
+export type MotivoSinResolver = 'sin_alumno' | 'sin_programa' | 'otro_programa' | 'fuera_de_malla' | 'homonima_ambigua'
 
 export interface Resolucion {
   course_id: string | null
@@ -80,14 +80,15 @@ export function resolverAsignatura(
     return { course_id: hits[0].id, program_id: hits[0].program_id, ambiguo: false, motivo: null }
   }
   if (hits.length > 1) {
-    // El alumno está en dos programas que comparten el nombre de la asignatura
-    // (93 notas). Se elige de forma determinista —por id— y se marca ambigua
-    // para que aparezca en la revisión, en vez de decidirlo en silencio.
-    //
-    // Quien construye el REGISTRO no debe usar esto: necesita las dos, no una.
-    // Ver resolverTodasLasAsignaturas.
-    const elegido = [...hits].sort((a, b) => a.id.localeCompare(b.id))[0]
-    return { course_id: elegido.id, program_id: elegido.program_id, ambiguo: true, motivo: null }
+    // El alumno está en dos programas que comparten el nombre de la asignatura.
+    // NO se elige: elegir "de forma determinista por id" era un sorteo de
+    // UUIDs, y así 27 notas de 8 estudiantes acabaron en el programa
+    // equivocado (Supply Chain del Bachelor asignada al MBA — caso Ramos
+    // Escobal, corregido 31-08-2026 con la evidencia de la matrícula de
+    // Activa). Una homónima ambigua se queda sin resolver y va a revisión:
+    // la evidencia (matrícula de origen, aula, periodo) la decide una
+    // persona, no el azar.
+    return { course_id: null, program_id: null, ambiguo: true, motivo: 'homonima_ambigua' }
   }
   // La asignatura existe en la malla, pero de un programa que el alumno no
   // cursa. No se adivina: suele ser una matrícula de programa incompleta o un

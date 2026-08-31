@@ -170,10 +170,6 @@ export async function POST(req: NextRequest) {
     // lo tienen, y siempre a un único curso.
     const propio = propioTemprano
     const d = propio ?? { id: r.course_id!, program_id: r.program_id }
-    if (r.ambiguo && !propio) {
-      ambiguasN++
-      if (ambiguas.length < 40) ambiguas.push(`${n.document_number} · ${n.course_name} → homónima en dos mallas, resuelta a una por id`)
-    }
     {
       const k = `${stu.id}|${d.id}`
       if (!porIntento.has(k)) porIntento.set(k, { student_id: stu.id, course_id: d.id, program_id: d.program_id, notas: [] })
@@ -220,7 +216,7 @@ export async function POST(req: NextRequest) {
     notas_leidas: grades.length,
     matriculas_a_crear: nuevas.length,
     asignaturas_con_mas_de_un_intento: variosIntentos,
-    ambiguas_resueltas_por_defecto: ambiguasN,
+    ambiguas_resueltas_por_defecto: ambiguasN,  // siempre 0: la homónima ambigua ya no se resuelve por sorteo, va a sin_resolver
     sin_resolver: Object.fromEntries(sinResolver),
     ejemplos_sin_resolver: ejemplos,
     muestra_ambiguas: ambiguas.slice(0, 10),
