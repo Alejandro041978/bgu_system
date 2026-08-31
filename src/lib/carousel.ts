@@ -1,7 +1,7 @@
 import { readAll } from './withdrawals'
 import { asignaturasDeGrupos } from './group-courses'
 import { esIntento } from '@/lib/grade-sources'
-import { filaDeCurso, sameCourse } from './course-match'
+import { filaDeCurso } from './course-match'
 import { provisionStudent, marcarParaSincronizar } from './moodle-provision'
 
 // ---------------------------------------------------------------------------
@@ -157,34 +157,12 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
   const programs = await readAll(sb, 'academic_programs', 'id, category_id')
   const catOfProgram = new Map<string, string | null>(programs.map((p: { id: string; category_id: string | null }) => [p.id, p.category_id]))
 
-  // Veredicto del registro por (estudiante, asignatura): la compartida entre
-  // las dos mallas de un estudiante tiene UNA nota (anclada a la otra malla) y
-  // aquí aprueba por su matrícula 'aprobada' + nota homónima — misma regla que
-  // computeGraduates (14-08-2026; caso Ramos Escobal). Sin esto, el carrusel no
-  // dejaba avanzar a quien la tenía aprobada en su otro programa.
-  const aprobadaEnRegistro = new Set<string>()
-  for (const part of chunk(studentIds, 100)) {
-    for (let from = 0; ; from += 1000) {
-      const { data } = await sb.from('academic_course_enrollments')
-        .select('student_id, course_id, status').in('student_id', part)
-        .eq('status', 'aprobada').order('id').range(from, from + 999)
-      for (const m of (data ?? []) as { student_id: string; course_id: string | null }[]) {
-        if (m.course_id) aprobadaEnRegistro.add(`${m.student_id}|${m.course_id}`)
-      }
-      if ((data ?? []).length < 1000) break
-    }
-  }
-
   const approved = (studentId: string, programId: string, c: { id: string; code: string | null; name: string | null }): boolean => {
     if (transferredOf.get(`${studentId}|${programId}`)?.has(c.id)) return true
     const doc = String(students.get(studentId)?.document_number ?? '')
     const rows = (gradesByDoc.get(doc) ?? []).filter(g => filaDeCurso(g, c))
     const values = rows.map(g => (g.retake_grade ?? g.final_grade)).filter((v: number | null): v is number => v != null)
-    if (!values.length) {
-      return aprobadaEnRegistro.has(`${studentId}|${c.id}`)
-        && (gradesByDoc.get(doc) ?? []).some(g => !filaDeCurso(g, c) && sameCourse(g.course_name, c.name)
-          && (g.retake_grade ?? g.final_grade) != null)
-    }
+    if (!values.length) return false
     const best = Math.max(...values)
     const bestRow = rows.find(g => Number(g.retake_grade ?? g.final_grade) === best)
     const passing = bestRow?.passing_score ?? passingByCat.get(catOfProgram.get(programId) ?? '') ?? null

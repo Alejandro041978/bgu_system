@@ -11,7 +11,7 @@
 // desbloquea la conversación.
 // ---------------------------------------------------------------------------
 
-import { filaDeCurso, sameCourse } from './course-match'
+import { filaDeCurso } from './course-match'
 import { esIntento } from './grade-sources'
 
 export interface RetentionContext {
@@ -104,25 +104,11 @@ export async function buildRetentionContext(sb: any, studentId: string): Promise
       : { data: [] }
     const transferred = new Set<string>(((items ?? []) as { dest_course_id: string }[]).map(i => i.dest_course_id).filter(Boolean))
 
-    // La compartida entre dos mallas del estudiante: una sola nota (anclada a
-    // la otra malla) + matrícula 'aprobada' aquí. Sin esto, Camila le decía al
-    // estudiante que le faltaba una asignatura ya aprobada (misma regla que
-    // computeGraduates, 14-08-2026).
-    const { data: mats } = await sb.from('academic_course_enrollments')
-      .select('course_id, status').eq('student_id', studentId).eq('status', 'aprobada')
-    const aprobadaEnRegistro = new Set<string>(((mats ?? []) as { course_id: string | null }[])
-      .map(m => String(m.course_id ?? '')).filter(Boolean))
-
     for (const c of malla) {
       if (transferred.has(c.id)) continue
       const matches = gradeRows.filter(g => filaDeCurso(g, c))
       const values = matches.map(g => g.retake_grade ?? g.final_grade).filter((v: number | null): v is number => v != null)
-      if (!values.length) {
-        if (aprobadaEnRegistro.has(String(c.id))
-          && gradeRows.some(g => !filaDeCurso(g, c) && sameCourse(g.course_name, c.name)
-            && (g.retake_grade ?? g.final_grade) != null)) continue
-        pending++; continue
-      }
+      if (!values.length) { pending++; continue }
       const best = Math.max(...values)
       const bestRow = matches.find(g => Number(g.retake_grade ?? g.final_grade) === best)
       const passing = bestRow?.passing_score ?? categoryPassing
