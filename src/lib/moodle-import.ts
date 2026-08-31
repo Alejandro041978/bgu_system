@@ -476,6 +476,37 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     // Un fallo aquí no invalida la importación —la nota ya está escrita— pero
     // tiene que verse: sin matrícula, esa nota no entra al acta.
     if (r.error) result.errors.push(`Matrículas por asignatura: ${r.error}`)
+
+    // El enlace nota→matrícula, en la misma corrida. La nota se escribe antes
+    // de que la matrícula exista, así que solo aquí se puede cerrar el círculo;
+    // sin este paso la nota queda suelta: se muestra, pero el precio, el estado
+    // de la matrícula y todo lo que lee por matrícula no la ven (209 notas
+    // sueltas acumuladas hasta el 31-08, todas de este camino). Solo se rellena
+    // el enlace vacío: una nota que ya apunta a otra matrícula es un hallazgo
+    // del auditor, no algo que pisar en silencio.
+    if (!r.error) {
+      const docs = [...new Set(rows.map(f => f.document_number))]
+      const matDe = new Map<string, string>()
+      for (let i = 0; i < docs.length; i += 200) {
+        const { data } = await sb.from('academic_course_enrollments')
+          .select('id, document_number, attempt')
+          .eq('course_id', destCourse.id).in('document_number', docs.slice(i, i + 200))
+        for (const m of (data ?? []) as { id: string; document_number: string; attempt: number }[])
+          matDe.set(`${m.document_number}|${m.attempt}`, m.id)
+      }
+      for (const f of rows) {
+        const matId = matDe.get(`${f.document_number}|${f.intento ?? 1}`)
+        if (!matId) continue
+        // Dos pasadas por el trigger protect_edited_grades, como el backfill de
+        // moodle_course_id: a las filas blindadas se les refresca el blindaje.
+        await sb.from('academic_grades')
+          .update({ course_enrollment_id: matId })
+          .eq('external_id', f.external_id).is('course_enrollment_id', null).is('edited_at', null).is('locked_at', null)
+        await sb.from('academic_grades')
+          .update({ course_enrollment_id: matId, edited_at: new Date().toISOString() })
+          .eq('external_id', f.external_id).is('course_enrollment_id', null).not('edited_at', 'is', null).is('locked_at', null)
+      }
+    }
   }
 
   // Marca de origen: toda fila del aula (rellenada, actualizada o nueva) queda
