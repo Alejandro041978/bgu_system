@@ -1,0 +1,588 @@
+{
+ "aplicado_en": "2026-08-31T22:14:52.426Z",
+ "regla": "solo [A-Za-z0-9]",
+ "excluida_colision": "71741729- (Ccahuana)",
+ "casos": [
+  {
+   "de": "77.184.229",
+   "a": "77184229",
+   "student_id": "1de2c821-5fb2-4414-a5b9-f57f4b876816",
+   "notas": [
+    "0f8a67cd-845e-4491-8933-43ad27c99d2e",
+    "32496464-040e-4f15-81f5-e0bd2cdb6d9f",
+    "253a35c4-af29-484b-a3aa-c2ceb2c163af",
+    "57e0683b-cb76-47c6-a38e-08650458237e",
+    "fd24c831-228d-4d1c-85f4-479138c7878c",
+    "1bd943cc-3730-4bad-9bc3-e5d0c9250af3",
+    "207652a9-1f33-49d5-a8b0-d6480a6f728a",
+    "ea537256-9767-4221-b402-71fd4cf6ab4c",
+    "3d3218a1-68d8-4184-a61c-8641146bafe3",
+    "b29587ae-f140-4bdf-b2aa-8c37f8b5eaf0",
+    "49f3eba8-1bdf-4090-80d8-a55239be8e98",
+    "48940abd-13c5-41b0-b826-0db4f3be1313",
+    "3a916ded-952e-47d0-91fa-92f29a689b24",
+    "463a3cfc-075e-47eb-b920-985270249a7b"
+   ],
+   "matriculas": [
+    "a9fc18ef-e250-414e-bb44-0333a4b91199",
+    "f4af70f3-de59-4234-9126-1e915e73031a",
+    "eafa96fb-3a6e-4771-a1c5-a1c993742fcf",
+    "47883f1e-c902-42b9-a74e-48ca7b6d6d87",
+    "f3a1e4e8-62a8-454d-9eaa-5c6d5fccf667",
+    "584f04ab-2807-4e65-af9c-2d49c4079d3b",
+    "f5af98c2-2e6e-4fc4-8ce1-21f09d8cc79c",
+    "41d72894-d243-4572-86ee-ee7c596c8430",
+    "942f301b-d337-4b88-8aeb-aec53617733e",
+    "02c5b750-74f8-4ef4-ba1f-97a72bf7a85b",
+    "e9659a01-f429-4be0-b2a7-d6b5c837b0f6",
+    "6730d0ed-ca07-4969-a3fd-b38cea9d8ac2",
+    "ba2e8ebd-d042-463d-a3a4-ff7f294aa8f4",
+    "3cdd2507-2cb7-4731-872e-49b412b9364c"
+   ],
+   "auditoria": [
+    "2a3fe6c3-ce61-4606-b52b-4dcd421f0582",
+    "cedeac4d-f62b-42b3-bdbd-ef9e04d80d66",
+    "fd7f9014-bd55-4894-9697-86454531e18d",
+    "2c8b63fc-4ea1-4b99-ae23-7d0546103342",
+    "6273d915-c702-40e4-b92e-1c5a45dce7c1",
+    "c671607c-283d-4936-8058-078df8157589",
+    "6561e619-a1e3-4adb-a520-9a317b4444c5",
+    "cc394101-acd4-4a93-a9a4-23ca9da734d8",
+    "53bb1832-7bbf-4f89-bb96-21164b730196",
+    "7f3c00ce-e206-4125-95e8-e4b8cda401f0",
+    "35c48bb0-a357-4c68-9c43-bb3dc10135f7",
+    "776ee2dd-2511-4f8f-ae64-cfbff797b313",
+    "43e11507-fb56-45b0-8472-1c0adc27b0e3"
+   ]
+  },
+  {
+   "de": "870821..",
+   "a": "870821",
+   "student_id": "112f1271-06d3-46e5-9e94-19950e8ba8e1",
+   "notas": [],
+   "matriculas": [
+    "54d66e6a-7667-4611-8fbd-23542963080e",
+    "a4def62d-80b5-4af2-b359-2002c65d9874",
+    "8fb6973c-d364-49cb-84b1-bcb5ddfcfa78"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": "001-0462070-3",
+   "a": "00104620703",
+   "student_id": "cc742216-689a-4850-bf00-d37267f5a53b",
+   "notas": [],
+   "matriculas": [
+    "cc28bf56-a487-41f4-a87f-83d5d24c5bb1",
+    "dfd0bbcd-7c64-487a-900c-2049b19b96c8",
+    "b675b294-e587-45c4-8f95-32588bb9a77f",
+    "614f0797-b3db-45f6-a698-77b0173a9016",
+    "b597b90c-7eee-45d4-89e5-f00b42e8a772",
+    "9b29c033-d50e-45d9-bfdc-463034527e6d",
+    "8d548e78-f479-4daf-a48f-419435415720",
+    "5b3a677c-f83f-4ea2-9b76-0a4e1800eebb",
+    "90a1f2de-701e-414d-affa-2c09fc077abc",
+    "2742d692-5090-4d54-8755-6444b4a704cd",
+    "7a9a7dac-4305-41fe-8a39-7ea219cd3755",
+    "b39e7474-cee6-4d65-8f01-5552e0936b05"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": "26602929 ",
+   "a": "26602929",
+   "student_id": "6b9a35a8-bf13-4676-bd99-e7005f70ab5a",
+   "notas": [],
+   "matriculas": [
+    "88668c79-c21e-4da1-929d-86a7d85c0040",
+    "f13691e1-c0b6-45ca-8799-9edba042d3b6",
+    "235a7a73-696a-43ec-b2de-9c145ea34198",
+    "6cf7a9ba-ade9-4d4c-91e7-7b554fc52702",
+    "29a5a2c7-3378-43dc-aba0-d5071e10a1d0"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": "4763503.",
+   "a": "4763503",
+   "student_id": "0a3b42a0-9e42-44a5-9c4f-1198dee86b05",
+   "notas": [
+    "d9d0e9ff-9374-4e39-ac76-d523dd8821ae",
+    "c1235c62-ae3e-4edd-a4c1-feb887cc3ec8",
+    "1057130c-fd08-486c-a44b-c763d296a2d8",
+    "65e6e0d6-03f3-4001-b3b8-c458b29163ab",
+    "3d55fb9b-cd08-440f-b1d3-fee87d906129",
+    "e5c39abc-18e0-4527-91bb-45dab11d5840",
+    "e2ecaf8f-0e66-422f-9dff-12de62f22aba",
+    "d8428320-3b59-4ac8-a9b9-80f605ee460b",
+    "3356b3b0-ae90-4fb1-8972-a68e6aa722eb",
+    "9384484d-f2a4-4a41-a5ba-2678324a9942",
+    "4f705873-b70f-4c00-87a1-97a31f90e1b6",
+    "18046f4a-4c69-4f42-91d9-a7f59397c2e8",
+    "e506a5f3-561d-4c2d-aeb9-cae64c4718d8",
+    "4020e412-f08b-443d-aa98-42cc9a8674a0"
+   ],
+   "matriculas": [
+    "9279ced8-3c05-42ba-8dbb-e6a577383cc1",
+    "9fc15b9a-8bdd-42cf-bbd3-7b5fd17c0540",
+    "05fde614-c195-4b0b-99cc-c89b00c7a381",
+    "0b37f5a4-58fc-4d9f-9f23-056cad0f6f2d",
+    "bdd49165-eef5-4c24-8315-8481ae9423ab",
+    "42d0fead-b93a-4394-b357-ab60484142c1",
+    "096038f5-1d57-4b4c-8235-0eac1ad496d7",
+    "6fa04193-f72e-43f5-b6bb-76c19e2071c4",
+    "d8519bf1-eeb5-45bf-a240-1d80ec639e46",
+    "7f492178-eb49-4e99-93ca-66e7d12e8c15",
+    "68f813c5-dbf8-4637-afc3-f837fafb408b",
+    "5e7f2fbc-c518-4984-ae88-3f3e822ea23b",
+    "189a0875-4093-4627-8195-e7102354c523",
+    "09b7bf4e-c4e9-456c-a903-329283b52c6b",
+    "78bbcf52-c774-4a6c-83c1-c91ebea100ad"
+   ],
+   "auditoria": [
+    "bb2143f3-b028-45cc-8a19-211e3f78bed5",
+    "c168164c-0cc0-45bb-838b-ed37db04642e",
+    "f975591e-30bc-4324-be32-eaacc5f3797c",
+    "479a9d6b-16b0-47e7-b777-af428d5b82ad",
+    "37e4517d-c84e-44d8-ab99-ac82b02b23c2",
+    "03b1b858-5c28-410b-862a-3a312465b327"
+   ]
+  },
+  {
+   "de": "9149675.",
+   "a": "9149675",
+   "student_id": "cbcf6343-3542-4c9b-8943-29562e588133",
+   "notas": [
+    "5b122cf8-7776-4f0a-a1e0-21b335a11b28",
+    "ac766f9b-38ef-4d8c-91dc-ed8c54563362",
+    "7ee90321-1217-40e1-8074-b88ad6519555",
+    "12ceae8f-f07a-41c3-a6b1-71d7aae4c80e",
+    "477294ec-ab6f-436d-a7ad-9e9df6948575",
+    "2be8d632-fc5a-4ea6-821c-a362dbbe53b9",
+    "a05a7f56-15aa-493b-86a9-9d41b46fc0c6",
+    "6534f657-4204-4169-bdff-48560b3fbeb0",
+    "eeb4d7ac-15d5-4597-996b-160763fbc24e",
+    "ce4e9dee-7a13-4d19-8da8-6b5d1950ce45",
+    "714ae1e0-a87a-4164-bbf5-0ee614def5c2",
+    "a1444fd6-6afa-491a-8c93-6c4e996c16a1"
+   ],
+   "matriculas": [
+    "d704158c-76d5-4fd7-a6d0-eb5d77a43008",
+    "ba738a8e-8308-4297-b756-3b06488ba1e3",
+    "159a7be2-0478-486c-b065-64feb956d94e",
+    "7d4ea6f7-4261-4263-9a39-146a9cd4c103",
+    "f06f8856-626f-47ec-9164-2af97af4dc17",
+    "769db55d-0f56-46af-9889-17367f00916e",
+    "8aee7f90-70c0-4a09-b229-ef6da5c94597",
+    "b1e74dab-2892-44d7-8b1c-b7e5ccdb3baa",
+    "99dec1a2-4d2f-43d7-a80e-bb7f809ffce9",
+    "9f82b0f0-c1f9-4e1f-ac37-f1212bfbf3c8",
+    "90023d9b-687d-41ff-9f6a-1bb2514fd950",
+    "955d662a-4ec8-448e-b7f8-6b61f6c4a049"
+   ],
+   "auditoria": [
+    "c4252929-40bf-497d-bafb-1dba2dad77e5",
+    "cc02cfeb-4b2e-4cdf-82cb-f5974fce34be"
+   ]
+  },
+  {
+   "de": "473614..",
+   "a": "473614",
+   "student_id": "9b91fd03-c440-4a0d-b2fd-740779367ec8",
+   "notas": [
+    "316be163-b4a4-4e8e-9b5a-18ca012c02c3",
+    "65adde66-39bf-478e-a29d-19e1a8361a1b",
+    "acc6ee35-a6c0-4898-b736-e037d9e02dab",
+    "72fb2f9f-abe3-4feb-a108-5238e3879468",
+    "8f7f2000-d7f4-4ea1-a776-7813522a81db"
+   ],
+   "matriculas": [
+    "74a66fe5-3018-476e-8b01-e97e9a96e3a7",
+    "bdd70372-ad04-4903-8436-dc74844e43ed",
+    "2111c800-423e-4ec6-8983-ae0563b39e84",
+    "24384226-41d8-4156-868e-0c4d1dfa2ae9",
+    "dfcae8aa-bd14-4fc0-9236-0e00580f730f"
+   ],
+   "auditoria": [
+    "9cf2c9bf-5c5e-482b-b888-6569aafa5503",
+    "d310f496-18b1-4756-950c-d70de6b05591",
+    "6cdcc90a-e3a2-4168-a00e-78e4febc29e6",
+    "576a11b0-4064-487d-9121-a84b1eb99591",
+    "52f34f8b-3890-4959-b5ad-ee6fd10fc3f5"
+   ]
+  },
+  {
+   "de": "364823..",
+   "a": "364823",
+   "student_id": "655d1ee8-f631-4de9-87af-3fe5f4e7dfad",
+   "notas": [],
+   "matriculas": [
+    "30a971e9-2299-4f8c-ad48-c6506399da3c",
+    "bebaa6ed-bb8f-4f88-afee-a31bbf00f368",
+    "24ece80f-50c7-443f-8539-c2c7ea044364",
+    "d7ec7931-d764-40fa-bf57-98f9b16ce321",
+    "4589eb0a-91c1-49f3-be97-ab53e54bda3d"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": " 26637533",
+   "a": "26637533",
+   "student_id": "4c6450eb-0f37-4a37-9d81-fed7c2b1f430",
+   "notas": [],
+   "matriculas": [
+    "a9afefd2-3f57-49a4-8811-9dcbb3263203",
+    "264d99ce-2b0c-494d-9918-1f84144755c0",
+    "2b4d4d79-74e9-4c9e-93de-5a60fa6dfcd8",
+    "150f2f43-999e-410e-8cb2-9916c8f03467",
+    "74393b0d-9c5c-487b-9eda-1eabf0f78e05"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": ".8830427",
+   "a": "8830427",
+   "student_id": "a44d81f7-c506-4ceb-ae0d-04a04a412a4e",
+   "notas": [
+    "00f2b1d0-9017-4f5f-a9d8-4e2ef4f28f90",
+    "212b8f32-40a7-4fea-8066-d02cf57160a2",
+    "f274d9d2-ec2e-4da8-b131-8ea9d28db9f6"
+   ],
+   "matriculas": [
+    "6bc43d9b-29ba-4a9f-b3be-8beefdd096d2",
+    "4d76a10e-4af8-4ffb-a392-ab156064010f",
+    "1c379a59-d3f3-44e1-89a6-1fdc8aa898b2"
+   ],
+   "auditoria": [
+    "d06ade3f-879c-4370-b0c6-310591bebabf",
+    "246cfb5e-6371-4b10-a061-8d9c940375d8",
+    "e82a30c0-1ff3-4a11-a677-c411fcf1d425"
+   ]
+  },
+  {
+   "de": "8736614.",
+   "a": "8736614",
+   "student_id": "2a69e4bd-d307-4645-9c6f-c0f060be9910",
+   "notas": [],
+   "matriculas": [
+    "d4e8ba37-a0ab-47d8-89e7-e230ff29e55d",
+    "4f40fcff-90ac-49cc-b081-4bef1a8f94a5",
+    "58fcfa38-e34b-4358-a964-01a1aed5c4ab",
+    "35dd32d2-241f-43ba-9061-3ca70d99a713",
+    "5f204560-959c-4d8d-9d30-b88c4aae7f1a"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": "03658943-0",
+   "a": "036589430",
+   "student_id": "e4caf6ec-955f-4864-8fb6-0bf64452eb6d",
+   "notas": [],
+   "matriculas": [
+    "6bc6c6b7-c100-4da2-be03-7041060d2678",
+    "16041969-fc8e-4495-8348-ad1c9317c99b",
+    "59a444da-eeeb-48a6-83cf-aeb530995091",
+    "fb17c7bc-378f-41dc-8945-5aef2dded20d",
+    "6e0b7f49-b68e-456b-85a8-22d4e3a00546"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": "1801327774 ",
+   "a": "1801327774",
+   "student_id": "8ea4902c-5b15-4dcb-8d32-1bd99b4af4b0",
+   "notas": [],
+   "matriculas": [
+    "6c64ec3e-b42b-4e35-942c-1e4addd50d6b",
+    "765851fd-cd98-4fc1-9672-af34dbd7d233",
+    "dc4bcdbb-b51a-45e6-8238-8626b07a934e",
+    "ba127c91-cfea-4ede-88c3-866eb50de0ab",
+    "a5ff3fe9-0ea7-4c72-8d43-c693df10133d"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": ".8247670",
+   "a": "8247670",
+   "student_id": "1176515a-c530-4819-8ec0-b4ab35919b9d",
+   "notas": [
+    "a9d51c88-e493-4abd-9a72-5e15d2ed9a84",
+    "a877d7ac-c994-4ce3-897c-83daef3f15ef",
+    "362b5db7-cc60-44a1-9919-c0ef4a9fccdf",
+    "956a5e8a-c6d7-4df4-875f-d79a95557bd8"
+   ],
+   "matriculas": [
+    "c6adaee6-d072-4598-8d67-f7644881b70e",
+    "7eaf0d8f-3fe2-496e-8dd2-94bffebf5b34",
+    "cbcb66fa-649b-413c-8df8-2742b2b61f07",
+    "1e682424-915c-428d-8d65-3814836a6265",
+    "8bb3b076-ddf1-4f81-ba2f-e33f5393ff6d"
+   ],
+   "auditoria": [
+    "2bfba418-08e9-4bec-87bc-0c457fb00971",
+    "10d387a7-aa7c-4b2a-b2f7-9b1020a62c95",
+    "022ab6bf-ac2f-4e20-8c44-8fe374f022e5",
+    "215d18bf-cc8d-4b85-9f51-c023e21b2fc3"
+   ]
+  },
+  {
+   "de": ".850561.",
+   "a": "850561",
+   "student_id": "3e2405a1-8151-4740-8417-df4b3a53c0a1",
+   "notas": [
+    "192ff90a-ddd6-4268-9b79-cfe2fe24c46e",
+    "30ae1568-e7ec-4106-a894-9848228aac26",
+    "ad57f407-48e3-4fe5-af10-9137cc45708f",
+    "5b80d16e-36be-4b22-99ee-71a3c2497a12"
+   ],
+   "matriculas": [
+    "d368732f-c1bf-4070-bab0-4ebb1c2650a1",
+    "43e474b6-9684-4036-b1d7-9623ed3c9a5a",
+    "01b46e48-ef12-4fa9-9a69-eb4ee646a997",
+    "a2f98851-434a-4be7-a3af-7b025ba19e2c",
+    "62d59fe2-1e37-4510-9b0b-d1c778dfe0db"
+   ],
+   "auditoria": [
+    "e5a9fa1e-b3eb-4d1b-a031-c51028016bc8",
+    "44de5ed0-a970-4742-96db-401a3a9eb3b0",
+    "a28c2bbf-429f-441d-a3e9-eddd000ce747",
+    "b8c26e9c-7564-4e13-91d3-5a308baa274b"
+   ]
+  },
+  {
+   "de": "4739197.",
+   "a": "4739197",
+   "student_id": "99cdbd73-8d3f-4704-9ca1-0c7e59e31b03",
+   "notas": [],
+   "matriculas": [
+    "c85c65d9-f5ff-45b7-a691-67cb7d847fbd",
+    "d8df41f8-2f28-4df2-bc0d-6110f5877ee7",
+    "cf30443e-6f52-4a9a-8562-ac8a69e8ede0",
+    "94ebd195-ceee-43e6-91ea-fb8a76852fd2",
+    "cd3f4651-d96e-4ca8-8ef3-df712ef918b1"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": ".8505733",
+   "a": "8505733",
+   "student_id": "6fa4fbae-433b-45f9-ba5b-0d992fbaa505",
+   "notas": [],
+   "matriculas": [
+    "21259968-8e43-44ae-99cb-7e0e7d4ebeef",
+    "f5df1580-6895-4a0a-9ef6-1b8be58db11c",
+    "b0c6a5b9-b6a8-4bcb-adf9-1dec04376925",
+    "71002248-55e5-49ea-bc8f-ea43dac92805",
+    "00791099-884d-4008-a485-3bc0b3341d18"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": "13.048.820",
+   "a": "13048820",
+   "student_id": "0796ef85-a705-4665-9028-97934ae6d431",
+   "notas": [
+    "80f6f072-4d3d-4792-a81a-7756fbbac571"
+   ],
+   "matriculas": [
+    "9bf9c492-f898-489a-b686-ada51c531467",
+    "4286d4ca-420e-4139-a082-4d2f0c3b1e2a",
+    "0ac4d95e-d8d0-40ce-b47c-f2d030d65725",
+    "717dfc2a-8e8f-4e5d-9781-e18f24a4f740",
+    "a2686e88-c757-4511-881e-74cf7e79d828"
+   ],
+   "auditoria": [
+    "db02bdf5-7271-4bc3-aa40-8d10de95c727"
+   ]
+  },
+  {
+   "de": "16.502.981",
+   "a": "16502981",
+   "student_id": "afe90326-9d72-4e68-8a9d-47be93602086",
+   "notas": [
+    "df368b6b-1b25-4e57-afab-a4c6ae10a9f5",
+    "7073ed06-be88-4a31-a90c-dbfb5e1095dd",
+    "c6a5c34d-e0a0-4a11-901a-17132dc3c842",
+    "0960b5b9-d1a1-45f7-ba64-e0b6ab4551f2",
+    "1350e784-715e-4121-842a-7323fca056cd",
+    "1c51239d-f338-4a44-a06e-3e2d2ea0f5cc",
+    "b1d9c08c-a78a-4da2-ba1b-82c0eae47d0e"
+   ],
+   "matriculas": [
+    "6e37b83d-b6f6-4423-934b-8503dcff120e",
+    "c8bd34e1-ba63-4c50-aba9-55558f55cb8f",
+    "68c82c0c-7645-4347-acaa-2b7268b7718c",
+    "78df7682-2209-4698-a1c3-13808bb1b025",
+    "8e3fde57-4c5e-473d-ac2d-bd6276412069",
+    "c7a9ac84-4ea4-4fdc-9065-7140a8b17d56",
+    "5aff4609-2b5a-4f2a-8b18-d9e84a332a45",
+    "37c708df-ca53-4607-af2a-320c7c167b08",
+    "18c3e14a-ffc7-43e5-aa5d-86da3dff2193",
+    "02b48710-c172-4162-9e9d-5154ee802127",
+    "3d4f9f8c-785c-40dc-9893-bb6c50a26238",
+    "a8dbb46f-0fe9-4fdc-b54b-eedc265f507e",
+    "3ab66db1-8ba6-4cf1-8b8d-c032c8a248ad",
+    "09a4967f-469a-4d54-92bc-cc49d734660d",
+    "02e65409-cffd-46e1-8d21-2680c9ddd03f",
+    "91d797e0-07b0-4807-8895-31fa06e8273a",
+    "dee99e0e-b231-40ee-a9e6-64ed057a6cda",
+    "b756d25d-f169-4f9d-a3bc-9c17d4abdaa6",
+    "6511872c-688b-402c-a607-8c742a0063ca",
+    "08d9ca3a-54b1-4c0b-ae3d-00dac627898a"
+   ],
+   "auditoria": [
+    "6fdd0fec-6efe-47db-84f9-2ed93552c041",
+    "b01a4598-7772-4e07-8dfc-bfb1ad4cc320",
+    "c6300b8c-7abf-489d-8992-6452a13207e1",
+    "f58566e7-7d4f-451c-b492-2344bb048ab7",
+    "34dba458-ff46-4466-8792-5e18d72fd343"
+   ]
+  },
+  {
+   "de": "4764672.",
+   "a": "4764672",
+   "student_id": "ccffd48e-87c1-4266-a1b1-77f0497c578d",
+   "notas": [
+    "e481f213-cdc3-4688-a08f-6996dbf36b51",
+    "fb2b7e1d-1637-4e5d-a9f1-0a0c1ef6b18b",
+    "a4db6533-7315-491e-a4ae-16df752a0292",
+    "2de378ef-ebf3-4526-9e69-8c4ecb9bc13c"
+   ],
+   "matriculas": [
+    "6de7723b-ad88-431d-a5e3-f6887e06d3bb",
+    "56f99297-4e1f-4850-9dcc-b3415f38fc89",
+    "cdc1a3a7-a0cc-49e0-9b09-4a583a0ddb43",
+    "cd360ea4-73b1-4a62-a868-bbc863bb95d5",
+    "666302ce-f603-4a92-bb25-d412b0f3287b"
+   ],
+   "auditoria": [
+    "dacb4dd7-903c-438d-9dc5-947fad48b2dc",
+    "70f4eb42-d34b-41a9-81f1-fd302dc52e80",
+    "73c28d2a-9e77-4e45-ad36-1ff5f820f4c6",
+    "705c92f0-b4a9-43b3-bfb0-4a075225ee37"
+   ]
+  },
+  {
+   "de": "4350359.",
+   "a": "4350359",
+   "student_id": "204dd1b5-c35e-4f2d-a45e-4394c78881d3",
+   "notas": [
+    "d6c54227-c661-4ca2-b4fe-e45cbac49198",
+    "17e3c437-4e8e-4609-bf8a-f251047b1079",
+    "aa70add4-c835-4ee7-abe5-78e8438dce6c",
+    "0406ac13-3be9-42b1-a43a-e2948e80b46e"
+   ],
+   "matriculas": [
+    "ce10aa30-1666-4d28-8351-1d53dcc90f30",
+    "665904ef-03fa-44f0-8452-456518389db4",
+    "be88c26d-a505-4df2-a89d-c217b8c72151",
+    "77fccf33-b13b-437f-88ba-9ef6a1419f29",
+    "83448385-8258-4165-b0b6-7340266b22c7"
+   ],
+   "auditoria": [
+    "49e2f9d8-97c8-4119-804b-3063a2fb6f5e",
+    "aa166e22-d9a9-41e8-a800-581300d68761",
+    "dae8df58-c74d-41ec-a237-a452a7407438",
+    "96b0a777-0dc1-48bc-af42-443bfedc1b09",
+    "234f2d15-df93-4cb2-bb14-bd61b3047359"
+   ]
+  },
+  {
+   "de": "932979.",
+   "a": "932979",
+   "student_id": "0a135e8c-0d5a-429e-a630-69ea4d251058",
+   "notas": [
+    "e78f691f-23c7-4c16-b25c-db22e2e54906",
+    "199dd1d9-5da4-4849-8f06-876aacd3b6eb",
+    "0ba56bbf-c05a-497b-8a55-54062234892f"
+   ],
+   "matriculas": [
+    "93fc7268-de3a-46b8-b040-66b3b045fdcc",
+    "17faf029-2fd7-4ba1-b59e-2705b8a67ad5",
+    "096392dd-6327-40b3-8e84-38327d06e4f6"
+   ],
+   "auditoria": [
+    "85e5adb9-6432-4304-9018-349f4528149c",
+    "c995408c-9012-436c-869a-a34fd33b8ac5",
+    "36737a0c-679d-43a7-8239-5f522ac84c1e"
+   ]
+  },
+  {
+   "de": "4104193.",
+   "a": "4104193",
+   "student_id": "2cfeb391-bb43-4d94-ab54-9762aea089de",
+   "notas": [],
+   "matriculas": [
+    "b343fcb7-fb34-4a22-b8ce-c0330bb7eac5",
+    "46a918d6-ad21-4676-802a-033559905650",
+    "cf87d666-7af2-400a-811d-eba50360adbd",
+    "01e1d539-96fb-40e0-8b42-32067b430f11",
+    "f1558ffb-9724-45ec-93ff-c5fd3697307b"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": "N203476.",
+   "a": "N203476",
+   "student_id": "4101ae7b-ec15-4561-b831-9f5e748164aa",
+   "notas": [],
+   "matriculas": [
+    "a4674638-05a6-4c5d-8dd6-1d3228e6953d",
+    "b9c9b394-3531-401d-bf68-26aa9fa08611",
+    "a583cc89-5e8d-4c70-8f7c-32bcd4e86a98",
+    "8f90d66d-07af-408d-a33d-aa9615369dab",
+    "1b8f3105-554e-42d9-b77e-dd5cfe7ec8d8"
+   ],
+   "auditoria": []
+  },
+  {
+   "de": ".736135",
+   "a": "736135",
+   "student_id": "4aebbe9c-685b-4264-bf93-e3d2245adb56",
+   "notas": [
+    "23304d0e-a4be-434f-a02d-d637d8799f4d",
+    "adeedcce-27f2-4405-adb6-142845e40366",
+    "97ef0c9d-fc90-4006-a2cd-516807c9519b",
+    "2a67e7f1-bda6-49c3-acfb-2b1e735e85cf",
+    "42ccf5a5-36c7-45dd-adc3-60726a2913bb"
+   ],
+   "matriculas": [
+    "4107ef93-de97-4e28-a519-3ef27bf20767",
+    "eda54ad2-6b5b-498d-8c48-9c7633dc6421",
+    "3397993d-d942-4999-8b74-661490189787",
+    "256392ee-ad30-4a63-98ea-c0e19bc6a901",
+    "b2aa8e83-0ac9-4601-afa6-827451c16c57"
+   ],
+   "auditoria": [
+    "5671d90e-a7da-4145-ae0f-92ee65df842a",
+    "ccccd29f-a26e-4e32-9695-563297f1b9e6",
+    "1448c800-5243-42e6-ab9f-ad17b8a72429",
+    "9388cab2-9876-4d0e-a58f-e9273aa054c1",
+    "b244ffb4-cb33-44df-92c8-9caa8ef2745b"
+   ]
+  },
+  {
+   "de": "312768..",
+   "a": "312768",
+   "student_id": "a8c55238-a04e-477f-8808-c980af9ecdc2",
+   "notas": [
+    "10d101c0-3389-4f8f-a412-52cf858e2a39"
+   ],
+   "matriculas": [
+    "766c88cb-4a39-427e-b436-9f00717a5b33",
+    "51980463-b640-4c1e-80c7-25033c0f5650",
+    "78d4539f-79a4-4c0e-b30f-ce160e7c653c",
+    "058c1a5b-b88c-4c61-bcee-1454b41f2a74",
+    "8a1ca9e4-58eb-4840-9629-54803ea3caa2",
+    "79d2c1d8-5136-4eb8-92f7-4283e3706c34",
+    "eaf8c884-5f63-4561-a019-0676f67d21a1",
+    "f340b6c3-2485-47d6-8488-358d6ff0719e",
+    "782ce1de-cff0-41bd-8f8c-45df5cb6cdb5",
+    "578a9411-084b-4f1d-862e-fd0115b2a169"
+   ],
+   "auditoria": [
+    "d5b80925-a0a6-426c-a728-f88d913f61bf"
+   ]
+  }
+ ]
+}
