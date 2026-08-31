@@ -1,0 +1,189 @@
+{
+ "aplicado_en": "2026-08-31T17:53:05.631Z",
+ "nota": {
+  "external_id": "1acc3560-b7b5-4cba-a6a6-e1e02be96a0e",
+  "document_number": "72009270",
+  "email": "alvaroalbaracin@gmail.com",
+  "student_name": "Alvaro Andree Albaracin Ccuno",
+  "course_code": "ACC 430",
+  "course_name": "Accounting Analytics",
+  "credits": 3,
+  "term_year": 2024,
+  "term_block": "2",
+  "final_grade": 99.19,
+  "retake_grade": null,
+  "passing_score": null,
+  "group_number": 0,
+  "updated_at": null,
+  "synced_at": "2026-07-04T20:33:40.821+00:00",
+  "source": "systemactiva",
+  "edited_at": "2026-08-31T05:16:57.564+00:00",
+  "edited_by": "d5bc33ca-754b-458c-a1a7-27179bc70f1d",
+  "locked_at": null,
+  "moodle_course_id": 152,
+  "withdrawn_at": null,
+  "withdrawn_by": null,
+  "course_id": "36374023-4151-4273-9a8f-8901ca282d2d",
+  "course_enrollment_id": "3c08335f-e3c7-45a5-8b47-d15aa9925e61",
+  "rendido_pct": 100,
+  "estado_academico": "aprobado",
+  "last_evaluated_at": null,
+  "locked_by": null,
+  "intento": 1,
+  "semester_id": "f486ea73-cb8c-4b7a-ba3f-43c30ebccebe"
+ },
+ "detalle": {
+  "id": "4fa7d14c-c2fc-4839-aad1-8f0bc1574356",
+  "external_id": "1acc3560-b7b5-4cba-a6a6-e1e02be96a0e",
+  "student_id": "177a9c0e-9cd4-40dc-b554-b4ef9b7cf066",
+  "enrollment_id": "6f7c982a-9283-4f9b-b1b0-7cf9027c7ef6",
+  "course_code": "204",
+  "course_name": "Accounting Analytics",
+  "term_year": 2024,
+  "term_block": "2",
+  "final_grade": 62,
+  "retake_grade": null,
+  "makeup_grade": null,
+  "extra_points": 0,
+  "passing_score": null,
+  "max_score": 100,
+  "grades": [
+   {
+    "n": 1,
+    "pct": 50,
+    "val": null,
+    "desc": "Process Notes"
+   },
+   {
+    "n": 2,
+    "pct": 4,
+    "val": 100,
+    "desc": "Modules Test I"
+   },
+   {
+    "n": 3,
+    "pct": 4,
+    "val": 95,
+    "desc": "Modules Test II"
+   },
+   {
+    "n": 4,
+    "pct": 4,
+    "val": 100,
+    "desc": "Modules Test III"
+   },
+   {
+    "n": 5,
+    "pct": 4,
+    "val": 0,
+    "desc": "Modules Test IV"
+   },
+   {
+    "n": 6,
+    "pct": 4,
+    "val": 0,
+    "desc": "Modules Test V"
+   },
+   {
+    "n": 7,
+    "pct": 30,
+    "val": 0,
+    "desc": "Final Project"
+   }
+  ],
+  "process_grades": [
+   {
+    "n": 1,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 01"
+   },
+   {
+    "n": 2,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 02"
+   },
+   {
+    "n": 3,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 03"
+   },
+   {
+    "n": 4,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 04"
+   },
+   {
+    "n": 5,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 05"
+   },
+   {
+    "n": 6,
+    "pct": 6.66,
+    "val": 95,
+    "desc": "Assessment 06"
+   },
+   {
+    "n": 7,
+    "pct": 6.66,
+    "val": 95,
+    "desc": "Assessment 07"
+   },
+   {
+    "n": 8,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 08"
+   },
+   {
+    "n": 9,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 09"
+   },
+   {
+    "n": 10,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 10"
+   },
+   {
+    "n": 11,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 11"
+   },
+   {
+    "n": 12,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 12"
+   },
+   {
+    "n": 13,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 13"
+   },
+   {
+    "n": 14,
+    "pct": 6.66,
+    "val": 100,
+    "desc": "Assessment 14"
+   },
+   {
+    "n": 15,
+    "pct": 6.76,
+    "val": 100,
+    "desc": "Assessment 15"
+   }
+  ],
+  "created_at": "2026-07-09T01:27:11.631784+00:00",
+  "semester_id": "f486ea73-cb8c-4b7a-ba3f-43c30ebccebe"
+ }
+}
