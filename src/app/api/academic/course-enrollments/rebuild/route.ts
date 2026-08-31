@@ -91,13 +91,20 @@ export async function POST(req: NextRequest) {
   // 37 de ellas conviviendo con su nota— y numerarla convertiría lo no empezado
   // en el intento 1 y lo real en el 2. Por eso se descartan las de plan que
   // tengan un intento real al lado, y las que quedan van siempre como intento 1.
+  // La llave es la ASIGNATURA (course_id), no el nombre: por nombre, la fila
+  // de plan de un programa se descartaba porque existía una nota real de la
+  // homónima del OTRO programa del estudiante — y los programas son
+  // independientes (regla del usuario, 31-08-2026). El nombre queda solo de
+  // respaldo para filas que aún no tengan id (hoy: ninguna).
+  const claveDe = (n: { document_number: string | null; course_id?: string | null; course_name: string | null }) =>
+    `${n.document_number}|${n.course_id ?? `nombre:${courseNameKey(n.course_name)}`}`
   const conIntentoReal = new Set<string>()
   for (const n of todasLasNotas) {
     if (esFilaDePlan(n)) continue
-    conIntentoReal.add(`${n.document_number}|${courseNameKey(n.course_name)}`)
+    conIntentoReal.add(claveDe(n))
   }
   const grades = todasLasNotas.filter(n =>
-    !esFilaDePlan(n) || !conIntentoReal.has(`${n.document_number}|${courseNameKey(n.course_name)}`))
+    !esFilaDePlan(n) || !conIntentoReal.has(claveDe(n)))
 
   const idx = indexarMalla(courses)
   // El id de la asignatura manda sobre cualquier resolución por nombre.

@@ -142,13 +142,16 @@ export async function GET(req: NextRequest) {
   // —solo ve el detalle—. Ninguna de las dos mentía: eran dos registros de la
   // misma asignatura, y la pantalla que no sabía de validaciones enseñaba el
   // que sobraba.
+  // Por course_id, no por nombre: toda fila lo tiene desde el 31-08-2026 y el
+  // nombre dejó de ser llave de procesamiento (regla del usuario) — dos
+  // asignaturas homónimas de mallas distintas son asignaturas distintas.
   const resueltas = new Set<string>()
   if (stu?.document_number) {
     const { data: rv } = await sb.from('academic_grades')
-      .select('course_name, source').eq('document_number', stu.document_number)
+      .select('course_id, source').eq('document_number', stu.document_number)
       .in('source', ['validacion', 'convalidacion'])
-    for (const r of (rv ?? []) as { course_name: string | null }[]) {
-      if (r.course_name) resueltas.add(courseNameKey(r.course_name))
+    for (const r of (rv ?? []) as { course_id: string | null }[]) {
+      if (r.course_id) resueltas.add(String(r.course_id))
     }
   }
 
@@ -169,7 +172,11 @@ export async function GET(req: NextRequest) {
     const porCurso = new Map<string, Record<string, unknown>[]>()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const d of (details ?? []) as any[]) {
-      const k = courseNameKey(d.course_name)
+      // Se agrupa por la ASIGNATURA (course_id de la nota), no por el nombre:
+      // agrupar por nombre juntaba homónimas de dos mallas del mismo
+      // estudiante y las numeraba como si fueran intentos de la misma.
+      const cid = cursoByExt.get(String(d.external_id))
+      const k = cid ? `id:${cid}` : `nombre:${courseNameKey(d.course_name)}`
       if (!porCurso.has(k)) porCurso.set(k, [])
       // La nota y lo rendido viven en academic_grades: sin ellos no se puede
       // saber si la fila es un intento real o una inscripción vacía.
@@ -194,7 +201,10 @@ export async function GET(req: NextRequest) {
     // Solo se oculta la inscripción SIN nota: si tiene calificaciones, es un
     // hecho académico y debe verse aunque además esté validada — justamente el
     // caso que el auditor de vínculos señala para que alguien lo revise.
-    .filter(d => !(resueltas.has(courseNameKey(d.course_name)) && d.final_grade == null))
+    .filter(d => {
+      const cid = cursoByExt.get(String(d.external_id))
+      return !(cid && resueltas.has(String(cid)) && d.final_grade == null)
+    })
     // Restos de la migración: filas de detalle cuya NOTA ya no existe.
     //
     // Al separar el registro curricular de las calificaciones se sacaron 6.638

@@ -123,6 +123,10 @@ export async function GET(req: NextRequest) {
       kind: (esFilaDePlan(g) ? 'sin_registrar' : 'inscripcion') as 'inscripcion' | 'sin_registrar',
       _clave: `${g.course_id ?? courseNameKey(g.course_name)}|${g.intento ?? 1}`,
       _vacia: !has_grade && !g.moodle_course_id,
+      // La asignatura por su ID. Todas las agrupaciones de abajo van por él:
+      // el nombre dejó de ser llave de procesamiento (regla del usuario,
+      // 31-08-2026) y queda solo como texto de pantalla.
+      _cid: cm?.id != null ? String(cm.id) : (g.course_id != null ? String(g.course_id) : null),
     }
   })
 
@@ -189,6 +193,7 @@ export async function GET(req: NextRequest) {
       has_grade: true, withdrawn: false, editable: false,
       final_grade: i.converted_grade ?? null, retake_grade: null,
       kind: 'convalidacion' as const,
+      _cid: c?.id != null ? String(c.id) : (i.dest_course_id != null ? String(i.dest_course_id) : null),
     }
   })
 
@@ -213,7 +218,7 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cursosVivos = new Set(((matsReg ?? []) as any[]).filter(m => m.status !== 'retirada').map(m => String(m.course_id)))
   const cursoDeMalla = new Map(malla.map(c => [String(c.id), c]))
-  const yaRetiradaEnNotas = new Set(visibles.filter(r => r.withdrawn).map(r => courseNameKey(r.course_name)))
+  const yaRetiradaEnNotas = new Set(visibles.filter(r => r.withdrawn && r._cid).map(r => String(r._cid)))
   const motivoDe = (cb: string | null) => {
     const s = String(cb ?? '')
     if (s === 'cero-relleno-activa') return 'Retirada · limpieza de ceros de Activa'
@@ -224,7 +229,7 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const retiradasRegistro = (matsRet as any[])
     .filter(m => cursoDeMalla.has(String(m.course_id)))
-    .filter(m => !yaRetiradaEnNotas.has(courseNameKey(cursoDeMalla.get(String(m.course_id))!.name)))
+    .filter(m => !yaRetiradaEnNotas.has(String(m.course_id)))
     .map(m => {
       const c = cursoDeMalla.get(String(m.course_id))!
       return {
@@ -233,40 +238,43 @@ export async function GET(req: NextRequest) {
         term: `${motivoDe(m.closed_by)}${m.closed_at ? ` · ${String(m.closed_at).slice(0, 10)}` : ''}`,
         status: 'retirada', grade: null, has_grade: false, withdrawn: true, editable: false,
         final_grade: null, retake_grade: null, kind: 'inscripcion' as const,
+        _cid: String(m.course_id),
       }
     })
 
   // Lo que la malla tiene y el estudiante no: ni nota, ni convalidación, ni
   // retiro en el registro.
-  const conFila = new Set([...visibles, ...convRows, ...retiradasRegistro].map(r => courseNameKey(r.course_name)))
+  const conFila = new Set([...visibles, ...convRows, ...retiradasRegistro].map(r => String(r._cid ?? '')).filter(Boolean))
   // Con matrícula viva pero sin fila de nota VIVA: inscrita. Una nota retirada
   // no cuenta como fila para esto — a José Castillo el Re-Entry le reactivó 7
   // asignaturas (matrícula en_curso) cuyas notas viejas quedaron retiradas, y
   // la pantalla las mostraba solo como "Retirada" mientras el precio sí las
   // cobraba: 21 créditos que parecían "recursados" fantasma (23/08/2026). La
   // fila retirada se sigue mostrando en su sección, como historia.
-  const conFilaViva = new Set([...visibles.filter(r => !r.withdrawn), ...convRows].map(r => courseNameKey(r.course_name)))
+  const conFilaViva = new Set([...visibles.filter(r => !r.withdrawn), ...convRows].map(r => String(r._cid ?? '')).filter(Boolean))
   const inscritasSinFila = malla
-    .filter(c => !conFilaViva.has(courseNameKey(c.name)) && cursosVivos.has(String(c.id)))
+    .filter(c => !conFilaViva.has(String(c.id)) && cursosVivos.has(String(c.id)))
     .map(c => ({
       external_id: `insc:${c.id}`, course_code: c.code, course_name: c.name,
       credits: c.credits != null ? Number(c.credits) : null,
       term: 'Inscrita · sin calificaciones',
       status: 'inscrita', grade: null, has_grade: false, withdrawn: false, editable: false,
       final_grade: null, retake_grade: null, kind: 'inscripcion' as const,
+      _cid: String(c.id),
     }))
-  const faltantes = malla.filter(c => !conFila.has(courseNameKey(c.name)) && !cursosVivos.has(String(c.id))).map(c => ({
+  const faltantes = malla.filter(c => !conFila.has(String(c.id)) && !cursosVivos.has(String(c.id))).map(c => ({
     external_id: `falta:${c.id}`, course_code: c.code, course_name: c.name,
     credits: c.credits != null ? Number(c.credits) : null, term: '',
     status: 'no_iniciada', grade: null, has_grade: false, withdrawn: false, editable: false,
     final_grade: null, retake_grade: null, kind: 'sin_registrar' as const,
+    _cid: String(c.id),
   }))
 
-  // Se devuelve en el orden de la malla (nivel, código); lo que no está en la
-  // malla —notas sueltas de la carga histórica— va al final.
-  const orden = new Map(malla.map((c, i) => [courseNameKey(c.name), i]))
+  // Se devuelve en el orden de la malla (nivel, código); lo que no tenga
+  // asignatura identificable va al final.
+  const orden = new Map(malla.map((c, i) => [String(c.id), i]))
   const todas = [...visibles, ...convRows, ...retiradasRegistro, ...inscritasSinFila, ...faltantes]
-    .sort((a, b) => (orden.get(courseNameKey(a.course_name)) ?? 9999) - (orden.get(courseNameKey(b.course_name)) ?? 9999)
+    .sort((a, b) => (orden.get(String((a as { _cid?: string | null })._cid ?? '')) ?? 9999) - (orden.get(String((b as { _cid?: string | null })._cid ?? '')) ?? 9999)
       || String(a.course_name).localeCompare(String(b.course_name)))
 
   const { data: enr } = await sb.from('academic_student_enrollments')
@@ -280,7 +288,7 @@ export async function GET(req: NextRequest) {
   const creditoPorAsignatura = new Map<string, number>()
   for (const r of visibles) {
     if (r.withdrawn) continue
-    const k = courseNameKey(r.course_name)
+    const k = String(r._cid ?? courseNameKey(r.course_name))
     if (!creditoPorAsignatura.has(k)) creditoPorAsignatura.set(k, r.credits ?? 0)
   }
   const creditosActivos = [...creditoPorAsignatura.values()].reduce((s, v) => s + v, 0)
@@ -316,10 +324,10 @@ export async function GET(req: NextRequest) {
     // asignaturas de su malla completas, aunque muchas sigan sin empezar.
     malla_total: malla.length,
     sin_registrar: faltantes.length,
-    // Sin los campos de trabajo (_clave, _vacia): son para agrupar aquí, no
+    // Sin los campos de trabajo (_clave, _vacia, _cid): son para agrupar aquí, no
     // parte del registro que ve nadie.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rows: todas.map(({ _clave, _vacia, ...r }: any) => r),
+    rows: todas.map(({ _clave, _vacia, _cid, ...r }: any) => r),
   })
 }
 
