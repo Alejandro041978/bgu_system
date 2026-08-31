@@ -1,0 +1,6791 @@
+[
+ {
+  "doc": "71239446",
+  "course": "STA 460",
+  "superviviente": "cdb4881c-4ce3-4456-be7b-23153fddc332",
+  "filas": [
+   {
+    "external_id": "0b30701f-543f-457b-a368-0bdcd7cdcf98",
+    "document_number": "71239446",
+    "email": "liliovie031@gmail.com",
+    "student_name": "Lilian Melany Oviedo Cordova",
+    "course_code": "STA 460",
+    "course_name": "Advanced Statistics",
+    "credits": 3,
+    "term_year": 2026,
+    "term_block": null,
+    "final_grade": 29.33,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-07-30T09:38:00.398+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": 137,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "153bda06-79d3-42ae-9808-1ff4873d2cf1",
+    "course_enrollment_id": "05aa0140-8565-4164-8b97-74b238bc7f37",
+    "rendido_pct": 45.32,
+    "estado_academico": "pendiente",
+    "last_evaluated_at": "2026-08-25T11:36:45.25+00:00",
+    "locked_by": null,
+    "intento": 2,
+    "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+   },
+   {
+    "external_id": "cdb4881c-4ce3-4456-be7b-23153fddc332",
+    "document_number": "71239446",
+    "email": "liliovie031@gmail.com",
+    "student_name": "Lilian Melany Oviedo Cordova",
+    "course_code": "STA 460",
+    "course_name": "Advanced Statistics",
+    "credits": 3,
+    "term_year": 2024,
+    "term_block": "AY_24-25_FALL_2024",
+    "final_grade": 55,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": "2026-02-06T22:58:18.556+00:00",
+    "synced_at": "2026-07-04T20:33:48.501+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "153bda06-79d3-42ae-9808-1ff4873d2cf1",
+    "course_enrollment_id": "3c71ed5e-8133-4b45-a272-86f15c16a903",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "8bbee3dd-5f5e-4342-8a10-4af5915385e6",
+    "external_id": "0b30701f-543f-457b-a368-0bdcd7cdcf98",
+    "student_id": "1a94eb44-3f7d-42b3-8453-3865af21f3f3",
+    "enrollment_id": "4ee3e134-cad1-494e-9183-f36384253309",
+    "course_code": "STA 460",
+    "course_name": "Advanced Statistics",
+    "term_year": 2026,
+    "term_block": "AY_26_-_27_FALL_2026",
+    "final_grade": 29.33,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 75,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 75,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 85,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 90,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 40,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 55,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 25,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 30,
+      "val": null,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 11,
+      "pct": 3.33,
+      "val": 75,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 12,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 13,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 14,
+      "pct": 4,
+      "val": 70,
+      "desc": "Module Test I 16"
+     },
+     {
+      "n": 15,
+      "pct": 4,
+      "val": 70,
+      "desc": "Module Test II 17"
+     },
+     {
+      "n": 16,
+      "pct": 4,
+      "val": 60,
+      "desc": "Module Test III 18"
+     },
+     {
+      "n": 17,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test IV 19"
+     },
+     {
+      "n": 18,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 13"
+     },
+     {
+      "n": 19,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 14"
+     },
+     {
+      "n": 20,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 15"
+     },
+     {
+      "n": 21,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test V 20"
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 26,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 28,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     },
+     {
+      "n": 30,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 05",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-07-23T15:38:02.598857+00:00",
+    "semester_id": null
+   },
+   {
+    "id": "d28f6a2d-6f09-4bac-bfb0-5f03df35cc8f",
+    "external_id": "cdb4881c-4ce3-4456-be7b-23153fddc332",
+    "student_id": "1a94eb44-3f7d-42b3-8453-3865af21f3f3",
+    "enrollment_id": "4ee3e134-cad1-494e-9183-f36384253309",
+    "course_code": "207",
+    "course_name": "Advanced Statistics",
+    "term_year": 2024,
+    "term_block": "AY_24-25_FALL_2024",
+    "final_grade": 55,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 50,
+      "val": 42.62,
+      "desc": "\tProcess Notes"
+     },
+     {
+      "n": 2,
+      "pct": 4,
+      "val": 70,
+      "desc": "Modules Test I"
+     },
+     {
+      "n": 3,
+      "pct": 4,
+      "val": 70,
+      "desc": "Modules Test II"
+     },
+     {
+      "n": 4,
+      "pct": 4,
+      "val": 60,
+      "desc": "Modules Test III"
+     },
+     {
+      "n": 5,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test IV"
+     },
+     {
+      "n": 6,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test V"
+     },
+     {
+      "n": 7,
+      "pct": 30,
+      "val": 85,
+      "desc": "Final Project"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 6.66,
+      "val": 75,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 6.66,
+      "val": 75,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 6.66,
+      "val": 85,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 6.66,
+      "val": 90,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 6.66,
+      "val": 40,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 6.66,
+      "val": 55,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 6.66,
+      "val": 25,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 6.66,
+      "val": 60,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 6.66,
+      "val": 60,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 6.66,
+      "val": 75,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 13"
+     },
+     {
+      "n": 14,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 14"
+     },
+     {
+      "n": 15,
+      "pct": 6.76,
+      "val": 0,
+      "desc": "Assessment 15"
+     }
+    ],
+    "created_at": "2026-07-09T01:26:41.971464+00:00",
+    "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+   }
+  ]
+ },
+ {
+  "doc": "533140623",
+  "course": "MBA 604",
+  "superviviente": "3a4673e0-b948-448f-be97-3540ea1eee55",
+  "filas": [
+   {
+    "external_id": "1e83d0fb-1b69-4225-a4a2-a73c2bbcaefe",
+    "document_number": "533140623",
+    "email": "brenda.huanca.h@gmail.com",
+    "student_name": "Brenda Patricia Huanca Huanca",
+    "course_code": "MBA 604",
+    "course_name": "Information and Technology Management",
+    "credits": 3,
+    "term_year": 2025,
+    "term_block": "AY_25-26_SUMMER_2026",
+    "final_grade": 2.8,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-31T04:28:19.422+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": 345,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "7981c253-a2bc-4182-8eb9-6fcfdb857041",
+    "course_enrollment_id": "3fec11cc-ec75-43b9-9b54-6a7eb4659580",
+    "rendido_pct": 3.99,
+    "estado_academico": "pendiente",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 2,
+    "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781"
+   },
+   {
+    "external_id": "3a4673e0-b948-448f-be97-3540ea1eee55",
+    "document_number": "533140623",
+    "email": "brenda.huanca.h@gmail.com",
+    "student_name": "Brenda Patricia Huanca Huanca",
+    "course_code": "MBA 604",
+    "course_name": "Information and Technology Management",
+    "credits": 3,
+    "term_year": 2024,
+    "term_block": "2",
+    "final_grade": 33,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-04T20:33:37.607+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "7981c253-a2bc-4182-8eb9-6fcfdb857041",
+    "course_enrollment_id": "cdfaca4c-76f2-4a13-a375-2e25f4da4379",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "f486ea73-cb8c-4b7a-ba3f-43c30ebccebe"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "41361fcd-33e4-44be-904b-de487276bd79",
+    "external_id": "1e83d0fb-1b69-4225-a4a2-a73c2bbcaefe",
+    "student_id": "4d65daf4-f808-4282-98d2-37d6bad9ca84",
+    "enrollment_id": "a243d23f-d366-497b-8b49-de2a231202b8",
+    "course_code": "MBA 604",
+    "course_name": "Information and Technology Management",
+    "term_year": 2025,
+    "term_block": "AY_25-26_SUMMER_2026",
+    "final_grade": 2.8,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 4,
+      "val": null,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 13,
+      "pct": 4.8,
+      "val": null,
+      "desc": "Module Test I 13"
+     },
+     {
+      "n": 14,
+      "pct": 4.8,
+      "val": null,
+      "desc": "Module Test II 14"
+     },
+     {
+      "n": 15,
+      "pct": 4.8,
+      "val": null,
+      "desc": "Module Test III 15"
+     },
+     {
+      "n": 16,
+      "pct": 4.8,
+      "val": null,
+      "desc": "Module Test IV 16"
+     },
+     {
+      "n": 17,
+      "pct": 28.8,
+      "val": null,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 18,
+      "pct": 3.99,
+      "val": 70,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 19,
+      "max": 100,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 21,
+      "max": 100,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 23,
+      "max": 100,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 25,
+      "max": 100,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     },
+     {
+      "n": 27,
+      "max": 100,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-08-11T22:38:11.817094+00:00",
+    "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781"
+   },
+   {
+    "id": "0154457c-12a9-4748-b209-6bafd5bd31df",
+    "external_id": "3a4673e0-b948-448f-be97-3540ea1eee55",
+    "student_id": "4d65daf4-f808-4282-98d2-37d6bad9ca84",
+    "enrollment_id": "a243d23f-d366-497b-8b49-de2a231202b8",
+    "course_code": "110",
+    "course_name": "Information and Technology Management",
+    "term_year": 2024,
+    "term_block": "2",
+    "final_grade": 33,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": null,
+      "desc": "Total"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 4.17,
+      "val": 70,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 4.17,
+      "val": 90,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 4.16,
+      "val": 70,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 4.16,
+      "val": 50,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 4.16,
+      "val": null,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 4.16,
+      "val": null,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 10,
+      "val": null,
+      "desc": "Midterm Test"
+     },
+     {
+      "n": 14,
+      "pct": 10,
+      "val": null,
+      "desc": "Final Test"
+     },
+     {
+      "n": 15,
+      "pct": 30,
+      "val": null,
+      "desc": "Final Project"
+     }
+    ],
+    "created_at": "2026-07-09T01:27:06.109994+00:00",
+    "semester_id": "f486ea73-cb8c-4b7a-ba3f-43c30ebccebe"
+   }
+  ]
+ },
+ {
+  "doc": "71229767",
+  "course": "MAR 240",
+  "superviviente": "26fb1a4a-1cbb-4344-94ce-66939f026a9a",
+  "filas": [
+   {
+    "external_id": "26fb1a4a-1cbb-4344-94ce-66939f026a9a",
+    "document_number": "71229767",
+    "email": "leninlimache05@gmail.com",
+    "student_name": "Lenin Alexander Limache Gallegos",
+    "course_code": "MAR 240",
+    "course_name": "Marketing",
+    "credits": 3,
+    "term_year": 2024,
+    "term_block": "AY_24-25_SUMMER_2025",
+    "final_grade": 31,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": "2026-02-06T23:00:05.88+00:00",
+    "synced_at": "2026-07-04T20:33:41.989+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "abbe9fb0-bd1e-4270-8990-0825584f9c26",
+    "course_enrollment_id": "1796fa58-8cc9-4d41-b1d0-5bc88bf2e286",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 2,
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   },
+   {
+    "external_id": "cff44527-c1c6-4d86-8256-745138ea7295",
+    "document_number": "71229767",
+    "email": "leninlimache05@gmail.com",
+    "student_name": "Lenin Alexander Limache Gallegos",
+    "course_code": "MAR 240",
+    "course_name": "Marketing",
+    "credits": 3,
+    "term_year": 2022,
+    "term_block": "AY_22-23_SUMMER_2023",
+    "final_grade": 26,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-04T20:33:35.917+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "abbe9fb0-bd1e-4270-8990-0825584f9c26",
+    "course_enrollment_id": "07c8af80-198b-43b1-acbd-76094698d973",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "0a6d32cd-f5d2-4df0-8c89-79573ea2a0af"
+   },
+   {
+    "external_id": "f9107f3c-3138-4280-a3ac-08025b196833",
+    "document_number": "71229767",
+    "email": "leninlimache05@gmail.com",
+    "student_name": "Lenin Alexander Limache Gallegos",
+    "course_code": "MAR 240",
+    "course_name": "Marketing",
+    "credits": 3,
+    "term_year": 2025,
+    "term_block": "AY_25-26_SPRING_2026",
+    "final_grade": 5.67,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-12T14:39:03.275+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": 324,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "abbe9fb0-bd1e-4270-8990-0825584f9c26",
+    "course_enrollment_id": "07c8af80-198b-43b1-acbd-76094698d973",
+    "rendido_pct": 6.66,
+    "estado_academico": "pendiente",
+    "last_evaluated_at": "2026-08-25T22:37:20.344+00:00",
+    "locked_by": null,
+    "intento": 3,
+    "semester_id": "5161ae68-20ef-4fd5-b730-133c2b453823"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "2821e0f7-8d73-44d5-82fb-324e08445353",
+    "external_id": "26fb1a4a-1cbb-4344-94ce-66939f026a9a",
+    "student_id": "6893ee1a-d625-42fc-b32b-3af6dd2df884",
+    "enrollment_id": "6f05c6bd-883d-423f-b40e-e30022a22196",
+    "course_code": "109",
+    "course_name": "Marketing",
+    "term_year": 2024,
+    "term_block": "AY_24-25_SUMMER_2025",
+    "final_grade": 31,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 50,
+      "val": 11.32,
+      "desc": "Process Notes"
+     },
+     {
+      "n": 2,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test I"
+     },
+     {
+      "n": 3,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test II"
+     },
+     {
+      "n": 4,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test III"
+     },
+     {
+      "n": 5,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test IV"
+     },
+     {
+      "n": 6,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test V"
+     },
+     {
+      "n": 7,
+      "pct": 30,
+      "val": 85,
+      "desc": "Final Project"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 6.66,
+      "val": 75,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 6.66,
+      "val": 95,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 13"
+     },
+     {
+      "n": 14,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 14"
+     },
+     {
+      "n": 15,
+      "pct": 6.76,
+      "val": 0,
+      "desc": "Assessment 15"
+     }
+    ],
+    "created_at": "2026-07-09T01:27:13.768229+00:00",
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   },
+   {
+    "id": "04169e1d-0395-4cc9-8cfb-0be0ffd45e81",
+    "external_id": "cff44527-c1c6-4d86-8256-745138ea7295",
+    "student_id": "6893ee1a-d625-42fc-b32b-3af6dd2df884",
+    "enrollment_id": "6f05c6bd-883d-423f-b40e-e30022a22196",
+    "course_code": "109",
+    "course_name": "Marketing",
+    "term_year": 2022,
+    "term_block": "AY_22-23_SUMMER_2023",
+    "final_grade": 26,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": null,
+      "desc": "Total"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 0,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 0,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 0,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 0,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 3.33,
+      "val": 0,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 0,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 0,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 3.34,
+      "val": 0,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 3.34,
+      "val": 0,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 3.34,
+      "val": 0,
+      "desc": "Assessment 13"
+     },
+     {
+      "n": 14,
+      "pct": 3.34,
+      "val": 0,
+      "desc": "Assessment 14"
+     },
+     {
+      "n": 15,
+      "pct": 3.34,
+      "val": 0,
+      "desc": "Assessment 15"
+     },
+     {
+      "n": 16,
+      "pct": 10,
+      "val": 0,
+      "desc": "Midterm Test"
+     },
+     {
+      "n": 17,
+      "pct": 10,
+      "val": 0,
+      "desc": "Final Test"
+     },
+     {
+      "n": 18,
+      "pct": 30,
+      "val": 64.1,
+      "desc": "Final Project"
+     }
+    ],
+    "created_at": "2026-07-09T01:26:34.117135+00:00",
+    "semester_id": "0a6d32cd-f5d2-4df0-8c89-79573ea2a0af"
+   },
+   {
+    "id": "a06b4f98-998d-4232-a6eb-0670edb18e0f",
+    "external_id": "f9107f3c-3138-4280-a3ac-08025b196833",
+    "student_id": "6893ee1a-d625-42fc-b32b-3af6dd2df884",
+    "enrollment_id": "6f05c6bd-883d-423f-b40e-e30022a22196",
+    "course_code": "MAR 240",
+    "course_name": "Marketing",
+    "term_year": 2025,
+    "term_block": "AY_25-26_SPRING_2026",
+    "final_grade": 5.67,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 75,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 30,
+      "val": null,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 11,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 12,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 13,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 14,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test I 16"
+     },
+     {
+      "n": 15,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test II 17"
+     },
+     {
+      "n": 16,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test III 18"
+     },
+     {
+      "n": 17,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test IV 19"
+     },
+     {
+      "n": 18,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 13"
+     },
+     {
+      "n": 19,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 14"
+     },
+     {
+      "n": 20,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 15"
+     },
+     {
+      "n": 21,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test V 20"
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 26,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 28,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     },
+     {
+      "n": 30,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 05",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-08-12T14:39:03.944313+00:00",
+    "semester_id": "5161ae68-20ef-4fd5-b730-133c2b453823"
+   }
+  ]
+ },
+ {
+  "doc": "0512198901605",
+  "course": "HCM 600",
+  "superviviente": "c9a7a8cb-0b33-44f6-87b3-c48947b3c9f6",
+  "filas": [
+   {
+    "external_id": "4942dc6a-a30a-45bc-aa09-1f15b9373db8",
+    "document_number": "0512198901605",
+    "email": "katherinedominguezjulian@gmail.com",
+    "student_name": "Katherine Sussette Dominguez  Julian",
+    "course_code": "HCM 600",
+    "course_name": "Strategic Management of Healthcare Organizations",
+    "credits": 3,
+    "term_year": 2026,
+    "term_block": null,
+    "final_grade": 37.96,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-07-29T03:36:55.158+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": 357,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "02961cbf-b127-4c35-9c55-f736bd135ebb",
+    "course_enrollment_id": "1443e897-d25c-4fa6-9fe1-347b7696c07f",
+    "rendido_pct": 51.68,
+    "estado_academico": "pendiente",
+    "last_evaluated_at": "2026-08-25T11:18:14.963+00:00",
+    "locked_by": null,
+    "intento": 2,
+    "semester_id": null
+   },
+   {
+    "external_id": "c9a7a8cb-0b33-44f6-87b3-c48947b3c9f6",
+    "document_number": "0512198901605",
+    "email": "katherinedominguezjulian@gmail.com",
+    "student_name": "Katherine Sussette Dominguez  Julian",
+    "course_code": "HCM 600",
+    "course_name": "Strategic Management of Healthcare Organizations",
+    "credits": 3,
+    "term_year": 2026,
+    "term_block": "2",
+    "final_grade": 60,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": "2026-05-25T22:22:08.452+00:00",
+    "synced_at": "2026-07-04T20:33:45.268+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "02961cbf-b127-4c35-9c55-f736bd135ebb",
+    "course_enrollment_id": "1443e897-d25c-4fa6-9fe1-347b7696c07f",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "5161ae68-20ef-4fd5-b730-133c2b453823"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "1c845726-f313-4edc-bcbe-7a8c3841f47f",
+    "external_id": "4942dc6a-a30a-45bc-aa09-1f15b9373db8",
+    "student_id": "1799effb-d4b3-4b74-9fed-69d3e2745c50",
+    "enrollment_id": "019d1b4b-40ca-7d42-bcdc-5c89847ebd32",
+    "course_code": "HCM 600",
+    "course_name": "Strategic Management of Healthcare Organizations",
+    "term_year": 2025,
+    "term_block": "AY_25-26_SPRING_2026",
+    "final_grade": 43.96,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 4.17,
+      "val": 90,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 4.17,
+      "val": 65,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 4.17,
+      "val": 70,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 4.17,
+      "val": 75,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 4.17,
+      "val": 55,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 4.17,
+      "val": 55,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 4.17,
+      "val": 75,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 4.17,
+      "val": null,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 4.17,
+      "val": null,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 13,
+      "pct": 30,
+      "val": null,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 14,
+      "pct": 5,
+      "val": 75,
+      "desc": "Module Test I 13"
+     },
+     {
+      "n": 15,
+      "pct": 5,
+      "val": 80,
+      "desc": "Module Test II 14"
+     },
+     {
+      "n": 16,
+      "pct": 5,
+      "val": null,
+      "desc": "Module Test III 15"
+     },
+     {
+      "n": 17,
+      "pct": 5,
+      "val": null,
+      "desc": "Module Test IV 16"
+     },
+     {
+      "n": 18,
+      "max": 5,
+      "pct": null,
+      "val": 2,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 20,
+      "max": 5,
+      "pct": null,
+      "val": 4,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-07-26T07:37:15.790246+00:00",
+    "semester_id": null
+   },
+   {
+    "id": "7d19e7b4-fa3f-41d9-969f-0eaca6687c88",
+    "external_id": "c9a7a8cb-0b33-44f6-87b3-c48947b3c9f6",
+    "student_id": "1799effb-d4b3-4b74-9fed-69d3e2745c50",
+    "enrollment_id": "019d1b4b-40ca-7d42-bcdc-5c89847ebd32",
+    "course_code": "106",
+    "course_name": "Strategic Management of Healthcare Organizations",
+    "term_year": 2026,
+    "term_block": "2",
+    "final_grade": 60,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": 60.39,
+      "desc": "Process Notes"
+     },
+     {
+      "n": 2,
+      "pct": null,
+      "val": null,
+      "desc": "Module Test I"
+     },
+     {
+      "n": 3,
+      "pct": null,
+      "val": null,
+      "desc": "Module Test I"
+     },
+     {
+      "n": 4,
+      "pct": null,
+      "val": null,
+      "desc": "Module Test I"
+     },
+     {
+      "n": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Module Test I"
+     },
+     {
+      "n": 6,
+      "pct": null,
+      "val": null,
+      "desc": "Final Project"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 8.33,
+      "val": 90,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 8.33,
+      "val": 65,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 8.33,
+      "val": 70,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 8.33,
+      "val": 75,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 8.33,
+      "val": 55,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 8.33,
+      "val": 55,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 8.33,
+      "val": 75,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 8.33,
+      "val": null,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 8.37,
+      "val": null,
+      "desc": "Assessment 12"
+     }
+    ],
+    "created_at": "2026-07-09T01:26:55.832814+00:00",
+    "semester_id": "5161ae68-20ef-4fd5-b730-133c2b453823"
+   }
+  ]
+ },
+ {
+  "doc": "70536991",
+  "course": "BUS 340",
+  "superviviente": "4f239f9d-930a-4716-86db-21c10fb1f5de",
+  "filas": [
+   {
+    "external_id": "4f239f9d-930a-4716-86db-21c10fb1f5de",
+    "document_number": "70536991",
+    "email": "meyxuadriana@gmail.com",
+    "student_name": "Meyxu Adriana Lam Delerna",
+    "course_code": "BUS 340",
+    "course_name": "E-Business",
+    "credits": 3,
+    "term_year": 2024,
+    "term_block": "AY_24-25_SUMMER_2025",
+    "final_grade": 30,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-04T20:33:42.612+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": "2026-08-20T03:39:45.936+00:00",
+    "withdrawn_by": "fusion-acumulacion-parcial",
+    "course_id": "cdadc657-fbe3-4fc0-8785-1ba938116a43",
+    "course_enrollment_id": "76c87469-6c7b-4c31-94f4-6c3bbc730d51",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   },
+   {
+    "external_id": "58d9d882-22ac-4d5f-a06e-f504a08662ed",
+    "document_number": "70536991",
+    "email": "meyxuadriana@gmail.com",
+    "student_name": "Meyxu Adriana Lam Delerna",
+    "course_code": "BUS 340",
+    "course_name": "E-Business",
+    "credits": 3,
+    "term_year": 2026,
+    "term_block": "AY_26_-_27_FALL_2026",
+    "final_grade": 29.87,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-12T00:36:38.812+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": 304,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "cdadc657-fbe3-4fc0-8785-1ba938116a43",
+    "course_enrollment_id": "187484d8-394b-4490-940c-e3841e00b7c4",
+    "rendido_pct": 41.99,
+    "estado_academico": "pendiente",
+    "last_evaluated_at": "2026-08-25T14:38:35.014+00:00",
+    "locked_by": null,
+    "intento": 2,
+    "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+   },
+   {
+    "external_id": "a36f5d94-0798-4f04-9105-e56146fec867",
+    "document_number": "70536991",
+    "email": "meyxuadriana@gmail.com",
+    "student_name": "Meyxu Adriana Lam Delerna",
+    "course_code": "BUS 340",
+    "course_name": "E-Business",
+    "credits": 3,
+    "term_year": 2024,
+    "term_block": "AY_24-25_FALL_2024",
+    "final_grade": 19,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": "2026-04-17T13:58:36.433+00:00",
+    "synced_at": "2026-07-04T20:33:39.219+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "cdadc657-fbe3-4fc0-8785-1ba938116a43",
+    "course_enrollment_id": "187484d8-394b-4490-940c-e3841e00b7c4",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "b667aaf8-c32f-4765-9413-44600dd5a6bf",
+    "external_id": "4f239f9d-930a-4716-86db-21c10fb1f5de",
+    "student_id": "923d8143-33c0-41bc-a29b-be413491a63d",
+    "enrollment_id": "b6d1a726-0089-4991-b48a-71931d578f7e",
+    "course_code": "105",
+    "course_name": "E-Business",
+    "term_year": 2024,
+    "term_block": "AY_24-25_SUMMER_2025",
+    "final_grade": 30,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 50,
+      "val": null,
+      "desc": "Process Notes"
+     },
+     {
+      "n": 2,
+      "pct": 4,
+      "val": 75,
+      "desc": "Modules Test I"
+     },
+     {
+      "n": 3,
+      "pct": 4,
+      "val": 75,
+      "desc": "Modules Test II"
+     },
+     {
+      "n": 4,
+      "pct": 4,
+      "val": 80,
+      "desc": "Modules Test III"
+     },
+     {
+      "n": 5,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test IV"
+     },
+     {
+      "n": 6,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test V"
+     },
+     {
+      "n": 7,
+      "pct": 30,
+      "val": 0,
+      "desc": "Final Project"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 6.66,
+      "val": 70,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 6.66,
+      "val": 80,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 6.66,
+      "val": 75,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 6.66,
+      "val": 55,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 6.66,
+      "val": 55,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 6.66,
+      "val": 70,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 6.66,
+      "val": 60,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 6.66,
+      "val": 85,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 6.66,
+      "val": 70,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 13"
+     },
+     {
+      "n": 14,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 14"
+     },
+     {
+      "n": 15,
+      "pct": 6.76,
+      "val": 0,
+      "desc": "Assessment 15"
+     }
+    ],
+    "created_at": "2026-07-09T01:27:23.569784+00:00",
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   },
+   {
+    "id": "4d219498-8c57-4bfc-9df2-cd0292688275",
+    "external_id": "58d9d882-22ac-4d5f-a06e-f504a08662ed",
+    "student_id": "923d8143-33c0-41bc-a29b-be413491a63d",
+    "enrollment_id": "b6d1a726-0089-4991-b48a-71931d578f7e",
+    "course_code": "BUS 340",
+    "course_name": "E-Business",
+    "term_year": 2026,
+    "term_block": "AY_26_-_27_FALL_2026",
+    "final_grade": 29.87,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 75,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 55,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 55,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 30,
+      "val": null,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 85,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 11,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 12,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 13,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 14,
+      "pct": 4,
+      "val": 75,
+      "desc": "Module Test I 16"
+     },
+     {
+      "n": 15,
+      "pct": 4,
+      "val": 75,
+      "desc": "Module Test II 17"
+     },
+     {
+      "n": 16,
+      "pct": 4,
+      "val": 80,
+      "desc": "Module Test III 18"
+     },
+     {
+      "n": 17,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test IV 19"
+     },
+     {
+      "n": 18,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 13"
+     },
+     {
+      "n": 19,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 14"
+     },
+     {
+      "n": 20,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 15"
+     },
+     {
+      "n": 21,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test V 20"
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 26,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 28,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     },
+     {
+      "n": 30,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 05",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-08-12T00:36:39.912889+00:00",
+    "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+   },
+   {
+    "id": "cb8be9c4-ca9e-472c-8a91-1fa3913b051b",
+    "external_id": "a36f5d94-0798-4f04-9105-e56146fec867",
+    "student_id": "923d8143-33c0-41bc-a29b-be413491a63d",
+    "enrollment_id": "b6d1a726-0089-4991-b48a-71931d578f7e",
+    "course_code": "105",
+    "course_name": "E-Business",
+    "term_year": 2024,
+    "term_block": "AY_24-25_FALL_2024",
+    "final_grade": 19,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": 19.31,
+      "desc": "Total"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 0,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 50,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 30,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 50,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 20,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 3.33,
+      "val": 0,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 0,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 0,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 3.34,
+      "val": 0,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 3.34,
+      "val": 0,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 3.34,
+      "val": 0,
+      "desc": "Assessment 13"
+     },
+     {
+      "n": 14,
+      "pct": 3.34,
+      "val": 0,
+      "desc": "Assessment 14"
+     },
+     {
+      "n": 15,
+      "pct": 3.34,
+      "val": 0,
+      "desc": "Assessment 15"
+     },
+     {
+      "n": 16,
+      "pct": 10,
+      "val": 0,
+      "desc": "Midterm Test"
+     },
+     {
+      "n": 17,
+      "pct": 10,
+      "val": 0,
+      "desc": "Final Test"
+     },
+     {
+      "n": 18,
+      "pct": 30,
+      "val": 0,
+      "desc": "Final Project"
+     }
+    ],
+    "created_at": "2026-07-09T01:27:21.379055+00:00",
+    "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+   }
+  ]
+ },
+ {
+  "doc": "29707264",
+  "course": "MAR 420",
+  "superviviente": "a718c79d-fc43-420f-b2c7-7180f5386cfb",
+  "filas": [
+   {
+    "external_id": "5c643583-a02d-4ebc-ac1f-3bda5c0b3e1a",
+    "document_number": "29707264",
+    "email": "abobadilla@isur.edu.pe",
+    "student_name": "Angel Alfonso Bobadilla Mamani",
+    "course_code": "MAR 420",
+    "course_name": "International Marketing",
+    "credits": 3,
+    "term_year": 2026,
+    "term_block": null,
+    "final_grade": 28.73,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-07-29T08:38:15.95+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": 442,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "a0e5d214-0afb-4461-9ff9-4c05ecd09f09",
+    "course_enrollment_id": "c71a8379-5ad9-4db5-8d41-d937fc2e90d1",
+    "rendido_pct": 69.98,
+    "estado_academico": "pendiente",
+    "last_evaluated_at": "2026-08-25T19:38:15.556+00:00",
+    "locked_by": null,
+    "intento": 2,
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   },
+   {
+    "external_id": "a718c79d-fc43-420f-b2c7-7180f5386cfb",
+    "document_number": "29707264",
+    "email": "abobadilla@isur.edu.pe",
+    "student_name": "Angel Alfonso Bobadilla Mamani",
+    "course_code": "MAR 420",
+    "course_name": "International Marketing",
+    "credits": 3,
+    "term_year": 2024,
+    "term_block": "AY_24-25_SPRING_2025",
+    "final_grade": 33,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": "2026-07-10T17:01:37.433+00:00",
+    "synced_at": "2026-07-04T20:33:44.91+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "a0e5d214-0afb-4461-9ff9-4c05ecd09f09",
+    "course_enrollment_id": "af81dc43-fd1b-45c7-9075-748c2ac34269",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "fda8181e-dd92-43e2-b1cb-037d119e7e78",
+    "external_id": "5c643583-a02d-4ebc-ac1f-3bda5c0b3e1a",
+    "student_id": "d548a959-f0d8-439f-baf9-5470f6b5a303",
+    "enrollment_id": "f417b2b3-8b2d-45aa-af05-bea499714683",
+    "course_code": "MAR 420",
+    "course_name": "International Marketing",
+    "term_year": 2025,
+    "term_block": "AY_25-26_SUMMER_2026",
+    "final_grade": 38.73,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 65,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 55,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 50,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 65,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 50,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 30,
+      "val": null,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 30,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 65,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 11,
+      "pct": 3.33,
+      "val": 30,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 12,
+      "pct": 3.33,
+      "val": 15,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 13,
+      "pct": 3.33,
+      "val": 15,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 14,
+      "pct": 4,
+      "val": 70,
+      "desc": "Module Test I 16"
+     },
+     {
+      "n": 15,
+      "pct": 4,
+      "val": 50,
+      "desc": "Module Test II 17"
+     },
+     {
+      "n": 16,
+      "pct": 4,
+      "val": 40,
+      "desc": "Module Test III 18"
+     },
+     {
+      "n": 17,
+      "pct": 4,
+      "val": 5,
+      "desc": "Module Test IV 19"
+     },
+     {
+      "n": 18,
+      "pct": 3.33,
+      "val": 15,
+      "desc": "Quiz Session 13"
+     },
+     {
+      "n": 19,
+      "pct": 3.33,
+      "val": 40,
+      "desc": "Quiz Session 14"
+     },
+     {
+      "n": 20,
+      "pct": 3.33,
+      "val": 15,
+      "desc": "Quiz Session 15"
+     },
+     {
+      "n": 21,
+      "pct": 4,
+      "val": 20,
+      "desc": "Module Test V 20"
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": 5,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 26,
+      "max": 5,
+      "pct": null,
+      "val": 5,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 28,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     },
+     {
+      "n": 30,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 05",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-07-23T18:37:49.578087+00:00",
+    "semester_id": null
+   },
+   {
+    "id": "85cc0af5-2b7f-4441-8c62-05940a01f236",
+    "external_id": "a718c79d-fc43-420f-b2c7-7180f5386cfb",
+    "student_id": "d548a959-f0d8-439f-baf9-5470f6b5a303",
+    "enrollment_id": "f417b2b3-8b2d-45aa-af05-bea499714683",
+    "course_code": "203",
+    "course_name": "International Marketing",
+    "term_year": 2024,
+    "term_block": "AY_24-25_SPRING_2025",
+    "final_grade": null,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": null,
+      "desc": "Total"
+     }
+    ],
+    "process_grades": null,
+    "created_at": "2026-07-09T01:27:23.569784+00:00",
+    "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+   }
+  ]
+ },
+ {
+  "doc": "70569764",
+  "course": "BUS 350",
+  "superviviente": "d1999ed7-b7b7-4d82-a5c0-678a88901311",
+  "filas": [
+   {
+    "external_id": "d1999ed7-b7b7-4d82-a5c0-678a88901311",
+    "document_number": "70569764",
+    "email": "karen.osco@neumann.global",
+    "student_name": "Karen Olenka Osco Quispe",
+    "course_code": "BUS 350",
+    "course_name": "Public Administration",
+    "credits": 3,
+    "term_year": 2024,
+    "term_block": "AY_24-25_FALL_2024",
+    "final_grade": 48,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-04T20:33:42.978+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "c031b577-e942-4dd3-ac8b-406cddce8057",
+    "course_enrollment_id": "59fcc56c-6c88-4061-a1b9-75a1020ae379",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+   },
+   {
+    "external_id": "e0d06c85-690c-44d4-a574-894dc2951995",
+    "document_number": "70569764",
+    "email": "karen.osco@neumann.global",
+    "student_name": "Karen Olenka Osco Quispe",
+    "course_code": "BUS 350",
+    "course_name": "Public Administration",
+    "credits": 3,
+    "term_year": 2026,
+    "term_block": "AY_26_-_27_FALL_2026",
+    "final_grade": 20.47,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-12T02:37:05.931+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": 134,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "c031b577-e942-4dd3-ac8b-406cddce8057",
+    "course_enrollment_id": "59fcc56c-6c88-4061-a1b9-75a1020ae379",
+    "rendido_pct": 37.32,
+    "estado_academico": "pendiente",
+    "last_evaluated_at": "2026-08-25T11:09:26.754+00:00",
+    "locked_by": null,
+    "intento": 2,
+    "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "00bbd254-a747-41a0-bf01-653e868c1286",
+    "external_id": "d1999ed7-b7b7-4d82-a5c0-678a88901311",
+    "student_id": "f4c23ff4-180a-490d-a05d-7e10fca38ff9",
+    "enrollment_id": "cdfb3cf3-c42c-42ab-a31a-abd4c8715340",
+    "course_code": "205",
+    "course_name": "Public Administration",
+    "term_year": 2024,
+    "term_block": "AY_24-25_FALL_2024",
+    "final_grade": 48,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 50,
+      "val": null,
+      "desc": "Process Notes"
+     },
+     {
+      "n": 2,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test I"
+     },
+     {
+      "n": 3,
+      "pct": 4,
+      "val": 45,
+      "desc": "Modules Test II"
+     },
+     {
+      "n": 4,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test III"
+     },
+     {
+      "n": 5,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test IV"
+     },
+     {
+      "n": 6,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test V"
+     },
+     {
+      "n": 7,
+      "pct": 30,
+      "val": 90,
+      "desc": "Final Project"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 6.66,
+      "val": 65,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 6.66,
+      "val": 80,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 6.66,
+      "val": 55,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 6.66,
+      "val": 45,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 6.66,
+      "val": 70,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 6.66,
+      "val": 45,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 6.66,
+      "val": 70,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 6.66,
+      "val": 60,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 6.66,
+      "val": 55,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 6.66,
+      "val": 15,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 13"
+     },
+     {
+      "n": 14,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 14"
+     },
+     {
+      "n": 15,
+      "pct": 6.76,
+      "val": 0,
+      "desc": "Assessment 15"
+     }
+    ],
+    "created_at": "2026-07-09T01:27:21.112035+00:00",
+    "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+   },
+   {
+    "id": "4348ea4a-959a-43a1-8496-6f19910d2a15",
+    "external_id": "e0d06c85-690c-44d4-a574-894dc2951995",
+    "student_id": "f4c23ff4-180a-490d-a05d-7e10fca38ff9",
+    "enrollment_id": "cdfb3cf3-c42c-42ab-a31a-abd4c8715340",
+    "course_code": "BUS 350",
+    "course_name": "Public Administration",
+    "term_year": 2026,
+    "term_block": "AY_26_-_27_FALL_2026",
+    "final_grade": 20.47,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 65,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 55,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 45,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 45,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 55,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 15,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 13,
+      "pct": 30,
+      "val": null,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 14,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test I 16"
+     },
+     {
+      "n": 15,
+      "pct": 4,
+      "val": 45,
+      "desc": "Module Test II 17"
+     },
+     {
+      "n": 16,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test III 18"
+     },
+     {
+      "n": 17,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test IV 19"
+     },
+     {
+      "n": 18,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 13"
+     },
+     {
+      "n": 19,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 14"
+     },
+     {
+      "n": 20,
+      "pct": 3.33,
+      "val": null,
+      "desc": "Quiz Session 15"
+     },
+     {
+      "n": 21,
+      "pct": 4,
+      "val": null,
+      "desc": "Module Test V 20"
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 26,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 28,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     },
+     {
+      "n": 30,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 05",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-08-12T02:37:06.599042+00:00",
+    "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+   }
+  ]
+ },
+ {
+  "doc": "43152334",
+  "course": "BUS 430",
+  "superviviente": "0786036f-7adf-4135-b677-f146d228c820",
+  "filas": [
+   {
+    "external_id": "0786036f-7adf-4135-b677-f146d228c820",
+    "document_number": "43152334",
+    "email": "edith.lopez@neumann.global",
+    "student_name": "Edith Galesi Lopez Ticona",
+    "course_code": "BUS 430",
+    "course_name": "Emerging Technologies",
+    "credits": 3,
+    "term_year": 2023,
+    "term_block": "AY_23-24_SPRING_2024",
+    "final_grade": 3,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-04T20:33:40.539+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "7ee52d5b-2ea3-4a8c-8572-a72f40b23fe6",
+    "course_enrollment_id": "8ad898eb-78bd-4442-99a2-9296e6eccda6",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 2,
+    "semester_id": "f1ca6e00-6dca-4313-912b-101037d76c95"
+   },
+   {
+    "external_id": "f028ca9e-7b85-4b99-afdc-962f29c87993",
+    "document_number": "43152334",
+    "email": "gaia_lopez@outlook.com",
+    "student_name": "Edith Galesi Lopez Ticona",
+    "course_code": "BUS 430",
+    "course_name": "Emerging Technologies",
+    "credits": 3,
+    "term_year": 2025,
+    "term_block": "AY_25-26_FALL_2025",
+    "final_grade": 92.47,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-12T09:39:06.325+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": "2026-08-12T10:20:43.627+00:00",
+    "moodle_course_id": 135,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "7ee52d5b-2ea3-4a8c-8572-a72f40b23fe6",
+    "course_enrollment_id": "61249c67-86ef-448c-892f-cd5896e54360",
+    "rendido_pct": 100,
+    "estado_academico": "aprobado",
+    "last_evaluated_at": "2026-08-12T09:39:09.129+00:00",
+    "locked_by": "cron-cierre",
+    "intento": 1,
+    "semester_id": "86fe3d63-6b23-47ed-bdd7-6793b5364296"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "ee5ceded-1990-476a-b1ad-9fd2c3cc84cd",
+    "external_id": "0786036f-7adf-4135-b677-f146d228c820",
+    "student_id": "1cfb6d6c-3950-4cb4-8424-fda4e6c96a0d",
+    "enrollment_id": "f368d4a3-7292-47c2-8009-24498233c295",
+    "course_code": "204",
+    "course_name": "Emerging Technologies",
+    "term_year": 2023,
+    "term_block": "AY_23-24_SPRING_2024",
+    "final_grade": 3,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 50,
+      "val": null,
+      "desc": "Process Notes"
+     },
+     {
+      "n": 2,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test I"
+     },
+     {
+      "n": 3,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test II"
+     },
+     {
+      "n": 4,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test III"
+     },
+     {
+      "n": 5,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test IV"
+     },
+     {
+      "n": 6,
+      "pct": 4,
+      "val": 0,
+      "desc": "Modules Test V"
+     },
+     {
+      "n": 7,
+      "pct": 30,
+      "val": 0,
+      "desc": "Final Project"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 6.66,
+      "val": 90,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 13"
+     },
+     {
+      "n": 14,
+      "pct": 6.66,
+      "val": 0,
+      "desc": "Assessment 14"
+     },
+     {
+      "n": 15,
+      "pct": 6.76,
+      "val": 0,
+      "desc": "Assessment 15"
+     }
+    ],
+    "created_at": "2026-07-09T01:26:34.962263+00:00",
+    "semester_id": "f1ca6e00-6dca-4313-912b-101037d76c95"
+   },
+   {
+    "id": "46a87e73-eba6-40e0-8e5d-1f592600265a",
+    "external_id": "f028ca9e-7b85-4b99-afdc-962f29c87993",
+    "student_id": "1cfb6d6c-3950-4cb4-8424-fda4e6c96a0d",
+    "enrollment_id": "f368d4a3-7292-47c2-8009-24498233c295",
+    "course_code": "BUS 430",
+    "course_name": "Emerging Technologies",
+    "term_year": 2025,
+    "term_block": "AY_25-26_FALL_2025",
+    "final_grade": 92.47,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 90,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 90,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 90,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 30,
+      "val": 90,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 11,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 12,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 13,
+      "pct": 3.33,
+      "val": 85,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 14,
+      "pct": 4,
+      "val": 100,
+      "desc": "Module Test I 16"
+     },
+     {
+      "n": 15,
+      "pct": 4,
+      "val": 95,
+      "desc": "Module Test II 17"
+     },
+     {
+      "n": 16,
+      "pct": 4,
+      "val": 95,
+      "desc": "Module Test III 18"
+     },
+     {
+      "n": 17,
+      "pct": 4,
+      "val": 95,
+      "desc": "Module Test IV 19"
+     },
+     {
+      "n": 18,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Quiz Session 13"
+     },
+     {
+      "n": 19,
+      "pct": 3.33,
+      "val": 85,
+      "desc": "Quiz Session 14"
+     },
+     {
+      "n": 20,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 15"
+     },
+     {
+      "n": 21,
+      "pct": 4,
+      "val": 85,
+      "desc": "Module Test V 20"
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 26,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 28,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     },
+     {
+      "n": 30,
+      "max": 5,
+      "pct": null,
+      "val": 5,
+      "desc": "Live Class Quiz 05",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-07-24T20:36:41.763122+00:00",
+    "semester_id": "86fe3d63-6b23-47ed-bdd7-6793b5364296"
+   }
+  ]
+ },
+ {
+  "doc": "1047470353",
+  "course": "HCM 603",
+  "superviviente": "0bb0bb75-5517-4797-b9c9-23fe317c02d7",
+  "filas": [
+   {
+    "external_id": "0bb0bb75-5517-4797-b9c9-23fe317c02d7",
+    "document_number": "1047470353",
+    "email": "ginnarengi@hotmail.com",
+    "student_name": "Ginna Maria Rengifo Cardenas",
+    "course_code": "HCM 603",
+    "course_name": "Hospital Management",
+    "credits": 3,
+    "term_year": 2025,
+    "term_block": "2",
+    "final_grade": 67,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": "2026-07-06T03:38:50.262+00:00",
+    "synced_at": "2026-07-04T20:33:40.822+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": "2026-08-20T23:58:41.494+00:00",
+    "withdrawn_by": "fusion-acumulacion-parcial",
+    "course_id": "66713667-edc9-4c83-81d6-517bd810d909",
+    "course_enrollment_id": "9321de54-3d7d-498b-915c-3ae1abbcd803",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+   },
+   {
+    "external_id": "93749ba5-9881-446e-ade4-0f7dd11755f0",
+    "document_number": "1047470353",
+    "email": "ginnarengi@hotmail.com",
+    "student_name": "Ginna Maria Rengifo Cardenas",
+    "course_code": "HCM 603",
+    "course_name": "Hospital Management",
+    "credits": 3,
+    "term_year": 2026,
+    "term_block": null,
+    "final_grade": 73.67,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-07-29T03:35:26.361+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": "2026-08-01T10:20:40.61+00:00",
+    "moodle_course_id": 434,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "66713667-edc9-4c83-81d6-517bd810d909",
+    "course_enrollment_id": "c7b5412a-31bb-4c94-bea7-85700d109717",
+    "rendido_pct": 100,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": "cron-cierre",
+    "intento": 1,
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "06fee90c-2bf1-4277-8b4d-dd273558b6d5",
+    "external_id": "0bb0bb75-5517-4797-b9c9-23fe317c02d7",
+    "student_id": "f68072d8-019c-47b8-a6a8-4b92235f712e",
+    "enrollment_id": "437fb71c-3162-4a04-8ddf-b400c13ed279",
+    "course_code": "109",
+    "course_name": "Hospital Management",
+    "term_year": 2025,
+    "term_block": "2",
+    "final_grade": 67,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": 66.67,
+      "desc": "Total"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 4.17,
+      "val": 50,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 4.17,
+      "val": 90,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 4.17,
+      "val": 65,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 4.17,
+      "val": 65,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 4.17,
+      "val": 50,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 4.17,
+      "val": 35,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 4.17,
+      "val": 90,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 4.16,
+      "val": 60,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 4.16,
+      "val": 55,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 4.16,
+      "val": 65,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 4.16,
+      "val": 55,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 10,
+      "val": 85,
+      "desc": "Midterm Test"
+     },
+     {
+      "n": 14,
+      "pct": 10,
+      "val": 70,
+      "desc": "Final Test"
+     },
+     {
+      "n": 15,
+      "pct": 30,
+      "val": 65,
+      "desc": "Final Project"
+     }
+    ],
+    "created_at": "2026-07-09T01:27:23.824708+00:00",
+    "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+   },
+   {
+    "id": "12fbe175-8af8-497a-9bc8-730a8b8d3b22",
+    "external_id": "93749ba5-9881-446e-ade4-0f7dd11755f0",
+    "student_id": "f68072d8-019c-47b8-a6a8-4b92235f712e",
+    "enrollment_id": "437fb71c-3162-4a04-8ddf-b400c13ed279",
+    "course_code": "HCM 603",
+    "course_name": "Hospital Management",
+    "term_year": 2025,
+    "term_block": "AY_25-26_SUMMER_2026",
+    "final_grade": 73.67,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 4.17,
+      "val": 50,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 4.17,
+      "val": 90,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 4.17,
+      "val": 65,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 4.17,
+      "val": 65,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 4.17,
+      "val": 50,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 4.17,
+      "val": 35,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 4.17,
+      "val": 90,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 4.17,
+      "val": 60,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 4.17,
+      "val": 55,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 4.17,
+      "val": 65,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 4.17,
+      "val": 55,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 13,
+      "pct": 30,
+      "val": 90,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 14,
+      "pct": 5,
+      "val": 85,
+      "desc": "Module Test I 13"
+     },
+     {
+      "n": 15,
+      "pct": 5,
+      "val": 70,
+      "desc": "Module Test II 14"
+     },
+     {
+      "n": 16,
+      "pct": 5,
+      "val": 65,
+      "desc": "Module Test III 15"
+     },
+     {
+      "n": 17,
+      "pct": 5,
+      "val": 80,
+      "desc": "Module Test IV 16"
+     },
+     {
+      "n": 18,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 20,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-07-24T01:36:50.938963+00:00",
+    "semester_id": null
+   }
+  ]
+ },
+ {
+  "doc": "46172073",
+  "course": "MBA 603",
+  "superviviente": "87ffc498-2231-411b-8c27-851a1a7366b0",
+  "filas": [
+   {
+    "external_id": "22a52c91-7f4e-440a-ad72-9ccb308667c7",
+    "document_number": "46172073",
+    "email": "sanmybarrera.7@gmail.com",
+    "student_name": "Sanmy Fiorella Barrera Canales",
+    "course_code": "MBA 603",
+    "course_name": "Supply Chain Management",
+    "credits": 3,
+    "term_year": 2025,
+    "term_block": "AY_25-26_SUMMER_2026",
+    "final_grade": 96.29,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-11T23:35:25.966+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": "2026-08-12T10:20:43.627+00:00",
+    "moodle_course_id": 337,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "37aa52a9-ec98-4252-9f2a-0b368f6745cb",
+    "course_enrollment_id": "b451d668-2dcb-47f9-bf0b-fc2eda6d8140",
+    "rendido_pct": 100,
+    "estado_academico": "aprobado",
+    "last_evaluated_at": "2026-08-11T23:35:26.91+00:00",
+    "locked_by": "cron-cierre",
+    "intento": 2,
+    "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781"
+   },
+   {
+    "external_id": "87ffc498-2231-411b-8c27-851a1a7366b0",
+    "document_number": "46172073",
+    "email": "sanmybarrera.7@gmail.com",
+    "student_name": "Sanmy Fiorella Barrera Canales",
+    "course_code": "MBA 603",
+    "course_name": "Supply Chain Management",
+    "credits": 3,
+    "term_year": 2024,
+    "term_block": "1",
+    "final_grade": 68,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-04T20:33:37.271+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "37aa52a9-ec98-4252-9f2a-0b368f6745cb",
+    "course_enrollment_id": "23b74b6b-3680-4f6d-be31-75315267949c",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "f1ca6e00-6dca-4313-912b-101037d76c95"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "fd935bd3-144d-4c77-a954-a664964cd88f",
+    "external_id": "22a52c91-7f4e-440a-ad72-9ccb308667c7",
+    "student_id": "19042fcd-314d-4978-840a-c5a178d3c9b6",
+    "enrollment_id": "456a5b38-2119-4824-8024-05bb8dfa8747",
+    "course_code": "MBA 603",
+    "course_name": "Supply Chain Management",
+    "term_year": 2025,
+    "term_block": "AY_25-26_SUMMER_2026",
+    "final_grade": 96.29,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 4.17,
+      "val": 95,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 13,
+      "pct": 30,
+      "val": 90,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 14,
+      "pct": 5,
+      "val": 100,
+      "desc": "Module Test I 13"
+     },
+     {
+      "n": 15,
+      "pct": 5,
+      "val": 100,
+      "desc": "Module Test II 14"
+     },
+     {
+      "n": 16,
+      "pct": 5,
+      "val": 95,
+      "desc": "Module Test III 15"
+     },
+     {
+      "n": 17,
+      "pct": 5,
+      "val": 95,
+      "desc": "Module Test IV 16"
+     },
+     {
+      "n": 18,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 20,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": 4,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     },
+     {
+      "n": 26,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 05",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-08-11T23:35:26.695477+00:00",
+    "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781"
+   },
+   {
+    "id": "918ac445-7ae1-4117-a15d-417af3e7bf86",
+    "external_id": "87ffc498-2231-411b-8c27-851a1a7366b0",
+    "student_id": "19042fcd-314d-4978-840a-c5a178d3c9b6",
+    "enrollment_id": "456a5b38-2119-4824-8024-05bb8dfa8747",
+    "course_code": "109",
+    "course_name": "Supply Chain Management",
+    "term_year": 2024,
+    "term_block": "1",
+    "final_grade": 68,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": null,
+      "desc": "Notas de proceso (12 test)"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 4.17,
+      "val": 100,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 4.17,
+      "val": 90,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 4.17,
+      "val": 90,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 4.17,
+      "val": 90,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 4.17,
+      "val": 90,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 4.16,
+      "val": 90,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 4.16,
+      "val": 90,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 4.16,
+      "val": 80,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 4.16,
+      "val": 50,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 10,
+      "val": null,
+      "desc": "Midterm Test"
+     },
+     {
+      "n": 14,
+      "pct": 10,
+      "val": null,
+      "desc": "Final Test"
+     },
+     {
+      "n": 15,
+      "pct": 30,
+      "val": 85,
+      "desc": "Final Project"
+     }
+    ],
+    "created_at": "2026-07-09T01:27:06.109994+00:00",
+    "semester_id": "f1ca6e00-6dca-4313-912b-101037d76c95"
+   }
+  ]
+ },
+ {
+  "doc": "74397097",
+  "course": "MAR 420",
+  "superviviente": "c81b2c0b-b5b7-4739-8e24-bacd029c0d67",
+  "filas": [
+   {
+    "external_id": "2de9adb9-ef01-4ef4-9f38-324ad911eaaf",
+    "document_number": "74397097",
+    "email": "maribelviane@gmail.com",
+    "student_name": "Maribel Viane Llanchipa Collatupa",
+    "course_code": "MAR 420",
+    "course_name": "International Marketing",
+    "credits": 3,
+    "term_year": 2026,
+    "term_block": null,
+    "final_grade": 81.97,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-29T08:38:15.95+00:00",
+    "source": "moodle",
+    "edited_at": "2026-08-01T07:36:52.907+00:00",
+    "edited_by": null,
+    "locked_at": "2026-08-01T10:20:40.61+00:00",
+    "moodle_course_id": 442,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "a0e5d214-0afb-4461-9ff9-4c05ecd09f09",
+    "course_enrollment_id": "0d6c26d0-a96c-4bdc-baaa-0fcf52ef85da",
+    "rendido_pct": 100,
+    "estado_academico": "aprobado",
+    "last_evaluated_at": null,
+    "locked_by": "cron-cierre",
+    "intento": 1,
+    "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+   },
+   {
+    "external_id": "c81b2c0b-b5b7-4739-8e24-bacd029c0d67",
+    "document_number": "74397097",
+    "email": "maribelviane@gmail.com",
+    "student_name": "Maribel Viane Llanchipa Collatupa",
+    "course_code": "MAR 420",
+    "course_name": "International Marketing",
+    "credits": 3,
+    "term_year": 2024,
+    "term_block": "AY_24-25_SUMMER_2025",
+    "final_grade": 54,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": "2026-07-09T23:00:55.291+00:00",
+    "synced_at": "2026-07-04T20:33:42.612+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "a0e5d214-0afb-4461-9ff9-4c05ecd09f09",
+    "course_enrollment_id": "dd5b46fb-2d59-41e1-aca0-bcfa35554b45",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 2,
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "569ea2ef-e42b-4f13-ad12-0fcf5818188c",
+    "external_id": "2de9adb9-ef01-4ef4-9f38-324ad911eaaf",
+    "student_id": "cf2d6318-b574-4bb8-a416-8544f858576a",
+    "enrollment_id": "9a6aa36b-d669-416f-9b4e-9dfd435678a3",
+    "course_code": "MAR 420",
+    "course_name": "International Marketing",
+    "term_year": 2025,
+    "term_block": "AY_25-26_SUMMER_2026",
+    "final_grade": 81.97,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 85,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 85,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 75,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 65,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 30,
+      "val": 95,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 65,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 11,
+      "pct": 3.33,
+      "val": 75,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 12,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 13,
+      "pct": 3.33,
+      "val": 75,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 14,
+      "pct": 4,
+      "val": 80,
+      "desc": "Module Test I 16"
+     },
+     {
+      "n": 15,
+      "pct": 4,
+      "val": 80,
+      "desc": "Module Test II 17"
+     },
+     {
+      "n": 16,
+      "pct": 4,
+      "val": 85,
+      "desc": "Module Test III 18"
+     },
+     {
+      "n": 17,
+      "pct": 4,
+      "val": 75,
+      "desc": "Module Test IV 19"
+     },
+     {
+      "n": 18,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Quiz Session 13"
+     },
+     {
+      "n": 19,
+      "pct": 3.33,
+      "val": 75,
+      "desc": "Quiz Session 14"
+     },
+     {
+      "n": 20,
+      "pct": 3.33,
+      "val": 75,
+      "desc": "Quiz Session 15"
+     },
+     {
+      "n": 21,
+      "pct": 4,
+      "val": 75,
+      "desc": "Module Test V 20"
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": 5,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": 2,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 26,
+      "max": 5,
+      "pct": null,
+      "val": 4,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 28,
+      "max": 5,
+      "pct": null,
+      "val": 4,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     },
+     {
+      "n": 30,
+      "max": 5,
+      "pct": null,
+      "val": 4,
+      "desc": "Live Class Quiz 05",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-07-09T01:26:34.117135+00:00",
+    "semester_id": null
+   },
+   {
+    "id": "c8919c67-27b2-4e8f-b021-714e8ba93591",
+    "external_id": "c81b2c0b-b5b7-4739-8e24-bacd029c0d67",
+    "student_id": "cf2d6318-b574-4bb8-a416-8544f858576a",
+    "enrollment_id": "9a6aa36b-d669-416f-9b4e-9dfd435678a3",
+    "course_code": "203",
+    "course_name": "International Marketing",
+    "term_year": 2024,
+    "term_block": "AY_24-25_SUMMER_2025",
+    "final_grade": 54,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 50,
+      "val": null,
+      "desc": "Process Notes"
+     },
+     {
+      "n": 2,
+      "pct": 4,
+      "val": 80,
+      "desc": "Modules Test I"
+     },
+     {
+      "n": 3,
+      "pct": 4,
+      "val": 80,
+      "desc": "Modules Test II"
+     },
+     {
+      "n": 4,
+      "pct": 4,
+      "val": 85,
+      "desc": "Modules Test III"
+     },
+     {
+      "n": 5,
+      "pct": 4,
+      "val": 75,
+      "desc": "Modules Test IV"
+     },
+     {
+      "n": 6,
+      "pct": 4,
+      "val": 75,
+      "desc": "Modules Test V"
+     },
+     {
+      "n": 7,
+      "pct": 30,
+      "val": 0,
+      "desc": "Final Project"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 6.66,
+      "val": 85,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 6.66,
+      "val": 95,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 6.66,
+      "val": 85,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 6.66,
+      "val": 75,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 6.66,
+      "val": 80,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 6.66,
+      "val": 80,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 6.66,
+      "val": 65,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 6.66,
+      "val": 65,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 6.66,
+      "val": 70,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 6.66,
+      "val": 75,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 6.66,
+      "val": 70,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 6.66,
+      "val": 75,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 6.66,
+      "val": 60,
+      "desc": "Assessment 13"
+     },
+     {
+      "n": 14,
+      "pct": 6.66,
+      "val": 75,
+      "desc": "Assessment 14"
+     },
+     {
+      "n": 15,
+      "pct": 6.76,
+      "val": 75,
+      "desc": "Assessment 15"
+     }
+    ],
+    "created_at": "2026-07-09T01:26:34.117135+00:00",
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   }
+  ]
+ },
+ {
+  "doc": "6856275",
+  "course": "102",
+  "superviviente": "35ebdd0b-d27b-4a4b-afc0-1ea0d166c6d1",
+  "filas": [
+   {
+    "external_id": "35ebdd0b-d27b-4a4b-afc0-1ea0d166c6d1",
+    "document_number": "6856275",
+    "email": "fjggal60@gmail.com",
+    "student_name": "Francisco Javier Gutierrez Galvan",
+    "course_code": "102",
+    "course_name": "Mental Disorders: Care Plans",
+    "credits": 1,
+    "term_year": 2024,
+    "term_block": "2",
+    "final_grade": 37,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-04T20:33:39.219+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": "2026-08-20T23:58:40.098+00:00",
+    "withdrawn_by": "fusion-acumulacion-parcial",
+    "course_id": "d75d5475-3a4c-44d7-9e3f-4f9c42bdee6e",
+    "course_enrollment_id": "c91a230b-dc31-4dce-aa05-985f2affcf97",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "f486ea73-cb8c-4b7a-ba3f-43c30ebccebe"
+   },
+   {
+    "external_id": "46635e1e-6566-46af-a1da-fa4eb6e265d5",
+    "document_number": "6856275",
+    "email": "fjggal60@gmail.com",
+    "student_name": "Francisco Javier Gutierrez Galvan",
+    "course_code": "102",
+    "course_name": "Mental Disorders: Care Plans",
+    "credits": 1,
+    "term_year": 2026,
+    "term_block": "AY_26_-_27_FALL_2026",
+    "final_grade": 45,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-20T02:31:38.027+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": "2026-08-20T10:20:11.914+00:00",
+    "moodle_course_id": 401,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "d75d5475-3a4c-44d7-9e3f-4f9c42bdee6e",
+    "course_enrollment_id": null,
+    "rendido_pct": 100,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": "cron-cierre",
+    "intento": 1,
+    "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "e33f6c88-20ae-4aba-b67e-222ac3e8e068",
+    "external_id": "35ebdd0b-d27b-4a4b-afc0-1ea0d166c6d1",
+    "student_id": "cb6c7edc-485c-41d2-baf2-c081fa7e7581",
+    "enrollment_id": "a9feff49-77e5-4d7e-a0d2-03bd6d7429b5",
+    "course_code": "102",
+    "course_name": "Mental Disorders: Care Plans",
+    "term_year": 2024,
+    "term_block": "2",
+    "final_grade": 37,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": null,
+      "desc": "Total"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 8.3,
+      "val": 70,
+      "desc": "Evaluación 1"
+     },
+     {
+      "n": 2,
+      "pct": 8.3,
+      "val": 60,
+      "desc": "Evaluación 2"
+     },
+     {
+      "n": 3,
+      "pct": 8.3,
+      "val": 70,
+      "desc": "Evaluación 3"
+     },
+     {
+      "n": 4,
+      "pct": 8.3,
+      "val": 60,
+      "desc": "Evaluación 4"
+     },
+     {
+      "n": 5,
+      "pct": 8.3,
+      "val": 10,
+      "desc": "Evaluación 5"
+     },
+     {
+      "n": 6,
+      "pct": 8.3,
+      "val": 20,
+      "desc": "Evaluación 6"
+     },
+     {
+      "n": 7,
+      "pct": 8.3,
+      "val": 90,
+      "desc": "Evaluación 7"
+     },
+     {
+      "n": 8,
+      "pct": 8.3,
+      "val": 50,
+      "desc": "Evaluación 8"
+     },
+     {
+      "n": 9,
+      "pct": 8.3,
+      "val": 40,
+      "desc": "Evaluación 9"
+     },
+     {
+      "n": 10,
+      "pct": 8.3,
+      "val": 40,
+      "desc": "Evaluación 10"
+     },
+     {
+      "n": 11,
+      "pct": 8.5,
+      "val": 10,
+      "desc": "Evaluación 11"
+     },
+     {
+      "n": 12,
+      "pct": 8.5,
+      "val": 20,
+      "desc": "Evaluación 12"
+     }
+    ],
+    "created_at": "2026-07-09T01:27:01.064156+00:00",
+    "semester_id": "f486ea73-cb8c-4b7a-ba3f-43c30ebccebe"
+   },
+   {
+    "id": "4a8fbea1-07d5-4afc-8ab0-d4ebec8f7856",
+    "external_id": "46635e1e-6566-46af-a1da-fa4eb6e265d5",
+    "student_id": "cb6c7edc-485c-41d2-baf2-c081fa7e7581",
+    "enrollment_id": "a9feff49-77e5-4d7e-a0d2-03bd6d7429b5",
+    "course_code": "102",
+    "course_name": "Mental Disorders: Care Plans",
+    "term_year": 2026,
+    "term_block": "AY_26_-_27_FALL_2026",
+    "final_grade": 45,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 8.33,
+      "val": 70,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 8.33,
+      "val": 60,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 8.33,
+      "val": 70,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 8.33,
+      "val": 60,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 8.33,
+      "val": 40,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 8.33,
+      "val": 90,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 8.33,
+      "val": 50,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 8.33,
+      "val": 40,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 8.33,
+      "val": 100,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 8.33,
+      "val": 90,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 8.33,
+      "val": 90,
+      "desc": "Quiz Session 12"
+     }
+    ],
+    "created_at": "2026-08-17T15:35:52.14583+00:00",
+    "semester_id": null
+   }
+  ]
+ },
+ {
+  "doc": "71693591",
+  "course": "103",
+  "superviviente": "dff41d9c-1123-4d83-8000-61e5b708fd92",
+  "filas": [
+   {
+    "external_id": "6cf712ce-77cf-4989-ac8d-e33df56be9d1",
+    "document_number": "71693591",
+    "email": "carlaximena17@gmail.com",
+    "student_name": "Carla Ximena Aurora Cerna Malca",
+    "course_code": "103",
+    "course_name": "Psychological First Aid",
+    "credits": 1,
+    "term_year": 2026,
+    "term_block": "AY_26_-_27_FALL_2026",
+    "final_grade": 22.5,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-11T20:37:18.201+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": "2026-08-26T20:29:31.63+00:00",
+    "moodle_course_id": 391,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "1674e871-0b8b-49a4-94b7-0e3b7c5307be",
+    "course_enrollment_id": "155ac544-0c22-48d6-b950-04fefb8fcac8",
+    "rendido_pct": 100,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": "2026-08-11T20:37:18.88+00:00",
+    "locked_by": "cron-cierre",
+    "intento": 1,
+    "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+   },
+   {
+    "external_id": "dff41d9c-1123-4d83-8000-61e5b708fd92",
+    "document_number": "71693591",
+    "email": "carlaximena17@gmail.com",
+    "student_name": "Carla Ximena Aurora Cerna Malca",
+    "course_code": "103",
+    "course_name": "Assessment of the Individual and the Environment",
+    "credits": 1,
+    "term_year": 2024,
+    "term_block": "2",
+    "final_grade": 1,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-04T20:33:38.667+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "1674e871-0b8b-49a4-94b7-0e3b7c5307be",
+    "course_enrollment_id": "155ac544-0c22-48d6-b950-04fefb8fcac8",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "f486ea73-cb8c-4b7a-ba3f-43c30ebccebe"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "94f40c8d-9a9c-464a-ac53-c99ec16ca68c",
+    "external_id": "6cf712ce-77cf-4989-ac8d-e33df56be9d1",
+    "student_id": "a3bab236-bca0-438f-a328-33576c3b26d2",
+    "enrollment_id": "9023c118-9470-48a4-94fb-9972845d9bce",
+    "course_code": "103",
+    "course_name": "Psychological First Aid",
+    "term_year": 2026,
+    "term_block": "AY_26_-_27_FALL_2026",
+    "final_grade": 70,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 8.33,
+      "val": 60,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 8.33,
+      "val": 40,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 8.33,
+      "val": 70,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 8.33,
+      "val": 100,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 8.33,
+      "val": 60,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 8.33,
+      "val": 60,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 8.33,
+      "val": 90,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 8.33,
+      "val": 50,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 8.33,
+      "val": 70,
+      "desc": "Quiz Session 12"
+     }
+    ],
+    "created_at": "2026-08-11T20:37:18.838494+00:00",
+    "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+   },
+   {
+    "id": "68f85a5d-0a5c-46ba-af60-0bcb9eede135",
+    "external_id": "dff41d9c-1123-4d83-8000-61e5b708fd92",
+    "student_id": "a3bab236-bca0-438f-a328-33576c3b26d2",
+    "enrollment_id": "9023c118-9470-48a4-94fb-9972845d9bce",
+    "course_code": "103",
+    "course_name": "Assessment of the Individual and the Environment",
+    "term_year": 2024,
+    "term_block": "2",
+    "final_grade": 1,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": null,
+      "desc": "Total"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 8.35,
+      "val": 0,
+      "desc": "Evaluación 1"
+     },
+     {
+      "n": 2,
+      "pct": 8.35,
+      "val": 0,
+      "desc": "Evaluación 2"
+     },
+     {
+      "n": 3,
+      "pct": 8.35,
+      "val": 10,
+      "desc": "Evaluación 3"
+     },
+     {
+      "n": 4,
+      "pct": 8.35,
+      "val": 10,
+      "desc": "Evaluación 4"
+     },
+     {
+      "n": 5,
+      "pct": 8.35,
+      "val": 20,
+      "desc": "Evaluación 5"
+     },
+     {
+      "n": 6,
+      "pct": 8.35,
+      "val": 20,
+      "desc": "Evaluación 6"
+     },
+     {
+      "n": 7,
+      "pct": 8.35,
+      "val": 20,
+      "desc": "Evaluación 7"
+     },
+     {
+      "n": 8,
+      "pct": 8.35,
+      "val": 20,
+      "desc": "Evaluación 8"
+     },
+     {
+      "n": 9,
+      "pct": 8.35,
+      "val": 40,
+      "desc": "Evaluación 9"
+     },
+     {
+      "n": 10,
+      "pct": 8.35,
+      "val": 20,
+      "desc": "Evaluación 10"
+     },
+     {
+      "n": 11,
+      "pct": 8.35,
+      "val": 60,
+      "desc": "Evaluación 11"
+     },
+     {
+      "n": 12,
+      "pct": 8.35,
+      "val": 0,
+      "desc": "Evaluación 12"
+     }
+    ],
+    "created_at": "2026-07-09T01:26:58.740494+00:00",
+    "semester_id": "f486ea73-cb8c-4b7a-ba3f-43c30ebccebe"
+   }
+  ]
+ },
+ {
+  "doc": "29656404",
+  "course": "PRO 604",
+  "superviviente": "b14689df-b4b9-4e22-8c63-1e898383342b",
+  "filas": [
+   {
+    "external_id": "6d785cfe-41b7-4297-ad64-779965532d5e",
+    "document_number": "29656404",
+    "email": "fiorellamatosangulo@gmail.com",
+    "student_name": "Frida Fiorella Matos Angulo",
+    "course_code": "PRO 604",
+    "course_name": "Project Evaluation and Metrics",
+    "credits": 3,
+    "term_year": 2025,
+    "term_block": "AY_25-26_SUMMER_2026",
+    "final_grade": 79.54,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-13T01:35:40.997+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": "2026-08-13T10:20:00.882+00:00",
+    "moodle_course_id": 614,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "b43e9b1b-dc38-4a79-9b21-107d77aa436a",
+    "course_enrollment_id": "7d469742-c673-4413-9bc3-d4fd7e039386",
+    "rendido_pct": 100,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": "2026-08-13T01:35:41.862+00:00",
+    "locked_by": "cron-cierre",
+    "intento": 1,
+    "semester_id": "92d1996e-dcde-4ec5-9049-bbcae76f8781"
+   },
+   {
+    "external_id": "b14689df-b4b9-4e22-8c63-1e898383342b",
+    "document_number": "29656404",
+    "email": "fiorellamatosangulo@gmail.com",
+    "student_name": "Frida Fiorella Matos Angulo",
+    "course_code": "PRO 604",
+    "course_name": "Project Evaluation and Metrics",
+    "credits": 3,
+    "term_year": 2026,
+    "term_block": "1",
+    "final_grade": 79,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": "2026-06-04T17:35:11.946+00:00",
+    "synced_at": "2026-07-04T20:33:44.238+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "b43e9b1b-dc38-4a79-9b21-107d77aa436a",
+    "course_enrollment_id": "7d469742-c673-4413-9bc3-d4fd7e039386",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "5161ae68-20ef-4fd5-b730-133c2b453823"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "f61d52b3-b733-4ba3-96f9-1b251cc15ed9",
+    "external_id": "6d785cfe-41b7-4297-ad64-779965532d5e",
+    "student_id": "a553cd8d-6d75-4280-8bf5-5441a91b1000",
+    "enrollment_id": "a205a6d1-42b3-4a10-956c-2fb0d289314c",
+    "course_code": "PRO 604",
+    "course_name": "Project Evaluation and Metrics",
+    "term_year": 2025,
+    "term_block": "AY_25-26_SUMMER_2026",
+    "final_grade": 79.54,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 4.17,
+      "val": 75,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 4.17,
+      "val": 85,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 4.17,
+      "val": 65,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 4.17,
+      "val": 65,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 4.17,
+      "val": 65,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 4.17,
+      "val": 50,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 4.17,
+      "val": 80,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 4.17,
+      "val": 45,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 4.17,
+      "val": 70,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 4.17,
+      "val": 65,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 4.17,
+      "val": 60,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 13,
+      "pct": 30,
+      "val": 95,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 14,
+      "pct": 5,
+      "val": 75,
+      "desc": "Module Test I 13"
+     },
+     {
+      "n": 15,
+      "pct": 5,
+      "val": 100,
+      "desc": "Module Test II 14"
+     },
+     {
+      "n": 16,
+      "pct": 5,
+      "val": 90,
+      "desc": "Module Test III 15"
+     },
+     {
+      "n": 17,
+      "pct": 5,
+      "val": 85,
+      "desc": "Module Test IV 16"
+     },
+     {
+      "n": 18,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 20,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": 5,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": 5,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-08-13T01:35:41.81674+00:00",
+    "semester_id": null
+   },
+   {
+    "id": "0f3dc580-a311-40c5-afe2-4c57531555e1",
+    "external_id": "b14689df-b4b9-4e22-8c63-1e898383342b",
+    "student_id": "a553cd8d-6d75-4280-8bf5-5441a91b1000",
+    "enrollment_id": "a205a6d1-42b3-4a10-956c-2fb0d289314c",
+    "course_code": "110",
+    "course_name": "Project Evaluation and Metrics",
+    "term_year": 2026,
+    "term_block": "1",
+    "final_grade": 79,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 50,
+      "val": 67.08,
+      "desc": "Process Notes "
+     },
+     {
+      "n": 2,
+      "pct": 5,
+      "val": 100,
+      "desc": "Module Test I"
+     },
+     {
+      "n": 3,
+      "pct": 5,
+      "val": 100,
+      "desc": "Module Test II"
+     },
+     {
+      "n": 4,
+      "pct": 5,
+      "val": 100,
+      "desc": "Module Test III"
+     },
+     {
+      "n": 5,
+      "pct": 5,
+      "val": 100,
+      "desc": "Module Test IV"
+     },
+     {
+      "n": 6,
+      "pct": 30,
+      "val": 85,
+      "desc": "Final Prject "
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 8.33,
+      "val": 75,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 8.33,
+      "val": 85,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 8.33,
+      "val": 65,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 8.33,
+      "val": 65,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 8.33,
+      "val": 65,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 8.33,
+      "val": 50,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 8.33,
+      "val": 45,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 8.33,
+      "val": 70,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 8.33,
+      "val": 65,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 8.37,
+      "val": 60,
+      "desc": "Assessment 12"
+     }
+    ],
+    "created_at": "2026-07-09T01:27:14.008146+00:00",
+    "semester_id": "5161ae68-20ef-4fd5-b730-133c2b453823"
+   }
+  ]
+ },
+ {
+  "doc": "47386385",
+  "course": "PMB 270",
+  "superviviente": "c539835f-5841-4776-87b9-2c5f91e7e19b",
+  "filas": [
+   {
+    "external_id": "8180f8c4-9392-4375-ae72-6e32cb102909",
+    "document_number": "47386385",
+    "email": "lourdes.heredia10@gmail.com",
+    "student_name": "Lourdes Stefanny Heredia Herrera",
+    "course_code": "PMB 270",
+    "course_name": "Project Management",
+    "credits": 3,
+    "term_year": 2024,
+    "term_block": "AY_24-25_SUMMER_2025",
+    "final_grade": 94.97,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-11T23:37:12.3+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": "2026-08-12T10:20:43.627+00:00",
+    "moodle_course_id": 126,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "8a94b06c-bc7a-4da3-8f30-c483018d1504",
+    "course_enrollment_id": "2f0ea5e9-9245-42f0-b693-6cd47b4a9e9d",
+    "rendido_pct": 100,
+    "estado_academico": "aprobado",
+    "last_evaluated_at": "2026-08-11T23:37:15.397+00:00",
+    "locked_by": "cron-cierre",
+    "intento": 1,
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   },
+   {
+    "external_id": "c539835f-5841-4776-87b9-2c5f91e7e19b",
+    "document_number": "47386385",
+    "email": "lourdes.heredia10@gmail.com",
+    "student_name": "Lourdes Stefanny Heredia Herrera",
+    "course_code": "PMB 270",
+    "course_name": "Project Management",
+    "credits": 3,
+    "term_year": 2022,
+    "term_block": "AY_22-23_SUMMER_2023",
+    "final_grade": 65,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-04T20:33:35.917+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "8a94b06c-bc7a-4da3-8f30-c483018d1504",
+    "course_enrollment_id": "2f0ea5e9-9245-42f0-b693-6cd47b4a9e9d",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "0a6d32cd-f5d2-4df0-8c89-79573ea2a0af"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "fb44ff98-a982-4bfa-b0ba-995d5527a0db",
+    "external_id": "8180f8c4-9392-4375-ae72-6e32cb102909",
+    "student_id": "87f007f6-76ab-4ea4-9e65-822ac26a9dff",
+    "enrollment_id": "b47b9581-e1df-4859-bc25-3dc9598b6632",
+    "course_code": "PMB 270",
+    "course_name": "Project Management",
+    "term_year": 2024,
+    "term_block": "AY_24-25_SUMMER_2025",
+    "final_grade": 94.97,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 13,
+      "pct": 30,
+      "val": 90,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 14,
+      "pct": 4,
+      "val": 100,
+      "desc": "Module Test I 16"
+     },
+     {
+      "n": 15,
+      "pct": 4,
+      "val": 100,
+      "desc": "Module Test II 17"
+     },
+     {
+      "n": 16,
+      "pct": 4,
+      "val": 100,
+      "desc": "Module Test III 18"
+     },
+     {
+      "n": 17,
+      "pct": 4,
+      "val": 100,
+      "desc": "Module Test IV 19"
+     },
+     {
+      "n": 18,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 13"
+     },
+     {
+      "n": 19,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 14"
+     },
+     {
+      "n": 20,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Quiz Session 15"
+     },
+     {
+      "n": 21,
+      "pct": 4,
+      "val": 95,
+      "desc": "Module Test V 20"
+     },
+     {
+      "n": 22,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 01",
+      "extra": true
+     },
+     {
+      "n": 24,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 02",
+      "extra": true
+     },
+     {
+      "n": 26,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 03",
+      "extra": true
+     },
+     {
+      "n": 28,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 04",
+      "extra": true
+     },
+     {
+      "n": 30,
+      "max": 5,
+      "pct": null,
+      "val": null,
+      "desc": "Live Class Quiz 05",
+      "extra": true
+     }
+    ],
+    "created_at": "2026-08-11T23:37:13.448233+00:00",
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   },
+   {
+    "id": "b136afd1-9358-4349-ac5b-a864d575b905",
+    "external_id": "c539835f-5841-4776-87b9-2c5f91e7e19b",
+    "student_id": "87f007f6-76ab-4ea4-9e65-822ac26a9dff",
+    "enrollment_id": "b47b9581-e1df-4859-bc25-3dc9598b6632",
+    "course_code": "102",
+    "course_name": "Project Management",
+    "term_year": 2022,
+    "term_block": "AY_22-23_SUMMER_2023",
+    "final_grade": 65,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": null,
+      "desc": "Total"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 90,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 90,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 90,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 60,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 3.34,
+      "val": 50,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 3.34,
+      "val": 90,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 3.34,
+      "val": 100,
+      "desc": "Assessment 13"
+     },
+     {
+      "n": 14,
+      "pct": 3.34,
+      "val": 90,
+      "desc": "Assessment 14"
+     },
+     {
+      "n": 15,
+      "pct": 3.34,
+      "val": 90,
+      "desc": "Assessment 15"
+     },
+     {
+      "n": 16,
+      "pct": 10,
+      "val": 80,
+      "desc": "Midterm Test"
+     },
+     {
+      "n": 17,
+      "pct": 10,
+      "val": 80,
+      "desc": "Final Test"
+     },
+     {
+      "n": 18,
+      "pct": 30,
+      "val": 24.9,
+      "desc": "Final Project"
+     }
+    ],
+    "created_at": "2026-07-09T01:27:16.378453+00:00",
+    "semester_id": "0a6d32cd-f5d2-4df0-8c89-79573ea2a0af"
+   }
+  ]
+ },
+ {
+  "doc": "45922727",
+  "course": "ECT 103",
+  "superviviente": "c3fd97c5-2c9a-4332-9eb4-d199f549a119",
+  "filas": [
+   {
+    "external_id": "9d5411bc-096b-45d8-a910-c8b30d08748a",
+    "document_number": "45922727",
+    "email": "shaleci@gmail.com",
+    "student_name": "Sharon Katherine Elera Celiz",
+    "course_code": "ECT 103",
+    "course_name": "Ethics and Critical Thinking",
+    "credits": 3,
+    "term_year": 2025,
+    "term_block": "AY_25-26_SPRING_2026",
+    "final_grade": 94.57,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-12T01:38:42.22+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": "2026-08-12T10:20:43.627+00:00",
+    "moodle_course_id": 363,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "eaa82ea3-4b21-401e-96ba-2c39b3825b77",
+    "course_enrollment_id": "59554a3d-e19b-43de-9408-e841410693a4",
+    "rendido_pct": 100,
+    "estado_academico": "aprobado",
+    "last_evaluated_at": "2026-08-12T01:38:43.275+00:00",
+    "locked_by": "cron-cierre",
+    "intento": 2,
+    "semester_id": "5161ae68-20ef-4fd5-b730-133c2b453823"
+   },
+   {
+    "external_id": "c3fd97c5-2c9a-4332-9eb4-d199f549a119",
+    "document_number": "45922727",
+    "email": "shaleci@gmail.com",
+    "student_name": "Sharon Katherine Elera Celiz",
+    "course_code": "ECT 103",
+    "course_name": "Ethics and Critical Thinking",
+    "credits": 3,
+    "term_year": 2023,
+    "term_block": "AY_23-24_SPRING_2024",
+    "final_grade": 69,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": "2026-07-10T14:18:44.048+00:00",
+    "synced_at": "2026-07-04T20:33:41.397+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "eaa82ea3-4b21-401e-96ba-2c39b3825b77",
+    "course_enrollment_id": "475e709b-eaf2-435a-bf00-193aaea45895",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "f1ca6e00-6dca-4313-912b-101037d76c95"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "5b6fac2b-ea6a-4ee3-8c9e-cf930e210750",
+    "external_id": "9d5411bc-096b-45d8-a910-c8b30d08748a",
+    "student_id": "a728e1a2-cfb4-4e49-8559-38441aa5e9da",
+    "enrollment_id": "dfa64902-fa90-4804-9635-7f31db368a31",
+    "course_code": "ECT 103",
+    "course_name": "Ethics and Critical Thinking",
+    "term_year": 2025,
+    "term_block": "AY_25-26_SPRING_2026",
+    "final_grade": 94.57,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 13,
+      "pct": 30,
+      "val": 85,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 14,
+      "pct": 4,
+      "val": 90,
+      "desc": "EO Module Test I 16"
+     },
+     {
+      "n": 15,
+      "pct": 4,
+      "val": 95,
+      "desc": "EO Module Test II 17"
+     },
+     {
+      "n": 16,
+      "pct": 4,
+      "val": 100,
+      "desc": "EO Module Test III 18"
+     },
+     {
+      "n": 17,
+      "pct": 4,
+      "val": 100,
+      "desc": "EO Module Test IV 19"
+     },
+     {
+      "n": 18,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 13"
+     },
+     {
+      "n": 19,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 14"
+     },
+     {
+      "n": 20,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 15"
+     },
+     {
+      "n": 21,
+      "pct": 4,
+      "val": 100,
+      "desc": "EO Module Test V 20"
+     }
+    ],
+    "created_at": "2026-08-12T01:38:42.937112+00:00",
+    "semester_id": "5161ae68-20ef-4fd5-b730-133c2b453823"
+   },
+   {
+    "id": "5e6c578a-4571-430f-b324-e1f41a3e37ab",
+    "external_id": "c3fd97c5-2c9a-4332-9eb4-d199f549a119",
+    "student_id": "a728e1a2-cfb4-4e49-8559-38441aa5e9da",
+    "enrollment_id": "dfa64902-fa90-4804-9635-7f31db368a31",
+    "course_code": "201",
+    "course_name": "Ethics and Critical Thinking",
+    "term_year": 2023,
+    "term_block": "AY_23-24_SPRING_2024",
+    "final_grade": 69,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": null,
+      "desc": "Total"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 50,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 50,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 90,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 3.34,
+      "val": 80,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 3.34,
+      "val": 60,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 3.34,
+      "val": 80,
+      "desc": "Assessment 13"
+     },
+     {
+      "n": 14,
+      "pct": 3.34,
+      "val": 100,
+      "desc": "Assessment 14"
+     },
+     {
+      "n": 15,
+      "pct": 3.34,
+      "val": 80,
+      "desc": "Assessment 15"
+     },
+     {
+      "n": 16,
+      "pct": 10,
+      "val": 75,
+      "desc": "Midterm Test"
+     },
+     {
+      "n": 17,
+      "pct": 10,
+      "val": 75,
+      "desc": "Final Test"
+     },
+     {
+      "n": 18,
+      "pct": 30,
+      "val": 47,
+      "desc": "Final Project"
+     }
+    ],
+    "created_at": "2026-07-09T01:26:44.926721+00:00",
+    "semester_id": "f1ca6e00-6dca-4313-912b-101037d76c95"
+   }
+  ]
+ },
+ {
+  "doc": "5496119",
+  "course": "103",
+  "superviviente": "ac180f59-fc1e-4fe7-987d-d3b022197e8e",
+  "filas": [
+   {
+    "external_id": "ac180f59-fc1e-4fe7-987d-d3b022197e8e",
+    "document_number": "5496119",
+    "email": "natmere19@gmail.com",
+    "student_name": "Natalie Ligia Medina Renjel",
+    "course_code": "103",
+    "course_name": "Assessment of the Individual and the Environment",
+    "credits": 1,
+    "term_year": 2024,
+    "term_block": "2",
+    "final_grade": 1,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-04T20:33:38.667+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "1674e871-0b8b-49a4-94b7-0e3b7c5307be",
+    "course_enrollment_id": "a5afe0cf-21ca-41b1-95ae-bc73ad7250ca",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 1,
+    "semester_id": "f486ea73-cb8c-4b7a-ba3f-43c30ebccebe"
+   },
+   {
+    "external_id": "dad9766d-0676-4eb2-a52a-72aec3d03ad7",
+    "document_number": "5496119",
+    "email": "natmere19@gmail.com",
+    "student_name": "Natalie Ligia Medina Renjel",
+    "course_code": "103",
+    "course_name": "Psychological First Aid",
+    "credits": 1,
+    "term_year": 2026,
+    "term_block": "AY_26_-_27_FALL_2026",
+    "final_grade": 40.83,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-11T20:37:18.201+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": "2026-08-26T20:29:31.63+00:00",
+    "moodle_course_id": 391,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "1674e871-0b8b-49a4-94b7-0e3b7c5307be",
+    "course_enrollment_id": "a5afe0cf-21ca-41b1-95ae-bc73ad7250ca",
+    "rendido_pct": 50,
+    "estado_academico": "pendiente",
+    "last_evaluated_at": "2026-08-22T22:37:33.318+00:00",
+    "locked_by": null,
+    "intento": 2,
+    "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "afaba250-3bb7-4cb1-9d7e-c81fae1b4fe5",
+    "external_id": "ac180f59-fc1e-4fe7-987d-d3b022197e8e",
+    "student_id": "cdc7b249-860d-4e0b-a161-69683f14c0a2",
+    "enrollment_id": "ef1fa60e-99a4-4e01-98b7-514cafa87745",
+    "course_code": "103",
+    "course_name": "Assessment of the Individual and the Environment",
+    "term_year": 2024,
+    "term_block": "2",
+    "final_grade": 1,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": null,
+      "desc": "Total"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 8.35,
+      "val": 80,
+      "desc": "Evaluación 1"
+     },
+     {
+      "n": 2,
+      "pct": 8.35,
+      "val": 80,
+      "desc": "Evaluación 2"
+     },
+     {
+      "n": 3,
+      "pct": 8.35,
+      "val": 90,
+      "desc": "Evaluación 3"
+     },
+     {
+      "n": 4,
+      "pct": 8.35,
+      "val": 100,
+      "desc": "Evaluación 4"
+     },
+     {
+      "n": 5,
+      "pct": 8.35,
+      "val": 100,
+      "desc": "Evaluación 5"
+     },
+     {
+      "n": 6,
+      "pct": 8.35,
+      "val": 80,
+      "desc": "Evaluación 6"
+     },
+     {
+      "n": 7,
+      "pct": 8.35,
+      "val": 90,
+      "desc": "Evaluación 7"
+     },
+     {
+      "n": 8,
+      "pct": 8.35,
+      "val": 100,
+      "desc": "Evaluación 8"
+     },
+     {
+      "n": 9,
+      "pct": 8.35,
+      "val": 100,
+      "desc": "Evaluación 9"
+     },
+     {
+      "n": 10,
+      "pct": 8.35,
+      "val": 100,
+      "desc": "Evaluación 10"
+     },
+     {
+      "n": 11,
+      "pct": 8.35,
+      "val": 100,
+      "desc": "Evaluación 11"
+     },
+     {
+      "n": 12,
+      "pct": 8.35,
+      "val": 100,
+      "desc": "Evaluación 12"
+     }
+    ],
+    "created_at": "2026-07-09T01:26:58.740494+00:00",
+    "semester_id": "f486ea73-cb8c-4b7a-ba3f-43c30ebccebe"
+   },
+   {
+    "id": "728645cc-2f7b-42f3-87bd-e6b4e50c7e28",
+    "external_id": "dad9766d-0676-4eb2-a52a-72aec3d03ad7",
+    "student_id": "cdc7b249-860d-4e0b-a161-69683f14c0a2",
+    "enrollment_id": "ef1fa60e-99a4-4e01-98b7-514cafa87745",
+    "course_code": "103",
+    "course_name": "Psychological First Aid",
+    "term_year": 2026,
+    "term_block": "AY_26_-_27_FALL_2026",
+    "final_grade": 84.17,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 8.33,
+      "val": 70,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 8.33,
+      "val": 90,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 8.33,
+      "val": 90,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 8.33,
+      "val": 90,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 8.33,
+      "val": 90,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 8.33,
+      "val": 70,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 8.33,
+      "val": 100,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 8.33,
+      "val": 80,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 8.33,
+      "val": 90,
+      "desc": "Quiz Session 12"
+     }
+    ],
+    "created_at": "2026-08-11T20:37:18.838494+00:00",
+    "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+   }
+  ]
+ },
+ {
+  "doc": "75255975",
+  "course": "PMB 270",
+  "superviviente": "b812a581-612c-4b2c-96c3-40d2fc0adda9",
+  "filas": [
+   {
+    "external_id": "b812a581-612c-4b2c-96c3-40d2fc0adda9",
+    "document_number": "75255975",
+    "email": "michel.tpsd.x@hotmail.com",
+    "student_name": "Michael Jhonny Lee Maquera Ramos",
+    "course_code": "PMB 270",
+    "course_name": "Project Management",
+    "credits": 3,
+    "term_year": 2022,
+    "term_block": "AY_22-23_SUMMER_2023",
+    "final_grade": 65,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": 0,
+    "updated_at": null,
+    "synced_at": "2026-07-04T20:33:34.358+00:00",
+    "source": "systemactiva",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": null,
+    "moodle_course_id": null,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "8a94b06c-bc7a-4da3-8f30-c483018d1504",
+    "course_enrollment_id": "f9992322-5528-4c4e-a7b2-858241c7d596",
+    "rendido_pct": null,
+    "estado_academico": "reprobado",
+    "last_evaluated_at": null,
+    "locked_by": null,
+    "intento": 2,
+    "semester_id": "0a6d32cd-f5d2-4df0-8c89-79573ea2a0af"
+   },
+   {
+    "external_id": "d7946478-08da-4302-aa53-e7e9eade8bfb",
+    "document_number": "75255975",
+    "email": "michel.tpsd.x@hotmail.com",
+    "student_name": "Michael Jhonny Lee Maquera Ramos",
+    "course_code": "PMB 270",
+    "course_name": "Project Management",
+    "credits": 3,
+    "term_year": 2024,
+    "term_block": "AY_24-25_SUMMER_2025",
+    "final_grade": 95.63,
+    "retake_grade": null,
+    "passing_score": null,
+    "group_number": null,
+    "updated_at": null,
+    "synced_at": "2026-08-11T23:37:12.3+00:00",
+    "source": "moodle",
+    "edited_at": null,
+    "edited_by": null,
+    "locked_at": "2026-08-12T10:20:43.627+00:00",
+    "moodle_course_id": 126,
+    "withdrawn_at": null,
+    "withdrawn_by": null,
+    "course_id": "8a94b06c-bc7a-4da3-8f30-c483018d1504",
+    "course_enrollment_id": "d58a02a8-5e01-4c77-b221-51d6ea4c4dc5",
+    "rendido_pct": 100,
+    "estado_academico": "aprobado",
+    "last_evaluated_at": "2026-08-11T23:37:15.397+00:00",
+    "locked_by": "cron-cierre",
+    "intento": 1,
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   }
+  ],
+  "detalles": [
+   {
+    "id": "dc3e8a12-cc78-4aec-87e7-0641252c7f53",
+    "external_id": "b812a581-612c-4b2c-96c3-40d2fc0adda9",
+    "student_id": "d37bf83e-460d-4544-a3f1-a93fad543c4a",
+    "enrollment_id": "4cb2f0ce-2eee-44a1-840f-20e69fa8f438",
+    "course_code": "102",
+    "course_name": "Project Management",
+    "term_year": 2022,
+    "term_block": "AY_22-23_SUMMER_2023",
+    "final_grade": 65,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": 0,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [
+     {
+      "n": 1,
+      "pct": 100,
+      "val": null,
+      "desc": "Total"
+     }
+    ],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 50,
+      "desc": "Assessment 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Assessment 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Assessment 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 80,
+      "desc": "Assessment 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 90,
+      "desc": "Assessment 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Assessment 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 20,
+      "desc": "Assessment 07"
+     },
+     {
+      "n": 8,
+      "pct": 3.33,
+      "val": 20,
+      "desc": "Assessment 08"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 40,
+      "desc": "Assessment 09"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 70,
+      "desc": "Assessment 10"
+     },
+     {
+      "n": 11,
+      "pct": 3.34,
+      "val": 20,
+      "desc": "Assessment 11"
+     },
+     {
+      "n": 12,
+      "pct": 3.34,
+      "val": 90,
+      "desc": "Assessment 12"
+     },
+     {
+      "n": 13,
+      "pct": 3.34,
+      "val": 100,
+      "desc": "Assessment 13"
+     },
+     {
+      "n": 14,
+      "pct": 3.34,
+      "val": 90,
+      "desc": "Assessment 14"
+     },
+     {
+      "n": 15,
+      "pct": 3.34,
+      "val": 90,
+      "desc": "Assessment 15"
+     },
+     {
+      "n": 16,
+      "pct": 10,
+      "val": 40,
+      "desc": "Midterm Test"
+     },
+     {
+      "n": 17,
+      "pct": 10,
+      "val": 20,
+      "desc": "Final Test"
+     },
+     {
+      "n": 18,
+      "pct": 30,
+      "val": 85.4,
+      "desc": "Final Project"
+     }
+    ],
+    "created_at": "2026-07-09T01:27:16.378453+00:00",
+    "semester_id": "0a6d32cd-f5d2-4df0-8c89-79573ea2a0af"
+   },
+   {
+    "id": "8089c0c0-d9f3-42bc-881d-bc4ddf828600",
+    "external_id": "d7946478-08da-4302-aa53-e7e9eade8bfb",
+    "student_id": "d37bf83e-460d-4544-a3f1-a93fad543c4a",
+    "enrollment_id": "4cb2f0ce-2eee-44a1-840f-20e69fa8f438",
+    "course_code": "PMB 270",
+    "course_name": "Project Management",
+    "term_year": 2024,
+    "term_block": "AY_24-25_SUMMER_2025",
+    "final_grade": 95.63,
+    "retake_grade": null,
+    "makeup_grade": null,
+    "extra_points": null,
+    "passing_score": null,
+    "max_score": 100,
+    "grades": [],
+    "process_grades": [
+     {
+      "n": 1,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 01"
+     },
+     {
+      "n": 2,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 02"
+     },
+     {
+      "n": 3,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 03"
+     },
+     {
+      "n": 4,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 04"
+     },
+     {
+      "n": 5,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 05"
+     },
+     {
+      "n": 6,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 06"
+     },
+     {
+      "n": 7,
+      "pct": 3.33,
+      "val": 90,
+      "desc": "Quiz Session 07"
+     },
+     {
+      "n": 8,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 08"
+     },
+     {
+      "n": 9,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 09"
+     },
+     {
+      "n": 10,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 10"
+     },
+     {
+      "n": 11,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 11"
+     },
+     {
+      "n": 12,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 12"
+     },
+     {
+      "n": 13,
+      "pct": 30,
+      "val": 90,
+      "desc": "Final Subject Project"
+     },
+     {
+      "n": 14,
+      "pct": 4,
+      "val": 100,
+      "desc": "Module Test I 16"
+     },
+     {
+      "n": 15,
+      "pct": 4,
+      "val": 100,
+      "desc": "Module Test II 17"
+     },
+     {
+      "n": 16,
+      "pct": 4,
+      "val": 100,
+      "desc": "Module Test III 18"
+     },
+     {
+      "n": 17,
+      "pct": 4,
+      "val": 100,
+      "desc": "Module Test IV 19"
+     },
+     {
+      "n": 18,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 13"
+     },
+     {
+      "n": 19,
+      "pct": 3.33,
+      "val": 100,
+      "desc": "Quiz Session 14"
+     },
+     {
+      "n": 20,
+      "pct": 3.33,
+      "val": 95,
+      "desc": "Quiz Session 15"
+     },
+     {
+      "n": 21,
+      "pct": 4,
+      "val": 95,
+      "desc": "Module Test V 20"
+     }
+    ],
+    "created_at": "2026-08-11T23:37:13.448233+00:00",
+    "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+   }
+  ]
+ }
+]
