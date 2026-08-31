@@ -1,0 +1,1455 @@
+{
+ "aplicado_en": "2026-08-31T21:19:32.094Z",
+ "filas": [
+  {
+   "external_id": "3e4897d4-5922-424d-a096-a4b6b24c3887",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "a7d0622b-9404-47f8-b340-50d57a96c066",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "7e7bd334-b332-45fc-aa0b-b24fe9723d5c",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "429369bc-a98e-44e1-bffa-ee035c668ad0",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "86aba131-7579-4a74-a753-8624071e3b60",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "8e3869d2-1abb-4dd4-94c0-304a8b58c0d0",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "c30f146a-73b1-4799-a121-89325c9d4078",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "d0f909e2-d5eb-4d5f-ae4d-2b6bb8a090e3",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "c7131aa1-811f-4fdd-a756-d09d8482eff1",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "2c6fb58e-2bb7-4bfd-b148-fbc02960b3cc",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ca4a6ad3-a17d-42b7-a661-a698b83a667a",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "fa29aff3-3584-427e-b69b-ad2a3d2dd30a",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "8f49bfb3-33a9-4b3b-ac15-440907109a25",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "920666ea-e12a-4634-b6c2-2b5ed8f0a17e",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "5d754542-b3a9-41a1-a23c-46e948f62831",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "70221771-0078-474f-bdf1-3c3461f465d6",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "95303816-4ad2-4497-a466-d3ca91636bc4",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "5270f332-3a93-4d23-be79-464d546024ce",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "99180038-ffe4-43bf-accc-b11a7b1fe3e2",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "b6275c8f-e565-4e77-bc17-54106efce46b",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "00f2b1d0-9017-4f5f-a9d8-4e2ef4f28f90",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "1c379a59-d3f3-44e1-89a6-1fdc8aa898b2",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "28f91190-5230-4e91-a1a9-70fda7c1f7af",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "e372d532-b384-481c-a671-01724141d7c9",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "34f8e805-ca52-4a57-aa72-4f73feeeced0",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "7c561d1a-4733-4dfa-86b7-c08c95794d27",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a3438c8d-58df-423f-a6ef-d393cc5f469c",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "7a29e7ce-af97-45a5-a205-965526ff825d",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "de769c24-d041-4671-acda-b6e95bc97745",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "f9a20235-c5cf-4722-aba9-41bcd9242228",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "d6a336eb-db41-405c-ac64-8d7a637ad3cd",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "9fd724f2-35c8-4688-8b6f-ec1380017344",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "9c4b5819-617a-4008-a7b8-99e88baeb4e5",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "c4066650-d5f6-4efc-b6bb-d03b4993afe6",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "374e785a-7a80-43f5-aefb-46f16456fd5e",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "82bc7e50-8166-40fd-b914-23e3678c64ee",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "572e17d7-3a4a-4374-ad07-a50b3223586d",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "4403e2ee-4583-4240-a11c-cfd9319b5d12",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "9ac25ecd-324c-4521-afdf-0c9e64ead316",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "29203fa8-d8e3-485b-aeb1-009818a1aff0",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "db7837eb-6ea7-40ff-a9e3-ddc1d74de993",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "a6cfc458-826e-465d-988e-49c465e9d950",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "797ec4f0-cfa9-437e-a0e3-affd70efd110",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "941aad4e-99f9-4fb1-96a9-20a18dab0df7",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "56ffcabe-5823-4d44-a932-b8b5c86f129d",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "fcf8ffc0-7210-4c7c-808f-5471ee7f9ce4",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "d48e3d0e-81d3-4185-a306-0ff00ed276cb",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "be521b2b-b60c-471d-8643-e3324a24d46d",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "eeab2858-f5d3-4ca5-ad6e-52b90e436b2d",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "bc8e64d5-0369-4ab1-bfab-5b3fd2b46710",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "f5fd8655-e54c-4c87-a613-5ec0d96d0794",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "ef62fdd5-e634-487e-9402-f4e2ec8826a5",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "78d7ca0f-6006-4f0c-afe4-0b0eadcfbc76",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "600f8882-a16d-4d99-9f56-c34af2a0f5a7",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "edacff7a-2caa-4d4f-a2bb-224f69aaddb5",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "e440398b-6fbd-4ab0-9c92-cc85089e9963",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "07078746-6d69-4979-a750-2f2cd962e7e0",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "cfa395a4-cd72-4f90-a170-3c654b3ac561",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "dc795f0c-cd45-4d84-a3a1-9deb1c61ec80",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "69bca524-cc7a-4fce-9b20-d11f245f8ce8",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "73500614-ef8c-4919-a01f-952bf27f0f72",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "0eff51c3-2441-48e3-843a-453f00811acf",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "804c5597-5456-48ab-af61-7f36c070b4bd",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "4e298d01-45bb-46ea-aa75-cb8adfbfd56f",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "88ab00a3-29cc-4599-a846-5747e5dd793a",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "14608ffe-552f-484f-a9a5-23612bb88791",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "334c065a-13bc-46f1-a7f1-423b4cd7c2d4",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "d391ae40-2e54-48fa-a59c-75ea1af0f677",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "af6ef57e-34d9-4074-ab7e-31661b61746b",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "1aa3a207-2b3b-45e6-bfe0-a9f9ec1f46de",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "d2dc8232-aaaf-4e4e-aed6-250574211c07",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "49a2b112-0af4-40c7-a7bb-bce714b65749",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "974a4af7-52d1-425f-a901-732b28de66f3",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "15caf5cd-ed6d-458b-a66c-bfda834ec38a",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a7be4ef2-6af8-4232-a554-1d2111717cb7",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "6a984fbe-b4e7-44c7-9c33-298a7a3d01db",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "436d970b-b40e-4a9f-afa2-32e8d4b03b83",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "814c368a-ab14-4ad2-9b0b-43253bae7b8b",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "3c5fa119-16d5-4836-a249-f2e683e2abe2",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "abe7a763-0533-4ac8-a0c0-a5f9701b79ac",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "e45cc97d-829c-43bd-a075-5fb5c4a1ccd2",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "7878cdc6-4616-4231-b77f-9207a69e46f3",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "0726e5ff-9c61-4462-a0a6-5e7d31a44257",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "fc3b96b7-6223-4ff4-bea9-25803d92e0c4",
+   "prev_status": "reprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "af18fc7a-6030-4442-abef-5df3014ab30e",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "7fb01643-7bd1-463b-bbdc-1e448f369a28",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "2d40cb6d-6eb7-47e3-a4f1-af2a51cad2ce",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "e08b8b55-8db0-41ee-9839-0c7f47d9dc17",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "79765503-bac7-4719-ac05-feaafb9e88e9",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "6e64aa9c-5464-413c-bb54-7da0f25d609c",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "d8032e33-4596-476d-af98-7fc35ed0b555",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "ddebf95c-2263-46f3-9fac-8366eb5a51d4",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "51f024cb-d89c-40f8-a0d9-89ed6d354b96",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "701115e2-b9a2-4d87-888c-b31ec94648ba",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "b526fcc5-d6c8-4709-a087-07ba3887a10d",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "96d4c4e0-91ff-4bd6-88f1-7d414317d7c2",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "bc9a5beb-a796-44e3-a663-4a9ad8c433c1",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "339b7498-4803-4aab-8fac-e1f6e4a2dea9",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "0bc57470-0bc0-4dfd-a242-5a1eefc69e5f",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "880fa0fb-0ecf-47d9-ad76-3537a84285e0",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "614cace0-1acf-4ce1-a4a9-ded1d368dfdb",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "3286f5f7-39bd-4960-acd8-c67843d65862",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "549cbe91-f5e2-43f0-a87d-3ee6d4ff0f72",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "e4f99b4d-7e78-43d8-8060-768bc3533f88",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "11ce27b1-ee51-43d5-ab38-1345b0713054",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "1626cfd1-1bce-4d6a-a808-4fa94c11934f",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "b438e4c6-103e-4a95-a832-9bb918d1ccb7",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "560524e8-78af-4c9a-9379-b996444e0d95",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "3e5621d2-8f70-42aa-afd9-0edd83b4bf87",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "49222f6c-acca-4b17-a5da-1ca3f59b4066",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ef9c3713-1e8a-495b-a9c5-1794e7e0fbff",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "87541f2a-fe09-4005-9aed-ec6df5e680f0",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "47b92050-27d3-455f-a901-34291072e6a1",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "e0d31843-6dab-4632-8cb3-2312a7f6db93",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "38960579-5866-4cba-a772-6926c7ec9dc4",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "e8fcba45-80a8-4394-8b53-e7d54de3ab8a",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "79ce45c5-a175-4173-aab0-c0ed893a1e2c",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "66d640e3-e5a2-4bf3-b46b-fe887e853acf",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "e840e3e5-9507-49a3-a5d8-b3a37b526bf5",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "e63c9198-2ea0-4aa0-97b2-c4cdfb9c484f",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "9c607ab9-8b04-4e15-acaa-12df9b83b505",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "8214262a-888e-47b6-90bf-b47e633e7c08",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "cbfec293-d163-49a1-a878-646fa7d2fba0",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "ae513211-1b02-42c6-b785-56f8977a4828",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "78945a96-5eb0-432c-ac5f-fb252a8512fb",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "2e0291f8-8eba-4feb-920d-4739cbda9e54",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "57ee9cdd-5819-4073-a8d7-8ba2ca8299f2",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "7792ea51-84fd-42e2-bc42-206c59a10ac3",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "308991b1-c718-4c93-a825-104b1d9e6354",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "7e20690b-5e20-4c87-85ed-a8b73bde523f",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "8fe9ad50-3d54-485d-a4f6-a8e8ca4af8d3",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "4dffbfa0-bf34-4e40-8f52-d5635f459291",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "8416c2f8-1450-4b0b-a4dd-f9815e24e4b4",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "98b6c6bb-b38d-4146-a5a9-9bceb283236f",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "2d319865-be45-47a6-a94a-f5543ba65a74",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "de692428-655a-4699-a615-ae985a46b4a6",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "fb3bb041-d8d1-4412-a63b-9ef1dcc7b191",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "c778cf9b-b5ed-4894-8166-b4a618b46094",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "63a283ce-4f75-4b84-a442-8d5eff5f103e",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "81a90ce6-9204-4979-b79c-1320b29c0534",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a1bf0d39-ba47-4717-a270-430088060029",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "f7bb355e-0b05-41f9-8375-08785f0beec4",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "553562f0-0b9a-4e2b-afda-2fa67b2f0cdd",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "2c6c6268-2bf7-4db7-8a9c-8c415f17d570",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "9489e6ae-6099-433f-ab52-6d2986da1a9b",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "e2c8205b-6a2a-41a9-b24b-d02142d73cca",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a5bae502-9ccc-44f5-ad62-8f7d74c628a2",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "8740291d-8444-49ac-b5bf-daac3b50f1dc",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "cf1107b9-29e4-4a0f-a900-54217d3ab17e",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "0df2f0c0-2cd4-45fa-a45d-bfdc1567e449",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "fc2ac199-63aa-4a3d-aa85-dd19d147bc5d",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "36b7c2a6-2616-4539-8b2b-827739ce3ba6",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a0fb05c0-d189-42c6-a61e-d40866506fe7",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "6ebfa7e5-30e7-4f94-b1aa-1e9209a43da2",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "3bb9b53c-851f-4e29-a1d1-02404f9b79c7",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "b4d484aa-1426-4879-aebd-0bd7ddde8856",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ce10b78c-3d95-491b-a835-cb7907659a43",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "fada415f-6853-4fbc-a74a-7fd8a50181aa",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "5c381578-9894-418e-a89f-d6faf283decb",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "ad306a47-2727-4fb3-bacb-65ec5c99a6fe",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "be1ca292-c511-4499-a97e-db7a8b1b25cb",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "3d28f1b0-0bbc-4cdb-912e-c6c3e5633de0",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a79a82bb-2c02-416a-ac9a-ca474c60215e",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "c5b688f8-0eb7-47b8-8f1a-7ed68aca02a0",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "1b361313-f847-48e3-a2b9-98b6b46f2c52",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "93ad3c8d-d7c4-46ee-ae5c-d5dd2476642e",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "3c217750-f498-4691-ad98-f19c7c24175c",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "125ee8e1-f1c9-4f28-ba00-2d7ec2aac5b0",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "08af66a8-2d93-47a1-a234-2c9ccb4cfa43",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "88d1f2e4-1c3c-4c0b-9204-8c40508f5179",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "9c624423-91a0-4dbe-a3fb-bb8a012cfb90",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "911406e1-53ee-4d34-98ba-411431d769f1",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "923e6f04-b6b8-4173-a6f8-6155512e4bbf",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "c648caf9-43d2-420f-948b-9cd8c137fba2",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "0360a1b3-bc33-4b24-a312-6ac9fe062afa",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "cfe4b365-f383-4a15-af00-c5467c022951",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "727b03f3-46a8-448b-a44e-fb3f3e8f355d",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "4dccdea0-20be-4ff8-8177-0228724f192c",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "6780ffa1-d7cc-4c2f-a260-1d3fb102e736",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "4662d26b-fe36-4d73-8dc4-ba7cb4011495",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a1da8615-26a8-48aa-a962-32dbb6fdc9e7",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "b63e7da1-7710-4f53-878e-108563d53645",
+   "prev_status": "reprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ca4ed1f5-bdea-4224-aaff-150ba0826576",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "dbf813de-bb6b-4ecb-80a4-965c63b80d6d",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "645ab7ec-e577-4d4e-a269-189b52d469fb",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "b7a6473c-5c00-42e6-969d-02e121abad8f",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "1ec2d0b7-f931-4ecf-a06e-ba99980a357c",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "380f8662-bee2-43f6-9323-0b62e1fa8014",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "6bf1e060-0d77-4338-aaae-3c9a3796acae",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "8d171aa4-5d72-4f38-ac37-05913990bc5b",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "57ec39fd-4d6e-48a7-ac37-c2054c789319",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "cd4df8fd-24a3-4da2-8306-b440394787b7",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "6f37a1c6-8a57-487d-a68b-d3d50051bfda",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "8ea29c91-cee5-4bae-ad71-0fd31efa73a8",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "2b2e6c7e-7a95-4cee-a6fc-7a41a529e22d",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "a288c4f8-1750-47f0-9a8f-bd252c189fb8",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "f542bb2b-0152-48de-af76-9039b75732cc",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "634fa0d0-7523-4681-ad4f-09a6489a9189",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "249f2f49-dc47-4e5d-ad9e-911f1e025d1d",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "dd28b953-8968-4ffe-aa5e-65e7c1f834a7",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "79335c8e-ed85-4bf8-a0cf-ee9c89bcc0a1",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "533693bc-eecd-4274-8f4a-67cbbfe809d9",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "9a56a926-eb1e-4e18-a979-f8426b4e7360",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "9a929824-dab3-4a01-a914-6a9628a1860c",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "aebce4fe-93f7-4def-a178-a94f2fe63def",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "40c7e6d9-22e1-4788-bf5f-00b211f7971d",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "b99c7e29-d75f-40d5-adc3-35e766232aa3",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "01b066c1-d461-4bd5-9985-a3e488be390c",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "70abe6cc-858b-4f40-a83d-30ef4fb79fb2",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "3219e294-28b7-480b-b59e-77ae7bd4a4c9",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "bd2f8697-372f-46f4-a00b-14c147f0071d",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "aa761a25-4c9a-408e-8dca-4583625f0745",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "0094e1a9-d434-44eb-ae50-39b9c79fef58",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "698c6eff-d343-42ac-9d9e-f818184ba5e4",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "06432f06-969b-45a0-aeab-b1cd37b193ff",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "b13389b1-7cf1-429c-b436-76f2d1fd9d5a",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ffe11153-178e-4ae9-aaa9-da3828fca269",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "3c761f82-74a8-4ce2-8981-98f997aadad5",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "34528397-c943-4130-a0d0-08a84b132b78",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "bcd58898-2b55-4215-8b30-d2c9c0e4cbca",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "5b655223-1d75-4449-af5b-d73c11994b41",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "223d5f04-a811-4f34-b2f5-dfc12e5f63b3",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "57095813-77b7-4119-a279-89f7d4827c5b",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "9971dbd1-264c-47b3-a5f9-9d0653bd927e",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "8ae624ee-ad94-4139-aa1f-539b3e0d1b64",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "6937cd76-0c9f-448f-9e96-e32352f1bcea",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "7a37342b-5735-45f6-aef5-dfc3d60573c4",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "7b9ec5b7-6648-432c-8b96-1bd805d04abe",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "04b86c26-5a6f-4689-aecd-b6f1b2744c4b",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "7f244317-3d27-4eb5-999e-365826cf25a3",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "0c083354-3866-4dce-a555-156ff2237da7",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "681d430f-3548-4821-a67c-3ff9bbf6be8d",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a11b7790-b255-40d5-a865-f30db613d091",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "9918499d-c267-4149-a31b-495437f966b3",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "4216ebdc-2bf9-4d7c-a911-3cc93092fb08",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "529b63fb-9232-4cd8-99a3-525c5a78dfd5",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "fbac2fce-4301-4508-a6b3-b69b33773fb5",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "1399bc95-a065-4b73-ac7c-1a983b2651fc",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a244841b-a0ab-42ef-a93b-21c92939676b",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "bb0134ae-6ee9-43ca-83e3-d90137c3333e",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ec7f2324-a53a-4469-a1bc-cf6212d7a5c4",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "176ac03c-cbbd-43e4-8541-c433ab25ffcd",
+   "prev_status": "reprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "f8c93a75-2b59-43b5-a359-f25b50bec859",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "cb0a5f63-0b0e-4f64-bc80-857c128ba5a7",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "58b3583b-82fe-4986-ae4d-cf2df433d62f",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "f44d314f-6a4a-4897-832d-de38e861d736",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "4f76b5a4-656d-4771-a1ca-fab468c005da",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "65d33fcd-6300-48dc-808f-0f5e4ef21b92",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "c2b720a7-2422-4cd4-a0cc-843c65ea117f",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "33255a0a-83e1-47ba-bfaf-f3fa8a769be6",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "c2b15321-9397-4c84-ab0c-f32452e65fcf",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "c6323ad1-bc3a-4424-81c2-df61d271d0e4",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "dda6083f-7380-4906-a4dc-d5b0954d2138",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "5af1f374-cf7c-468f-9548-e813e0e78c16",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "875ea5bc-eb23-4a6f-a68d-fff0b80929d6",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "c30576a3-d886-4534-acf7-c37baa91dd14",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "95c098f1-7506-4be4-a09f-c7549604c560",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "efec9c71-8f52-4e1b-9682-6d313ae46311",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "923d9378-5c96-43f2-a13b-80b81e52b3ee",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "95f84ee5-4ef4-4da6-9bd1-e48bcbe522c0",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "b515b59c-b305-4475-ae8f-fbb726815d7f",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "2654d38c-e303-45be-97b9-1e2546a5a9ef",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "9c81213d-6371-4e62-a264-f385a3b8aa01",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "d10b21ca-b6fb-4f3b-98e2-121ef0d9594c",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "18cbf17c-5920-4c66-a81e-038318293c7b",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "786560ec-b1ec-4ad0-b361-34021151a57f",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "b357e77d-4d61-4575-afab-2a7d5fba6426",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "b0abde2c-6d87-4188-9df0-6bd604f8b4b7",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "c7d6cac2-81b8-4849-a330-8ec7df97d8f1",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "a2df4f15-0f16-4fa8-bd49-24737f0a0df8",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "307b5bb0-3bc6-4e88-a255-f88abe31fab6",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "fc19755c-c47a-4d15-bfb6-cae9e6404ebf",
+   "prev_status": "reprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "3f3081df-f2ec-4601-a411-52534e0be664",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "aed510df-fd88-41a0-91db-d03e83f8d49b",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ffda402a-dcee-49f0-a430-1b70361fd41e",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "b694e88a-508d-463e-b51a-f6a6666be25e",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ed0bad08-85d4-4488-a086-8c63e6074f7b",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "8130144d-c26f-4f0d-b307-168b9e117ac4",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ad5403ed-e853-432a-a710-bf2182364a71",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "7b5d4899-00e5-49c7-b342-182913dfb32e",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "a1a457ab-257a-4d40-a206-e530c5733c53",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "fcfeaa15-1930-469d-92e7-661f07b625e2",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "1ee5824c-2e85-45ba-a0bc-62a09f5d3597",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "ebc79ecf-93b1-4a87-801b-62b386d2f77f",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "89d608ba-f11b-49ea-a82b-2fe9105b09d9",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "e76c5544-5075-43bf-aa4e-bd080875a50e",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "d01ec137-a90f-491a-ac52-701fc9e4496a",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "4d08bd2a-a497-44d8-97de-f1862a63ee3f",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "f0df583a-fb13-4ca0-a344-78c94d737fcd",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "eaa2662b-d3f4-4fbb-b053-88fa325b3e49",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "01e0bfc7-19c6-4305-a3fb-3c775d433747",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "9c85962f-bbda-45c9-a24b-e8a69d8b1356",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "92f76f57-510d-4a7a-aedb-05c9e50b7378",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "ca8d3b52-d076-4833-b6d8-550ab200e5ab",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ddb7b11d-7a32-4773-ab46-4fa40f7897d3",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "91d4a2b2-4314-4f2d-8c70-ba4fc0ab3a97",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "bb90971c-b7dd-4066-aa86-38774cd3f5dd",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "1fad53d5-6716-4182-9e50-de87b316bebb",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "4d96ab24-02bb-4989-a686-4518f705f925",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "fb55fd61-f7f2-451a-afec-bab3db86fbc2",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "5f0a0ff6-ed3a-4eb6-a3f3-49ac578fbddc",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "f48ea9c2-3347-45a0-ab2c-2806d2a3f9ef",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "b0002743-53d2-4140-ad6b-9efe8a3e4bf9",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "cbba1b2c-81b2-4d70-a9ff-06e73769f73b",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "4ef52d4e-2fbb-4a50-ac77-6eee1f8de768",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "9b6c47b7-5a57-4a94-a47b-a16cebba9fd6",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "61350d2c-88e0-48cb-a48f-acc4887cd033",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "ab0ce706-dd0e-45a1-9fba-57b37d0a61dd",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "73010a06-2f79-4c6c-a111-dbf8b8b9ae2e",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "0b8c7960-fca4-4447-aab6-ca077ad1b9ab",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "2f9a50ae-be96-400e-a95e-e18cce5e321a",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "322e2dcc-e819-44b5-b5e9-1c1872e7f1e5",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ad610484-2f95-4545-af06-b22d5f98cd5e",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "36317465-b0c8-4b9f-996c-93ef810246ad",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "d43403ef-3e32-4473-af59-390c0676e088",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "bb5ed998-816d-4275-97a5-16d9197174d9",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "3edde315-7a67-46e8-aca9-221a71f732cc",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "b76888d6-c2a9-4c4a-b751-630d7dfcb0b9",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "80f6f072-4d3d-4792-a81a-7756fbbac571",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "9bf9c492-f898-489a-b686-ada51c531467",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a886bb96-3e8e-40d7-ab7a-f8f96ac33c7d",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "a7965bde-72e1-45a8-bfac-2a35fc7d71ad",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "f4d716c8-3395-4f20-ac73-16ce206b56b4",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "db6ea995-83e9-47fb-aaa6-7d3c04221799",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a35c0e3c-7eee-4381-af77-80c2361eb924",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "097cc754-931f-407c-82c1-42b5259dba52",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "422cfc8a-7bb1-462f-ae8c-7be537e6516b",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "4f7f86d6-4a80-4e8b-8a11-717ad4c201d6",
+   "prev_status": "en_curso",
+   "prev_edited_at": "2026-08-29T12:15:52.138+00:00"
+  },
+  {
+   "external_id": "1f57e5f5-0dd1-4a38-a526-fc5c93f8109e",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "f594d1e8-a478-4d75-bbd2-1f39182504ca",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "f3d948a0-a627-4871-a8e7-53b77b8c0ae6",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "6be0b960-7872-41c1-bcf8-33f5c3f718b0",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "8bbbf117-50bd-4594-af0d-7c25b29b9416",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "8ea509cd-05db-423e-8e17-64b098b417f6",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a3ba2c88-529d-485f-a739-69a6f3ed37a3",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "3d20a49a-ff00-49b9-97a0-cfa05154498a",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "fe463433-88dc-4375-a59c-67b209100cd6",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "162e1433-26e1-4db8-83f9-7d0a554d86b0",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "f9307fdd-8063-4eca-a4f5-50d5b56b8bef",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "23ad119c-0e56-4272-bab1-6a3565200bd2",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "d3519537-0bbd-4523-af62-e3c492d8fc8e",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "9ffd7b2e-a509-4c81-a824-33b2939a26be",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "c92f3c0b-908e-4619-a002-c0690c35cf3f",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "1f33fbed-369f-4b11-9233-c6223929464d",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "b8344d79-a4d5-4bbd-a158-bb966aaec26c",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "71a53153-c368-437f-9203-710329c316e4",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "4eb2090b-b5c0-4f4d-a689-5d84b0c5e481",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "947a7a89-f675-4b04-8549-a314608d7d3c",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "1d8a2b3b-7a6f-4c38-ae41-88bb0382853f",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "d9063fd6-0c1d-400d-8309-a9096a3986e0",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "5d5c8618-5a9c-409a-a769-00964517f719",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "b2b826c9-7c4e-4677-977f-76a8e48b50ac",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "2c4e1966-3d60-44db-a92d-56fb41ac3571",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "00c8519d-328f-4061-99e0-43985dce77d9",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "2eaef354-22a5-4c24-a840-d716a3c63b23",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "d5faba13-aded-4279-83d9-22717fc7fa4d",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "338052a2-8978-4b5e-add5-f836a337452c",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "0e783e51-2377-41bf-bcf5-9ede3a23146d",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "47fd3225-842f-4c4d-a91e-8980f02544b6",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "aeb0a876-6207-4a89-a0ad-84532873b31d",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "491061cf-f16a-41ec-a684-191bb8c13e82",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "608b63e2-4158-48db-9cf6-2550502fb2ff",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "6a62410f-42ce-402f-ab25-d7e791f77979",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "5437e2f5-7553-466e-9860-6ab8bc47de80",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "79b8b877-a915-4daf-af8e-46ff22026266",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "e3ff5db8-1f21-4392-8cd4-664b1f104bee",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "8a8014e3-00c2-40fd-a59d-07bfe2969dc9",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "31901e4a-12db-4a62-949e-575d17ae7dc5",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "b35d55f7-fa41-4c67-a9ed-8387132e8df6",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "ab8d4571-d392-48d4-8e23-362245142530",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "d5568bdd-3543-4bd8-a0ab-e7a81acdd6f9",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "13a8065a-4459-4152-a728-c547ade5534b",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "e015d7c6-d770-419f-a62e-20b92b776a1c",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "6251b3b1-ab97-4e16-9f08-2defdbb23dfa",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "e4d44608-8587-4bea-aa24-c30f322e71bf",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "bb765a9d-a087-45ca-91b0-32499a7589c8",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ea64e678-3889-42f9-acea-046c48f486ac",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "2028f18a-7dee-4c6b-8bf4-6db040158333",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "8f844811-0eeb-4a67-a8fa-e0e20fc30cad",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "10d4aad8-5762-4f7f-9bb4-9a83e804f2af",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "9027ab0c-7869-45c4-acdc-60ea98a3dc67",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "cacc15bd-8829-4eef-a038-0d5a72d5ef96",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "9bd4f08b-a9e2-4db3-ac9c-9a453fb29bae",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "36887e0a-e123-4ffe-8419-27c87d4ddd1a",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "3b1075e2-dbe4-4562-a9bc-4216ba00bbbf",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "cb7898eb-3cd6-4908-9b99-0c4c01fb6116",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "1989f66c-7907-40a6-a700-fe08b391e857",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "9e447ac1-781a-4d75-b322-94ce69e4e49b",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "703a99d9-bf50-4370-afd9-9b355814e17a",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "b9060614-3289-44ee-9b68-c96dcd573220",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "94cfa40e-e2e8-43a7-af4c-49c132ec8004",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "af8fd879-04e7-4ffb-afd2-160292e12e4b",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a566b4e9-6bae-41b6-a86f-eeb27c46e710",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "de9ea397-d86d-4ead-bfe0-90cd3e544810",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "a9096b9b-c284-4152-a2f5-5e76ed50ab46",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "e98b7ebf-d51b-44d2-85bc-e08c46641ba7",
+   "prev_status": "aprobada",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "715ce867-6edc-4e1f-ae73-aaf46121888e",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "8b0ca74e-7587-415e-8be9-d7b5530fc38e",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "78f7256c-f567-45a6-ab9c-f22e38ca419b",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "db722971-cb50-4bad-921b-1ad437f66f13",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "96a819d2-568f-4c10-a7e7-2cab0f9f733c",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "5c6b83a5-41a1-4a3b-8603-1c7fd6ae0239",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "977df116-59c0-4b1a-a6e4-f2d6498caa2d",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "9248377b-4856-4a14-a37f-53739e47ea82",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "eff8c833-c1f0-441b-a654-ee5f475b5bb5",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "9253881c-93a9-43cd-8f44-115314be8f24",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "fc44a6da-df55-4828-a088-aaca38e7a4f8",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "3bf29d98-5500-46c6-9338-e313f61f5fa3",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "ff2f9c8f-2bb6-4ff5-ac82-0eb04ea93e0a",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "37515877-02cb-4e44-b540-182ab43fc362",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "2d822648-a63f-49d2-a0fe-890d9d00669b",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "23dac300-4c67-458e-bef0-d200ffd5e56e",
+   "prev_status": "en_curso",
+   "prev_edited_at": null
+  },
+  {
+   "external_id": "f9107f3c-3138-4280-a3ac-08025b196833",
+   "prev_course_enrollment_id": null,
+   "matricula_id": "a0e01f92-37a0-49c7-b655-d38e762c757e",
+   "prev_status": "en_curso",
+   "prev_edited_at": null,
+   "nota": "Limache MAR 240 i2, creada por el cron durante la ejecución"
+  }
+ ]
+}
