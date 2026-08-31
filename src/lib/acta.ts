@@ -1,4 +1,4 @@
-import { filaDeCurso } from '@/lib/course-match'
+import { filaDeCurso, sameCourse } from '@/lib/course-match'
 
 // ---------------------------------------------------------------------------
 // El acta personal: la malla del programa con el estado de cada asignatura.
@@ -86,10 +86,22 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
   // tabla de calificaciones solo para sostener ese "en proceso". El registro ya
   // lo dice, y lo dice mejor.
   const cursando = new Set<string>()
+  // Y el VEREDICTO del registro por asignatura. Para un estudiante con dos
+  // programas, la asignatura compartida tiene UNA fila de nota (anclada por
+  // course_id a una de las mallas) pero matrícula en las dos — la institución
+  // la cuenta y la cobra en ambas (regla del 14-08-2026, caso Pablo Cusi). El
+  // estado de esa matrícula viene de la nota compartida, y es lo único que la
+  // otra malla puede leer: sin esto, el acta del segundo programa mostraba
+  // "Pendiente" una asignatura aprobada con 90 (caso Ramos Escobal, MAN 370 /
+  // MBA 603, 31-08-2026).
+  const veredictoRegistro = new Map<string, string>()
   for (const m of (matriculas ?? []) as { course_id: string; status: string }[]) {
     if (m.status === 'retirada') continue
     registradas.add(String(m.course_id))
     if (m.status === 'en_curso') cursando.add(String(m.course_id))
+    if (m.status === 'aprobada' || (m.status === 'reprobada' && veredictoRegistro.get(String(m.course_id)) !== 'aprobada')) {
+      veredictoRegistro.set(String(m.course_id), m.status)
+    }
   }
 
   const { data: tcs } = await sb.from('transfer_credits').select('id, kind')
@@ -143,6 +155,23 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
         : (passing != null ? Number(best.v) >= Number(passing) : true)
       if (passed) { summary.aprobado++; return { ...base, status: 'aprobado' as const, grade: best.v } }
       summary.desaprobado++; return { ...base, status: 'desaprobado' as const, grade: best.v }
+    }
+    // Sin fila propia: si la matrícula del registro ya tiene veredicto Y existe
+    // la nota homónima en la otra malla del estudiante, el acta lo refleja. La
+    // homónima es obligatoria a propósito: una matrícula 'aprobada' huérfana
+    // (escombro de notas borradas) no puede fabricar un aprobado sin nota que
+    // lo sostenga.
+    const veredicto = veredictoRegistro.get(String(c.id))
+    if (veredicto === 'aprobada' || veredicto === 'reprobada') {
+      const hermanas = gradeRows
+        .filter(g => g.source !== 'plan' && !filaDeCurso(g, c) && sameCourse(g.course_name, c.name))
+        .map(g => (g.retake_grade ?? g.final_grade) as number | null)
+        .filter((v): v is number => v != null)
+      if (hermanas.length) {
+        const v = Math.max(...hermanas.map(Number))
+        if (veredicto === 'aprobada') { summary.aprobado++; return { ...base, status: 'aprobado' as const, grade: v } }
+        summary.desaprobado++; return { ...base, status: 'desaprobado' as const, grade: v }
+      }
     }
     // "En proceso" sale del registro o de que exista una inscripción sin nota.
     // Las dos vías dicen lo mismo hoy; la segunda desaparece cuando esas 6.638

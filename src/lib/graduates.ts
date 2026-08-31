@@ -1,6 +1,6 @@
 import { readAll } from './withdrawals'
 import { esIntento } from '@/lib/grade-sources'
-import { filaDeCurso } from './course-match'
+import { filaDeCurso, sameCourse } from './course-match'
 
 // ---------------------------------------------------------------------------
 // Detección masiva de egresados.
@@ -77,6 +77,18 @@ export async function computeGraduates(sb: any): Promise<{
     for (const cid of itemsByTc.get(tc.id) ?? []) transferOf.get(k)!.add(cid)
   }
 
+  // 4b) Veredicto del registro por (estudiante, asignatura). La asignatura
+  //     compartida entre las dos mallas de un estudiante tiene UNA nota
+  //     (anclada a una malla) y matrícula en ambas: la segunda malla solo
+  //     puede cubrirla leyendo su matrícula 'aprobada' (regla del 14-08-2026;
+  //     caso Ramos Escobal MAN 370/MBA 603). Se exige además que exista la
+  //     nota homónima para no cubrir con matrículas huérfanas.
+  const matRows = await readAll(sb, 'academic_course_enrollments', 'student_id, course_id, status')
+  const aprobadaEnRegistro = new Set<string>()
+  for (const m of matRows as { student_id: string | null; course_id: string | null; status: string }[]) {
+    if (m.student_id && m.course_id && m.status === 'aprobada') aprobadaEnRegistro.add(`${m.student_id}|${m.course_id}`)
+  }
+
   // 5) Recorrer cada matrícula (estudiante × programa)
   const enrolls = await readAll(sb, 'academic_student_enrollments', 'student_id, program_id')
   const seen = new Set<string>()
@@ -103,7 +115,14 @@ export async function computeGraduates(sb: any): Promise<{
       if (transferred.has(c.id)) { covered++; continue }
       const matches = gradeRows.filter(g => filaDeCurso(g, c))
       const values = matches.map(g => (g.retake_grade ?? g.final_grade)).filter((v): v is number => v != null)
-      if (!values.length) continue
+      if (!values.length) {
+        // Sin fila propia: cubre si el REGISTRO la da por aprobada y la nota
+        // homónima (de su otra malla) existe con valor.
+        if (aprobadaEnRegistro.has(`${e.student_id}|${c.id}`)
+          && gradeRows.some(g => !filaDeCurso(g, c) && sameCourse(g.course_name, c.name)
+            && (g.retake_grade ?? g.final_grade) != null)) covered++
+        continue
+      }
       const best = Math.max(...values)
       const bestRow = matches.find(g => Number(g.retake_grade ?? g.final_grade) === best)
       const passing = categoryPassing ?? bestRow?.passing_score
