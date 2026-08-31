@@ -246,47 +246,15 @@ export async function GET(req: NextRequest) {
   // cobraba: 21 créditos que parecían "recursados" fantasma (23/08/2026). La
   // fila retirada se sigue mostrando en su sección, como historia.
   const conFilaViva = new Set([...visibles.filter(r => !r.withdrawn), ...convRows].map(r => courseNameKey(r.course_name)))
-  // La asignatura compartida entre las dos mallas de un estudiante tiene UNA
-  // fila de nota (anclada a la otra malla) y matrícula aquí: se muestra con el
-  // veredicto del registro y la nota homónima, no como "sin calificaciones"
-  // (regla del 14-08-2026; caso Ramos Escobal MAN 370/MBA 603). La homónima es
-  // obligatoria: una matrícula 'aprobada' huérfana no fabrica un aprobado.
-  const veredictoCurso = new Map<string, string>()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const m of (matsReg ?? []) as any[]) {
-    if (m.status === 'aprobada' || (m.status === 'reprobada' && veredictoCurso.get(String(m.course_id)) !== 'aprobada')) {
-      veredictoCurso.set(String(m.course_id), m.status)
-    }
-  }
   const inscritasSinFila = malla
     .filter(c => !conFilaViva.has(courseNameKey(c.name)) && cursosVivos.has(String(c.id)))
-    .map(c => {
-      const veredicto = veredictoCurso.get(String(c.id))
-      if (veredicto === 'aprobada' || veredicto === 'reprobada') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const hermanas = ((grades ?? []) as any[])
-          .filter(g => g.source !== 'plan' && !g.withdrawn_at && !filaDeCurso(g, c) && sameCourse(g.course_name, c.name))
-          .map(g => (g.retake_grade ?? g.final_grade) as number | null)
-          .filter((v): v is number => v != null)
-        if (hermanas.length) {
-          return {
-            external_id: `insc:${c.id}`, course_code: c.code, course_name: c.name,
-            credits: c.credits != null ? Number(c.credits) : null,
-            term: 'Compartida con su otro programa',
-            status: veredicto === 'aprobada' ? 'aprobado' : 'desaprobado',
-            grade: Math.max(...hermanas.map(Number)), has_grade: true, withdrawn: false, editable: false,
-            final_grade: null, retake_grade: null, kind: 'inscripcion' as const,
-          }
-        }
-      }
-      return {
-        external_id: `insc:${c.id}`, course_code: c.code, course_name: c.name,
-        credits: c.credits != null ? Number(c.credits) : null,
-        term: 'Inscrita · sin calificaciones',
-        status: 'inscrita', grade: null, has_grade: false, withdrawn: false, editable: false,
-        final_grade: null, retake_grade: null, kind: 'inscripcion' as const,
-      }
-    })
+    .map(c => ({
+      external_id: `insc:${c.id}`, course_code: c.code, course_name: c.name,
+      credits: c.credits != null ? Number(c.credits) : null,
+      term: 'Inscrita · sin calificaciones',
+      status: 'inscrita', grade: null, has_grade: false, withdrawn: false, editable: false,
+      final_grade: null, retake_grade: null, kind: 'inscripcion' as const,
+    }))
   const faltantes = malla.filter(c => !conFila.has(courseNameKey(c.name)) && !cursosVivos.has(String(c.id))).map(c => ({
     external_id: `falta:${c.id}`, course_code: c.code, course_name: c.name,
     credits: c.credits != null ? Number(c.credits) : null, term: '',
