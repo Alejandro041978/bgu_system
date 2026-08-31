@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
-import { filaDeCurso } from '@/lib/course-match'
+import { filaDeCurso, sameCourse } from '@/lib/course-match'
 import { applyGradeEdit, type GradeChanges } from '@/lib/grades-write'
 import { guardStaff, guardSuperadmin } from '@/lib/api-guard'
 
@@ -68,10 +68,33 @@ export async function GET(req: NextRequest) {
         const { data: progs } = await sb.from('academic_programs').select('id, name').in('id', programIds)
         programs = ((progs ?? []) as { id: string; name: string }[]).sort((a, b) => a.name.localeCompare(b.name))
         const { data: courses } = await sb.from('academic_courses').select('*').in('program_id', programIds)
-        for (const g of grades as { course_code: string | null; course_name: string | null; program_ids?: string[] }[]) {
-          g.program_ids = [...new Set(((courses ?? []) as { id: string; program_id: string; code: string | null; name: string | null }[])
+        // La asignatura compartida entre dos mallas del estudiante: la nota es
+        // UNA fila anclada a un programa, pero cuenta también en el otro cuando
+        // su matrícula ahí tiene veredicto (regla del 14-08-2026; caso Ramos
+        // Escobal, MAN 370/MBA 603). Sin matrícula no se comparte nada — el
+        // nombre solo no autoriza a cruzar programas.
+        const { data: mats } = await sb.from('academic_course_enrollments')
+          .select('course_id, status').in('student_id', studentIds)
+        const veredicto = new Map<string, string>()
+        for (const m of (mats ?? []) as { course_id: string | null; status: string }[]) {
+          if (!m.course_id) continue
+          if (m.status === 'aprobada' || (m.status === 'reprobada' && veredicto.get(String(m.course_id)) !== 'aprobada')) {
+            veredicto.set(String(m.course_id), m.status)
+          }
+        }
+        const conFilaPropia = new Set(grades.map((g: { course_id?: string | null }) => String(g.course_id ?? '')).filter(Boolean))
+        for (const g of grades as { course_id?: string | null; course_code: string | null; course_name: string | null; final_grade?: number | null; retake_grade?: number | null; program_ids?: string[] }[]) {
+          const propios = ((courses ?? []) as { id: string; program_id: string; code: string | null; name: string | null }[])
             .filter(c => filaDeCurso(g, c))
-            .map(c => c.program_id))]
+            .map(c => c.program_id)
+          const compartidos = (g.retake_grade ?? g.final_grade) == null ? [] :
+            ((courses ?? []) as { id: string; program_id: string; name: string | null }[])
+              .filter(c => String(c.id) !== String(g.course_id ?? '')
+                && !conFilaPropia.has(String(c.id))
+                && sameCourse(g.course_name, c.name)
+                && ['aprobada', 'reprobada'].includes(veredicto.get(String(c.id)) ?? ''))
+              .map(c => c.program_id)
+          g.program_ids = [...new Set([...propios, ...compartidos])]
         }
       }
     }

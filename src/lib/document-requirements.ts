@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { filaDeCurso } from './course-match'
+import { filaDeCurso, sameCourse } from './course-match'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -112,6 +112,15 @@ export async function checkRequirements(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mallaCourses = (courses ?? []) as any[]
 
+      // Veredicto del registro por asignatura: la compartida entre las dos
+      // mallas del estudiante tiene UNA nota (anclada a la otra malla) y aquí
+      // cubre por su matrícula 'aprobada' + nota homónima — misma regla que
+      // computeGraduates (14-08-2026; caso Ramos Escobal).
+      const { data: mats } = await sb.from('academic_course_enrollments')
+        .select('course_id, status').eq('student_id', studentId)
+      const aprobadaEnRegistro = new Set<string>(((mats ?? []) as { course_id: string | null; status: string }[])
+        .filter(m => m.course_id && m.status === 'aprobada').map(m => String(m.course_id)))
+
       let cubiertas = 0
       for (const c of mallaCourses) {
         // Convalidación / validación cubre la asignatura
@@ -124,7 +133,12 @@ export async function checkRequirements(
           const bestRow = matches.find(g => Number(g.retake_grade ?? g.final_grade) === best)
           const passing = bestRow?.passing_score ?? categoryPassing
           if (passing == null || best >= Number(passing)) cubiertas++
+          continue
         }
+        // Sin fila propia: cubre por el registro + la homónima de su otra malla
+        if (aprobadaEnRegistro.has(String(c.id))
+          && gradeRows.some(g => !filaDeCurso(g, c) && sameCourse(g.course_name, c.name)
+            && (g.retake_grade ?? g.final_grade) != null)) cubiertas++
       }
       const ok = mallaCourses.length > 0 && cubiertas === mallaCourses.length
       out.push({ kind: 'graduated', ok, note: `${cubiertas}/${mallaCourses.length} asignaturas aprobadas` })
