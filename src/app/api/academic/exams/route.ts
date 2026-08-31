@@ -138,7 +138,10 @@ export async function PATCH(req: NextRequest) {
       externalId: r.grade_external_id,
       changes: { retake_grade: grade },
       reason: `Examen de subsanación (solicitud ${String(b.id).slice(0, 8)})`,
-      userId: user.email ?? user.id,
+      // grade_audit.changed_by es uuid: va el id. El correo legible queda en
+      // evaluated_by de la solicitud, que sí es texto. Con el correo aquí, el
+      // INSERT de auditoría reventaba y ninguna subsanación se podía registrar.
+      userId: user.id,
       origin: 'editor',
     })
     if (!edit.ok) return NextResponse.json({ error: edit.note ?? 'No se pudo escribir la nota en el acta' }, { status: 500 })
