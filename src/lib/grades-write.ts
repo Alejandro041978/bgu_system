@@ -305,8 +305,14 @@ export function resolveImportTarget(
     // shield: la fila rellenada sobre un external_id de Activa necesita seguir
     // blindada contra N8N; las nacidas de importación (source moodle/csv) no
     // (N8N nunca las toca). El external_id ya no dice el origen: lo dice source.
+    //
+    // El intento viaja con la fila. No se devolvía, el importador escribía
+    // `?? 1`, y cada refresco de un recursado legítimo llegaba a la base
+    // diciendo "soy el intento 1": la política lo rechazaba en silencio y la
+    // nota se quedaba congelada en su primer valor (MAR 240 clavada en 32 con
+    // Moodle diciendo 37, siete rechazos por estudiante, 30/08/2026).
     const shield = !(own.source === 'moodle' || own.source === 'csv')
-    return { action: 'update', external_id: String(own.external_id), shield, prev_value: val(own) }
+    return { action: 'update', external_id: String(own.external_id), shield, prev_value: val(own), intento: Number(own.intento ?? 1) }
   }
   // ── Recursado ────────────────────────────────────────────────────────────
   //
@@ -383,12 +389,12 @@ export function resolveImportTarget(
     // fila se rellena.
     if (intentoNuevo?.semester_id != null && previa.semester_id != null
         && String(previa.semester_id) === String(intentoNuevo.semester_id)) {
-      return { action: 'fill', external_id: String(previa.external_id), shield: true, prev_value: val(previa) }
+      return { action: 'fill', external_id: String(previa.external_id), shield: true, prev_value: val(previa), intento: Number(previa.intento ?? 1) }
     }
     if (mismaAcumulacion(previa)) {
       // No es un intento nuevo: es la nota de siempre, que sigue subiendo. Se
       // rellena la fila que ya existe en vez de crear una segunda.
-      return { action: 'fill', external_id: String(previa.external_id), shield: true, prev_value: val(previa) }
+      return { action: 'fill', external_id: String(previa.external_id), shield: true, prev_value: val(previa), intento: Number(previa.intento ?? 1) }
     }
     const rindio = Number(intentoNuevo?.rendido_pct ?? 0) > 0
     // El "después" se mide con el SEMESTRE cuando se conoce. El año suelto
@@ -409,7 +415,7 @@ export function resolveImportTarget(
 
   const valued = matches.find(g => val(g) != null)
   if (valued) return { action: 'skip', external_id: String(valued.external_id), shield: false, prev_value: val(valued) }
-  if (matches.length) return { action: 'fill', external_id: String(matches[0].external_id), shield: true, prev_value: null }
+  if (matches.length) return { action: 'fill', external_id: String(matches[0].external_id), shield: true, prev_value: null, intento: Number(matches[0].intento ?? 1) }
   return { action: 'new', external_id: fallbackExternalId, shield: false, prev_value: null }
 }
 
