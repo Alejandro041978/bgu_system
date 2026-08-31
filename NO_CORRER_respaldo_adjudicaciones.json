@@ -1,0 +1,212 @@
+[
+ {
+  "opcion": "duplicado",
+  "aplicado_en": "2026-08-31T16:16:32.821Z",
+  "notaA": {
+   "external_id": "ec3196bf-dc56-40fc-95ce-5bae85f2c98a",
+   "document_number": "74958279",
+   "email": "alexandra.calderon@neumann.global",
+   "student_name": "Alexandra Carolina Calderon Chipana",
+   "course_code": "MIC 108",
+   "course_name": "Microeconomics",
+   "credits": 3,
+   "term_year": 2025,
+   "term_block": "1",
+   "final_grade": 93,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-07-04T20:33:39.218+00:00",
+   "source": "systemactiva",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": null,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "92c94f70-458a-4093-b7ae-e7c78360aa6b",
+   "course_enrollment_id": "61be06bd-37c1-4be1-9dca-724fa4c2d70f",
+   "rendido_pct": null,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": null,
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "detalleA": {
+   "id": "3f141ca5-e9b7-4ad7-b68d-72389e8dab86",
+   "external_id": "ec3196bf-dc56-40fc-95ce-5bae85f2c98a",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "enrollment_id": "e1d3cedd-3a3f-494b-9446-16f9af93db60",
+   "course_code": "102",
+   "course_name": "Microeconomics",
+   "term_year": 2025,
+   "term_block": "1",
+   "final_grade": 93,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [
+    {
+     "n": 1,
+     "pct": 50,
+     "val": null,
+     "desc": "Process Notes"
+    },
+    {
+     "n": 2,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test I"
+    },
+    {
+     "n": 3,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test II"
+    },
+    {
+     "n": 4,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test III"
+    },
+    {
+     "n": 5,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test IV"
+    },
+    {
+     "n": 6,
+     "pct": 4,
+     "val": 100,
+     "desc": "Modules Test V"
+    },
+    {
+     "n": 7,
+     "pct": 30,
+     "val": 80,
+     "desc": "Final Project"
+    }
+   ],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 6.66,
+     "val": 90,
+     "desc": "Assessment 01"
+    },
+    {
+     "n": 2,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 02"
+    },
+    {
+     "n": 3,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 03"
+    },
+    {
+     "n": 4,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 04"
+    },
+    {
+     "n": 5,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 05"
+    },
+    {
+     "n": 6,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 06"
+    },
+    {
+     "n": 7,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 07"
+    },
+    {
+     "n": 8,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 08"
+    },
+    {
+     "n": 9,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 09"
+    },
+    {
+     "n": 10,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 10"
+    },
+    {
+     "n": 11,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 11"
+    },
+    {
+     "n": 12,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 12"
+    },
+    {
+     "n": 13,
+     "pct": 6.66,
+     "val": 100,
+     "desc": "Assessment 13"
+    },
+    {
+     "n": 14,
+     "pct": 6.66,
+     "val": 95,
+     "desc": "Assessment 14"
+    },
+    {
+     "n": 15,
+     "pct": 6.76,
+     "val": 100,
+     "desc": "Assessment 15"
+    }
+   ],
+   "created_at": "2026-07-09T01:27:09.207609+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603"
+  },
+  "matriculaA": {
+   "id": "61be06bd-37c1-4be1-9dca-724fa4c2d70f",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "document_number": "74958279",
+   "course_id": "92c94f70-458a-4093-b7ae-e7c78360aa6b",
+   "program_id": "c8d7e55a-1877-4c3a-a23e-907ed607e8a4",
+   "program_enrollment_id": "6b43ab98-a7e9-4a5c-91af-c2b207f3353c",
+   "attempt": 1,
+   "term_year": 2025,
+   "term_block": "1",
+   "status": "aprobada",
+   "source": "systemactiva",
+   "opened_at": "2026-07-31T00:56:00.64787+00:00",
+   "opened_by": "reconstruccion",
+   "closed_at": null,
+   "created_at": "2026-07-31T00:56:00.64787+00:00",
+   "semester_id": "99eb526b-f6bd-462d-9c77-9f4ba1583603",
+   "closed_by": null
+  },
+  "notaB_eid": "95c098f1-7506-4be4-a09f-c7549604c560"
+ }
+]
