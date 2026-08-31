@@ -1,0 +1,480 @@
+{
+ "aplicado_en": "2026-08-31T21:46:22.109Z",
+ "vivas": [
+  {
+   "external_id": "f7f851e7-cb37-4a57-aad9-33f264fff8e1",
+   "document_number": "8243906",
+   "email": "j.javier.c@gmail.com",
+   "student_name": "Javier Castillo Salgado",
+   "course_code": "101",
+   "course_name": "Corporate Communication",
+   "credits": 1,
+   "term_year": null,
+   "term_block": null,
+   "final_grade": 78.33,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": null,
+   "updated_at": null,
+   "synced_at": "2026-08-25T13:36:02.141+00:00",
+   "source": "moodle",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": "2026-08-26T10:20:36.897+00:00",
+   "moodle_course_id": 476,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "course_enrollment_id": null,
+   "rendido_pct": 100,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": "2026-08-25T13:36:03.637+00:00",
+   "locked_by": "cron-cierre",
+   "intento": 1,
+   "semester_id": null
+  },
+  {
+   "external_id": "2d766ca4-f890-4de5-a0a4-621dc8411785",
+   "document_number": "8243906",
+   "email": "j.javier.c@gmail.com",
+   "student_name": "Javier Castillo Salgado",
+   "course_code": "103",
+   "course_name": "Persuasion and Emotions",
+   "credits": 1,
+   "term_year": null,
+   "term_block": null,
+   "final_grade": 0,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": null,
+   "updated_at": null,
+   "synced_at": "2026-08-25T02:36:34.007+00:00",
+   "source": "moodle",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": 478,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "17edfc47-2752-413a-845d-136841802ffa",
+   "course_enrollment_id": null,
+   "rendido_pct": 8.33,
+   "estado_academico": "pendiente",
+   "last_evaluated_at": "2026-08-25T02:36:35.204+00:00",
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": null
+  },
+  {
+   "external_id": "297b8eb8-b5a8-4044-a348-d3128470e882",
+   "document_number": "8243906",
+   "email": "j.javier.c@gmail.com",
+   "student_name": "Javier Castillo Salgado",
+   "course_code": "102",
+   "course_name": "Negotiation and Persuasion",
+   "credits": 1,
+   "term_year": null,
+   "term_block": null,
+   "final_grade": 43.33,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": null,
+   "updated_at": null,
+   "synced_at": "2026-08-25T13:36:13.003+00:00",
+   "source": "moodle",
+   "edited_at": null,
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": 477,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "course_enrollment_id": null,
+   "rendido_pct": 50,
+   "estado_academico": "pendiente",
+   "last_evaluated_at": "2026-08-25T13:36:14.327+00:00",
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": null
+  }
+ ],
+ "muertas": [
+  {
+   "external_id": "6ef1f81c-6340-478b-af14-c9174da25d60",
+   "document_number": ".8243906",
+   "email": "j.javier.c@gmail.com",
+   "student_name": "Javier Castillo Salgado",
+   "course_code": "103",
+   "course_name": "Persuasion and Emotions",
+   "credits": 1,
+   "term_year": null,
+   "term_block": null,
+   "final_grade": 0,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-08-11T06:37:21.457+00:00",
+   "source": "moodle",
+   "edited_at": "2026-08-24T19:38:22.84+00:00",
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": 478,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "17edfc47-2752-413a-845d-136841802ffa",
+   "course_enrollment_id": "6d29d11a-ecd7-4868-9dfc-84e52e8ea57a",
+   "rendido_pct": 8.33,
+   "estado_academico": "pendiente",
+   "last_evaluated_at": "2026-08-20T07:37:55.861+00:00",
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  {
+   "external_id": "e0ddbfab-0108-4a20-ac48-35a69f36da97",
+   "document_number": ".8243906",
+   "email": "j.javier.c@gmail.com",
+   "student_name": "Javier Castillo Salgado",
+   "course_code": "101",
+   "course_name": "Corporate Communication",
+   "credits": 1,
+   "term_year": null,
+   "term_block": null,
+   "final_grade": 78.33,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-08-11T06:37:25.263+00:00",
+   "source": "moodle",
+   "edited_at": "2026-08-11T06:37:25.479+00:00",
+   "edited_by": null,
+   "locked_at": "2026-08-11T10:20:03.613+00:00",
+   "moodle_course_id": 476,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "course_enrollment_id": "77cc2398-b49a-4a0a-92d0-a0a038bcf418",
+   "rendido_pct": 100,
+   "estado_academico": "aprobado",
+   "last_evaluated_at": "2026-08-11T06:37:26.033+00:00",
+   "locked_by": "cron-cierre",
+   "intento": 1,
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  },
+  {
+   "external_id": "71f34339-a7ca-4fef-af99-1000984fdf18",
+   "document_number": ".8243906",
+   "email": "j.javier.c@gmail.com",
+   "student_name": "Javier Castillo Salgado",
+   "course_code": "102",
+   "course_name": "Negotiation and Persuasion",
+   "credits": 1,
+   "term_year": null,
+   "term_block": null,
+   "final_grade": 43.33,
+   "retake_grade": null,
+   "passing_score": null,
+   "group_number": 0,
+   "updated_at": null,
+   "synced_at": "2026-08-11T06:37:23.659+00:00",
+   "source": "moodle",
+   "edited_at": "2026-08-24T19:38:46.719+00:00",
+   "edited_by": null,
+   "locked_at": null,
+   "moodle_course_id": 477,
+   "withdrawn_at": null,
+   "withdrawn_by": null,
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "course_enrollment_id": "e0890d00-1502-4b76-a2dd-e4b268d13f06",
+   "rendido_pct": 50,
+   "estado_academico": "pendiente",
+   "last_evaluated_at": "2026-08-20T07:38:07.271+00:00",
+   "locked_by": null,
+   "intento": 1,
+   "semester_id": "c9d1c866-2e36-43d1-8827-f6c589a8ee67"
+  }
+ ],
+ "detalles_muertas": [
+  {
+   "id": "b89ce71a-8b22-4e15-9a56-9595cec17b8a",
+   "external_id": "6ef1f81c-6340-478b-af14-c9174da25d60",
+   "student_id": "2786ed7d-8cc2-4e9c-a62d-5ad08c66e648",
+   "enrollment_id": "45eb5b3d-716c-4e3a-af8c-041ff34f0a54",
+   "course_code": "103",
+   "course_name": "Persuasion and Emotions",
+   "term_year": null,
+   "term_block": null,
+   "final_grade": 0,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 3,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 4,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 5,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 6,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 7,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 8,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 9,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 10,
+     "pct": 8.33,
+     "val": 0,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 11,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 12,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 02"
+    }
+   ],
+   "created_at": "2026-07-09T01:27:00.853661+00:00",
+   "semester_id": null
+  },
+  {
+   "id": "f66a050e-f8d2-42c5-8b86-51cf4afc46de",
+   "external_id": "71f34339-a7ca-4fef-af99-1000984fdf18",
+   "student_id": "2786ed7d-8cc2-4e9c-a62d-5ad08c66e648",
+   "enrollment_id": "45eb5b3d-716c-4e3a-af8c-041ff34f0a54",
+   "course_code": "102",
+   "course_name": "Negotiation and Persuasion",
+   "term_year": null,
+   "term_block": null,
+   "final_grade": 43.33,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 8.33,
+     "val": 80,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 8.33,
+     "val": 100,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 3,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 4,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 5,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 6,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 7,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 8,
+     "pct": 8.33,
+     "val": null,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 9,
+     "pct": 8.33,
+     "val": 80,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 10,
+     "pct": 8.33,
+     "val": 100,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 11,
+     "pct": 8.33,
+     "val": 80,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 12,
+     "pct": 8.33,
+     "val": 80,
+     "desc": "Quiz Session 02"
+    }
+   ],
+   "created_at": "2026-07-09T01:27:00.853661+00:00",
+   "semester_id": null
+  },
+  {
+   "id": "9c83bdfa-4dae-4687-84ca-d115c9406daf",
+   "external_id": "e0ddbfab-0108-4a20-ac48-35a69f36da97",
+   "student_id": "2786ed7d-8cc2-4e9c-a62d-5ad08c66e648",
+   "enrollment_id": "45eb5b3d-716c-4e3a-af8c-041ff34f0a54",
+   "course_code": "101",
+   "course_name": "Corporate Communication",
+   "term_year": null,
+   "term_block": null,
+   "final_grade": 78.33,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 8.33,
+     "val": 90,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 8.33,
+     "val": 80,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 3,
+     "pct": 8.33,
+     "val": 80,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 4,
+     "pct": 8.33,
+     "val": 80,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 5,
+     "pct": 8.33,
+     "val": 80,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 6,
+     "pct": 8.33,
+     "val": 80,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 7,
+     "pct": 8.33,
+     "val": 70,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 8,
+     "pct": 8.33,
+     "val": 90,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 9,
+     "pct": 8.33,
+     "val": 70,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 10,
+     "pct": 8.33,
+     "val": 80,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 11,
+     "pct": 8.33,
+     "val": 60,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 12,
+     "pct": 8.33,
+     "val": 80,
+     "desc": "Quiz Session 02"
+    }
+   ],
+   "created_at": "2026-07-09T01:27:00.853661+00:00",
+   "semester_id": null
+  }
+ ]
+}
