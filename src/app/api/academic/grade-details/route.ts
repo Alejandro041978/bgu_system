@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       .select('id, external_id, enrollment_id, course_code, course_name, term_year, term_block, semester_id, final_grade, retake_grade, makeup_grade, extra_points, passing_score, max_score, grades, process_grades')
       .eq('student_id', studentId)
       .order('term_year', { ascending: false }).order('term_block', { ascending: false }).order('course_name'),
-    sb.from('academic_student_enrollments').select('id, academic_programs(name)').eq('student_id', studentId),
+    sb.from('academic_student_enrollments').select('id, program_id, academic_programs(name)').eq('student_id', studentId),
     sb.from('academic_students').select('document_number').eq('id', studentId).maybeSingle(),
   ])
 
@@ -248,5 +248,58 @@ export async function GET(req: NextRequest) {
   }
   })
 
-  return NextResponse.json({ details: rows })
+  // ── La asignatura compartida entre las dos mallas del estudiante ──────────
+  //
+  // Tiene UNA fila de nota, anclada por course_id a una malla, y matrícula en
+  // las dos: la institución la cuenta en ambas (regla del 14-08-2026). Esta
+  // pantalla agrupa por el programa del ancla, así que el otro programa la
+  // perdía de vista (caso Ramos Escobal: Supply Chain figuraba solo en el MBA
+  // y el Bachelor quedaba en 19 asignaturas, 31-08-2026). La fila se DUPLICA
+  // en el bloque del otro programa —con el código y nombre de ESA malla y la
+  // marca `compartida`— cuando su matrícula ahí tiene veredicto. La matrícula
+  // es obligatoria: sin ella sería el sangrado por nombre que ya erradicamos.
+  const clones: typeof rows = []
+  {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const progIds = [...new Set(((enr ?? []) as any[]).map(e => e.program_id).filter(Boolean).map(String))]
+    if (progIds.length > 1) {
+      const { data: mallas } = await sb.from('academic_courses')
+        .select('id, code, name, program_id, academic_programs(name)').in('program_id', progIds)
+      const { data: mats } = await sb.from('academic_course_enrollments')
+        .select('course_id, status').eq('student_id', studentId)
+      const veredicto = new Map<string, string>()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const m of (mats ?? []) as any[]) {
+        if (m.status === 'aprobada' || (m.status === 'reprobada' && veredicto.get(String(m.course_id)) !== 'aprobada')) {
+          veredicto.set(String(m.course_id), m.status)
+        }
+      }
+      // Cursos que YA tienen fila propia en pantalla: ahí no se clona nada —
+      // si la otra malla tiene su propia nota (un doble real), se muestra la
+      // suya y no un reflejo.
+      const conFilaPropia = new Set(rows.map(r => String(cursoByExt.get(String(r.external_id)) ?? '')).filter(Boolean))
+      for (const r of rows) {
+        if ((r.retake_grade ?? r.final_grade) == null) continue
+        const propio = String(cursoByExt.get(String(r.external_id)) ?? '')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const c of (mallas ?? []) as any[]) {
+          if (String(c.id) === propio || conFilaPropia.has(String(c.id))) continue
+          if (!courseNameKey(c.name) || courseNameKey(c.name) !== courseNameKey(r.course_name)) continue
+          const v = veredicto.get(String(c.id))
+          if (v !== 'aprobada' && v !== 'reprobada') continue
+          clones.push({
+            ...r,
+            id: `${r.id}:compartida:${c.id}`,
+            course_code: c.code ?? r.course_code,
+            course_name: c.name ?? r.course_name,
+            program_name: c.academic_programs?.name ?? r.program_name,
+            editable: false,
+            compartida: true,
+          })
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({ details: [...rows, ...clones] })
 }

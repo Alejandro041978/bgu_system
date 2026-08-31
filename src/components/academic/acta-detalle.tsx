@@ -17,6 +17,9 @@ interface Detail {
   origen?: string | null; rendido_pct?: number | null; estado_academico?: string | null
   total_pct?: number | null; descuadrado?: boolean; ajuste_pesos?: string
   intento?: number; intento_label?: string | null
+  // La asignatura compartida con la otra malla del estudiante: la nota es una
+  // sola (vive en su programa ancla) y aquí se refleja porque también cuenta.
+  compartida?: boolean
 }
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 
@@ -210,6 +213,11 @@ export function ActaDetalle() {
                             {d.intento_label && (
                               <span className="ml-2 text-[11px] font-medium bg-blue-50 text-blue-700 rounded-full px-2 py-0.5 align-middle">
                                 {d.intento_label}
+                              </span>
+                            )}
+                            {d.compartida && (
+                              <span className="ml-2 text-[11px] font-medium bg-teal-50 text-teal-700 rounded-full px-2 py-0.5 align-middle" title="La nota es una sola y vive en su otro programa; aquí cuenta porque su matrícula la registra">
+                                Compartida
                               </span>
                             )}
                           </p>
