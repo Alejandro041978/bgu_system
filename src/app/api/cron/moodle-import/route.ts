@@ -55,8 +55,20 @@ export async function POST(req: NextRequest) {
   // negarse.
   const { data: links } = await sb.from('moodle_course_links')
     .select('aula_id').eq('kind', 'asignatura').eq('sync_enabled', true).is('replaced_at', null)
-  const aulaIds = [...new Set(((links ?? []) as { aula_id: number }[])
+  let aulaIds = [...new Set(((links ?? []) as { aula_id: number }[])
     .map(l => Number(l.aula_id)).filter(n => isFinite(n) && n > 0))]
+
+  // ?aula=N importa SOLO esa aula, saltando la rotación. Para operar un caso
+  // puntual (re-importar tras corregir algo) sin esperar a que la cola dé la
+  // vuelta al campus. Sigue exigiendo el vínculo encendido: esto elige entre
+  // las aulas autorizadas, no autoriza ninguna.
+  const soloAula = Number(req.nextUrl.searchParams.get('aula') ?? NaN)
+  if (isFinite(soloAula)) {
+    if (!aulaIds.includes(soloAula)) {
+      return NextResponse.json({ error: `El aula ${soloAula} no está vinculada con la sincronización encendida.` }, { status: 400 })
+    }
+    aulaIds = [soloAula]
+  }
 
   if (!aulaIds.length) {
     return NextResponse.json({
