@@ -96,27 +96,41 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
     for (const s of (data ?? []) as any[]) students.set(s.id, s)
   }
 
-  // Notas por documento (excluye filas de convalidación: esas cuentan por transfer_credit_items)
-  const docs = [...new Set([...students.values()].map(s => String(s.document_number ?? '')).filter(Boolean))]
+  // Notas por estudiante, con llave uuid (fase 2 documento→uuid; excluye
+  // filas de convalidación: esas cuentan por transfer_credit_items).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const gradesByDoc = new Map<string, any[]>()
-  // PAGINADO. Con 200 documentos por tanda la respuesta pasaba de 1.000 filas
+  const gradesByStudent = new Map<string, any[]>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const meter = (g: any, k: string) => {
+    if (!gradesByStudent.has(k)) gradesByStudent.set(k, [])
+    gradesByStudent.get(k)!.push(g)
+  }
+  // PAGINADO. Con 200 estudiantes por tanda la respuesta pasaba de 1.000 filas
   // y PostgREST la cortaba en silencio: la mayoría de los estudiantes quedaba
   // "sin notas" y el cron diario no avanzaba a NADIE desde hacía semanas —
   // evaluado uno por uno sí avanzaba, evaluados todos juntos no (22/08/2026).
-  for (const part of chunk(docs, 50)) {
+  for (const part of chunk(studentIds, 50)) {
     for (let from = 0; ; from += 1000) {
       const { data } = await sb.from('academic_grades')
-        .select('document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
-        .in('document_number', part).order('external_id').range(from, from + 999)
+        .select('student_id, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
+        .in('student_id', part).order('external_id').range(from, from + 999)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const g of (data ?? []) as any[]) {
-        if (!esIntento(g)) continue
-        const k = String(g.document_number)
-        if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
-        gradesByDoc.get(k)!.push(g)
-      }
+      for (const g of (data ?? []) as any[]) { if (esIntento(g)) meter(g, String(g.student_id)) }
       if ((data ?? []).length < 1000) break
+    }
+  }
+  // Respaldo para filas que aún no tengan uuid (hoy: ninguna): por documento.
+  const docs = [...new Set([...students.values()].map(s => String(s.document_number ?? '')).filter(Boolean))]
+  const sidDeDoc = new Map<string, string>([...students.values()].map(s => [String(s.document_number ?? ''), String(s.id)]))
+  for (const part of chunk(docs, 50)) {
+    const { data } = await sb.from('academic_grades')
+      .select('document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
+      .is('student_id', null).in('document_number', part)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const g of (data ?? []) as any[]) {
+      if (!esIntento(g)) continue
+      const sid = sidDeDoc.get(String(g.document_number))
+      if (sid) meter(g, sid)
     }
   }
 
@@ -159,8 +173,8 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
 
   const approved = (studentId: string, programId: string, c: { id: string; code: string | null; name: string | null }): boolean => {
     if (transferredOf.get(`${studentId}|${programId}`)?.has(c.id)) return true
-    const doc = String(students.get(studentId)?.document_number ?? '')
-    const rows = (gradesByDoc.get(doc) ?? []).filter(g => filaDeCurso(g, c))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = (gradesByStudent.get(studentId) ?? []).filter((g: any) => filaDeCurso(g, c))
     const values = rows.map(g => (g.retake_grade ?? g.final_grade)).filter((v: number | null): v is number => v != null)
     if (!values.length) return false
     const best = Math.max(...values)

@@ -76,7 +76,7 @@ async function listarInterno(ambito: Ambito, req: NextRequest) {
   const nomSemestre = new Map(semestres.map((s: { id: string; name: string }) => [String(s.id), s.name]))
 
   const notas = await todo(sb, 'academic_grades',
-    'external_id, document_number, student_name, course_id, course_name, final_grade, retake_grade, estado_academico, semester_id, source, edited_at, course_enrollment_id, withdrawn_at',
+    'external_id, student_id, document_number, student_name, course_id, course_name, final_grade, retake_grade, estado_academico, semester_id, source, edited_at, course_enrollment_id, withdrawn_at',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (query: any) => query.in('course_id', [...cursosOk]), 'external_id')
 
@@ -109,20 +109,21 @@ async function listarInterno(ambito: Ambito, req: NextRequest) {
   }]))
 
   // La nota de una inscripción: por su enlace directo cuando lo tiene, y si no
-  // por documento + asignatura, que es como se emparejaban antes del enlace.
+  // por estudiante + asignatura (fase 2 documento→uuid; el documento queda de
+  // respaldo para notas que aún no tengan uuid).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const porMatricula = new Map<string, any>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const porDocCurso = new Map<string, any>()
+  const porPersonaCurso = new Map<string, any>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const n of notas as any[]) {
     if (n.withdrawn_at) continue
     if (n.course_enrollment_id) porMatricula.set(String(n.course_enrollment_id), n)
-    const k = `${n.document_number ?? ''}|${n.course_id}`
+    const k = n.student_id ? `sid:${n.student_id}|${n.course_id}` : `doc:${n.document_number ?? ''}|${n.course_id}`
     // Con varios intentos manda el que tenga nota, para no ofrecer rellenar algo
     // que ya está calificado.
-    const previa = porDocCurso.get(k)
-    if (!previa || ((previa.retake_grade ?? previa.final_grade) == null && (n.retake_grade ?? n.final_grade) != null)) porDocCurso.set(k, n)
+    const previa = porPersonaCurso.get(k)
+    if (!previa || ((previa.retake_grade ?? previa.final_grade) == null && (n.retake_grade ?? n.final_grade) != null)) porPersonaCurso.set(k, n)
   }
 
   const infoCurso = new Map(delAmbito.map((c: { id: string; name: string; program_id: string }) =>
@@ -131,7 +132,10 @@ async function listarInterno(ambito: Ambito, req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const crudas = vivas.map((m: any) => {
     const est = infoEst.get(String(m.student_id))
-    const n = porMatricula.get(String(m.id)) ?? porDocCurso.get(`${est?.documento ?? ''}|${m.course_id}`) ?? null
+    const n = porMatricula.get(String(m.id))
+      ?? porPersonaCurso.get(`sid:${m.student_id}|${m.course_id}`)
+      ?? porPersonaCurso.get(`doc:${est?.documento ?? ''}|${m.course_id}`)
+      ?? null
     return {
       external_id: n?.external_id ?? null,
       enrollment_id: String(m.id),
@@ -230,6 +234,7 @@ async function crearNotaDeMatricula(
   const externalId = stableUuid(`scoped-grade:${enrollmentId}`)
   const { error } = await sb.from('academic_grades').insert({
     external_id: externalId,
+    student_id: String(est.id),
     document_number: est.document_number == null ? null : String(est.document_number),
     email: est.email ?? null,
     student_name: [est.first_name, est.last_name, est.second_last_name].filter(Boolean).join(' '),

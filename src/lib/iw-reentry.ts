@@ -185,9 +185,14 @@ async function contexto(sb: SB, caso: Caso) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const c of (data ?? []) as any[]) cursos.set(String(c.id), { code: c.code, name: c.name, credits: Number(c.credits ?? 0) })
   }
+  // Las notas del estudiante por uuid (fase 2 documento→uuid); la segunda
+  // consulta recoge las filas que aún no lo tengan (hoy: ninguna).
   const notas = await todo(sb, 'academic_grades',
     'course_enrollment_id, course_id, intento, final_grade, retake_grade, rendido_pct, withdrawn_at',
-    q => q.eq('document_number', String(caso.document_number ?? '')), 'external_id')
+    q => q.eq('student_id', caso.student_id), 'external_id')
+  notas.push(...await todo(sb, 'academic_grades',
+    'course_enrollment_id, course_id, intento, final_grade, retake_grade, rendido_pct, withdrawn_at',
+    q => q.eq('document_number', String(caso.document_number ?? '')).is('student_id', null), 'external_id'))
   // La nota de cada matrícula: por el enlace directo (course_enrollment_id)
   // y, si la nota no lo tiene, por asignatura + intento y por asignatura. Sin
   // el respaldo, una nota importada sin enlace era invisible y el gestor

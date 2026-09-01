@@ -86,7 +86,7 @@ export async function simularBackfill(sb: SB): Promise<Simulacro> {
     todo(sb, 'academic_programs', 'id, name, partner_campus') as Promise<any[]>,
     todo(sb, 'moodle_collections', 'id, program_id, name, active') as Promise<any[]>,
     todo(sb, 'moodle_course_links', 'aula_id, collection_id') as Promise<any[]>,
-    todo(sb, 'academic_grades', 'document_number, moodle_course_id') as Promise<any[]>,
+    todo(sb, 'academic_grades', 'student_id, document_number, moodle_course_id') as Promise<any[]>,
     todo(sb, 'transfer_credits', 'id, student_id, dest_program_id, status') as Promise<any[]>,
     todo(sb, 'transfer_credit_items', 'transfer_credit_id') as Promise<any[]>,
     todo(sb, 'convocatorias', 'id, name') as Promise<any[]>,
@@ -112,12 +112,14 @@ export async function simularBackfill(sb: SB): Promise<Simulacro> {
   const colDeAula = new Map<string, string>()
   for (const l of links) if (l.collection_id) colDeAula.set(String(l.aula_id), String(l.collection_id))
 
+  // Aulas por estudiante, con llave uuid (fase 2 documento→uuid); el documento
+  // queda de respaldo para filas sin él.
   const aulasDe = new Map<string, string[]>()
   for (const g of grades) {
     if (!g.moodle_course_id) continue
-    const d = String(g.document_number ?? '')
-    if (!aulasDe.has(d)) aulasDe.set(d, [])
-    aulasDe.get(d)!.push(String(g.moodle_course_id))
+    const k = g.student_id ? String(g.student_id) : `doc:${g.document_number ?? ''}`
+    if (!aulasDe.has(k)) aulasDe.set(k, [])
+    aulasDe.get(k)!.push(String(g.moodle_course_id))
   }
 
   const nItems = new Map<string, number>()
@@ -159,7 +161,8 @@ export async function simularBackfill(sb: SB): Promise<Simulacro> {
     // 1) Evidencia dura: las aulas donde YA tiene notas. Es dónde estudia de
     // verdad, así que gana a cualquier declaración.
     const votos = new Map<string, number>()
-    for (const aula of aulasDe.get(String(s.document_number ?? '')) ?? []) {
+    const aulas = aulasDe.get(String(e.student_id)) ?? aulasDe.get(`doc:${s.document_number ?? ''}`) ?? []
+    for (const aula of aulas) {
       const cid = colDeAula.get(aula)
       if (cid && opciones.some(o => o.id === cid)) votos.set(cid, (votos.get(cid) ?? 0) + 1)
     }
