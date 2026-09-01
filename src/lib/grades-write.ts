@@ -110,6 +110,7 @@ export async function applyGradeEdit(
     patch[field] = next
     audits.push({
       grade_external_id: externalId,
+      student_id: row.student_id ?? null,
       document_number: row.document_number,
       course_name: row.course_name,
       field,
@@ -162,13 +163,19 @@ export async function applyGradeEdit(
   // Efectos inmediatos: egreso/situación y avance de carrusel (una nota
   // cerrada puede completar el carrusel actual). Si fallan no rompen la
   // edición: los crons nocturnos convergen igual.
-  if (row.document_number) {
+  if (row.student_id || row.document_number) {
     try { await recomputeStudentByDocument(sb, String(row.document_number)) } catch { /* cron converge */ }
     try {
-      const { data: studs } = await sb.from('academic_students')
-        .select('id').eq('document_number', row.document_number)
-      for (const s of (studs ?? []) as { id: string }[]) {
-        await advanceCarousels(sb, { studentId: s.id })
+      // Fase 2 documento→uuid: la nota ya conoce a su dueño; el rodeo por
+      // documento queda solo como respaldo para filas sin uuid (hoy ninguna).
+      if (row.student_id) {
+        await advanceCarousels(sb, { studentId: String(row.student_id) })
+      } else {
+        const { data: studs } = await sb.from('academic_students')
+          .select('id').eq('document_number', row.document_number)
+        for (const s of (studs ?? []) as { id: string }[]) {
+          await advanceCarousels(sb, { studentId: s.id })
+        }
       }
     } catch { /* cron converge */ }
   }
