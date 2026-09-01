@@ -106,6 +106,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if ('document_number' in patch) {
     if (patch.document_number === null) return NextResponse.json({ error: 'El documento no puede quedar vacío' }, { status: 400 })
+    // Documento canónico: solo letras y números (regla del 31-08). Un punto o
+    // espacio colado parte el expediente en dos cuando alguien lo corrige después.
+    patch.document_number = String(patch.document_number).replace(/[^0-9A-Za-z]/g, '')
+    if (!patch.document_number) return NextResponse.json({ error: 'El documento debe tener al menos una letra o número' }, { status: 400 })
     const { data: dup } = await sb.from('academic_students')
       .select('id').eq('document_number', patch.document_number).neq('id', id).limit(1)
     if ((dup ?? []).length) return NextResponse.json({ error: 'Otro estudiante ya tiene ese documento' }, { status: 409 })

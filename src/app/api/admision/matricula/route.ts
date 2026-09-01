@@ -149,7 +149,10 @@ export async function POST(req: NextRequest) {
     if (phoneLocal && !phoneCode) {
       return NextResponse.json({ error: 'Elige el código telefónico del país' }, { status: 400 })
     }
-    const doc = ns.document_number.trim()
+    // Documento canónico: solo letras y números (regla del 31-08). Un punto o
+    // espacio colado parte el expediente en dos cuando alguien lo corrige después.
+    const doc = ns.document_number.replace(/[^0-9A-Za-z]/g, '')
+    if (!doc) return NextResponse.json({ error: 'El documento debe tener al menos una letra o número' }, { status: 400 })
     const { data: dup } = await sb.from('academic_students')
       .select('id, first_name, last_name').eq('document_number', doc).limit(1)
     if ((dup ?? []).length) {
