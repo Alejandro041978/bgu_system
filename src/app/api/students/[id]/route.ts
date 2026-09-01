@@ -104,6 +104,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
   }
+  // Correos siempre en minúsculas: el portal identifica por ellos, y una
+  // mayúscula colada dejaba al estudiante sin portal (01-09-2026).
+  for (const campo of ['email', 'email_alt'] as const) {
+    if (patch[campo]) patch[campo] = String(patch[campo]).toLowerCase()
+  }
   if ('document_number' in patch) {
     if (patch.document_number === null) return NextResponse.json({ error: 'El documento no puede quedar vacío' }, { status: 400 })
     // Documento canónico: solo letras y números (regla del 31-08). Un punto o

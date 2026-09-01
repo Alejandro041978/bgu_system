@@ -1,0 +1,82 @@
+{
+ "aplicado_en": "2026-09-01T22:11:06.900Z",
+ "filas": [
+  {
+   "id": "bcc6ecb2-f2dc-49d7-87df-815f3f0142d6",
+   "email_viejo": "Migue.andre32@gmail.com",
+   "email_alt_viejo": "miguel.zambranot@blackwell.pro",
+   "email_nuevo": "migue.andre32@gmail.com",
+   "email_alt_nuevo": "miguel.zambranot@blackwell.pro"
+  },
+  {
+   "id": "e5567fc6-1339-4b59-a571-37c1d1ca1498",
+   "email_viejo": "Manuelquilcate@hotmail.com",
+   "email_alt_viejo": "manuel.quilcate@blackwell.pro",
+   "email_nuevo": "manuelquilcate@hotmail.com",
+   "email_alt_nuevo": "manuel.quilcate@blackwell.pro"
+  },
+  {
+   "id": "6599936e-ee09-489b-b425-dca9f54cf3f4",
+   "email_viejo": "Vilcaalamamariaisabel21@gmail.com",
+   "email_alt_viejo": "maria.vilcaa@blackwell.pro",
+   "email_nuevo": "vilcaalamamariaisabel21@gmail.com",
+   "email_alt_nuevo": "maria.vilcaa@blackwell.pro"
+  },
+  {
+   "id": "5b01c8c3-73a0-4696-9744-263e958c7ca3",
+   "email_viejo": "WIWOAMAYA@GMAIL.COM",
+   "email_alt_viejo": null,
+   "email_nuevo": "wiwoamaya@gmail.com",
+   "email_alt_nuevo": null
+  },
+  {
+   "id": "b7ba85cf-a2a2-4b68-acc1-f6361a0fb04a",
+   "email_viejo": "Carmensantiago14@gmail.com",
+   "email_alt_viejo": null,
+   "email_nuevo": "carmensantiago14@gmail.com",
+   "email_alt_nuevo": null
+  },
+  {
+   "id": "9720923c-484f-4fe1-8b92-80288039d11a",
+   "email_viejo": "Williampena280@gmail.com",
+   "email_alt_viejo": null,
+   "email_nuevo": "williampena280@gmail.com",
+   "email_alt_nuevo": null
+  },
+  {
+   "id": "d0141ed7-9359-486c-ab14-4ece9ab847ad",
+   "email_viejo": "PSANCHEZART@GMAIL.COM",
+   "email_alt_viejo": null,
+   "email_nuevo": "psanchezart@gmail.com",
+   "email_alt_nuevo": null
+  },
+  {
+   "id": "d18ba1e7-147d-4a1e-ad84-060d16bab317",
+   "email_viejo": "ZAMBRANOLESLY973@GMAIL.COM",
+   "email_alt_viejo": "lesly.zambranoa@blackwell.pro",
+   "email_nuevo": "zambranolesly973@gmail.com",
+   "email_alt_nuevo": "lesly.zambranoa@blackwell.pro"
+  },
+  {
+   "id": "c7132f1a-fa7f-4097-81dd-3990bdb1ce17",
+   "email_viejo": "Chinofloreseliana@gmail.com",
+   "email_alt_viejo": "ruth.chinof@blackwell.pro",
+   "email_nuevo": "chinofloreseliana@gmail.com",
+   "email_alt_nuevo": "ruth.chinof@blackwell.pro"
+  },
+  {
+   "id": "0a1ae014-aa2e-4e39-9cbd-058d9adfb376",
+   "email_viejo": "NINOSCATEJADALUNA@GMAIL.COM",
+   "email_alt_viejo": "ninosca.tejada@blackwell.pro",
+   "email_nuevo": "ninoscatejadaluna@gmail.com",
+   "email_alt_nuevo": "ninosca.tejada@blackwell.pro"
+  },
+  {
+   "id": "1a4eab5a-fcd0-48a3-8c9b-ed7a6863ebea",
+   "email_viejo": "Lucy.limachi.25@gmail.com",
+   "email_alt_viejo": "beatriz.limachi@blackwell.pro",
+   "email_nuevo": "lucy.limachi.25@gmail.com",
+   "email_alt_nuevo": "beatriz.limachi@blackwell.pro"
+  }
+ ]
+}

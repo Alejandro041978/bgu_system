@@ -165,7 +165,9 @@ export async function POST(req: NextRequest) {
       last_name: ns.last_name.trim(),
       second_last_name: ns.second_last_name?.trim() || null,
       document_number: doc,
-      email: ns.email?.trim() || null,
+      // Minúsculas siempre: el portal identifica por este correo, y una
+      // mayúscula colada dejaba al estudiante sin portal (01-09-2026).
+      email: ns.email?.trim().toLowerCase() || null,
       phone_code: phoneCode,
       phone_local: phoneLocal,
       phone_number: phoneCode && phoneLocal ? `${phoneCode}${phoneLocal}` : null,

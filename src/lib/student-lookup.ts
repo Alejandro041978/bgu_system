@@ -25,8 +25,17 @@ export async function findStudentByLoginEmail(
   // El correo se interpola dentro del filtro `or`, así que se descarta
   // cualquier cosa con caracteres que puedan romperlo.
   if (!mail || !/^[^\s,()'"]+@[^\s,()'"]+$/.test(mail)) return null
+  // Insensible a mayúsculas: la ficha de Zambrano decía 'Migue.andre32@…', su
+  // sesión decía 'migue.andre32@…', y la igualdad exacta lo dejaba con el
+  // portal vacío (01-09-2026). El ilike trata '_' y '%' como comodines, así
+  // que la coincidencia se confirma en memoria con igualdad estricta.
+  const sel = [...new Set(`${cols}, email, email_alt`.split(',').map(s => s.trim()).filter(Boolean))].join(', ')
   const { data } = await sb.from('academic_students')
-    .select(cols).or(`email.eq.${mail},email_alt.eq.${mail}`)
-    .eq('disabled', false).limit(1).maybeSingle()
-  return data ?? null
+    .select(sel).or(`email.ilike.${mail},email_alt.ilike.${mail}`)
+    .eq('disabled', false).limit(5)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const exacto = ((data ?? []) as any[]).find(s =>
+    String(s.email ?? '').trim().toLowerCase() === mail ||
+    String(s.email_alt ?? '').trim().toLowerCase() === mail)
+  return exacto ?? null
 }
