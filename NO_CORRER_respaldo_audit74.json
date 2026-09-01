@@ -1,0 +1,449 @@
+{
+ "aplicado_en": "2026-09-01T20:42:28.946Z",
+ "filas": [
+  {
+   "id": "ba2cd2b6-3dc2-4a8b-ae98-c4c55857e14b",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "3fa3d108-8dcf-4629-95e8-0d25343a68eb",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "2e1c4ede-05e3-47f5-847b-6850a2139128",
+   "doc_viejo": ".8243906",
+   "doc_nuevo": "8243906",
+   "student_id": "2786ed7d-8cc2-4e9c-a62d-5ad08c66e648"
+  },
+  {
+   "id": "491c092f-38f5-4857-81cd-8d895507505b",
+   "doc_viejo": ".8243906",
+   "doc_nuevo": "8243906",
+   "student_id": "2786ed7d-8cc2-4e9c-a62d-5ad08c66e648"
+  },
+  {
+   "id": "3deffe10-f72f-4acf-85cc-bab29a19bd04",
+   "doc_viejo": ".8243906",
+   "doc_nuevo": "8243906",
+   "student_id": "2786ed7d-8cc2-4e9c-a62d-5ad08c66e648"
+  },
+  {
+   "id": "06292cf4-ee30-493c-a643-0bcf7362e84e",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "ebd2f5fc-2419-46bb-867b-af662a007e1d",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "0cc6161b-88cb-4888-ac2e-51824283b2af",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "8c8242e6-446c-4230-9513-09026fd381c2",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "921d6e90-fe13-4ca5-9f38-45207df5a401",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "08e54837-cb9c-4f56-866e-7a893c472eb9",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "d1b8b2ff-0147-4c9e-bd26-69a24d0f65dc",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "b40f3514-6304-4f54-a80d-4626495a158a",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "0f53a1be-0acf-4627-b8fa-7354dd6b15b8",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "d33e2cbe-223f-4403-93ec-0c165a75a1ef",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "9abd58d8-58e8-476b-8d62-6d7a4d71ab4c",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "6982e360-a118-4fc3-9c4b-1e25adfca844",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "1d188779-d9b1-4a46-9a49-fd21e6d4a2f8",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "001aecc6-de34-4681-8337-9faada13e98d",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "e24220f8-a397-4c22-b4b9-5872fb702cd5",
+   "doc_viejo": "8303390.",
+   "doc_nuevo": "8303390",
+   "student_id": "e54b0c0f-2ea4-41f5-a547-aff3ffc66cbb"
+  },
+  {
+   "id": "3748f4c5-216e-477b-ba24-06a68a9a129b",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "9f97154d-5121-46ce-ab8e-1935606497a2",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "842e96f6-8275-4be9-9974-c05c87cfb62f",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "bf463a8f-65a2-4306-8331-5f1775ddffda",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "85e55419-be48-466f-9c86-7b3d0aed53d5",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "52a5e99f-8871-461f-bb8d-5aa4ed8e7cbf",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "ebb5d932-66b6-4fa5-88c3-530696fe96ac",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "015e6cd1-9cc9-421d-9037-1b47f773a63d",
+   "doc_viejo": "8303390.",
+   "doc_nuevo": "8303390",
+   "student_id": "e54b0c0f-2ea4-41f5-a547-aff3ffc66cbb"
+  },
+  {
+   "id": "c6dff7b6-46cd-4f6b-b452-18b3f234a93f",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "01eca9bf-945e-4978-93b8-1554ac18df01",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "48f731a6-cb66-4890-8c29-4e230359039b",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "566b8153-fac7-48b8-871b-a1e4e453a995",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "cd7d6203-ef2d-4cc0-810c-c09627d63fe0",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "61b8054d-9c1e-46d8-9e3d-e9b344fe9613",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "52daad4f-1593-466d-9f7b-7f3ad620c2a1",
+   "doc_viejo": "8303390.",
+   "doc_nuevo": "8303390",
+   "student_id": "e54b0c0f-2ea4-41f5-a547-aff3ffc66cbb"
+  },
+  {
+   "id": "91b138a6-712e-4dbb-8c8d-302191499052",
+   "doc_viejo": "8303390.",
+   "doc_nuevo": "8303390",
+   "student_id": "e54b0c0f-2ea4-41f5-a547-aff3ffc66cbb"
+  },
+  {
+   "id": "a199f29d-0946-4790-9838-4bad07f52315",
+   "doc_viejo": "5864537.",
+   "doc_nuevo": "5864537",
+   "student_id": "b608e955-33d7-4ce9-9346-995c0ff97518"
+  },
+  {
+   "id": "041a1789-cc49-429f-99fc-53456b13e643",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "2a0c952d-7ad9-435d-8752-cbd2f6977ad0",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "98155523-1e74-4466-918a-f6e873b5b14f",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "02016c00-a3a2-46a9-8d8c-6b3f2b253af3",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "0db8a2a0-0965-482a-81c0-1da3fdcacd78",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "f6da724c-9cb4-4ce5-888d-4fe883e425fb",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "6918880d-c13a-49f3-96d6-9aa1343ed5b1",
+   "doc_viejo": "8303390.",
+   "doc_nuevo": "8303390",
+   "student_id": "e54b0c0f-2ea4-41f5-a547-aff3ffc66cbb"
+  },
+  {
+   "id": "55cee82b-b133-48ba-83f7-3335e662d801",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "bd8c111f-0583-4b03-8646-e8917334eb61",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "beedf82d-5e54-41e2-963e-e2109f9ab79f",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "0f4b44b7-ed39-4cea-b818-2fec891696c1",
+   "doc_viejo": ".8413846",
+   "doc_nuevo": "8413846",
+   "student_id": "5fea1eaa-e40d-4101-817d-55cef256bd9d"
+  },
+  {
+   "id": "39dd8239-ea0f-4831-957d-f1f6346cc634",
+   "doc_viejo": "8303390.",
+   "doc_nuevo": "8303390",
+   "student_id": "e54b0c0f-2ea4-41f5-a547-aff3ffc66cbb"
+  },
+  {
+   "id": "11a51bce-1ee4-41fa-a260-fb19984c6d29",
+   "doc_viejo": "5044751.",
+   "doc_nuevo": "5044751",
+   "student_id": "e252e950-8852-478b-9d04-1e83a42df665"
+  },
+  {
+   "id": "bf0e2fca-82f1-4cfb-86e8-1ff2966b9f51",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "943ff07a-16bf-4000-a1ec-90cec16e380c",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "19d667b5-a212-4e76-8a60-b88e01c95d35",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "5ac17e3a-4c4b-4081-8a2c-c7bac6bf87d3",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "aa8efa36-bb9a-46f5-b507-10dbf123ed80",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "162ccfbd-6d77-41ae-a425-c8a243adc94d",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "97a26c23-8d6a-4e70-a1e7-bb6b6b5f0ca7",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "af8b30eb-8e43-46da-96ef-a0144ab322f2",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "01244d74-76e1-4cc0-a131-95e3b674206c",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "827c0bfc-96a7-41d8-81fb-08a61a742ceb",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "f2aa75b0-13f9-4b82-9eb2-e183a463fd38",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "58b12540-146f-4151-88d4-e512d5206819",
+   "doc_viejo": "024769839",
+   "doc_nuevo": "024769839",
+   "student_id": null
+  },
+  {
+   "id": "93b6b9f5-55d0-4a30-ac9e-e6eeb226014d",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  },
+  {
+   "id": "73808a86-98b4-437f-9bd0-bd9dcf1a5896",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  },
+  {
+   "id": "327ff3c8-cc83-4f24-a137-f80cfbfff7a9",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  },
+  {
+   "id": "6f268833-6d4b-48a9-802e-59bf38ca8644",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  },
+  {
+   "id": "97caa4f2-0d5f-418c-9b47-479c1f22afd6",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  },
+  {
+   "id": "ff217737-fda4-4165-9404-3fd1fc4db2cb",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  },
+  {
+   "id": "80909e52-a0a8-4ad9-afe0-a823bf8d8378",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  },
+  {
+   "id": "bb98aa31-70cb-45fb-8609-a526209c16a9",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  },
+  {
+   "id": "7b6d2ae4-5561-4887-bda2-cf5d8442c97f",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  },
+  {
+   "id": "48f81f8c-bd37-41be-bf84-14a74be5dd51",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  },
+  {
+   "id": "6db68688-99b3-4923-9a3a-34e2e4776e65",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  },
+  {
+   "id": "f959f60a-e042-44f7-9b79-6d2eec77b66d",
+   "doc_viejo": "GAFA030220MNLR",
+   "doc_nuevo": "GAFA030220MNLR",
+   "student_id": null
+  }
+ ]
+}
