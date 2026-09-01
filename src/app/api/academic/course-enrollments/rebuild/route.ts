@@ -79,8 +79,8 @@ export async function POST(req: NextRequest) {
   const minPrograma = new Map<string, number | null>(programs.map((p: { id: string; category_id: string | null }) => [String(p.id), minCat.get(String(p.category_id)) ?? null]))
   const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
   const todasLasNotas = await todo(sb, 'academic_grades',
-    'external_id, document_number, course_id, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, semester_id, withdrawn_at, synced_at, source, course_enrollment_id, estado_academico',
-    'external_id') as (NotaMin & { course_enrollment_id: string | null; semester_id: string | null; course_id: string | null })[]
+    'external_id, student_id, document_number, course_id, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, semester_id, withdrawn_at, synced_at, source, course_enrollment_id, estado_academico',
+    'external_id') as (NotaMin & { student_id: string | null; course_enrollment_id: string | null; semester_id: string | null; course_id: string | null })[]
 
   // Las filas de plan SÍ entran ahora, y ésa es la novedad de este paso: una
   // asignatura inscrita y sin empezar pertenece al REGISTRO, no a la tabla de
@@ -96,8 +96,10 @@ export async function POST(req: NextRequest) {
   // homónima del OTRO programa del estudiante — y los programas son
   // independientes (regla del usuario, 31-08-2026). El nombre queda solo de
   // respaldo para filas que aún no tengan id (hoy: ninguna).
-  const claveDe = (n: { document_number: string | null; course_id?: string | null; course_name: string | null }) =>
-    `${n.document_number}|${n.course_id ?? `nombre:${courseNameKey(n.course_name)}`}`
+  // La persona por uuid (fase 2 documento→uuid); el documento queda de
+  // respaldo para filas que aún no lo tengan (hoy: ninguna).
+  const claveDe = (n: { student_id?: string | null; document_number: string | null; course_id?: string | null; course_name: string | null }) =>
+    `${n.student_id ?? `doc:${n.document_number}`}|${n.course_id ?? `nombre:${courseNameKey(n.course_name)}`}`
   const conIntentoReal = new Set<string>()
   for (const n of todasLasNotas) {
     if (esFilaDePlan(n)) continue
@@ -109,8 +111,12 @@ export async function POST(req: NextRequest) {
   const idx = indexarMalla(courses)
   // El id de la asignatura manda sobre cualquier resolución por nombre.
   const cursoPorId = new Map(courses.map(c => [String(c.id), { id: c.id, program_id: c.program_id ?? null }]))
+  const stuById = new Map<string, { id: string }>()
   const stuByDoc = new Map<string, { id: string }>()
-  for (const s of students) stuByDoc.set(String(s.document_number ?? ''), s)
+  for (const s of students) {
+    stuById.set(String(s.id), s)
+    stuByDoc.set(String(s.document_number ?? ''), s)
+  }
   const progsOf = new Map<string, string[]>()
   const progEnrOf = new Map<string, string>()   // `${student_id}|${program_id}` → matrícula de programa
   for (const e of progEnr) {
@@ -134,7 +140,9 @@ export async function POST(req: NextRequest) {
   const porIntento = new Map<string, { student_id: string; course_id: string; program_id: string | null; notas: NotaMin[] }>()
 
   for (const n of grades) {
-    const stu = stuByDoc.get(String(n.document_number ?? ''))
+    // El uuid de la nota manda; el documento queda de respaldo (fase 2).
+    const stu = (n.student_id ? stuById.get(String(n.student_id)) : null)
+      ?? stuByDoc.get(String(n.document_number ?? ''))
     if (!stu) {
       sinResolver.set('sin_alumno', (sinResolver.get('sin_alumno') ?? 0) + 1)
       continue
