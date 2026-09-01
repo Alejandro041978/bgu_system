@@ -414,7 +414,7 @@ export async function POST(req: NextRequest) {
 
   const sb = db()
   const { data: g } = await sb.from('academic_grades')
-    .select('external_id, document_number, credits, final_grade, retake_grade, withdrawn_at, source').eq('external_id', b.external_id).maybeSingle()
+    .select('external_id, student_id, document_number, credits, final_grade, retake_grade, withdrawn_at, source').eq('external_id', b.external_id).maybeSingle()
   if (!g) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
   if (g.source === 'convalidacion' || g.source === 'validacion') return NextResponse.json({ error: 'Una convalidación/validación no se retira aquí' }, { status: 400 })
   // De una asignatura no empezada no hay nada que retirar: no ocupa crédito ni
@@ -433,9 +433,12 @@ export async function POST(req: NextRequest) {
   if (det && (hasSlot(det.grades) || hasSlot(det.process_grades) || det.makeup_grade != null)) {
     return NextResponse.json({ error: 'No se puede retirar: la asignatura tiene evaluaciones/parciales con nota. Bórralas con "Editar nota" (vacío) primero.' }, { status: 409 })
   }
-  // La inscripción debe ser del estudiante indicado
-  const { data: stu } = await sb.from('academic_students').select('document_number').eq('id', b.student_id).maybeSingle()
-  if (!stu || String(stu.document_number) !== String(g.document_number)) {
+  // La inscripción debe ser del estudiante indicado. Por uuid (fase 2
+  // documento→uuid); el documento queda de respaldo para filas sin él.
+  const { data: stu } = await sb.from('academic_students').select('id, document_number').eq('id', b.student_id).maybeSingle()
+  const esSuya = stu && (g.student_id ? String(g.student_id) === String(stu.id)
+    : String(stu.document_number) === String(g.document_number))
+  if (!esSuya) {
     return NextResponse.json({ error: 'La inscripción no pertenece a ese estudiante' }, { status: 400 })
   }
 
@@ -505,13 +508,16 @@ export async function DELETE(req: NextRequest) {
 
   const sb = db()
   const { data: g } = await sb.from('academic_grades')
-    .select('external_id, document_number, course_id, credits, course_name, withdrawn_at, withdrawn_by, source')
+    .select('external_id, student_id, document_number, course_id, credits, course_name, withdrawn_at, withdrawn_by, source')
     .eq('external_id', b.external_id).maybeSingle()
   if (!g) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
   if (!g.withdrawn_at) return NextResponse.json({ error: 'Esa asignatura no está retirada' }, { status: 409 })
 
-  const { data: stu } = await sb.from('academic_students').select('document_number').eq('id', b.student_id).maybeSingle()
-  if (!stu || String(stu.document_number) !== String(g.document_number)) {
+  // Propiedad por uuid (fase 2 documento→uuid); documento de respaldo.
+  const { data: stu } = await sb.from('academic_students').select('id, document_number').eq('id', b.student_id).maybeSingle()
+  const esSuya = stu && (g.student_id ? String(g.student_id) === String(stu.id)
+    : String(stu.document_number) === String(g.document_number))
+  if (!esSuya) {
     return NextResponse.json({ error: 'La inscripción no pertenece a ese estudiante' }, { status: 400 })
   }
   // Y a la malla del programa desde el que se pide: sin esto, un retiro de un
