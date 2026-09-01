@@ -259,11 +259,14 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   }
 
   // Notas existentes de los alumnos del aula, para resolver el destino de
-  // cada una sin duplicar lo que ya vino de SystemActiva.
-  const docsImport = [...new Set([...users.values()].map(u => byExternal.get(u.idnumber))
-    .filter(Boolean).map(s => String(s.document_number ?? '')).filter(Boolean))]
+  // cada una sin duplicar lo que ya vino de SystemActiva. Desde la fase 2 de
+  // documento→uuid la llave es student_id: el idnumber de Moodle ya trae el
+  // uuid, y el documento queda como texto informativo — corregir un documento
+  // ya no puede partir un expediente en dos (caso Castillo).
+  const sidsImport = [...new Set([...users.values()].map(u => byExternal.get(u.idnumber))
+    .filter(Boolean).map(s => String(s.id)))]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const gradesByDoc = new Map<string, any[]>()
+  const gradesByStudent = new Map<string, any[]>()
   {
     // course_id va en el select porque filaDeCurso empareja POR ÉL, y sin él
     // cae al respaldo por nombre. Faltaba: el importador decidía a qué
@@ -273,8 +276,8 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     // para eso. Una columna que no se pide llega como undefined y el código de
     // abajo no se entera (20/08/2026).
     const all = await fetchByIn(sb, 'academic_grades',
-      'external_id, document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year, semester_id',
-      'document_number', docsImport, { orderBy: 'external_id' })
+      'external_id, student_id, document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year, semester_id',
+      'student_id', sidsImport, { orderBy: 'external_id' })
     // Cada nota previa viaja con la FECHA de su semestre: es con lo que se
     // decide si el intento que llega es posterior, y el año suelto no sirve.
     const { data: todosSem } = await sb.from('academic_semesters').select('id, start_date')
@@ -283,9 +286,9 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       if (s.start_date) inicioDe.set(String(s.id), String(s.start_date))
     }
     for (const g of all) {
-      const k = String(g.document_number)
-      if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
-      gradesByDoc.get(k)!.push({
+      const k = String(g.student_id)
+      if (!gradesByStudent.has(k)) gradesByStudent.set(k, [])
+      gradesByStudent.get(k)!.push({
         ...g,
         semester_start: g.semester_id ? (inicioDe.get(String(g.semester_id)) ?? null) : null,
       })
@@ -294,10 +297,10 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     // el ERP no existe: es la lectura del historial que vino vacía. Importar
     // así crea de cero lo que el alumno ya aprobó. Mejor no importar y que la
     // próxima corrida lo intente.
-    if (docsImport.length >= 10 && gradesByDoc.size === 0) {
+    if (sidsImport.length >= 10 && gradesByStudent.size === 0) {
       return {
         ok: false, status: 503,
-        error: `No se pudo leer el historial de notas de los ${docsImport.length} alumnos del aula. No se importa nada para no duplicar asignaturas ya aprobadas; se reintentará en la próxima corrida.`,
+        error: `No se pudo leer el historial de notas de los ${sidsImport.length} alumnos del aula. No se importa nada para no duplicar asignaturas ya aprobadas; se reintentará en la próxima corrida.`,
       }
     }
   }
@@ -366,7 +369,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     // anterior (las notas cambian en Moodle y se reflejan); fill = "en curso"
     // que se rellena y blinda; retake = recursado; new = fila nueva
     const target = resolveImportTarget(
-      gradesByDoc.get(String(stu.document_number ?? '')) ?? [],
+      gradesByStudent.get(String(stu.id)) ?? [],
       { id: destCourse.id, code: destCourse.code, name: destCourse.name },
       stableUuid(`moodle:${courseid}:${ug.userid}`),
       passing,
@@ -383,6 +386,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       external_id: externalId,
       shield: target.shield,
       intento: target.intento ?? 1,
+      student_id: String(stu.id),
       document_number: String(stu.document_number ?? ''),
       email: stu.email ?? null,
       student_name: [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' '),
@@ -485,17 +489,17 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     // el enlace vacío: una nota que ya apunta a otra matrícula es un hallazgo
     // del auditor, no algo que pisar en silencio.
     if (!r.error) {
-      const docs = [...new Set(rows.map(f => f.document_number))]
+      const sids = [...new Set(rows.map(f => f.student_id).filter(Boolean))] as string[]
       const matDe = new Map<string, string>()
-      for (let i = 0; i < docs.length; i += 200) {
+      for (let i = 0; i < sids.length; i += 200) {
         const { data } = await sb.from('academic_course_enrollments')
-          .select('id, document_number, attempt')
-          .eq('course_id', destCourse.id).in('document_number', docs.slice(i, i + 200))
-        for (const m of (data ?? []) as { id: string; document_number: string; attempt: number }[])
-          matDe.set(`${m.document_number}|${m.attempt}`, m.id)
+          .select('id, student_id, attempt')
+          .eq('course_id', destCourse.id).in('student_id', sids.slice(i, i + 200))
+        for (const m of (data ?? []) as { id: string; student_id: string; attempt: number }[])
+          matDe.set(`${m.student_id}|${m.attempt}`, m.id)
       }
       for (const f of rows) {
-        const matId = matDe.get(`${f.document_number}|${f.intento ?? 1}`)
+        const matId = matDe.get(`${f.student_id}|${f.intento ?? 1}`)
         if (!matId) continue
         // Dos pasadas por el trigger protect_edited_grades, como el backfill de
         // moodle_course_id: a las filas blindadas se les refresca el blindaje.

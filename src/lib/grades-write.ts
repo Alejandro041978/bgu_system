@@ -185,6 +185,9 @@ export async function applyGradeEdit(
 // ---------------------------------------------------------------------------
 export interface ImportRow {
   external_id: string
+  // El dueño por uuid (fase 2 de documento→uuid). El documento se conserva
+  // como texto informativo; la asociación es esta columna.
+  student_id?: string | null
   document_number: string | null
   email?: string | null
   student_name?: string | null
@@ -446,7 +449,7 @@ export async function importGrades(
   const ids = rows.map(r => r.external_id)
   for (let i = 0; i < ids.length; i += 200) {
     const { data } = await sb.from('academic_grades')
-      .select('external_id, final_grade, retake_grade, edited_at, locked_at, course_id').in('external_id', ids.slice(i, i + 200))
+      .select('external_id, final_grade, retake_grade, edited_at, locked_at, course_id, student_id').in('external_id', ids.slice(i, i + 200))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const g of (data ?? []) as any[]) existing.set(g.external_id, g)
   }
@@ -492,6 +495,7 @@ export async function importGrades(
     toWrite.push(row)
     audits.push({
       grade_external_id: r.external_id,
+      student_id: r.student_id ?? null,
       document_number: r.document_number,
       course_name: r.course_name,
       field: 'final_grade',
@@ -508,6 +512,9 @@ export async function importGrades(
   for (let i = 0; i < toWrite.length; i += 200) {
     const batch = toWrite.slice(i, i + 200).map(r => ({
       external_id: r.external_id,
+      // Nunca a null si la fila ya lo tenía: mismo trato que course_id. El
+      // trigger de la base rellena el que falte, pero el escritor no borra.
+      student_id: r.student_id ?? existing.get(r.external_id)?.student_id ?? null,
       document_number: r.document_number,
       email: r.email ?? null,
       student_name: r.student_name ?? null,
