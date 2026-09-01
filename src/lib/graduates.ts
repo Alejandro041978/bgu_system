@@ -49,15 +49,17 @@ export async function computeGraduates(sb: any): Promise<{
   for (const s of students as { id: string; document_number: string | null }[]) docOf.set(s.id, s.document_number)
 
   const grades = await readAll(sb, 'academic_grades',
-    'document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
-  const gradesByDoc = new Map<string, GradeRow[]>()
-  for (const g of grades as (GradeRow & { source: string })[]) {
+    'student_id, document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
+  // Indexadas por uuid (fase 2 documento→uuid); el documento queda de respaldo
+  // para filas sin student_id (hoy: ninguna).
+  const gradesByStudent = new Map<string, GradeRow[]>()
+  for (const g of grades as (GradeRow & { source: string; student_id: string | null })[]) {
     // Las convalidaciones/validaciones se cuentan por transfer_credit_items, no aquí
     if (!esIntento(g)) continue
-    if (!g.document_number) continue
-    const k = g.document_number
-    if (!gradesByDoc.has(k)) gradesByDoc.set(k, [])
-    gradesByDoc.get(k)!.push(g)
+    const k = g.student_id ?? (g.document_number ? `doc:${g.document_number}` : null)
+    if (!k) continue
+    if (!gradesByStudent.has(k)) gradesByStudent.set(k, [])
+    gradesByStudent.get(k)!.push(g)
   }
 
   // 4) Convalidaciones/validaciones: (student, program) → set de course_id cubiertos
@@ -94,7 +96,8 @@ export async function computeGraduates(sb: any): Promise<{
     if (!malla.length) continue
 
     const doc = docOf.get(e.student_id)
-    const gradeRows = doc ? (gradesByDoc.get(doc) ?? []) : []
+    const gradeRows = gradesByStudent.get(e.student_id)
+      ?? (doc ? (gradesByStudent.get(`doc:${doc}`) ?? []) : [])
     const transferred = transferOf.get(key) ?? new Set<string>()
     const categoryPassing = passingByCat.get(catOfProgram.get(e.program_id) ?? '') ?? null
 
@@ -170,10 +173,18 @@ export async function recomputeStudentByDocument(sb: any, documentNumber: string
     .select('id, situation, situation_source').eq('document_number', documentNumber)
   if (!studs?.length) return
 
+  // Las notas por uuid (fase 2 documento→uuid); si alguna fila aún no lo
+  // tuviera, la segunda consulta por documento la recoge.
+  const sids = (studs as { id: string }[]).map(s => s.id)
   const { data: grades } = await sb.from('academic_grades')
-    .select('course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
-    .eq('document_number', documentNumber)
-  const gradeRows = ((grades ?? []) as (GradeRow & { source: string })[])
+    .select('external_id, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
+    .in('student_id', sids)
+  const { data: sueltas } = await sb.from('academic_grades')
+    .select('external_id, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source')
+    .eq('document_number', documentNumber).is('student_id', null)
+  const vistos = new Set(((grades ?? []) as { external_id: string }[]).map(g => g.external_id))
+  const todas = [...(grades ?? []), ...((sueltas ?? []) as { external_id: string }[]).filter(g => !vistos.has(g.external_id))]
+  const gradeRows = (todas as (GradeRow & { source: string })[])
     .filter(g => esIntento(g))
 
   for (const stu of studs as { id: string; situation: string; situation_source: string }[]) {
