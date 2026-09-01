@@ -50,7 +50,7 @@ async function todo(sb: SB, tabla: string, cols: string, orden: string): Promise
 
 export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; totales: Record<string, number> }> {
   const [notas, ce, est, cursos, progs, cats, sems, enr] = await Promise.all([
-    todo(sb, 'academic_grades', 'external_id, document_number, student_name, course_id, course_name, source, withdrawn_at, final_grade, retake_grade, passing_score, semester_id, course_enrollment_id, intento, estado_academico', 'external_id'),
+    todo(sb, 'academic_grades', 'external_id, student_id, document_number, student_name, course_id, course_name, source, withdrawn_at, final_grade, retake_grade, passing_score, semester_id, course_enrollment_id, intento, estado_academico', 'external_id'),
     todo(sb, 'academic_course_enrollments', 'id, student_id, course_id, attempt, status, semester_id', 'id'),
     todo(sb, 'academic_students', 'id, document_number', 'id'),
     todo(sb, 'academic_courses', 'id, program_id, name', 'id'),
@@ -264,6 +264,26 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
     }
   }
 
+  // ---- 8. Filas sin dueño por uuid ----------------------------------------
+  //
+  // Desde la fase 1 de documento→uuid (01-09-2026), cada nota y cada evento de
+  // auditoría conocen a su estudiante por student_id; el backfill dejó ambas
+  // tablas al 100% y un trigger rellena lo que entra. Este contraste existe
+  // para que una fila sin uuid ALARME en vez de ser atendida en silencio por
+  // los respaldos del código: si aparece una, algo la metió esquivando el
+  // trigger (una restauración, un bulk load, una escritura externa).
+  const sinUuid: string[] = []
+  let nSinUuid = 0
+  for (const n of notas) {
+    if (n.student_id) continue
+    nSinUuid++
+    if (sinUuid.length < 10) sinUuid.push(`${n.student_name} · ${n.course_name} · ${n.source}`)
+  }
+  const { count: auditSinUuid } = await sb.from('grade_audit')
+    .select('id', { count: 'exact', head: true }).is('student_id', null)
+  nSinUuid += Number(auditSinUuid ?? 0)
+  if (auditSinUuid) sinUuid.push(`${auditSinUuid} fila(s) del historial de auditoría`)
+
   // ---- 4. Inscripciones que siguen en la tabla de notas -------------------
   const inscripciones = notas.filter(n => !n.withdrawn_at && (n.retake_grade ?? n.final_grade) == null)
   const porFuente = new Map<string, number>()
@@ -318,6 +338,13 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       explica: 'Dos intentos del mismo semestre y cada uno con su nota: un cruce Moodle + SystemActiva de la migración, o dos filas de Activa entre sí. El acta no enseña nada mal —se queda con la más alta— pero el conteo de recursados los suma como si fueran cursadas distintas.',
       siSube: 'No se fusionan todavía: en 108 de ellos las dos notas caen a lados distintos del mínimo, así que elegir mal convierte un aprobado en reprobado. Se está buscando el patrón antes de tocarlos. Lo único que no puede pasar es que SUBAN — eso sería un camino nuevo creando notas duplicadas hoy.',
       n: nDobleNota, esperado: 239, ejemplos: dobleNota,
+    },
+    {
+      clave: 'sin_uuid',
+      titulo: 'Filas sin dueño por uuid',
+      explica: 'Notas o eventos de auditoría sin student_id. Desde el 01-09-2026 el uuid es el vínculo real con el estudiante; el documento es texto de frontera y de pantalla. El backfill dejó esto en cero y un trigger de la base rellena lo que entra.',
+      siSube: 'Algo escribió esquivando el trigger de la base: una restauración de respaldo viejo, un bulk load o una escritura externa. El respaldo por documento del código lo atiende sin romper nada, pero la fila debe repararse — y cuando la columna sea NOT NULL, esto pasará de aviso a rechazo físico.',
+      n: nSinUuid, esperado: 0, ejemplos: sinUuid,
     },
     {
       clave: 'inscripciones_en_notas',
