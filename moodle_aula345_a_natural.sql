@@ -151,11 +151,19 @@ WHERE gi.courseid = 345 AND gi.itemtype = 'mod' AND gi.itemname LIKE 'Live Class
 
 -- A11 · ítems EXCLUIDOS: máximo 0 y coeficiente 0 (fuera del total; el 1099
 -- oculto entra aquí por hidden=1 — su coef 4.16 debe morir para que en
--- Natural no cuente como crédito extra)
+-- Natural no cuente como crédito extra).
+-- ⚠️ BUG CORREGIDO (02-09): la condición original `aggregationcoef = 0`
+-- atrapaba a los ponderados recién convertidos por A9 (que ya les puso coef 0)
+-- y les anulaba el máximo — el aula quedó con escala total 0. La forma segura
+-- decide contra el RESPALDO (el estado pre-conversión), no contra el estado
+-- ya mutado. Reparación aplicada con R-FIX (grademax = coef original desde
+-- mdl_zz_bak_a345_items_20260902; las notas no se dañaron porque A8 corrió
+-- antes de A9).
 UPDATE mdl_grade_items gi
+JOIN mdl_zz_bak_a345_items_20260902 b ON b.id = gi.id
 SET gi.grademax = 0, gi.aggregationcoef = 0, gi.needsupdate = 1
 WHERE gi.courseid = 345 AND gi.itemtype = 'mod'
-  AND (gi.aggregationcoef = 0 OR gi.hidden = 1)
+  AND (b.aggregationcoef = 0 OR b.hidden = 1)
   AND gi.itemname NOT LIKE 'Live Class Quiz%' AND gi.grademax <> 0;
 
 -- A12 · la categoría pasa a NATURAL y el total del aula a recalcular
