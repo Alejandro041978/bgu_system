@@ -15,6 +15,10 @@
 --   · resto (quizzes 2024, EO trabajos, videos) coef 0 → hoy no cuentan y
 --     seguirán sin contar: grademax 0 y nota en 0 (el respaldo y el historial
 --     conservan los valores; hoy tampoco aportan nada al total).
+--   · ítem 1099 ("Quiz Session 04" LEGADO, coef 4.16, hidden=1): Moodle lo
+--     excluye por oculto — se trata como EXCLUIDO, no como ponderado
+--     (verificado 02-09: los 17 visibles suman 100.0004 y la aritmética de
+--     los totales del PASO 1 divide entre 100, no entre 104.16).
 -- ============================================================================
 
 -- PASO 0 · credenciales (debe devolver "ECT 103…" y "Ciberdefensa…")
@@ -84,13 +88,13 @@ UPDATE mdl_quiz_grades qg
 JOIN mdl_quiz q ON q.id = qg.quiz AND q.course = 345
 JOIN mdl_grade_items gi ON gi.iteminstance = q.id AND gi.itemmodule = 'quiz' AND gi.itemtype = 'mod' AND gi.courseid = 345
 SET qg.grade = qg.grade * gi.aggregationcoef / 100
-WHERE gi.aggregationcoef > 0 AND qg.grade IS NOT NULL;
+WHERE gi.aggregationcoef > 0 AND gi.hidden = 0 AND qg.grade IS NOT NULL;
 
 -- A2 · máximo de esos quizzes como actividad
 UPDATE mdl_quiz q
 JOIN mdl_grade_items gi ON gi.iteminstance = q.id AND gi.itemmodule = 'quiz' AND gi.itemtype = 'mod' AND gi.courseid = 345
 SET q.grade = gi.aggregationcoef
-WHERE q.course = 345 AND gi.aggregationcoef > 0;
+WHERE q.course = 345 AND gi.aggregationcoef > 0 AND gi.hidden = 0;
 
 -- A3 · notas del módulo quiz de los LIVE CLASS QUIZ: /100 → /2
 UPDATE mdl_quiz_grades qg
@@ -115,7 +119,7 @@ JOIN mdl_grade_items gi ON gi.id = gg.itemid AND gi.courseid = 345 AND gi.itemty
 SET gg.finalgrade  = gg.finalgrade * gi.aggregationcoef / 100,
     gg.rawgrade    = CASE WHEN gg.rawgrade IS NULL THEN NULL ELSE gg.rawgrade * gi.aggregationcoef / 100 END,
     gg.rawgrademax = gi.aggregationcoef
-WHERE gi.aggregationcoef > 0 AND gg.finalgrade IS NOT NULL;
+WHERE gi.aggregationcoef > 0 AND gi.hidden = 0 AND gg.finalgrade IS NOT NULL;
 
 -- A7 · libro, LIVE CLASS QUIZ: /100 → /2
 UPDATE mdl_grade_grades gg
@@ -131,23 +135,27 @@ WHERE gi.itemname LIKE 'Live Class Quiz%' AND gg.finalgrade IS NOT NULL;
 UPDATE mdl_grade_grades gg
 JOIN mdl_grade_items gi ON gi.id = gg.itemid AND gi.courseid = 345 AND gi.itemtype = 'mod'
 SET gg.finalgrade = 0, gg.rawgrade = CASE WHEN gg.rawgrade IS NULL THEN NULL ELSE 0 END
-WHERE gi.aggregationcoef = 0 AND gi.itemname NOT LIKE 'Live Class Quiz%' AND gg.finalgrade IS NOT NULL;
+WHERE (gi.aggregationcoef = 0 OR gi.hidden = 1)
+  AND gi.itemname NOT LIKE 'Live Class Quiz%' AND gg.finalgrade IS NOT NULL;
 
 -- A9 · ítems PONDERADOS del libro: grademax = coef, y el coef vuelve a 0
 -- (en Natural, coef≠0 significa crédito extra — no lo son)
 UPDATE mdl_grade_items gi
 SET gi.grademax = gi.aggregationcoef, gi.aggregationcoef = 0, gi.needsupdate = 1
-WHERE gi.courseid = 345 AND gi.itemtype = 'mod' AND gi.aggregationcoef > 0;
+WHERE gi.courseid = 345 AND gi.itemtype = 'mod' AND gi.aggregationcoef > 0 AND gi.hidden = 0;
 
 -- A10 · ítems LCQ: máximo 2, coef 1 (EXTRA en Natural)
 UPDATE mdl_grade_items gi
 SET gi.grademax = 2, gi.aggregationcoef = 1, gi.aggregationcoef2 = 0.02, gi.needsupdate = 1
 WHERE gi.courseid = 345 AND gi.itemtype = 'mod' AND gi.itemname LIKE 'Live Class Quiz%';
 
--- A11 · ítems EXCLUIDOS: máximo 0 (fuera del total, como en las aulas Natural)
+-- A11 · ítems EXCLUIDOS: máximo 0 y coeficiente 0 (fuera del total; el 1099
+-- oculto entra aquí por hidden=1 — su coef 4.16 debe morir para que en
+-- Natural no cuente como crédito extra)
 UPDATE mdl_grade_items gi
-SET gi.grademax = 0, gi.needsupdate = 1
-WHERE gi.courseid = 345 AND gi.itemtype = 'mod' AND gi.aggregationcoef = 0
+SET gi.grademax = 0, gi.aggregationcoef = 0, gi.needsupdate = 1
+WHERE gi.courseid = 345 AND gi.itemtype = 'mod'
+  AND (gi.aggregationcoef = 0 OR gi.hidden = 1)
   AND gi.itemname NOT LIKE 'Live Class Quiz%' AND gi.grademax <> 0;
 
 -- A12 · la categoría pasa a NATURAL y el total del aula a recalcular
