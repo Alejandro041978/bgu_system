@@ -112,13 +112,29 @@ export async function enrolUsersBulk(enrolments: { userid: number; courseid: num
   await moodleCall('enrol_manual_enrol_users', { enrolments: enrolments.map(e => ({ roleid, ...e })) })
 }
 
+// La BAJA de un aula ya NO desmatricula: SUSPENDE la matrícula (suspend=1).
+//
+// Desmatricular (enrol_manual_unenrol_users) borra la fila de matrícula y con
+// ella Moodle elimina las calificaciones VIVAS del aula — verificado el
+// 02-09-2026 con Espinoza Téllez en el aula 637: tras el avance de carrusel,
+// cero filas en grade_grades (solo el historial las conserva). Suspendido, el
+// estudiante pierde el acceso y el aula sale de su tablero —que es lo que el
+// avance de carrusel necesita— pero su matrícula y sus calificaciones quedan
+// intactas y auditables para siempre (decisión del usuario, 02-09-2026).
+//
+// enrol_manual_enrol_users sobre una matrícula existente la ACTUALIZA: con
+// suspend=1 es la suspensión. (Si el usuario no estaba matriculado, crea la
+// matrícula ya suspendida: inofensivo, y solo pasa si la baja llega dos veces.)
 export async function unenrolUsersBulk(enrolments: { userid: number; courseid: number }[]): Promise<void> {
   if (!enrolments.length) return
-  await moodleCall('enrol_manual_unenrol_users', { enrolments })
+  assertStudentRole(MOODLE_STUDENT_ROLEID)
+  await moodleCall('enrol_manual_enrol_users', {
+    enrolments: enrolments.map(e => ({ roleid: MOODLE_STUDENT_ROLEID, suspend: 1, ...e })),
+  })
 }
 
 export async function unenrolUser(courseid: number, userid: number): Promise<void> {
-  await moodleCall('enrol_manual_unenrol_users', { enrolments: [{ userid, courseid }] })
+  await unenrolUsersBulk([{ userid, courseid }])
 }
 
 // Suspende o reactiva la cuenta Moodle. Suspendida = no puede iniciar sesión.
