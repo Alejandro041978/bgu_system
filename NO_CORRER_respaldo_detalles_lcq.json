@@ -1,0 +1,1728 @@
+{
+ "guardado_en": "2026-09-02T23:28:25.062Z",
+ "proposito": "desglose (academic_grade_details) ANTES del refresco post-decisión A (LCQ 5→2); deshacer = restaurar process_grades/final_grade de cada fila por id",
+ "alcance_external_ids": [
+  "cedda183-994f-4189-a0be-15a91220a528",
+  "deceaff1-1f44-4d33-a8e0-db810e28f24a",
+  "95c098f1-7506-4be4-a09f-c7549604c560",
+  "b65bcf51-2158-46e5-ac65-18e50f12a978",
+  "29e3fa01-1ed3-4575-a877-3a2c3863cb32",
+  "640c072a-b16d-4fa2-ac4c-1d77c15a86d9",
+  "5119a3a3-67fb-48af-a7a6-5cfffe7f09dd",
+  "2424fda9-7c94-4aeb-a608-850b64428502",
+  "bd2f8697-372f-46f4-a00b-14c147f0071d",
+  "2144c64f-8e6e-412c-bea5-ff945a53811f"
+ ],
+ "antes": [
+  {
+   "id": "ff605415-e529-450d-b1ab-ff67493e5bb1",
+   "external_id": "2144c64f-8e6e-412c-bea5-ff945a53811f",
+   "student_id": "e588b06c-576c-443e-8669-2da02f46d470",
+   "enrollment_id": "413dd469-c921-4422-b8b1-47b27590080d",
+   "course_code": "AIS 603",
+   "course_name": "Ethics in Artificial Intelligence",
+   "term_year": 2025,
+   "term_block": "AY_25-26_SPRING_2026",
+   "final_grade": 100,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 4.17,
+     "val": 95,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 4.17,
+     "val": 95,
+     "desc": "Quiz Session 02"
+    },
+    {
+     "n": 3,
+     "pct": 4.17,
+     "val": 90,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 4,
+     "pct": 4.17,
+     "val": 95,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 5,
+     "pct": 4.17,
+     "val": 95,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 6,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 7,
+     "pct": 4.17,
+     "val": 95,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 8,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 9,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 10,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 11,
+     "pct": 4.17,
+     "val": 85,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 12,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 13,
+     "pct": 30,
+     "val": 95,
+     "desc": "Final Subject Project"
+    },
+    {
+     "n": 14,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test I 13"
+    },
+    {
+     "n": 15,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test II 14"
+    },
+    {
+     "n": 16,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test III 15"
+    },
+    {
+     "n": 17,
+     "pct": 5,
+     "val": null,
+     "desc": "Module Test IV 16"
+    },
+    {
+     "n": 18,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 01",
+     "extra": true
+    },
+    {
+     "n": 20,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 02",
+     "extra": true
+    },
+    {
+     "n": 22,
+     "max": 5,
+     "pct": null,
+     "val": 4,
+     "desc": "Live Class Quiz 03",
+     "extra": true
+    },
+    {
+     "n": 24,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    }
+   ],
+   "created_at": "2026-07-09T01:27:03.297876+00:00",
+   "semester_id": "5161ae68-20ef-4fd5-b730-133c2b453823"
+  },
+  {
+   "id": "3035f30e-bd82-47b2-9e01-859828268ddb",
+   "external_id": "2424fda9-7c94-4aeb-a608-850b64428502",
+   "student_id": "bdfbaade-4129-4f9d-97a5-767c25ca1154",
+   "enrollment_id": "70b8a9fa-25d1-487e-87af-e182a8a811d7",
+   "course_code": "HCM605",
+   "course_name": "Entrepreneurship in Healthcare Management",
+   "term_year": 2025,
+   "term_block": "AY_25-26_SUMMER_2026",
+   "final_grade": 80,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": null,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 02"
+    },
+    {
+     "n": 3,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 4,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 5,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 6,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 7,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 8,
+     "pct": 30,
+     "val": null,
+     "desc": "Final Subject Project"
+    },
+    {
+     "n": 9,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 10,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 11,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 12,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 13,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 14,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test I 13"
+    },
+    {
+     "n": 15,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test II 14"
+    },
+    {
+     "n": 16,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test III 15"
+    },
+    {
+     "n": 17,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test IV 16"
+    },
+    {
+     "n": 18,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 01",
+     "extra": true
+    },
+    {
+     "n": 20,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 02",
+     "extra": true
+    },
+    {
+     "n": 22,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 03",
+     "extra": true
+    },
+    {
+     "n": 24,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    },
+    {
+     "n": 26,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    }
+   ],
+   "created_at": "2026-08-12T20:35:55.474849+00:00",
+   "semester_id": null
+  },
+  {
+   "id": "5c9d4e77-2e8b-4b6b-b157-8d18d0d0fb5d",
+   "external_id": "29e3fa01-1ed3-4575-a877-3a2c3863cb32",
+   "student_id": "7bf1724b-2f6d-43a6-8f4e-f60ebf5bd97f",
+   "enrollment_id": "de0ef281-fb4c-466a-9399-47ec26498e7d",
+   "course_code": "AIS 502",
+   "course_name": "Natural Language Processing (NLP)",
+   "term_year": 2025,
+   "term_block": "AY_25-26_FALL_2025",
+   "final_grade": 85,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 02"
+    },
+    {
+     "n": 3,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 4,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 5,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 6,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 7,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 8,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 9,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 10,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 11,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 12,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 13,
+     "pct": 30,
+     "val": null,
+     "desc": "Final Subject Project"
+    },
+    {
+     "n": 14,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test I 13"
+    },
+    {
+     "n": 15,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test II 14"
+    },
+    {
+     "n": 16,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test II 15"
+    },
+    {
+     "n": 17,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test IV 16"
+    },
+    {
+     "n": 18,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 01",
+     "extra": true
+    },
+    {
+     "n": 20,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 02",
+     "extra": true
+    },
+    {
+     "n": 22,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 03",
+     "extra": true
+    },
+    {
+     "n": 24,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    },
+    {
+     "n": 26,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    }
+   ],
+   "created_at": "2026-07-09T01:27:16.09745+00:00",
+   "semester_id": "86fe3d63-6b23-47ed-bdd7-6793b5364296"
+  },
+  {
+   "id": "a9195466-52d1-47b7-877f-addefae5846a",
+   "external_id": "5119a3a3-67fb-48af-a7a6-5cfffe7f09dd",
+   "student_id": "b90fc296-ee8b-478a-b2d3-7618fa1b87fc",
+   "enrollment_id": "2af52134-df67-4095-9b45-0359aed85aeb",
+   "course_code": "MIC 108",
+   "course_name": "Microeconomics",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SUMMER_2025",
+   "final_grade": 80,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 13,
+     "pct": 30,
+     "val": null,
+     "desc": "Final Subject Project"
+    },
+    {
+     "n": 14,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test I 16"
+    },
+    {
+     "n": 15,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test II 17"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test III 18"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test IV 19"
+    },
+    {
+     "n": 18,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 13"
+    },
+    {
+     "n": 19,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 14"
+    },
+    {
+     "n": 20,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 15"
+    },
+    {
+     "n": 21,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test V 20"
+    },
+    {
+     "n": 22,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 01",
+     "extra": true
+    },
+    {
+     "n": 24,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 02",
+     "extra": true
+    },
+    {
+     "n": 26,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 03",
+     "extra": true
+    },
+    {
+     "n": 28,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    },
+    {
+     "n": 30,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 05",
+     "extra": true
+    }
+   ],
+   "created_at": "2026-07-09T01:27:09.207609+00:00",
+   "semester_id": "26af58a6-a65f-43be-b2ee-08850cf3ec37"
+  },
+  {
+   "id": "d5847ae5-36cd-4c17-9133-6fdf9288f964",
+   "external_id": "640c072a-b16d-4fa2-ac4c-1d77c15a86d9",
+   "student_id": "d1ca4d95-907d-4349-9ae5-5160f581e680",
+   "enrollment_id": "489e26b9-9e54-416f-bf9a-0ca882989e8f",
+   "course_code": "AIS 502",
+   "course_name": "Natural Language Processing (NLP)",
+   "term_year": 2025,
+   "term_block": "AY_25-26_FALL_2025",
+   "final_grade": 85,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 02"
+    },
+    {
+     "n": 3,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 4,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 5,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 6,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 7,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 8,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 9,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 10,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 11,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 12,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 13,
+     "pct": 30,
+     "val": null,
+     "desc": "Final Subject Project"
+    },
+    {
+     "n": 14,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test I 13"
+    },
+    {
+     "n": 15,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test II 14"
+    },
+    {
+     "n": 16,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test II 15"
+    },
+    {
+     "n": 17,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test IV 16"
+    },
+    {
+     "n": 18,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 01",
+     "extra": true
+    },
+    {
+     "n": 20,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 02",
+     "extra": true
+    },
+    {
+     "n": 22,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 03",
+     "extra": true
+    },
+    {
+     "n": 24,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    },
+    {
+     "n": 26,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    }
+   ],
+   "created_at": "2026-07-09T01:27:16.09745+00:00",
+   "semester_id": "86fe3d63-6b23-47ed-bdd7-6793b5364296"
+  },
+  {
+   "id": "11e58bd1-d26a-4d93-92d3-d3b4286077ab",
+   "external_id": "95c098f1-7506-4be4-a09f-c7549604c560",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "enrollment_id": "e1d3cedd-3a3f-494b-9446-16f9af93db60",
+   "course_code": "MIC 108",
+   "course_name": "Microeconomics",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SUMMER_2025",
+   "final_grade": 95,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": null,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 13,
+     "pct": 30,
+     "val": null,
+     "desc": "Final Subject Project"
+    },
+    {
+     "n": 14,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test I 16"
+    },
+    {
+     "n": 15,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test II 17"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test III 18"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test IV 19"
+    },
+    {
+     "n": 18,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 13"
+    },
+    {
+     "n": 19,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 14"
+    },
+    {
+     "n": 20,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 15"
+    },
+    {
+     "n": 21,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test V 20"
+    },
+    {
+     "n": 22,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 01",
+     "extra": true
+    },
+    {
+     "n": 24,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 02",
+     "extra": true
+    },
+    {
+     "n": 26,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 03",
+     "extra": true
+    },
+    {
+     "n": 28,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    },
+    {
+     "n": 30,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 05",
+     "extra": true
+    }
+   ],
+   "created_at": "2026-08-20T06:35:45.662448+00:00",
+   "semester_id": null
+  },
+  {
+   "id": "28c6efb1-bbb3-41ae-8f5c-a05575d02827",
+   "external_id": "b65bcf51-2158-46e5-ac65-18e50f12a978",
+   "student_id": "58b800f4-f892-4e99-a394-37cc3ff5df15",
+   "enrollment_id": "469ad354-1b56-4bc2-8ac0-33919af6fcae",
+   "course_code": "AIS 502",
+   "course_name": "Natural Language Processing (NLP)",
+   "term_year": 2025,
+   "term_block": "AY_25-26_FALL_2025",
+   "final_grade": 85,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 02"
+    },
+    {
+     "n": 3,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 4,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 5,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 6,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 7,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 8,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 9,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 10,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 11,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 12,
+     "pct": 4.17,
+     "val": 100,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 13,
+     "pct": 30,
+     "val": null,
+     "desc": "Final Subject Project"
+    },
+    {
+     "n": 14,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test I 13"
+    },
+    {
+     "n": 15,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test II 14"
+    },
+    {
+     "n": 16,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test II 15"
+    },
+    {
+     "n": 17,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test IV 16"
+    },
+    {
+     "n": 18,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 01",
+     "extra": true
+    },
+    {
+     "n": 20,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 02",
+     "extra": true
+    },
+    {
+     "n": 22,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 03",
+     "extra": true
+    },
+    {
+     "n": 24,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    },
+    {
+     "n": 26,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    }
+   ],
+   "created_at": "2026-07-09T01:27:16.09745+00:00",
+   "semester_id": "86fe3d63-6b23-47ed-bdd7-6793b5364296"
+  },
+  {
+   "id": "a78532a2-dab5-40f1-bf16-64e784587eed",
+   "external_id": "bd2f8697-372f-46f4-a00b-14c147f0071d",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "enrollment_id": "00d32b62-66ed-47af-af98-cc5d9bd02b63",
+   "course_code": "MIC 108",
+   "course_name": "Microeconomics",
+   "term_year": 2024,
+   "term_block": "AY_24-25_SUMMER_2025",
+   "final_grade": 75,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": null,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 13,
+     "pct": 30,
+     "val": null,
+     "desc": "Final Subject Project"
+    },
+    {
+     "n": 14,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test I 16"
+    },
+    {
+     "n": 15,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test II 17"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test III 18"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test IV 19"
+    },
+    {
+     "n": 18,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 13"
+    },
+    {
+     "n": 19,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 14"
+    },
+    {
+     "n": 20,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 15"
+    },
+    {
+     "n": 21,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test V 20"
+    },
+    {
+     "n": 22,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 01",
+     "extra": true
+    },
+    {
+     "n": 24,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 02",
+     "extra": true
+    },
+    {
+     "n": 26,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 03",
+     "extra": true
+    },
+    {
+     "n": 28,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    },
+    {
+     "n": 30,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 05",
+     "extra": true
+    }
+   ],
+   "created_at": "2026-08-20T06:35:45.662448+00:00",
+   "semester_id": null
+  },
+  {
+   "id": "a86eec72-be85-4ee0-beae-73dc3895d487",
+   "external_id": "cedda183-994f-4189-a0be-15a91220a528",
+   "student_id": "dda0c96e-3418-4bf3-ad25-64b479714ed2",
+   "enrollment_id": "9b83653e-05da-4370-a726-ff6228b4e49a",
+   "course_code": "MVP 7610",
+   "course_name": "Measuring the Added Value Proposition",
+   "term_year": 2025,
+   "term_block": "AY_25-26_SUMMER_2026",
+   "final_grade": 82.42,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": 0,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 4.17,
+     "val": 85,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 4.17,
+     "val": 85,
+     "desc": "Quiz Session 02"
+    },
+    {
+     "n": 3,
+     "pct": 4.17,
+     "val": 95,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 4,
+     "pct": 4.17,
+     "val": 95,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 5,
+     "pct": 4.17,
+     "val": 95,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 6,
+     "pct": 4.17,
+     "val": 95,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 7,
+     "pct": 4.17,
+     "val": 90,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 8,
+     "pct": 4.17,
+     "val": 90,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 9,
+     "pct": 4.17,
+     "val": 90,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 10,
+     "pct": 4.17,
+     "val": 85,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 11,
+     "pct": 4.17,
+     "val": 90,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 12,
+     "pct": 4.17,
+     "val": 95,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 13,
+     "pct": 30,
+     "val": null,
+     "desc": "Final Subject Project 17"
+    },
+    {
+     "n": 14,
+     "pct": 5,
+     "val": 100,
+     "desc": "Module Test I 13"
+    },
+    {
+     "n": 15,
+     "pct": 5,
+     "val": 95,
+     "desc": "Module Test II 14"
+    },
+    {
+     "n": 16,
+     "pct": 5,
+     "val": 95,
+     "desc": "Module Test III 15"
+    },
+    {
+     "n": 17,
+     "pct": 5,
+     "val": 90,
+     "desc": "Module Test IV 16"
+    },
+    {
+     "n": 18,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 01",
+     "extra": true
+    },
+    {
+     "n": 20,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 02",
+     "extra": true
+    },
+    {
+     "n": 22,
+     "max": 5,
+     "pct": null,
+     "val": 4,
+     "desc": "Live Class Quiz 03",
+     "extra": true
+    },
+    {
+     "n": 24,
+     "max": 5,
+     "pct": null,
+     "val": 4,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    }
+   ],
+   "created_at": "2026-07-09T01:27:03.671396+00:00",
+   "semester_id": null
+  },
+  {
+   "id": "16829e63-beca-4f64-b279-70e5b5ffd89a",
+   "external_id": "deceaff1-1f44-4d33-a8e0-db810e28f24a",
+   "student_id": "b90fc296-ee8b-478a-b2d3-7618fa1b87fc",
+   "enrollment_id": "2af52134-df67-4095-9b45-0359aed85aeb",
+   "course_code": "ACC 385",
+   "course_name": "Internal Auditing",
+   "term_year": 2025,
+   "term_block": "AY_25-26_SPRING_2026",
+   "final_grade": 90,
+   "retake_grade": null,
+   "makeup_grade": null,
+   "extra_points": null,
+   "passing_score": null,
+   "max_score": 100,
+   "grades": [],
+   "process_grades": [
+    {
+     "n": 1,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 01"
+    },
+    {
+     "n": 2,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 02"
+    },
+    {
+     "n": 3,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 03"
+    },
+    {
+     "n": 4,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 04"
+    },
+    {
+     "n": 5,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 05"
+    },
+    {
+     "n": 6,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 06"
+    },
+    {
+     "n": 7,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 07"
+    },
+    {
+     "n": 8,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 08"
+    },
+    {
+     "n": 9,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 09"
+    },
+    {
+     "n": 10,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 10"
+    },
+    {
+     "n": 11,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 11"
+    },
+    {
+     "n": 12,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 12"
+    },
+    {
+     "n": 13,
+     "pct": 30,
+     "val": null,
+     "desc": "Final Subject Project"
+    },
+    {
+     "n": 14,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test I 16"
+    },
+    {
+     "n": 15,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test II 17"
+    },
+    {
+     "n": 16,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test III 18"
+    },
+    {
+     "n": 17,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test IV 19"
+    },
+    {
+     "n": 18,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 13"
+    },
+    {
+     "n": 19,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 14"
+    },
+    {
+     "n": 20,
+     "pct": 3.33,
+     "val": 100,
+     "desc": "Quiz Session 15"
+    },
+    {
+     "n": 21,
+     "pct": 4,
+     "val": 100,
+     "desc": "Module Test V 20"
+    },
+    {
+     "n": 22,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 01",
+     "extra": true
+    },
+    {
+     "n": 24,
+     "max": 5,
+     "pct": null,
+     "val": null,
+     "desc": "Live Class Quiz 02",
+     "extra": true
+    },
+    {
+     "n": 26,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 03",
+     "extra": true
+    },
+    {
+     "n": 28,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 04",
+     "extra": true
+    },
+    {
+     "n": 30,
+     "max": 5,
+     "pct": null,
+     "val": 5,
+     "desc": "Live Class Quiz 05",
+     "extra": true
+    }
+   ],
+   "created_at": "2026-07-29T08:36:43.775596+00:00",
+   "semester_id": null
+  }
+ ]
+}
