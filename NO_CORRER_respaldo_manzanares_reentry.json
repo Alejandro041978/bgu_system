@@ -1,0 +1,20 @@
+{
+ "aplicado_en": "2026-09-03T04:17:56.415Z",
+ "proposito": "antes de: (1) requires_situation IW->retiro_permanente en el trámite Re-entry; (2) IW de Manzanares reincorporado->vigente + situación a automática",
+ "antes": {
+  "tramite_type": {
+   "id": "19242dfa-dfb6-4ab8-bfbd-a10e23808415",
+   "requires_situation": "IW"
+  },
+  "withdrawal": {
+   "id": "293d3165-63f5-4406-97ce-c49985c0d401",
+   "status": "reincorporado",
+   "note": "Reincorporado (hoja Re-entry)."
+  },
+  "student": {
+   "id": "72b9c074-2fee-4b5b-9826-af637789385d",
+   "situation": "retiro_permanente",
+   "situation_source": "manual"
+  }
+ }
+}
