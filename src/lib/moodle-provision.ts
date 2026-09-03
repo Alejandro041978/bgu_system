@@ -138,7 +138,7 @@ async function ensureCourse(sb: any, o: { id: string; moodle_course_id: string |
 // el principio. Quedarse sin matricular en una asignatura se ve; entrar al
 // aula equivocada no se ve.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function loadGroupCourses(sb: any, groupId: string, collectionId?: string | null) {
+export async function loadGroupCourses(sb: any, groupId: string, collectionId?: string | null) {
   // Las asignaturas las declara el CARRUSEL. Antes se leían de las ofertas del
   // semestre, así que la misma asignatura llegaba repetida —una vez por año
   // ofertado— y había que deduplicar aquí. Ahora vienen sin repetir de origen.
@@ -196,7 +196,7 @@ async function loadGroupCourses(sb: any, groupId: string, collectionId?: string 
 // La colección elegida en la matrícula de ese programa. Es lo que decide en
 // cuál de las aulas de cada asignatura entra este estudiante.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function coleccionDe(sb: any, groupId: string, studentId: string): Promise<string | null> {
+export async function coleccionDe(sb: any, groupId: string, studentId: string): Promise<string | null> {
   const { data: gr } = await sb.from('academic_groups').select('program_id').eq('id', groupId).maybeSingle()
   if (!gr?.program_id) return null
   const { data: enr } = await sb.from('academic_student_enrollments')
