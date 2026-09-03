@@ -77,10 +77,32 @@ export async function GET(req: NextRequest) {
     } catch { /* un grupo sin resolver no tumba el reporte */ }
   }
 
-  // Lo HISTÓRICO: aulas de sus actas
+  // Lo HISTÓRICO: aulas de sus actas…
   const { data: notas } = await sb.from('academic_grades')
     .select('moodle_course_id').eq('student_id', studentId).not('moodle_course_id', 'is', null)
   const historicas = new Set<number>((notas ?? []).map((n: { moodle_course_id: number }) => Number(n.moodle_course_id)))
+
+  // …y las aulas de su registro curricular (asignaturas inscritas → aulas de
+  // SU colección). Es la fuente que encuentra las matrículas SUSPENDIDAS que
+  // ninguna acta delata: las actas de la era SystemActiva no traen aula.
+  const { data: progEnrs } = await sb.from('academic_student_enrollments')
+    .select('collection_id').eq('student_id', studentId)
+  const misColecciones = new Set((progEnrs ?? [])
+    .map((e: { collection_id: string | null }) => e.collection_id).filter(Boolean).map(String))
+  const { data: ces } = await sb.from('academic_course_enrollments')
+    .select('course_id').eq('student_id', studentId)
+  const misCursos = [...new Set((ces ?? []).map((e: { course_id: string }) => String(e.course_id)))]
+  if (misCursos.length) {
+    for (let i = 0; i < misCursos.length; i += 100) {
+      const { data: ls } = await sb.from('moodle_course_links')
+        .select('aula_id, collection_id').eq('kind', 'asignatura').in('course_id', misCursos.slice(i, i + 100))
+      for (const l of (ls ?? []) as { aula_id: number; collection_id: string | null }[]) {
+        if (!misColecciones.size || !l.collection_id || misColecciones.has(String(l.collection_id))) {
+          historicas.add(Number(l.aula_id))
+        }
+      }
+    }
+  }
 
   const candidatas = [...new Set([...activas.keys(), ...esperadas, ...historicas])]
 
