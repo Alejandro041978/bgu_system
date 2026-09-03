@@ -212,6 +212,33 @@ export function WithdrawalsView() {
     } finally { setSaving(false) }
   }
 
+  // Reversión: el reingreso ADMINISTRATIVO de un IW, sin pago (decisión del
+  // usuario, 03/09/2026). No aplica nada desde aquí: crea el caso en el Gestor
+  // de IW/Re-Entry, que proyecta igual que un Re-Entry (asignaturas + plan de
+  // pagos) y exige vista previa y autorización. La vía del estudiante sigue
+  // siendo el trámite Re-entry pagado; esta puerta es solo del personal y deja
+  // el mismo rastro de gestión.
+  async function reversion(r: Row) {
+    if (!confirm(
+      `¿Crear la REVERSIÓN del IW de ${r.student_name}?\n\n` +
+      `No se aplica nada todavía: el caso queda en el Gestor de IW/Re-Entry, ` +
+      `donde verás la proyección (asignaturas y plan de pagos) y decidirás autorizarla o descartarla.\n\n` +
+      `Es la vía administrativa sin pago; la del estudiante sigue siendo el trámite Re-entry.`)) return
+    setSaving(true)
+    try {
+      const res = await fetch('/api/academic/withdrawals/reversion', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ withdrawal_id: r.id }),
+      })
+      const d = await res.json().catch(() => ({ error: `El servidor respondió ${res.status}` }))
+      if (!res.ok || d.error) { alert(d.error ?? 'No se pudo crear la Reversión'); return }
+      alert(d.mensaje ?? 'Reversión creada: autorízala en el Gestor de IW/Re-Entry.')
+      load()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Error de red')
+    } finally { setSaving(false) }
+  }
+
   async function anular(r: Row) {
     if (!confirm(`¿Anular este registro de retiro de ${r.student_name}? Se elimina del historial.`)) return
     await fetch(`/api/academic/withdrawals/${r.id}`, { method: 'DELETE' })
@@ -485,23 +512,29 @@ export function WithdrawalsView() {
                     {r.status === 'reincorporado' && r.type === 'IW' && (
                       r.reentry
                         ? <span className="block mt-0.5 text-[10px] text-gray-400 font-mono">Re-entry {r.reentry.reference ?? 's/ref'} · {fdate(r.reentry.paid_date)}</span>
-                        : <span className="block mt-0.5 text-[10px] text-amber-500">sin enlace a Re-entry</span>
+                        : (r.note ?? '').includes('Reversión administrativa')
+                          ? <span className="block mt-0.5 text-[10px] text-violet-500">por Reversión administrativa</span>
+                          : <span className="block mt-0.5 text-[10px] text-amber-500">sin enlace a Re-entry</span>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {/* Solo el LOA se levanta desde aquí: es gratuito y su
-                          reincorporación es un trámite administrativo.
-                          El IW NO. Revertirlo cuesta 35 dólares y se pide como
-                          Re-entry; se reincorpora al atender ese trámite ya
-                          pagado, en Registros › Trámites. Un botón aquí sería
-                          una puerta que salta el cobro. */}
+                      {/* El LOA se levanta directo desde aquí (gratuito).
+                          El IW tiene dos vías: la del estudiante (trámite
+                          Re-entry pagado, Registros › Trámites) y la
+                          REVERSIÓN administrativa (03/09/2026) — que tampoco
+                          aplica nada aquí: crea el caso en el Gestor de
+                          IW/Re-Entry, con proyección y autorización. */}
                       {r.type === 'LOA' && r.status === 'vigente' && (
                         <button onClick={() => reincorporar(r)} disabled={saving} title="Reincorporar"
                           className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded disabled:opacity-40"><Undo2 className="w-3.5 h-3.5" /></button>
                       )}
                       {r.type === 'IW' && r.status === 'vigente' && (
-                        <span className="text-[11px] text-gray-400 px-1">se levanta con un Re-entry pagado</span>
+                        <button onClick={() => reversion(r)} disabled={saving}
+                          title="Reversión administrativa: encola el reingreso sin pago en el Gestor de IW/Re-Entry"
+                          className="text-[11px] font-medium text-violet-600 hover:text-violet-800 hover:bg-violet-50 rounded px-1.5 py-0.5 disabled:opacity-40">
+                          Reversión
+                        </button>
                       )}
                       <button onClick={() => anular(r)} title="Anular registro"
                         className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>

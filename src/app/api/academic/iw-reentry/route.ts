@@ -28,6 +28,9 @@ export async function GET(req: NextRequest) {
     if (!kind || !triggerId) return NextResponse.json({ casos })
     const caso = casos.find(c => c.kind === kind && c.trigger_id === triggerId)
     if (!caso) return NextResponse.json({ error: 'Ese caso ya no está pendiente' }, { status: 404 })
+    if (caso.bloqueado_por_iw) {
+      return NextResponse.json({ error: 'Esta matrícula tiene su caso de IW pendiente en la cola: primero autorízalo o descártalo; recién entonces este caso proyecta.' }, { status: 409 })
+    }
     const preview = await previewCaso(sb, caso)
     return NextResponse.json({ preview })
   } catch (e) {
@@ -42,7 +45,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const b = await req.json().catch(() => null) as { kind?: 'IW' | 'REENTRY'; trigger_id?: string; action?: string; nota?: string } | null
+  const b = await req.json().catch(() => null) as { kind?: 'IW' | 'REENTRY' | 'REVERSION'; trigger_id?: string; action?: string; nota?: string } | null
   if (!b?.kind || !b.trigger_id || !b.action) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
 
   const sb = db()
@@ -50,6 +53,11 @@ export async function POST(req: NextRequest) {
     const casos = await casosPendientes(sb)
     const caso = casos.find(c => c.kind === b.kind && c.trigger_id === b.trigger_id)
     if (!caso) return NextResponse.json({ error: 'Ese caso ya no está pendiente (¿lo aplicó otra persona?)' }, { status: 409 })
+    // Descartar un caso bloqueado sí se permite (retirar de la cola una
+    // Reversión creada por error no exige resolver antes el IW); aplicar no.
+    if (caso.bloqueado_por_iw && b.action !== 'descartar') {
+      return NextResponse.json({ error: 'Esta matrícula tiene su caso de IW pendiente: primero autorízalo o descártalo.' }, { status: 409 })
+    }
 
     if (b.action === 'descartar') {
       const nota = (b.nota ?? '').trim()

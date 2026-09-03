@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react'
 
-interface Caso { kind: 'IW' | 'REENTRY'; trigger_id: string; student_id: string; student_name: string; document_number: string | null; fecha: string | null; detalle: string }
+interface Caso { kind: 'IW' | 'REENTRY' | 'REVERSION'; trigger_id: string; student_id: string; student_name: string; document_number: string | null; fecha: string | null; detalle: string; bloqueado_por_iw?: boolean }
+const KIND_LABEL: Record<Caso['kind'], string> = { IW: 'IW', REENTRY: 'Re-Entry', REVERSION: 'Reversión' }
+const KIND_CLS: Record<Caso['kind'], string> = {
+  IW: 'bg-rose-50 text-rose-700', REENTRY: 'bg-emerald-50 text-emerald-700', REVERSION: 'bg-violet-50 text-violet-700',
+}
 interface Tuition { lista: number; ahorro: number; beca: number; bonus: number; total: number }
 interface Bloque {
   enrollment_id: string; program_name: string
@@ -16,7 +20,7 @@ interface Preview { caso: Caso; bloques: Bloque[]; sin_cambios: boolean }
 
 const money = (n: number | null | undefined) => n == null ? '—' : `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
 const ACCION: Record<string, string> = {
-  retirar: 'Se retira (no cursada)', reactivar: 'Se reactiva (Re-Entry)', nuevo_intento: 'Nuevo intento (Re-Entry)',
+  retirar: 'Se retira (no cursada)', reactivar: 'Se reactiva (reingreso)', nuevo_intento: 'Nuevo intento (reingreso)',
   ya_en_curso: 'Ya recursándose (sin acción)',
   eliminar: 'Eliminar cuota impaga', reducir: 'Reducir a lo pagado', crear: 'Crear cuota',
 }
@@ -28,7 +32,7 @@ export function IwReentryManager() {
   const [loading, setLoading] = useState(false)
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [filtro, setFiltro] = useState<'todos' | 'IW' | 'REENTRY'>('todos')
+  const [filtro, setFiltro] = useState<'todos' | 'IW' | 'REENTRY' | 'REVERSION'>('todos')
   const [q, setQ] = useState('')
 
   const cargar = useCallback(async () => {
@@ -39,7 +43,12 @@ export function IwReentryManager() {
   useEffect(() => { cargar() }, [cargar])
 
   async function abrir(c: Caso) {
-    setSel(c); setPreview(null); setError(null); setLoading(true)
+    setSel(c); setPreview(null); setError(null)
+    // Regla de orden (03/09/2026): con el IW de la misma matrícula pendiente
+    // en la cola, este caso no proyecta — la proyección solo es correcta sobre
+    // un estado asentado. Se muestra la espera; descartar sí está permitido.
+    if (c.bloqueado_por_iw) return
+    setLoading(true)
     const d = await fetch(`/api/academic/iw-reentry?kind=${c.kind}&trigger_id=${c.trigger_id}`).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
     setLoading(false)
     if (d.error) { setError(d.error); return }
@@ -54,8 +63,8 @@ export function IwReentryManager() {
       if (!n?.trim()) return
       nota = n.trim()
     } else if (!confirm(preview?.sin_cambios
-      ? `Sin cambios necesarios para ${sel.student_name}. ¿Sellar el caso como revisado?`
-      : `¿Autorizar y aplicar la gestión de ${sel.kind === 'IW' ? 'IW' : 'Re-Entry'} de ${sel.student_name}?\n\nSe ejecutará exactamente lo mostrado en la vista previa.`)) return
+      ? `Sin cambios necesarios para ${sel.student_name}. ¿Sellar el caso como revisado?${sel.kind === 'REVERSION' ? '\n\n(La Reversión igual reincorpora al estudiante al sellarse.)' : ''}`
+      : `¿Autorizar y aplicar la gestión de ${KIND_LABEL[sel.kind]} de ${sel.student_name}?\n\nSe ejecutará exactamente lo mostrado en la vista previa.`)) return
     setApplying(true); setError(null)
     const d = await fetch('/api/academic/iw-reentry', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -79,10 +88,10 @@ export function IwReentryManager() {
       {/* Cola */}
       <div className="lg:col-span-2 space-y-3">
         <div className="flex gap-2">
-          {(['todos', 'IW', 'REENTRY'] as const).map(f => (
+          {(['todos', 'IW', 'REENTRY', 'REVERSION'] as const).map(f => (
             <button key={f} onClick={() => setFiltro(f)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${filtro === f ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200'}`}>
-              {f === 'todos' ? `Todos (${casos.length})` : `${f === 'REENTRY' ? 'Re-Entry' : 'IW'} (${casos.filter(c => c.kind === f).length})`}
+              {f === 'todos' ? `Todos (${casos.length})` : `${KIND_LABEL[f]} (${casos.filter(c => c.kind === f).length})`}
             </button>
           ))}
         </div>
@@ -94,11 +103,14 @@ export function IwReentryManager() {
               className={`w-full text-left px-4 py-2.5 hover:bg-gray-50 ${sel?.trigger_id === c.trigger_id ? 'bg-blue-50/60' : ''}`}>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm text-gray-800 truncate">{c.student_name}</p>
-                <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${c.kind === 'IW' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                  {c.kind === 'IW' ? 'IW' : 'Re-Entry'}
+                <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${KIND_CLS[c.kind]}`}>
+                  {KIND_LABEL[c.kind]}
                 </span>
               </div>
-              <p className="text-[11px] text-gray-400">{c.detalle} · {c.fecha ?? 's/fecha'}</p>
+              <p className="text-[11px] text-gray-400">
+                {c.detalle} · {c.fecha ?? 's/fecha'}
+                {c.bloqueado_por_iw && <span className="text-amber-600"> · espera al IW</span>}
+              </p>
             </button>
           ))}
           {!visibles.length && <p className="px-4 py-10 text-center text-xs text-gray-400">Sin casos pendientes.</p>}
@@ -109,18 +121,42 @@ export function IwReentryManager() {
       <div className="lg:col-span-3">
         {!sel && <div className="bg-white border border-gray-200 rounded-xl py-24 text-center text-sm text-gray-400">Elige un caso para ver su gestión.</div>}
         {sel && loading && <div className="py-24 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" /></div>}
+        {sel && !loading && !preview && sel.bloqueado_por_iw && (
+          <div className="space-y-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <p className="text-sm font-semibold text-gray-900">{sel.student_name} <span className="text-gray-400 font-normal">· {sel.document_number}</span></p>
+              <p className="text-xs text-gray-500 mt-0.5">{KIND_LABEL[sel.kind]} · {sel.detalle} · {sel.fecha}</p>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>
+                Esta matrícula tiene su caso de <b>IW pendiente</b> en la cola. Primero autorízalo o descártalo:
+                la proyección de este {KIND_LABEL[sel.kind]} solo es correcta sobre un estado asentado, así que
+                mientras tanto espera aquí sin proyectar.
+              </span>
+            </div>
+            <button onClick={() => accionar('descartar')} disabled={applying}
+              className="px-4 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+              Descartar (con motivo)
+            </button>
+            {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>}
+          </div>
+        )}
+        {sel && !loading && !preview && !sel.bloqueado_por_iw && error && (
+          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>
+        )}
         {sel && preview && (
           <div className="space-y-4">
             {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>}
             <div className="bg-white border border-gray-200 rounded-xl p-4">
               <p className="text-sm font-semibold text-gray-900">{sel.student_name} <span className="text-gray-400 font-normal">· {sel.document_number}</span></p>
-              <p className="text-xs text-gray-500 mt-0.5">{sel.kind === 'IW' ? 'Retiro institucional' : 'Reincorporación (Re-Entry pagado)'} · {sel.detalle} · {sel.fecha}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{sel.kind === 'IW' ? 'Retiro institucional' : sel.kind === 'REVERSION' ? 'Reversión administrativa (reingreso sin pago)' : 'Reincorporación (Re-Entry pagado)'} · {sel.detalle} · {sel.fecha}</p>
             </div>
 
             {preview.sin_cambios && (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800 flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>Sin cambios necesarios: el registro curricular y el plan de pagos ya están consistentes con este {sel.kind === 'IW' ? 'retiro' : 're-entry'}. Sellar deja constancia de la revisión.</span>
+                <span>Sin cambios necesarios: el registro curricular y el plan de pagos ya están consistentes con este {sel.kind === 'IW' ? 'retiro' : 'reingreso'}. Sellar deja constancia de la revisión{sel.kind === 'REVERSION' ? ' y reincorpora al estudiante' : ''}.</span>
               </div>
             )}
 

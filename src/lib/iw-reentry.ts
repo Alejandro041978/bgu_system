@@ -42,17 +42,22 @@ async function todo(sb: SB, tabla: string, cols: string, filtro?: (q: any) => an
 }
 
 export interface Caso {
-  kind: 'IW' | 'REENTRY'
+  kind: 'IW' | 'REENTRY' | 'REVERSION'
   trigger_id: string
   student_id: string
-  // La matrícula del retiro (IW) o la del programa del trámite (Re-Entry).
-  // El gestor opera SOLO sobre esa cuenta: retirado del Bachelor, su Master
-  // no se toca (22/08/2026). Null = retiro viejo sin matrícula: todas.
+  // La matrícula del retiro (IW/Reversión) o la del programa del trámite
+  // (Re-Entry). El gestor opera SOLO sobre esa cuenta: retirado del Bachelor,
+  // su Master no se toca (22/08/2026). Null = retiro viejo sin matrícula: todas.
   enrollment_id: string | null
   student_name: string
   document_number: string | null
   fecha: string | null          // fecha del retiro / del pago del trámite
   detalle: string               // resolución del IW / referencia del pago
+  // Regla del usuario (03/09/2026): un Re-Entry o Reversión NO proyecta
+  // mientras el IW de su matrícula siga pendiente en esta misma cola — la
+  // proyección solo es correcta sobre un estado asentado. Primero se autoriza
+  // o descarta el IW; nada elimina a nada, solo se espera en la cola.
+  bloqueado_por_iw?: boolean
 }
 
 // ── La cola: casos sin gestión ──────────────────────────────────────────────
@@ -61,8 +66,11 @@ export async function casosPendientes(sb: SB): Promise<Caso[]> {
   // todavía); aplicar sí exigirá la tabla, con su error a la vista.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let gestiones: any[] = []
-  try { gestiones = await todo(sb, 'iw_reentry_gestiones', 'kind, trigger_id') } catch { /* tabla sin migrar */ }
-  const hechas = new Set(gestiones.map(g => `${g.kind}|${g.trigger_id}`))
+  try { gestiones = await todo(sb, 'iw_reentry_gestiones', 'kind, trigger_id, status, student_id, applied_at') } catch { /* tabla sin migrar */ }
+  // 'pendiente' es una Reversión creada desde Retiros esperando en la cola:
+  // no cuenta como hecha (al autorizar/descartar, esa misma fila se sella).
+  const hechas = new Set(gestiones.filter(g => g.status !== 'pendiente').map(g => `${g.kind}|${g.trigger_id}`))
+  const reversionesPendientes = gestiones.filter(g => g.kind === 'REVERSION' && g.status === 'pendiente' && !hechas.has(`REVERSION|${g.trigger_id}`))
 
   const wds = await todo(sb, 'student_withdrawals',
     'id, student_id, enrollment_id, type, status, resolution_number, withdrawal_date, converted_to_id',
@@ -75,7 +83,20 @@ export async function casosPendientes(sb: SB): Promise<Caso[]> {
       q => q.in('tramite_type_id', reentryTypes).not('paid_at', 'is', null))
     : []
 
-  const sids = [...new Set([...wds.map(w => String(w.student_id)), ...tramites.map(t => String(t.student_id))])]
+  // El retiro de cada Reversión pendiente (normalmente vigente y ya en wds;
+  // si dejó de estarlo, se trae aparte para poder mostrarla y descartarla).
+  const wdDe = new Map(wds.map(w => [String(w.id), w]))
+  const faltantes = reversionesPendientes.map(r => String(r.trigger_id)).filter(id => !wdDe.has(id))
+  if (faltantes.length) {
+    const { data } = await sb.from('student_withdrawals')
+      .select('id, student_id, enrollment_id, type, status, resolution_number, withdrawal_date, converted_to_id')
+      .in('id', faltantes)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const w of (data ?? []) as any[]) wdDe.set(String(w.id), w)
+  }
+
+  const sids = [...new Set([...wds.map(w => String(w.student_id)), ...tramites.map(t => String(t.student_id)),
+    ...reversionesPendientes.map(r => String(r.student_id))])]
   // Matrícula del programa de cada trámite (el Re-Entry es de un programa)
   const matDe = new Map<string, string>()   // student|program → enrollment_id
   for (let i = 0; i < sids.length; i += 150) {
@@ -116,6 +137,29 @@ export async function casosPendientes(sb: SB): Promise<Caso[]> {
       student_name: n?.name ?? '—', document_number: n?.doc ?? null,
       fecha: t.paid_at ? String(t.paid_at).slice(0, 10) : null, detalle: `Trámite Re-Entry (${t.status})`,
     })
+  }
+  for (const r of reversionesPendientes) {
+    const w = wdDe.get(String(r.trigger_id))
+    const n = nombres.get(String(r.student_id))
+    casos.push({
+      kind: 'REVERSION', trigger_id: String(r.trigger_id), student_id: String(r.student_id),
+      enrollment_id: w?.enrollment_id ? String(w.enrollment_id) : null,
+      student_name: n?.name ?? '—', document_number: n?.doc ?? null,
+      fecha: r.applied_at ? String(r.applied_at).slice(0, 10) : null,
+      detalle: `Reversión administrativa · ${w?.resolution_number ?? 'IW sin resolución'}`,
+    })
+  }
+
+  // Bloqueo por orden (regla del usuario, 03/09/2026): mientras el IW de la
+  // misma matrícula esté pendiente en esta cola, su Re-Entry/Reversión espera
+  // sin proyectar — primero se autoriza o descarta el IW.
+  const iwPendientes = casos.filter(c => c.kind === 'IW')
+  for (const c of casos) {
+    if (c.kind === 'IW') continue
+    c.bloqueado_por_iw = iwPendientes.some(iw =>
+      c.enrollment_id && iw.enrollment_id
+        ? iw.enrollment_id === c.enrollment_id
+        : iw.student_id === c.student_id)
   }
   return casos.sort((a, b) => String(b.fecha ?? '').localeCompare(String(a.fecha ?? '')))
 }
@@ -253,6 +297,9 @@ function planCuotas(cuenta: ProgramAccount, tuitionObjetivo: number, dueNueva: s
 }
 
 export async function previewCaso(sb: SB, caso: Caso): Promise<Preview> {
+  if (caso.bloqueado_por_iw) {
+    throw new Error('Esta matrícula tiene su caso de IW pendiente en la cola: primero autorízalo o descártalo; recién entonces este caso proyecta sobre un estado asentado.')
+  }
   const { cuentas, terminados, mats, cursos, notaDe } = await contexto(sb, caso)
   const bloques: BloquePrograma[] = []
 
@@ -457,25 +504,54 @@ export async function aplicarCaso(sb: SB, caso: Caso, preview: Preview, userEmai
           student_id: caso.student_id,
           enrollment_id: b.enrollment_id, amount: q.amount, due_date: q.due_date,
           charge_type: CHARGE_TUITION, source: 'erp',
-          reference: caso.kind === 'IW' ? 'Liquidación IW' : 'Re-Entry',
+          reference: caso.kind === 'IW' ? 'Liquidación IW' : caso.kind === 'REVERSION' ? 'Reversión' : 'Re-Entry',
         }, { onConflict: 'external_id' })
         if (error) return { ok: false, error: `crear cuota: ${error.message}` }
       }
     }
   }
 
-  const { error: eG } = await sb.from('iw_reentry_gestiones').insert({
+  // La Reversión reincorpora ELLA MISMA: no hay trámite pagado que lo haga
+  // (Registros › Trámites levanta el retiro al atender un Re-Entry; aquí el
+  // reverso es administrativo y el sello de la gestión es su respaldo).
+  if (caso.kind === 'REVERSION') {
+    const { data: w } = await sb.from('student_withdrawals')
+      .select('id, status, note').eq('id', caso.trigger_id).maybeSingle()
+    if (w && w.status === 'vigente') {
+      const nota = [w.note, `Reincorporado ${now.slice(0, 10)} por Reversión administrativa (autorizada por ${userEmail} en el Gestor de IW/Re-Entry)`]
+        .filter(Boolean).join(' · ')
+      const { error: eW } = await sb.from('student_withdrawals')
+        .update({ status: 'reincorporado', reincorporated_at: now.slice(0, 10), note: nota })
+        .eq('id', caso.trigger_id)
+      if (eW) return { ok: false, error: `la gestión se aplicó pero el retiro no se pudo reincorporar: ${eW.message}` }
+    }
+  }
+
+  const sello = {
     student_id: caso.student_id, kind: caso.kind, trigger_id: caso.trigger_id,
     status: 'aplicado', snapshot: { preview, respaldo }, applied_by: userEmail, applied_at: now,
-  })
+  }
+  // La Reversión ya existe como fila 'pendiente': se sella ESA fila (el UNIQUE
+  // kind+trigger garantiza una sola gestión). IW y Re-Entry nacen aquí.
+  const { data: sellada, error: eG } = await sb.from('iw_reentry_gestiones')
+    .update(sello).eq('kind', caso.kind).eq('trigger_id', caso.trigger_id).eq('status', 'pendiente').select('id')
   if (eG) return { ok: false, error: `la gestión se aplicó pero no se pudo sellar: ${eG.message}` }
+  if (!sellada?.length) {
+    const { error: eI } = await sb.from('iw_reentry_gestiones').insert(sello)
+    if (eI) return { ok: false, error: `la gestión se aplicó pero no se pudo sellar: ${eI.message}` }
+  }
   return { ok: true }
 }
 
 export async function descartarCaso(sb: SB, caso: Caso, nota: string, userEmail: string): Promise<{ ok: boolean; error?: string }> {
-  const { error } = await sb.from('iw_reentry_gestiones').insert({
+  const sello = {
     student_id: caso.student_id, kind: caso.kind, trigger_id: caso.trigger_id,
-    status: 'descartado', nota, applied_by: userEmail,
-  })
-  return error ? { ok: false, error: error.message } : { ok: true }
+    status: 'descartado', nota, applied_by: userEmail, applied_at: new Date().toISOString(),
+  }
+  const { data: sellada, error } = await sb.from('iw_reentry_gestiones')
+    .update(sello).eq('kind', caso.kind).eq('trigger_id', caso.trigger_id).eq('status', 'pendiente').select('id')
+  if (error) return { ok: false, error: error.message }
+  if (sellada?.length) return { ok: true }
+  const { error: eI } = await sb.from('iw_reentry_gestiones').insert(sello)
+  return eI ? { ok: false, error: eI.message } : { ok: true }
 }
