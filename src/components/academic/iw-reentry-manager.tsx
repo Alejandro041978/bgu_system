@@ -11,7 +11,7 @@ const KIND_CLS: Record<Caso['kind'], string> = {
 interface Tuition { lista: number; ahorro: number; beca: number; bonus: number; total: number }
 interface Bloque {
   enrollment_id: string; program_name: string
-  cursos: { course_id: string; code: string | null; name: string; credits: number; estado_actual: string; accion: string }[]
+  cursos: { course_id: string; code: string | null; name: string; credits: number; estado_actual: string; accion: string; seleccionada?: boolean }[]
   creditos_antes: number | null; creditos_despues: number | null
   tuition_antes: Tuition | null; tuition_despues: Tuition | null; tuition_pagado: number
   cuotas: { external_id: string | null; accion: string; amount: number; nuevo_amount?: number; due_date: string | null; pagado?: number }[]
@@ -31,6 +31,8 @@ export function IwReentryManager() {
   const [preview, setPreview] = useState<Preview | null>(null)
   const [loading, setLoading] = useState(false)
   const [applying, setApplying] = useState(false)
+  const [recalc, setRecalc] = useState(false)
+  const [excluidas, setExcluidas] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [filtro, setFiltro] = useState<'todos' | 'IW' | 'REENTRY' | 'REVERSION'>('todos')
   const [q, setQ] = useState('')
@@ -43,7 +45,7 @@ export function IwReentryManager() {
   useEffect(() => { cargar() }, [cargar])
 
   async function abrir(c: Caso) {
-    setSel(c); setPreview(null); setError(null)
+    setSel(c); setPreview(null); setError(null); setExcluidas([])
     // Regla de orden (03/09/2026): con el IW de la misma matrícula pendiente
     // en la cola, este caso no proyecta — la proyección solo es correcta sobre
     // un estado asentado. Se muestra la espera; descartar sí está permitido.
@@ -51,6 +53,22 @@ export function IwReentryManager() {
     setLoading(true)
     const d = await fetch(`/api/academic/iw-reentry?kind=${c.kind}&trigger_id=${c.trigger_id}`).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
     setLoading(false)
+    if (d.error) { setError(d.error); return }
+    setPreview(d.preview)
+  }
+
+  // Desmarcar/marcar una asignatura del reingreso: la selección viaja al
+  // servidor y la proyección vuelve recalculada por el mismo motor de siempre
+  // (créditos, tuition y plan de cuotas) — nunca una copia en el navegador.
+  async function toggleCurso(c: Caso, courseId: string) {
+    const nuevas = excluidas.includes(courseId)
+      ? excluidas.filter(id => id !== courseId)
+      : [...excluidas, courseId]
+    setExcluidas(nuevas); setRecalc(true); setError(null)
+    const qs = nuevas.length ? `&excluir=${encodeURIComponent(nuevas.join(','))}` : ''
+    const d = await fetch(`/api/academic/iw-reentry?kind=${c.kind}&trigger_id=${c.trigger_id}${qs}`)
+      .then(r => r.json()).catch(() => ({ error: 'Error de red' }))
+    setRecalc(false)
     if (d.error) { setError(d.error); return }
     setPreview(d.preview)
   }
@@ -68,7 +86,7 @@ export function IwReentryManager() {
     setApplying(true); setError(null)
     const d = await fetch('/api/academic/iw-reentry', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind: sel.kind, trigger_id: sel.trigger_id, action, nota }),
+      body: JSON.stringify({ kind: sel.kind, trigger_id: sel.trigger_id, action, nota, excluir: excluidas }),
     }).then(r => r.json()).catch(() => ({ error: 'Error de red' }))
     setApplying(false)
     if (d.error) { setError(d.error); return }
@@ -169,16 +187,35 @@ export function IwReentryManager() {
                   <div className="px-4 py-3 border-b border-gray-50">
                     <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1.5">Registro curricular</p>
                     <ul className="space-y-1">
-                      {b.cursos.map(c => (
-                        <li key={c.course_id + c.accion} className="text-xs flex items-baseline justify-between gap-2">
-                          <span className="text-gray-700">{c.code ?? '—'} {c.name} <span className="text-gray-400">({c.credits} cr · {c.estado_actual})</span></span>
-                          <span className={`shrink-0 font-medium ${c.accion === 'retirar' ? 'text-rose-600' : c.accion === 'ya_en_curso' ? 'text-gray-500' : 'text-emerald-700'}`}>{ACCION[c.accion]}</span>
-                        </li>
-                      ))}
+                      {b.cursos.map(c => {
+                        const seleccionable = c.accion === 'reactivar' || c.accion === 'nuevo_intento'
+                        const marcada = c.seleccionada !== false
+                        return (
+                          <li key={c.course_id + c.accion} className={`text-xs flex items-baseline justify-between gap-2 ${!marcada ? 'opacity-50' : ''}`}>
+                            <span className="text-gray-700 flex items-baseline gap-1.5">
+                              {/* Selección del reingreso (03/09/2026): la propuesta
+                                  viene completa y marcada; desmarcar recalcula
+                                  créditos, tuition y cuotas en el servidor. */}
+                              {seleccionable && (
+                                <input type="checkbox" checked={marcada} disabled={recalc || applying}
+                                  onChange={() => sel && toggleCurso(sel, c.course_id)}
+                                  className="translate-y-0.5 accent-blue-600 cursor-pointer disabled:cursor-wait" />
+                              )}
+                              <span>{c.code ?? '—'} {c.name} <span className="text-gray-400">({c.credits} cr · {c.estado_actual})</span></span>
+                            </span>
+                            <span className={`shrink-0 font-medium ${!marcada ? 'text-gray-400 line-through' : c.accion === 'retirar' ? 'text-rose-600' : c.accion === 'ya_en_curso' ? 'text-gray-500' : 'text-emerald-700'}`}>{ACCION[c.accion]}</span>
+                          </li>
+                        )
+                      })}
                     </ul>
+                    {b.cursos.some(c => c.seleccionada === false) && (
+                      <p className="mt-1.5 text-[11px] text-amber-700">
+                        {b.cursos.filter(c => c.seleccionada === false).length} asignatura(s) desmarcada(s): no se registrarán, y así quedará en el sello de la gestión.
+                      </p>
+                    )}
                   </div>
                 )}
-                <div className="px-4 py-3 border-b border-gray-50 grid grid-cols-2 gap-3 text-xs">
+                <div className={`px-4 py-3 border-b border-gray-50 grid grid-cols-2 gap-3 text-xs ${recalc ? 'opacity-40 animate-pulse' : ''}`}>
                   <div>
                     <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">Tuition actual</p>
                     <p className="text-gray-600">{b.creditos_antes ?? '—'} cr · lista {money(b.tuition_antes?.lista)} − TC {money(b.tuition_antes?.ahorro)} − beca {money(b.tuition_antes?.beca)} − bono {money(b.tuition_antes?.bonus)}</p>
@@ -191,7 +228,7 @@ export function IwReentryManager() {
                   </div>
                 </div>
                 {b.cuotas.length > 0 && (
-                  <div className="px-4 py-3">
+                  <div className={`px-4 py-3 ${recalc ? 'opacity-40 animate-pulse' : ''}`}>
                     <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1.5">Plan de pagos</p>
                     <ul className="space-y-1">
                       {b.cuotas.map((qc, i) => (
@@ -213,7 +250,7 @@ export function IwReentryManager() {
             ))}
 
             <div className="flex items-center gap-3">
-              <button onClick={() => accionar('aplicar')} disabled={applying}
+              <button onClick={() => accionar('aplicar')} disabled={applying || recalc}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
                 {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                 {preview.sin_cambios ? 'Sellar como revisado' : 'Autorizar y aplicar'}

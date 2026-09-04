@@ -31,7 +31,11 @@ export async function GET(req: NextRequest) {
     if (caso.bloqueado_por_iw) {
       return NextResponse.json({ error: 'Esta matrícula tiene su caso de IW pendiente en la cola: primero autorízalo o descártalo; recién entonces este caso proyecta.' }, { status: 409 })
     }
-    const preview = await previewCaso(sb, caso)
+    // Asignaturas desmarcadas por quien revisa (solo reingreso): el servidor
+    // recalcula créditos, tuition y cuotas con la selección — el número que se
+    // ve sale siempre del mismo motor, nunca de una copia en el navegador.
+    const excluir = (req.nextUrl.searchParams.get('excluir') ?? '').split(',').map(s => s.trim()).filter(Boolean)
+    const preview = await previewCaso(sb, caso, excluir)
     return NextResponse.json({ preview })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'No se pudo armar el caso' }, { status: 500 })
@@ -45,7 +49,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const b = await req.json().catch(() => null) as { kind?: 'IW' | 'REENTRY' | 'REVERSION'; trigger_id?: string; action?: string; nota?: string } | null
+  const b = await req.json().catch(() => null) as { kind?: 'IW' | 'REENTRY' | 'REVERSION'; trigger_id?: string; action?: string; nota?: string; excluir?: string[] } | null
   if (!b?.kind || !b.trigger_id || !b.action) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
 
   const sb = db()
@@ -66,7 +70,10 @@ export async function POST(req: NextRequest) {
       return r.ok ? NextResponse.json({ ok: true }) : NextResponse.json({ error: r.error }, { status: 500 })
     }
 
-    const preview = await previewCaso(sb, caso)
+    // Se aplica EXACTAMENTE lo mostrado: la misma selección con la que quien
+    // autoriza vio la proyección viaja aquí y el servidor la recalcula al
+    // momento de aplicar; lo desmarcado queda en el sello como su decisión.
+    const preview = await previewCaso(sb, caso, Array.isArray(b.excluir) ? b.excluir.map(String) : [])
     const r = await aplicarCaso(sb, caso, preview, user.email ?? user.id)
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: 500 })
     // La situación del estudiante y los conteos derivan del registro: se

@@ -175,6 +175,11 @@ export interface CursoCambio {
   // 'ya_en_curso' es informativo: el recursado ya existe (se registró a mano
   // antes de pasar por el gestor) y no se escribe nada.
   accion: 'retirar' | 'reactivar' | 'nuevo_intento' | 'ya_en_curso'
+  // Selección en el reingreso (regla del usuario, 03/09/2026): la propuesta
+  // viene completa y marcada, pero quien autoriza puede desmarcar asignaturas.
+  // false = ofrecida y DESMARCADA — se muestra, no se aplica, no suma créditos
+  // ni cuotas; queda en el sello como decisión de quien autorizó.
+  seleccionada?: boolean
 }
 export interface CuotaCambio {
   external_id: string | null
@@ -296,11 +301,14 @@ function planCuotas(cuenta: ProgramAccount, tuitionObjetivo: number, dueNueva: s
   return { cuotas, pagado }
 }
 
-export async function previewCaso(sb: SB, caso: Caso): Promise<Preview> {
+// excluirCursos: course_ids desmarcados por quien autoriza (solo aplica al
+// reingreso — Re-Entry/Reversión; una liquidación IW no se recorta a mano).
+export async function previewCaso(sb: SB, caso: Caso, excluirCursos?: string[]): Promise<Preview> {
   if (caso.bloqueado_por_iw) {
     throw new Error('Esta matrícula tiene su caso de IW pendiente en la cola: primero autorízalo o descártalo; recién entonces este caso proyecta sobre un estado asentado.')
   }
   const { cuentas, terminados, mats, cursos, notaDe } = await contexto(sb, caso)
+  const excluir = new Set(caso.kind === 'IW' ? [] : (excluirCursos ?? []).map(String))
   const bloques: BloquePrograma[] = []
 
   for (const cuenta of cuentas) {
@@ -357,12 +365,14 @@ export async function previewCaso(sb: SB, caso: Caso): Promise<Preview> {
             enrollment_row_id: String(m.id), course_id: k,
             code: c?.code ?? null, name: c?.name ?? '?', credits: c?.credits ?? 0,
             estado_actual: 'retirada', accion: 'reactivar',
+            seleccionada: !excluir.has(k),
           })
         } else {
           cambios.push({
             enrollment_row_id: String(m.id), course_id: k,
             code: c?.code ?? null, name: c?.name ?? '?', credits: c?.credits ?? 0,
             estado_actual: 'reprobada', accion: 'nuevo_intento',
+            seleccionada: !excluir.has(k),
           })
         }
       }
@@ -384,6 +394,7 @@ export async function previewCaso(sb: SB, caso: Caso): Promise<Preview> {
     const antes = cuenta.billable_credits
     let delta = 0
     for (const c of cambios) {
+      if (c.seleccionada === false) continue   // desmarcada: no suma ni aplica
       if (c.accion === 'retirar') delta -= c.credits
       if (c.accion === 'reactivar' || c.accion === 'nuevo_intento') delta += c.credits
     }
@@ -459,6 +470,9 @@ export async function aplicarCaso(sb: SB, caso: Caso, preview: Preview, userEmai
 
   for (const b of preview.bloques) {
     for (const c of b.cursos) {
+      // Desmarcada por quien autoriza: se mostró, no se registra. Queda en el
+      // snapshot con seleccionada=false como constancia de la decisión.
+      if (c.seleccionada === false) continue
       if (c.accion === 'retirar') {
         const { error } = await sb.from('academic_course_enrollments')
           .update({ status: 'retirada', closed_at: now, closed_by: `gestor-iw:${userEmail}` })
