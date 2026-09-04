@@ -9,6 +9,7 @@ type Row = {
   source: string; student_name: string; document_number: string | null; situation: string | null
   enrollment_id?: string | null; program_name?: string | null
   reentry?: { reference: string | null; paid_date: string | null } | null
+  reversion?: { status: string; applied_by: string | null; applied_at: string | null; nota: string | null } | null
 }
 type Student = { id: string; name: string; document_number: string | null; email: string | null }
 // Las matrículas del estudiante: el retiro es de UNA de ellas.
@@ -509,12 +510,29 @@ export function WithdrawalsView() {
                     {/* Qué Re-entry levantó ESTE retiro. Con dos IW y dos
                         Re-entry en el mismo expediente, sin esto no se sabe
                         cuál fue de cuál. */}
-                    {r.status === 'reincorporado' && r.type === 'IW' && (
-                      r.reentry
-                        ? <span className="block mt-0.5 text-[10px] text-gray-400 font-mono">Re-entry {r.reentry.reference ?? 's/ref'} · {fdate(r.reentry.paid_date)}</span>
-                        : (r.note ?? '').includes('Reversión administrativa')
-                          ? <span className="block mt-0.5 text-[10px] text-violet-500">por Reversión administrativa</span>
-                          : <span className="block mt-0.5 text-[10px] text-amber-500">sin enlace a Re-entry</span>
+                    {r.status === 'reincorporado' && r.type === 'IW' && r.reentry && (
+                      <span className="block mt-0.5 text-[10px] text-gray-400 font-mono">Re-entry {r.reentry.reference ?? 's/ref'} · {fdate(r.reentry.paid_date)}</span>
+                    )}
+                    {/* La Reversión de este retiro, en cualquiera de sus tres
+                        vidas: esperando en el gestor, aplicada o descartada.
+                        Sale de la gestión (estructural), no de leer la nota. */}
+                    {r.reversion?.status === 'pendiente' && (
+                      <span className="block mt-0.5 text-[10px] text-amber-600">Reversión pendiente en el Gestor de IW/Re-Entry</span>
+                    )}
+                    {r.reversion?.status === 'aplicado' && (
+                      <span className="block mt-0.5 text-[10px] text-violet-500">
+                        Reversión aplicada {r.reversion.applied_at ? `el ${fdate(r.reversion.applied_at)}` : ''}{r.reversion.applied_by ? ` por ${r.reversion.applied_by}` : ''}
+                      </span>
+                    )}
+                    {r.reversion?.status === 'descartado' && (
+                      <span className="block mt-0.5 text-[10px] text-gray-400">
+                        Reversión descartada{r.reversion.nota ? `: ${r.reversion.nota}` : ''}
+                      </span>
+                    )}
+                    {r.status === 'reincorporado' && r.type === 'IW' && !r.reentry && !r.reversion && (
+                      (r.note ?? '').includes('Reversión administrativa')
+                        ? <span className="block mt-0.5 text-[10px] text-violet-500">por Reversión administrativa</span>
+                        : <span className="block mt-0.5 text-[10px] text-amber-500">sin enlace a Re-entry</span>
                     )}
                   </td>
                   <td className="px-4 py-2.5">

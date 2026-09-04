@@ -59,6 +59,25 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // La Reversión de cada retiro (si la tuvo): pendiente en el gestor,
+  // aplicada o descartada. Sale de la gestión (dato estructural), no de leer
+  // la nota del retiro.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wdIds = (data ?? []).map((r: any) => String(r.id))
+  const reversionDe = new Map<string, { status: string; applied_by: string | null; applied_at: string | null; nota: string | null }>()
+  for (let i = 0; i < wdIds.length; i += 150) {
+    const { data: gs } = await sb.from('iw_reentry_gestiones')
+      .select('trigger_id, status, applied_by, applied_at, nota')
+      .eq('kind', 'REVERSION').in('trigger_id', wdIds.slice(i, i + 150))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const g of (gs ?? []) as any[]) {
+      reversionDe.set(String(g.trigger_id), {
+        status: g.status, applied_by: g.applied_by ?? null,
+        applied_at: g.applied_at ? String(g.applied_at).slice(0, 10) : null, nota: g.nota ?? null,
+      })
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = (data ?? []).map((r: any) => ({
     ...r,
@@ -69,6 +88,7 @@ export async function GET(req: NextRequest) {
     reentry: r.reincorporated_charge_external_id
       ? (pagoDe.get(String(r.reincorporated_charge_external_id)) ?? null)
       : null,
+    reversion: reversionDe.get(String(r.id)) ?? null,
   }))
   return NextResponse.json({ rows })
 }
