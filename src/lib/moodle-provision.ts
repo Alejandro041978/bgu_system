@@ -149,6 +149,7 @@ export async function loadGroupCourses(sb: any, groupId: string, collectionId?: 
   if (collectionId) {
     const { data: links } = await sb.from('moodle_course_links')
       .select('aula_id, course_id').eq('collection_id', collectionId).eq('kind', 'asignatura')
+      .is('replaced_at', null)
     for (const l of (links ?? []) as { aula_id: number; course_id: string }[]) {
       porColeccion.set(String(l.course_id), Number(l.aula_id))
     }

@@ -95,7 +95,8 @@ export async function GET(req: NextRequest) {
   if (misCursos.length) {
     for (let i = 0; i < misCursos.length; i += 100) {
       const { data: ls } = await sb.from('moodle_course_links')
-        .select('aula_id, collection_id').eq('kind', 'asignatura').in('course_id', misCursos.slice(i, i + 100))
+        .select('aula_id, collection_id').eq('kind', 'asignatura').is('replaced_at', null)
+        .in('course_id', misCursos.slice(i, i + 100))
       for (const l of (ls ?? []) as { aula_id: number; collection_id: string | null }[]) {
         if (!misColecciones.size || !l.collection_id || misColecciones.has(String(l.collection_id))) {
           historicas.add(Number(l.aula_id))
@@ -107,8 +108,13 @@ export async function GET(req: NextRequest) {
   const candidatas = [...new Set([...activas.keys(), ...esperadas, ...historicas])]
 
   // Nombre de aula y vínculo con la asignatura del ERP
+  // Solo vínculos VIVOS: un vínculo reemplazado es historia, no identidad —
+  // sin este filtro, el aula-encuesta 776 aparecía como "MBA 700 Capstone"
+  // por un vínculo que el módulo de vínculos había retirado un segundo
+  // después de crearlo (caso Casanova, 07/09/2026).
   const { data: links } = candidatas.length
-    ? await sb.from('moodle_course_links').select('aula_id, course_id, kind').in('aula_id', candidatas)
+    ? await sb.from('moodle_course_links').select('aula_id, course_id, kind')
+      .is('replaced_at', null).in('aula_id', candidatas)
     : { data: [] }
   const cursoDeAula = new Map<number, string>()
   for (const l of links ?? []) {
@@ -155,7 +161,9 @@ export async function GET(req: NextRequest) {
     const esperada = esperadas.has(a)
     const info = cursoInfo.get(cursoDeAula.get(a) ?? '')
     let anomalia: string | null = null
-    if (estado === 'activa' && !esperada) anomalia = 'acceso_de_mas'
+    // Un aula sin asignatura vinculada (encuestas, salas informativas) no es
+    // una anomalía de carrusel: el acceso ahí no compite con el plan académico.
+    if (estado === 'activa' && !esperada && cursoDeAula.has(a)) anomalia = 'acceso_de_mas'
     if (estado !== 'activa' && esperada) anomalia = 'acceso_faltante'
     return {
       aula: a,
