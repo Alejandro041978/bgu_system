@@ -29,6 +29,7 @@ const navigation: NavGroup[] = [
         name: 'Estudiante', href: '/academic/students', icon: UserCog,
         children: [
           { name: 'Ficha del Estudiante', href: '/academic/students', icon: UserCog, pageKey: 'academic_student_profile' },
+          { name: 'Aulas en Moodle', href: '/academic/moodle-enrolments', icon: LayoutGrid, pageKey: 'academic_moodle_enrolments' },
           { name: 'Acta Personal', href: '/academic/acta', icon: FileText, pageKey: 'academic_acta' },
           { name: 'Acta Detallada', href: '/academic/acta-detalle', icon: FileText, pageKey: 'academic_acta_detail' },
           { name: 'Registro Curricular', href: '/academic/curricular', icon: LogOut, pageKey: 'academic_curricular' },

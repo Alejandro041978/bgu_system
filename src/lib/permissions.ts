@@ -6,6 +6,7 @@
 export const ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/academic/convocatorias-matriculas', 'academic_convocatorias_report'],
   ['/academic/moodle-access', 'moodle_access'],
+  ['/academic/moodle-enrolments', 'academic_moodle_enrolments'],
   ['/finance/cashpay', 'finance_cashpay'],
   ['/academic/estudiantes-convocatoria', 'academic_convocatoria_students'],
   ['/planning/effectiveness/dashboard', 'effectiveness_dashboard'],
@@ -176,6 +177,7 @@ export const API_ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/api/academic/moodle-links', 'academic_classroom_links'],
   ['/api/academic/moodle-actas', 'academic_moodle_actas'],
   ['/api/academic/moodle-access', 'moodle_access'],
+  ['/api/academic/moodle-enrolments', 'academic_moodle_enrolments'],
   ['/api/academic/grade-scales', 'academic_grade_scales'],
   ['/api/academic/course-sync', 'academic_course_sync'],
   ['/api/academic/acta-asignatura', 'academic_acta_course'],
