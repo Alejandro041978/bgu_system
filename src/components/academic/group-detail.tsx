@@ -9,6 +9,7 @@ interface SyncResult { configured: boolean; students_total: number; with_account
 interface Off {
   id: string; course_name: string; course_code: string | null; teacher: string | null
   start_date: string | null; end_date: string | null; moodle_course_id: string | null
+  aulas_coleccion: { aula: number; coleccion: string }[]
 }
 interface Stu { id: string; name: string; document_number: string | null }
 interface Curso { id: string; code: string | null; name: string; credits?: number | null }
@@ -26,7 +27,6 @@ export function GroupDetail({ groupId }: { groupId: string }) {
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [hits, setHits] = useState<Stu[]>([])
-  const [savingMoodle, setSavingMoodle] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [sync, setSync] = useState<SyncResult | null>(null)
   const [savingSeq, setSavingSeq] = useState(false)
@@ -39,17 +39,6 @@ export function GroupDetail({ groupId }: { groupId: string }) {
     setData(d.error ? null : d); setLoading(false)
   }, [groupId])
   useEffect(() => { load() }, [load])
-
-  function setMoodle(offId: string, value: string) {
-    setData(d => d ? { ...d, offerings: d.offerings.map(o => o.id === offId ? { ...o, moodle_course_id: value } : o) } : d)
-  }
-  async function saveMoodle(off: Off) {
-    setSavingMoodle(off.id)
-    await fetch(`/api/academic/offerings/${off.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ moodle_course_id: off.moodle_course_id ?? '' }),
-    })
-    setSavingMoodle(null)
-  }
 
   async function addCourse(courseId: string) {
     setBusyCourse(true); setCourseErr(null)
@@ -216,7 +205,7 @@ export function GroupDetail({ groupId }: { groupId: string }) {
                 <tr className="text-[11px] text-gray-400 uppercase tracking-wide border-b border-gray-50">
                   <th className="text-left px-3 py-2">Asignatura</th>
                   <th className="text-left px-3 py-2">Fechas de clases</th>
-                  <th className="text-left px-3 py-2 w-48">ID curso Moodle</th>
+                  <th className="text-left px-3 py-2 w-56">Aula (según colección)</th>
                 </tr>
               </thead>
               <tbody>
@@ -228,11 +217,25 @@ export function GroupDetail({ groupId }: { groupId: string }) {
                     </td>
                     <td className="px-3 py-2 text-gray-500 text-xs">{fdate(o.start_date)} — {fdate(o.end_date)}</td>
                     <td className="px-3 py-2">
-                      <div className="flex items-center gap-1">
-                        <input value={o.moodle_course_id ?? ''} onChange={e => setMoodle(o.id, e.target.value)} onBlur={() => saveMoodle(o)}
-                          placeholder="ID del aula" className="w-32 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        {savingMoodle === o.id && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />}
-                      </div>
+                      {/* El aula la dice la COLECCIÓN — una vez por asignatura,
+                          igual en todas las vueltas del carrusel. Aquí solo se
+                          informa; se corrige en Colecciones de aulas. El campo
+                          editable por oferta era herencia pre-colecciones y
+                          dejaba vueltas sin aula o copiadas a mano (07/09/2026). */}
+                      {o.aulas_coleccion.length > 0 ? (
+                        o.aulas_coleccion.map(a => (
+                          <p key={a.aula + a.coleccion} className="text-xs text-gray-700">
+                            <span className="font-medium tabular-nums">{a.aula}</span>
+                            <span className="text-gray-400"> · {a.coleccion}</span>
+                          </p>
+                        ))
+                      ) : o.moodle_course_id ? (
+                        <p className="text-xs text-gray-400" title="Valor heredado de la época pre-colecciones; solo se usa para matrículas sin colección">
+                          {o.moodle_course_id} · respaldo legado
+                        </p>
+                      ) : (
+                        <p className="text-xs text-amber-600">sin aula en colección</p>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -54,6 +54,31 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     sb.from('academic_courses').select('id, code, name').eq('program_id', group.program_id).order('code'),
   ])
 
+  // El aula de cada asignatura sale de la COLECCIÓN (una sola vez, igual en
+  // todas las vueltas del carrusel), no de la fila de oferta. El campo por
+  // oferta era herencia de la época pre-colecciones: pedía el aula una vez por
+  // cronograma y las vueltas repetidas quedaban vacías o copiadas a mano
+  // (regla del usuario, 07/09/2026). moodle_course_id se conserva congelado
+  // como respaldo legado para matrículas sin colección.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cursoIdsOff = [...new Set(((offerings ?? []) as any[]).map(o => o.course?.id).filter(Boolean).map(String))]
+  const aulasDeCurso = new Map<string, { aula: number; coleccion: string }[]>()
+  if (cursoIdsOff.length) {
+    const { data: links } = await sb.from('moodle_course_links')
+      .select('aula_id, course_id, collection_id').eq('kind', 'asignatura').is('replaced_at', null)
+      .in('course_id', cursoIdsOff)
+    const colIds = [...new Set(((links ?? []) as { collection_id: string | null }[]).map(l => l.collection_id).filter(Boolean))]
+    const { data: cols } = colIds.length
+      ? await sb.from('moodle_collections').select('id, name').in('id', colIds)
+      : { data: [] }
+    const nombreCol = new Map(((cols ?? []) as { id: string; name: string }[]).map(c => [String(c.id), c.name]))
+    for (const l of (links ?? []) as { aula_id: number; course_id: string; collection_id: string | null }[]) {
+      const k = String(l.course_id)
+      if (!aulasDeCurso.has(k)) aulasDeCurso.set(k, [])
+      aulasDeCurso.get(k)!.push({ aula: Number(l.aula_id), coleccion: l.collection_id ? (nombreCol.get(String(l.collection_id)) ?? '—') : 'sin colección' })
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapOff = (o: any) => ({
     id: o.id,
@@ -63,6 +88,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     start_date: o.start_date ?? null,
     end_date: o.end_date ?? null,
     moodle_course_id: o.moodle_course_id ?? null,
+    aulas_coleccion: o.course?.id ? (aulasDeCurso.get(String(o.course.id)) ?? []) : [],
   })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const students = (members ?? []).map((m: any) => {
