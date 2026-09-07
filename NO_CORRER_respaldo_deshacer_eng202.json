@@ -1,0 +1,42 @@
+{
+ "aplicado_en": "2026-09-07T17:15:30.904Z",
+ "proposito": "deshacer parcial de la Reversión de Dennis Flores (gestión 73eb3ea5): eliminar intento 2 de ENG 202 y su cuota de $144; CAP 480 se mantiene. Decisión del usuario 04-09 (la selección por checkbox llegó después de esta gestión).",
+ "antes": {
+  "matricula": {
+   "id": "6a500d10-2536-401e-a7ba-cc541ddbe0dc",
+   "student_id": "6e1199b8-fff3-40b8-b5ea-06d58321ee80",
+   "document_number": "76074682",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "program_id": "c8d7e55a-1877-4c3a-a23e-907ed607e8a4",
+   "program_enrollment_id": "7e2967aa-a0a8-4824-90aa-a7453ebdb753",
+   "attempt": 2,
+   "term_year": null,
+   "term_block": null,
+   "status": "en_curso",
+   "source": "reentry",
+   "opened_at": "2026-09-03T23:06:39.708+00:00",
+   "opened_by": "reentry:alejandro.nunez@blackwell.university",
+   "closed_at": null,
+   "created_at": "2026-09-03T23:06:39.862745+00:00",
+   "semester_id": null,
+   "closed_by": null
+  },
+  "cuota": {
+   "id": "4a786e4d-8196-4c59-8414-b7bf6cd68d78",
+   "external_id": "2f5024a5-089e-424b-ab14-c1c36813e1b9",
+   "student_id": "6e1199b8-fff3-40b8-b5ea-06d58321ee80",
+   "enrollment_id": "7e2967aa-a0a8-4824-90aa-a7453ebdb753",
+   "convocatoria_id": null,
+   "amount": 144,
+   "due_date": "2026-09-03",
+   "charge_type": 2,
+   "course_registration_external_id": null,
+   "created_at": "2026-09-03T23:06:40.09407+00:00",
+   "source": "erp",
+   "flywire_status": null,
+   "flywire_payment_id": null,
+   "is_initial": false,
+   "reference": "Reversión"
+  }
+ }
+}
