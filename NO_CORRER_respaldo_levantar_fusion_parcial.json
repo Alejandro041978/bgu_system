@@ -1,0 +1,211 @@
+{
+ "aplicado_en": "2026-09-07T20:38:34.372Z",
+ "proposito": "antes de levantar withdrawn_at/withdrawn_by de las 41 actas fusion-acumulacion-parcial sin gemela viva (deshacer = reponer ambos campos por external_id)",
+ "antes": [
+  {
+   "external_id": "06a65138-9ffc-4f7f-91de-607ed21b7eed",
+   "withdrawn_at": "2026-08-20T03:39:37.183+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "f942102b-33ce-407f-9573-82519bca4e1b",
+   "withdrawn_at": "2026-08-21T00:03:03.874+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "b7d380f2-e44f-4d88-8821-d8986cd3e15d",
+   "withdrawn_at": "2026-08-20T03:39:41.907+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "ac766f9b-38ef-4d8c-91dc-ed8c54563362",
+   "withdrawn_at": "2026-08-21T00:03:01.583+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "76052188-7b8c-4e46-b41d-5fe0e36d779d",
+   "withdrawn_at": "2026-08-20T03:39:39.896+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "a24ac805-7eba-42c6-bb03-ba92cb3ead39",
+   "withdrawn_at": "2026-08-20T03:39:46.957+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "7245524b-d97a-4465-a232-065617de1006",
+   "withdrawn_at": "2026-08-21T00:03:02.958+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "511d1187-fdda-4880-ad33-ef439721ab50",
+   "withdrawn_at": "2026-08-20T23:58:41.015+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "7243f763-7bde-4d61-9677-fadeb928447b",
+   "withdrawn_at": "2026-08-20T03:39:33.049+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "506bd33e-33d9-456b-880b-bc73898c8db9",
+   "withdrawn_at": "2026-08-20T03:39:51.083+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "9119ecd1-51c8-49a4-8def-4af2d75a5f31",
+   "withdrawn_at": "2026-08-20T03:39:38.207+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "57e68d44-1773-4a20-966f-227d13f6519b",
+   "withdrawn_at": "2026-08-20T03:39:38.795+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "5dadf554-0de4-4c3b-9618-079c14a2187e",
+   "withdrawn_at": "2026-08-20T03:39:47.996+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "35ebdd0b-d27b-4a4b-afc0-1ea0d166c6d1",
+   "withdrawn_at": "2026-08-20T23:58:40.098+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "edfc8fef-c613-4aba-879a-19810c465656",
+   "withdrawn_at": "2026-08-20T03:39:34.718+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "0bb0bb75-5517-4797-b9c9-23fe317c02d7",
+   "withdrawn_at": "2026-08-20T23:58:41.494+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "7f68a998-2d88-4d9c-af7c-ea3ac3f0a175",
+   "withdrawn_at": "2026-08-21T00:03:03.414+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "801cf5e7-b728-4e6b-aec8-1cff23ebb70c",
+   "withdrawn_at": "2026-08-20T03:39:36.646+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "bef1d8da-6892-4c82-b070-f27e44bdc233",
+   "withdrawn_at": "2026-08-20T03:39:34.198+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "1881932c-e9b2-4ce5-8309-e049ad00c2d5",
+   "withdrawn_at": "2026-08-20T03:39:35.894+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "7ba06849-ddd6-44f1-a7cf-1f82a1f8dede",
+   "withdrawn_at": "2026-08-20T03:39:43.098+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "1efcc12e-84cf-4fcf-a640-191c69da4e80",
+   "withdrawn_at": "2026-08-20T03:39:49.035+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "0c48a66c-3faf-4af5-bdee-b2bcdd818c6f",
+   "withdrawn_at": "2026-08-20T03:39:37.693+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "c348dba5-beda-48f9-949b-69e8c4733ad0",
+   "withdrawn_at": "2026-08-20T03:39:41.192+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "7ab6334c-571b-4f04-8ded-f3a58db353e7",
+   "withdrawn_at": "2026-08-21T00:03:01.03+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "d01196b5-37b2-404e-bd7b-7147ec192747",
+   "withdrawn_at": "2026-08-21T00:03:04.331+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "d74984a0-915a-410a-bf65-88ffe61b7003",
+   "withdrawn_at": "2026-08-20T03:39:50.582+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "b923f568-adc0-4344-acb8-979292e0c56b",
+   "withdrawn_at": "2026-08-21T00:03:02.042+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "b86e7638-25b3-46fb-93d1-f26e3998595f",
+   "withdrawn_at": "2026-08-21T00:03:02.503+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "b238ad82-6bff-4857-8040-34af9cd88b2a",
+   "withdrawn_at": "2026-08-20T03:39:48.524+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "17be924f-9bcc-41f7-9936-1743b1f190b0",
+   "withdrawn_at": "2026-08-20T03:39:49.535+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "6abfa5f2-c0d9-4ba2-9f3f-687d203201bc",
+   "withdrawn_at": "2026-08-20T03:39:32.537+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "7fcb7912-a37f-4409-bcce-0ae73907919e",
+   "withdrawn_at": "2026-08-20T03:39:44.395+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "5f9cc9cb-580c-4051-8fb2-e3b4497e6bc5",
+   "withdrawn_at": "2026-08-20T03:39:42.579+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "be482151-6f04-4d79-904b-96bc7c771c75",
+   "withdrawn_at": "2026-08-20T03:39:40.545+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "7dbd786e-63d4-40f6-a23b-78a2af55a1a9",
+   "withdrawn_at": "2026-08-20T03:39:33.685+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "4f239f9d-930a-4716-86db-21c10fb1f5de",
+   "withdrawn_at": "2026-08-20T03:39:45.936+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "38f52c19-0380-4d69-8d12-54c874867933",
+   "withdrawn_at": "2026-08-20T03:39:44.906+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "523324e2-5490-48f9-b5e5-3ad6dc5725b7",
+   "withdrawn_at": "2026-08-20T03:39:47.49+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "1acad92d-53d5-467a-b49e-1ff9e81ffc5b",
+   "withdrawn_at": "2026-08-20T03:39:50.045+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  },
+  {
+   "external_id": "295fd9d0-c68c-4503-bb8d-ed7c472c6144",
+   "withdrawn_at": "2026-08-20T03:39:51.644+00:00",
+   "withdrawn_by": "fusion-acumulacion-parcial"
+  }
+ ]
+}
