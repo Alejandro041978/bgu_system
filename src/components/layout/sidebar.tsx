@@ -140,6 +140,20 @@ const navigation: NavGroup[] = [
           { name: 'Retiros', href: '/academic/retiros', icon: UserMinus, pageKey: 'academic_withdrawals' },
         ],
       },
+      {
+        // La operación del campus virtual (Moodle) en un solo módulo: el
+        // puente de actas, los vínculos aula↔asignatura y sus auditores.
+        // Antes vivían dispersas dentro de Académico › Calificaciones
+        // (reordenado por el usuario, 07/09/2026).
+        name: 'Campus Online', href: '/academic/moodle-actas', icon: Globe,
+        children: [
+          { name: 'Actas de Moodle', href: '/academic/moodle-actas', icon: Download, pageKey: 'academic_moodle_actas' },
+          { name: 'Vinculación de Aulas', href: '/academic/classroom-links', icon: Link2, pageKey: 'academic_classroom_links' },
+          { name: 'Auditor de vínculos', href: '/academic/link-audit', icon: Shield, pageKey: 'academic_link_audit' },
+          { name: 'Auditor de Actas', href: '/academic/acta-audit', icon: ListChecks, pageKey: 'academic_acta_audit' },
+          { name: 'Sincronizar asignatura', href: '/academic/course-sync', icon: RefreshCw, pageKey: 'academic_course_sync' },
+        ],
+      },
     ],
   },
   {
@@ -158,14 +172,9 @@ const navigation: NavGroup[] = [
         children: [
           { name: 'Notas', href: '/academic/grades', icon: Award, pageKey: 'academic_grades' },
           { name: 'Acta de Asignatura', href: '/academic/acta-asignatura', icon: BookOpen, pageKey: 'academic_acta_course' },
-          { name: 'Actas de Moodle', href: '/academic/moodle-actas', icon: Download, pageKey: 'academic_moodle_actas' },
-          { name: 'Vinculación de Aulas', href: '/academic/classroom-links', icon: Link2, pageKey: 'academic_classroom_links' },
           { name: 'Colección por matrícula', href: '/academic/collection-backfill', icon: Layers, pageKey: 'academic_collection_backfill' },
-          { name: 'Auditor de vínculos', href: '/academic/link-audit', icon: Shield, pageKey: 'academic_link_audit' },
-          { name: 'Auditor de Actas', href: '/academic/acta-audit', icon: ListChecks, pageKey: 'academic_acta_audit' },
           { name: 'Notas de campus externo', href: '/academic/external-campus-grades', icon: Globe, pageKey: 'academic_external_campus' },
           { name: 'Notas de Capstone', href: '/academic/capstone-grades', icon: GraduationCap, pageKey: 'academic_capstone' },
-          { name: 'Sincronizar asignatura', href: '/academic/course-sync', icon: RefreshCw, pageKey: 'academic_course_sync' },
           { name: 'Exámenes · Control', href: '/academic/examenes', icon: FileCheck, pageKey: 'academic_exams' },
         ],
       },
