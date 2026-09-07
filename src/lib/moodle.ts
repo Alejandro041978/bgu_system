@@ -139,6 +139,21 @@ export async function unenrolUser(courseid: number, userid: number): Promise<voi
 
 // Suspende o reactiva la cuenta Moodle. Suspendida = no puede iniciar sesión.
 // Requiere que el token tenga habilitada la función core_user_update_users.
+// Lee cuentas por id de Moodle (incluye su idnumber — la llave del puente)
+export async function getMoodleUsersByIds(ids: number[]): Promise<{ id: number; idnumber: string; email: string }[]> {
+  if (!ids.length) return []
+  const r = await moodleCall('core_user_get_users_by_field', { field: 'id', values: ids })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (Array.isArray(r) ? r : []).map((u: any) => ({ id: Number(u.id), idnumber: String(u.idnumber ?? '').trim(), email: String(u.email ?? '') }))
+}
+
+// Escribe la llave canónica del puente ERP↔Moodle. Regla del usuario
+// (07/09/2026): el ÚNICO vínculo que se genera es el uuid del estudiante —
+// las llaves heredadas de Activa se leen mientras existan, nunca se crean.
+export async function setUserIdnumber(userid: number, idnumber: string): Promise<void> {
+  await moodleCall('core_user_update_users', { users: [{ id: userid, idnumber }] })
+}
+
 export async function setUserSuspended(userid: number, suspended: boolean): Promise<void> {
   const resp = await moodleCall('core_user_update_users', { users: [{ id: userid, suspended: suspended ? 1 : 0 }] })
 

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { getUserByEmail, getUserByIdnumber, getCourseByCode, enrolUser, enrolUsersBulk, unenrolUser, unenrolUsersBulk, moodleConfigured } from './moodle'
+import { getUserByEmail, getUserByIdnumber, getCourseByCode, enrolUser, enrolUsersBulk, unenrolUser, unenrolUsersBulk, moodleConfigured, getMoodleUsersByIds, setUserIdnumber } from './moodle'
 import { crearCuentaMoodle, notificarCuentaMoodle } from './moodle-account'
 import { asignaturasDeGrupo } from './group-courses'
 
@@ -55,8 +55,19 @@ async function ensureMoodleUser(sb: any, s: StudentRow, result: SyncResult): Pro
   if (s.moodle_user_id) return Number(s.moodle_user_id)
   let u: { id: number } | null = null
   if (s.external_id) u = await getUserByIdnumber(s.external_id)
+  if (!u) u = await getUserByIdnumber(String(s.id))   // llave canónica: el uuid
   if (!u && s.email_alt) u = await getUserByEmail(s.email_alt)
   if (!u && s.email) u = await getUserByEmail(s.email)
+  // Cuenta encontrada SIN llave del puente (típico: hallada por correo): se le
+  // escribe el uuid en el momento. Sin esto, el importador jamás la cruzará —
+  // 92 estudiantes nativos del ERP cursaban sin que una sola nota fluyera
+  // (caso Casanova, 07/09/2026).
+  if (u) {
+    try {
+      const [mu] = await getMoodleUsersByIds([u.id])
+      if (mu && !mu.idnumber) await setUserIdnumber(u.id, String(s.id))
+    } catch { /* el backfill de la llave no bloquea el aprovisionamiento */ }
+  }
   if (!u) {
     const nombre = [s.first_name, s.last_name].filter(Boolean).join(' ') || s.id
     if (!s.email_alt && await requiereCorreoInstitucional(sb, s.id)) {
@@ -76,7 +87,10 @@ async function ensureMoodleUser(sb: any, s: StudentRow, result: SyncResult): Pro
       email: identidad,
       firstname: s.first_name || '—',
       lastname: [s.last_name, s.second_last_name].filter(Boolean).join(' ') || '—',
-      idnumber: s.external_id ?? undefined,
+      // Regla del usuario (07/09/2026): toda cuenta nueva nace con el UUID del
+      // estudiante como idnumber — única llave del puente hacia adelante. Las
+      // llaves de Activa se leen donde ya existen; no se generan nunca más.
+      idnumber: String(s.id),
     })
     result.accounts_created++
     u = { id: cuenta.moodle_user_id }

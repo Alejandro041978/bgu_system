@@ -105,7 +105,18 @@ export async function loadStudentsByExternal(sb: any): Promise<Map<string, any>>
     studs.push(...page)
     if (page.length < 1000) break
   }
-  return new Map(studs.filter(s => s.external_id).map(s => [String(s.external_id), s]))
+  // El puente entiende DOS generaciones de llave: la heredada de Activa
+  // (external_id, ya grabada en miles de cuentas) y la canónica del ERP (el
+  // uuid del estudiante — la única que se genera desde el 07/09/2026). Sin la
+  // segunda, los estudiantes nativos del ERP eran invisibles al importador:
+  // 92 cursando sin que una sola nota fluyera (caso Casanova).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const map = new Map<string, any>()
+  for (const s of studs) {
+    map.set(String(s.id), s)
+    if (s.external_id) map.set(String(s.external_id), s)
+  }
+  return map
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
