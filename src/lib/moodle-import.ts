@@ -172,7 +172,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   // sin ese respaldo dejaría de importar aulas que hoy sí funcionan.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const linkedCourses = new Map<string, any>()
-  const SEL = 'id, code, name, credits, program_id, academic_programs(category_id)'
+  const SEL = 'id, code, name, credits, program_id, is_capstone, academic_programs(category_id)'
 
   const { data: vinc } = await sb.from('moodle_course_links')
     .select('course_id').eq('aula_id', Number(courseid)).eq('kind', 'asignatura').is('replaced_at', null)
@@ -197,6 +197,20 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     return { ok: false, status: 400, error: 'Esta aula está vinculada a más de una asignatura distinta; corrige el vínculo en Colecciones de aulas antes de importar.' }
   }
   const destCourse = [...linkedCourses.values()][0]
+
+  // ── Candado de capstone (regla del usuario, 07/09/2026) ──────────────────
+  // La calificación final de un capstone sale de la defensa del trabajo, no
+  // del aula: se ingresa ÚNICAMENTE en Notas de Capstone. El aula virtual (si
+  // existe) es espacio de dictado y entrega — sus recursos evaluados no viajan
+  // al ERP por ninguna vía: ni el cron, ni el botón manual, ni un vínculo con
+  // la sincronización encendida por error.
+  if (destCourse.is_capstone) {
+    return {
+      ok: false, status: 400,
+      error: `${destCourse.code ?? 'Esta asignatura'} está marcada como Capstone: sus calificaciones finales se ingresan únicamente en Notas de Capstone; el aula no se sincroniza.`,
+    }
+  }
+
   let passing: number | null = null
   if (destCourse.academic_programs?.category_id) {
     const { data: cat } = await sb.from('academic_programs_category')
