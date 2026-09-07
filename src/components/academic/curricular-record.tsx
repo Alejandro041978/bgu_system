@@ -16,6 +16,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   en_proceso: { label: 'En proceso', cls: 'bg-amber-50 text-amber-700' },
   convalidado: { label: 'Convalidado', cls: 'bg-violet-50 text-violet-700' },
   inscrita: { label: 'Inscrita', cls: 'bg-sky-50 text-sky-700' },
+  recursando: { label: 'Recursando', cls: 'bg-orange-50 text-orange-700' },
   no_iniciada: { label: 'No iniciada', cls: 'bg-gray-100 text-gray-500' },
   sin_registrar: { label: 'Sin registrar', cls: 'bg-orange-50 text-orange-700' },
 }
@@ -352,7 +353,9 @@ function Desglose({ data }: { data: Data }) {
         <span>+</span>
         <Chip label={`inscritas sin nota (${cnt(soloInsc)})`} cr={sum(soloInsc)} cls="bg-sky-50 text-sky-700" title={nombres(soloInsc) || 'Matriculadas que aún no tienen calificación'} />
         <span>+</span>
-        <Chip label="recursados" cr={recursados} cls="bg-orange-50 text-orange-700" title="Intentos adicionales: cada vez que se recursa una asignatura se consumen sus créditos otra vez" />
+        <Chip label="recursados" cr={recursados} cls="bg-orange-50 text-orange-700"
+          title={data.rows.filter(r => r.status === 'recursando').map(r => r.course_code ?? r.course_name).join(', ')
+            || 'Intentos adicionales: cada vez que se recursa una asignatura se consumen sus créditos otra vez'} />
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-gray-500">Fuera del precio:</span>

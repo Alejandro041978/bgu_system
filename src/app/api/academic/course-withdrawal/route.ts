@@ -208,7 +208,7 @@ export async function GET(req: NextRequest) {
   // curricular tiene que leer del REGISTRO.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: matsReg } = await sb.from('academic_course_enrollments')
-    .select('id, course_id, status, closed_by, closed_at')
+    .select('id, course_id, status, closed_by, closed_at, attempt')
     .eq('student_id', studentId).eq('program_id', programId)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const matsRet = ((matsReg ?? []) as any[]).filter(m => m.status === 'retirada')
@@ -262,6 +262,43 @@ export async function GET(req: NextRequest) {
       final_grade: null, retake_grade: null, kind: 'inscripcion' as const,
       _cid: String(c.id),
     }))
+  // Recursándose SIN nota todavía: la asignatura ya tiene un acta viva (el
+  // intento anterior) y además una matrícula viva de un intento MAYOR. Sin
+  // esta fila, el recursado abierto por un Re-Entry/Reversión era invisible
+  // aquí aunque el precio sí lo cuenta — el chip "recursados" salía como
+  // residuo sin nombre (caso Dennis/ENG 202, 04/09/2026). En cuanto el
+  // intento nuevo tenga acta, su fila normal toma el lugar de ésta.
+  const maxIntentoViva = new Map<string, number>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const g of ((grades ?? []) as any[])) {
+    if (!belongs(g) || g.withdrawn_at) continue
+    const cm = malla.find(c => filaDeCurso(g, c))
+    if (cm?.id == null) continue
+    const cid = String(cm.id)
+    maxIntentoViva.set(cid, Math.max(maxIntentoViva.get(cid) ?? 0, Number(g.intento ?? 1)))
+  }
+  const recursandoPorCurso = new Map<string, { id: string; attempt: number }>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const m of ((matsReg ?? []) as any[])) {
+    if (m.status === 'retirada') continue
+    const cid = String(m.course_id)
+    if (!cursoDeMalla.has(cid) || !conFilaViva.has(cid)) continue
+    if (Number(m.attempt ?? 1) <= (maxIntentoViva.get(cid) ?? 1)) continue
+    const prev = recursandoPorCurso.get(cid)
+    if (!prev || Number(m.attempt) > prev.attempt) recursandoPorCurso.set(cid, { id: String(m.id), attempt: Number(m.attempt ?? 1) })
+  }
+  const recursandoRows = [...recursandoPorCurso.entries()].map(([cid, m]) => {
+    const c = cursoDeMalla.get(cid)!
+    return {
+      external_id: `rec:${m.id}`, course_code: c.code, course_name: c.name,
+      credits: c.credits != null ? Number(c.credits) : null,
+      term: `Recursando · ${etiquetaIntento(m.attempt)} · sin calificaciones`,
+      status: 'recursando', grade: null, has_grade: false, withdrawn: false, editable: false,
+      final_grade: null, retake_grade: null, kind: 'inscripcion' as const,
+      _cid: cid,
+    }
+  })
+
   const faltantes = malla.filter(c => !conFila.has(String(c.id)) && !cursosVivos.has(String(c.id))).map(c => ({
     external_id: `falta:${c.id}`, course_code: c.code, course_name: c.name,
     credits: c.credits != null ? Number(c.credits) : null, term: '',
@@ -273,7 +310,7 @@ export async function GET(req: NextRequest) {
   // Se devuelve en el orden de la malla (nivel, código); lo que no tenga
   // asignatura identificable va al final.
   const orden = new Map(malla.map((c, i) => [String(c.id), i]))
-  const todas = [...visibles, ...convRows, ...retiradasRegistro, ...inscritasSinFila, ...faltantes]
+  const todas = [...visibles, ...convRows, ...retiradasRegistro, ...inscritasSinFila, ...recursandoRows, ...faltantes]
     .sort((a, b) => (orden.get(String((a as { _cid?: string | null })._cid ?? '')) ?? 9999) - (orden.get(String((b as { _cid?: string | null })._cid ?? '')) ?? 9999)
       || String(a.course_name).localeCompare(String(b.course_name)))
 
