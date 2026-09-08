@@ -6,9 +6,10 @@ import { ClassroomCoverage } from './classroom-coverage'
 import { ClassroomCollections } from './classroom-collections'
 import { ClassroomFree } from './classroom-free'
 import { ProgramFree } from './program-free'
+import { ClassroomCategories } from './classroom-categories'
 
 export function ClassroomLinksTabs() {
-  const [tab, setTab] = useState<'vincular' | 'cobertura' | 'colecciones' | 'libres' | 'programas'>('cobertura')
+  const [tab, setTab] = useState<'vincular' | 'cobertura' | 'colecciones' | 'libres' | 'programas' | 'categorias'>('cobertura')
   return (
     <div className="space-y-5">
       <div className="flex gap-2 border-b border-slate-200">
@@ -18,6 +19,7 @@ export function ClassroomLinksTabs() {
           ['vincular', 'Vincular aulas'],
           ['libres', 'Aulas libres'],
           ['programas', 'Programas libres'],
+          ['categorias', 'Categorías'],
         ] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm ${
@@ -62,6 +64,15 @@ export function ClassroomLinksTabs() {
               esta lista a propósito — se venden pero no se dictan aquí, así que no les corresponde colección.
             </p>
             <ProgramFree />
+          </>
+        : tab === 'categorias'
+        ? <>
+            <p className="text-sm text-slate-600">
+              Qué ramas del campus entran al servicio educativo. Las excluidas —demos, capacitaciones internas,
+              inducciones— no aparecen en las propuestas de vinculación, en Aulas libres ni en los contadores.
+              La exclusión es por rama: cubrir «Excluidos ERP» cubre todo lo que cuelga de ella.
+            </p>
+            <ClassroomCategories />
           </>
         : <ClassroomLinks />}
     </div>

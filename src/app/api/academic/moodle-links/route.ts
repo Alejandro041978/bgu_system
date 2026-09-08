@@ -46,7 +46,55 @@ export async function GET(req: NextRequest) {
   const sb = db()
   const solo = req.nextUrl.searchParams.get('solo') ?? 'pendientes'
 
-  const aulas = await todo(sb, 'moodle_aula_audit', 'aula_id, shortname, matriculados, categoria', 'aula_id') as AulaAudit[]
+  const todasLasAulas = await todo(sb, 'moodle_aula_audit', 'aula_id, shortname, matriculados, categoria', 'aula_id') as AulaAudit[]
+
+  // Categorías excluidas del servicio educativo (Demo, Inducción, Excluidos
+  // ERP…): sus aulas no entran a las propuestas, a Aulas libres ni a los
+  // contadores. La exclusión es por PREFIJO de la ruta, así que excluir una
+  // rama cubre todo lo que cuelga de ella. Se administra en la pestaña
+  // Categorías (regla del usuario, 07/09/2026).
+  const exclusiones: { category_prefix: string }[] = await todo(sb, 'moodle_excluded_categories', 'category_prefix', 'category_prefix')
+    .catch(() => [])
+  const prefijos = exclusiones.map(e => String(e.category_prefix))
+  const ramaExcluida = (categoria: string | null): string | null =>
+    prefijos.find(p => String(categoria ?? '').startsWith(p)) ?? null
+
+  // ?vista=categorias → el árbol de categorías del campus con sus conteos y
+  // el estado de exclusión (propio o heredado de una rama ancestro).
+  if (req.nextUrl.searchParams.get('vista') === 'categorias') {
+    const linksCat = await todo(sb, 'moodle_course_links', 'aula_id, course_id, kind, replaced_at', 'aula_id')
+      .catch(() => [] as { aula_id: number; course_id: string | null; kind: string; replaced_at: string | null }[])
+    const vinculadas = new Set(linksCat
+      .filter((l: { course_id: string | null; kind: string; replaced_at: string | null }) => l.course_id && l.kind === 'asignatura' && !l.replaced_at)
+      .map((l: { aula_id: number }) => Number(l.aula_id)))
+    type Nodo = { path: string; depth: number; aulas: number; alumnos: number; vinculadas: number }
+    const nodos = new Map<string, Nodo>()
+    for (const a of todasLasAulas) {
+      const partes = String(a.categoria ?? 'Sin categoría').split(' / ')
+      for (let i = 0; i < partes.length; i++) {
+        const path = partes.slice(0, i + 1).join(' / ')
+        const n = nodos.get(path) ?? { path, depth: i, aulas: 0, alumnos: 0, vinculadas: 0 }
+        n.aulas++
+        n.alumnos += Number(a.matriculados ?? 0)
+        if (vinculadas.has(Number(a.aula_id))) n.vinculadas++
+        nodos.set(path, n)
+      }
+    }
+    const excluidasSet = new Set(prefijos)
+    const categorias = [...nodos.values()]
+      .sort((a, b) => a.path.localeCompare(b.path))
+      .map(n => {
+        const heredadaDe = prefijos.find(p => n.path !== p && n.path.startsWith(p)) ?? null
+        return { ...n, excluida: excluidasSet.has(n.path), excluida_por: heredadaDe }
+      })
+    return NextResponse.json({
+      total_aulas: todasLasAulas.length,
+      excluidas: todasLasAulas.filter(a => ramaExcluida(a.categoria)).length,
+      categorias,
+    })
+  }
+
+  const aulas = todasLasAulas.filter(a => !ramaExcluida(a.categoria))
   const courses = await todo(sb, 'academic_courses', 'id, program_id, name, code', 'id') as CursoMalla[]
   const programs = await todo(sb, 'academic_programs', 'id, name', 'id')
   const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
@@ -250,6 +298,24 @@ export async function POST(req: NextRequest) {
   const quien = g.user.email ?? g.user.id
   const ahora = new Date().toISOString()
   const filas: Record<string, unknown>[] = []
+
+  // { excluir_categoria } / { incluir_categoria } → administra las ramas del
+  // campus fuera del servicio educativo (pestaña Categorías).
+  const bCat = await req.clone().json().catch(() => null) as { excluir_categoria?: string; incluir_categoria?: string; nota?: string } | null
+  if (bCat?.excluir_categoria || bCat?.incluir_categoria) {
+    if (bCat.excluir_categoria) {
+      const { error } = await sb.from('moodle_excluded_categories').upsert({
+        category_prefix: String(bCat.excluir_categoria).trim(), excluded_by: quien, excluded_at: ahora,
+        nota: bCat.nota?.trim() || null,
+      }, { onConflict: 'category_prefix' })
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true, excluida: bCat.excluir_categoria })
+    }
+    const { error } = await sb.from('moodle_excluded_categories')
+      .delete().eq('category_prefix', String(bCat.incluir_categoria).trim())
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, incluida: bCat.incluir_categoria })
+  }
 
   // ?aplicar=alta|media → confirma de una vez todas las propuestas de esa
   // confianza que sigan pendientes, sin tener que armar el JSON a mano. Se
