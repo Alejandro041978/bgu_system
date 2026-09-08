@@ -193,6 +193,7 @@ export const API_ROUTE_TO_PAGE_KEY: [string, string][] = [
   ['/api/academic/concepts', 'academic_concepts'],
   ['/api/academic/examenes', 'academic_exams'],
   ['/api/academic/programs', 'academic_programs'],
+  ['/api/academic/electives', 'academic_programs'],
   ['/api/academic/syllabi', 'academic_syllabi'],
   ['/api/academic/students', 'academic_student_profile'],
   ['/api/students/audit', 'academic_student_audit'],

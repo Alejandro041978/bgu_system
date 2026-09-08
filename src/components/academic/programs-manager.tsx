@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { Plus, Trash2, BookOpen, ChevronRight, Pencil, Check, X } from 'lucide-react'
+import { ElectivesManager } from './electives-manager'
 
 type Course = {
   id: string; name: string; code: string | null; credits: number; hours: number | null; level: number | null
   // Dónde se enseña y cómo se evalúa. Las lee el alcance de las páginas de
   // calificación acotadas y el Auditor del Campus.
-  partner_campus?: boolean; is_capstone?: boolean
+  partner_campus?: boolean; is_capstone?: boolean; is_elective?: boolean; graduation_requirement?: boolean | null
 }
 type Category = { id: string; name: string }
 type Program = { id: string; name: string; code: string | null; description: string | null; courses: Course[]; category?: Category | null; partner_campus?: boolean }
@@ -111,7 +112,7 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
   // ver en el momento, no descubrir después: su aula deja de sincronizar notas, y
   // la asignatura pasa a calificarse en su propia página.
   const [marcando, setMarcando] = useState<string | null>(null)
-  async function marcar(course: Course, campo: 'partner_campus' | 'is_capstone') {
+  async function marcar(course: Course, campo: 'partner_campus' | 'is_capstone' | 'is_elective') {
     const next = !course[campo]
     setMarcando(course.id)
     setPrograms(prev => prev.map(p => ({ ...p, courses: p.courses.map(c => c.id === course.id ? { ...c, [campo]: next } : c) })))
@@ -441,6 +442,11 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                                           onChange={() => marcar(course, 'is_capstone')} className="rounded" />
                                         <span className={`text-[11px] font-medium ${course.is_capstone ? 'text-violet-700' : 'text-gray-400'}`}>Capstone</span>
                                       </label>
+                                      <label className="inline-flex items-center gap-1.5 cursor-pointer" title="Casilla electiva: cuenta para precio y egreso; qué asignatura la llena lo decide la elección del estudiante (sección Electivas)">
+                                        <input type="checkbox" checked={!!course.is_elective} disabled={marcando === course.id}
+                                          onChange={() => marcar(course, 'is_elective')} className="rounded" />
+                                        <span className={`text-[11px] font-medium ${course.is_elective ? 'text-amber-700' : 'text-gray-400'}`}>Electiva</span>
+                                      </label>
                                     </div>
                                   </td>
                                   <td className="px-3 py-2.5 text-center text-gray-500">{course.level ?? '—'}</td>
@@ -465,6 +471,13 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                     </tbody>
                   </table>
                 )}
+              </div>
+
+              {/* Electivas del programa: casillas de la malla + pools de
+                  opciones (menú / especialidad). Fase 1 = configuración. */}
+              <div className="border-t border-gray-100 pt-4 mt-4 space-y-2">
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Electivas</h4>
+                <ElectivesManager programId={selectedProgram.id} />
               </div>
             </>
           )}

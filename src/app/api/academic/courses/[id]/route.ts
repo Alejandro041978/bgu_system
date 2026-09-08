@@ -15,6 +15,9 @@ const EDITABLES = [
   // Dónde se enseña y cómo se evalúa. Deciden sobre qué puede calificar otra
   // persona, y por eso el endgpoint exige el permiso de la página de Programas.
   'is_capstone', 'partner_campus',
+  // Casilla electiva de la malla (fase 1 de electivas, 08/09/2026): cuenta
+  // para precio y egreso; qué asignatura la llena lo decide la elección.
+  'is_elective',
 ] as const
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
