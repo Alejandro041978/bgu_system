@@ -22,76 +22,74 @@ interface Programa {
 const num = (n: number) => n.toLocaleString('es-PE')
 
 export function ClassroomCoverage() {
-  const [progs, setProgs] = useState<Programa[]>([])
-  const [sel, setSel] = useState<string>('')
+  // Cascada categoría → programa → botón (regla del usuario, 07/09/2026):
+  // no se calcula NADA hasta elegir el programa y pulsar "Ver cobertura".
+  // Al montar solo se trae la lista liviana para los selectores.
+  const [cats, setCats] = useState<{ id: string; name: string }[]>([])
+  const [lista, setLista] = useState<{ id: string; name: string; category_id: string | null }[]>([])
+  const [cat, setCat] = useState('')
+  const [sel, setSel] = useState('')
   const [cursos, setCursos] = useState<Curso[] | null>(null)
-  const [cargando, setCargando] = useState(true)
+  const [resumen, setResumen] = useState<Programa | null>(null)
+  const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [abierto, setAbierto] = useState<string | null>(null)
 
-  const traer = async (programa?: string) => {
-    setCargando(true); setError(null)
+  useEffect(() => {
+    fetch('/api/academic/moodle-links?vista=programas', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(j => { setCats(j.categorias ?? []); setLista(j.programas ?? []) })
+      .catch(() => setError('No se pudo cargar la lista de programas'))
+  }, [])
+
+  const traer = async () => {
+    if (!sel) return
+    setCargando(true); setError(null); setAbierto(null)
     try {
-      const q = programa ? `&programa=${encodeURIComponent(programa)}` : ''
-      const r = await fetch(`/api/academic/moodle-links?vista=cobertura${q}`, { cache: 'no-store' })
+      const r = await fetch(`/api/academic/moodle-links?vista=cobertura&programa=${encodeURIComponent(sel)}`, { cache: 'no-store' })
       const j = await r.json()
       if (!r.ok) throw new Error(j.error ?? 'No se pudo cargar')
-      setProgs(j.programas ?? [])
-      if (programa) setCursos((j.programas ?? []).find((p: Programa) => p.program_id === programa)?.cursos ?? [])
+      const p = (j.programas ?? []).find((x: Programa) => x.program_id === sel) ?? null
+      setResumen(p)
+      setCursos(p?.cursos ?? [])
     } catch (e) { setError(String(e instanceof Error ? e.message : e)) }
     setCargando(false)
   }
-  useEffect(() => { traer() }, [])
 
-  const elegir = (pid: string) => { setSel(pid); setCursos(null); setAbierto(null); if (pid) traer(pid) }
+  const programasDeCat = cat ? lista.filter(p => p.category_id === cat) : []
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-3">
-        <select value={sel} onChange={e => elegir(e.target.value)}
-          className="min-w-[22rem] rounded-md border border-slate-300 px-3 py-2 text-sm">
-          <option value="">Elige un programa…</option>
-          {progs.map(p => (
-            <option key={p.program_id} value={p.program_id}>
-              {p.programa} — {p.asignaturas} asignaturas · {p.aulas} aulas
-            </option>
-          ))}
+        <select value={cat} onChange={e => { setCat(e.target.value); setSel(''); setCursos(null); setResumen(null) }}
+          className="min-w-[16rem] rounded-md border border-slate-300 px-3 py-2 text-sm">
+          <option value="">Categoría…</option>
+          {cats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <button onClick={() => traer(sel || undefined)} disabled={cargando}
-          className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50">
-          <RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} /> Recalcular
+        <select value={sel} onChange={e => { setSel(e.target.value); setCursos(null); setResumen(null) }}
+          disabled={!cat} className="min-w-[22rem] rounded-md border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400">
+          <option value="">{cat ? (programasDeCat.length ? 'Programa…' : 'Sin programas en esta categoría') : 'Elige primero la categoría'}</option>
+          {programasDeCat.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <button onClick={traer} disabled={cargando || !sel}
+          className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-3 py-2 text-sm text-white hover:bg-slate-800 disabled:opacity-40">
+          <RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} /> Ver cobertura
         </button>
       </div>
 
       {error && <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
 
-      {!sel && !!progs.length && (
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-3 py-2">Programa</th>
-                <th className="px-3 py-2 text-right">Asignaturas</th>
-                <th className="px-3 py-2 text-right">Aulas</th>
-                <th className="px-3 py-2 text-right">Matrículas</th>
-                <th className="px-3 py-2 text-right">Sin ninguna aula</th>
-                <th className="px-3 py-2 text-right">Con alumnos sin sincronizar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {progs.map(p => (
-                <tr key={p.program_id} className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
-                  onClick={() => elegir(p.program_id)}>
-                  <td className="px-3 py-2 font-medium text-slate-800">{p.programa}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{num(p.asignaturas)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{num(p.aulas)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{num(p.matriculas)}</td>
-                  <td className={`px-3 py-2 text-right tabular-nums ${p.sin_ninguna_aula ? 'font-semibold text-red-700' : 'text-slate-400'}`}>{p.sin_ninguna_aula}</td>
-                  <td className={`px-3 py-2 text-right tabular-nums ${p.con_alumnos_sin_sincronizar ? 'font-semibold text-amber-700' : 'text-slate-400'}`}>{p.con_alumnos_sin_sincronizar}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {!cursos && !cargando && !error && (
+        <p className="py-8 text-center text-sm text-slate-400">Elige categoría y programa, y pulsa «Ver cobertura».</p>
+      )}
+
+      {resumen && cursos && (
+        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+          <span><b>{num(resumen.asignaturas)}</b> asignaturas</span>
+          <span>·</span><span><b>{num(resumen.aulas)}</b> aulas</span>
+          <span>·</span><span><b>{num(resumen.matriculas)}</b> matrículas</span>
+          <span>·</span><span className={resumen.sin_ninguna_aula ? 'font-semibold text-red-700' : ''}>{resumen.sin_ninguna_aula} sin ninguna aula</span>
+          <span>·</span><span className={resumen.con_alumnos_sin_sincronizar ? 'font-semibold text-amber-700' : ''}>{resumen.con_alumnos_sin_sincronizar} con alumnos sin sincronizar</span>
         </div>
       )}
 

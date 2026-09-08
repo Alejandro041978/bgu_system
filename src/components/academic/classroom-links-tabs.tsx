@@ -19,7 +19,7 @@ export function ClassroomLinksTabs() {
           ['vincular', 'Vincular aulas'],
           ['libres', 'Aulas libres'],
           ['programas', 'Programas libres'],
-          ['categorias', 'Categorías'],
+          ['categorias', 'Categorías en LMS'],
         ] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm ${

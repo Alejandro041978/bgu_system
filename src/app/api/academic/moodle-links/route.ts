@@ -46,6 +46,23 @@ export async function GET(req: NextRequest) {
   const sb = db()
   const solo = req.nextUrl.searchParams.get('solo') ?? 'pendientes'
 
+  // ?vista=programas → la lista LIVIANA para los selectores de Cobertura:
+  // categoría → programa, sin cargar nada del inventario pesado (regla del
+  // usuario, 07/09/2026: nada se calcula hasta elegir programa y pulsar el
+  // botón). La cascada va por category_id, nunca por leer nombres.
+  if (req.nextUrl.searchParams.get('vista') === 'programas') {
+    const [progs, cats] = await Promise.all([
+      todo(sb, 'academic_programs', 'id, name, category_id', 'name'),
+      todo(sb, 'academic_programs_category', 'id, name', 'name'),
+    ])
+    return NextResponse.json({
+      categorias: cats.map((c: { id: string; name: string }) => ({ id: String(c.id), name: c.name })),
+      programas: progs.map((p: { id: string; name: string; category_id: string | null }) => ({
+        id: String(p.id), name: p.name, category_id: p.category_id ? String(p.category_id) : null,
+      })),
+    })
+  }
+
   const todasLasAulas = await todo(sb, 'moodle_aula_audit', 'aula_id, shortname, matriculados, categoria', 'aula_id') as AulaAudit[]
 
   // Categorías excluidas del servicio educativo (Demo, Inducción, Excluidos
