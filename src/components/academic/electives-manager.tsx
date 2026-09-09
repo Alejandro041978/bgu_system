@@ -21,7 +21,7 @@ export function ElectivesManager({ programId }: { programId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [nuevoPool, setNuevoPool] = useState({ name: '', tipo: 'menu' as 'menu' | 'especialidad' })
-  const [nuevaOpcion, setNuevaOpcion] = useState({ code: '', name: '', credits: '' })
+  const [nuevaOpcion, setNuevaOpcion] = useState({ code: '', name: '' })
   const [agregandoA, setAgregandoA] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -47,6 +47,9 @@ export function ElectivesManager({ programId }: { programId: string }) {
   if (!data) return <p className="text-xs text-gray-400"><Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" />Cargando electivas…</p>
 
   const nombreDe = new Map([...data.opciones, ...data.casillas].map(c => [c.id, `${c.code ?? ''} ${c.name}`.trim()]))
+  // Una opción vive en UN solo pool: el selector solo ofrece las que aún no
+  // están en ninguno (corrección del usuario, 08/09).
+  const enAlgunPool = new Set(data.pools.flatMap(p => p.course_ids))
 
   return (
     <div className="space-y-4">
@@ -86,7 +89,7 @@ export function ElectivesManager({ programId }: { programId: string }) {
                   onBlur={() => setAgregandoA(null)}
                   className="text-[11px] border border-gray-200 rounded px-1.5 py-0.5">
                   <option value="">Agregar opción…</option>
-                  {data.opciones.filter(o => !p.course_ids.includes(o.id)).map(o => (
+                  {data.opciones.filter(o => !enAlgunPool.has(o.id)).map(o => (
                     <option key={o.id} value={o.id}>{o.code ?? '—'} · {o.name}</option>
                   ))}
                 </select>
@@ -116,19 +119,17 @@ export function ElectivesManager({ programId }: { programId: string }) {
         </button>
       </div>
 
-      {/* Crear opción del catálogo */}
+      {/* Crear opción del catálogo — SIN créditos: la casilla los manda */}
       <div className="flex items-center gap-2">
         <input value={nuevaOpcion.code} onChange={e => setNuevaOpcion(v => ({ ...v, code: e.target.value }))}
           placeholder="Código" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs w-24" />
         <input value={nuevaOpcion.name} onChange={e => setNuevaOpcion(v => ({ ...v, name: e.target.value }))}
           placeholder="Nueva opción del catálogo (ej. Taller de Fotografía)"
           className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs flex-1 max-w-sm" />
-        <input value={nuevaOpcion.credits} onChange={e => setNuevaOpcion(v => ({ ...v, credits: e.target.value.replace(/\D/g, '') }))}
-          placeholder="cr" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs w-14" />
         <button disabled={busy || !nuevaOpcion.name.trim()}
           onClick={async () => {
-            if (await accion({ accion: 'opcion_crear', program_id: programId, code: nuevaOpcion.code, name: nuevaOpcion.name, credits: nuevaOpcion.credits ? Number(nuevaOpcion.credits) : null })) {
-              setNuevaOpcion({ code: '', name: '', credits: '' })
+            if (await accion({ accion: 'opcion_crear', program_id: programId, code: nuevaOpcion.code, name: nuevaOpcion.name })) {
+              setNuevaOpcion({ code: '', name: '' })
             }
           }}
           className="inline-flex items-center gap-1 text-xs border border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 rounded-lg px-2.5 py-1.5 disabled:opacity-40">
@@ -137,9 +138,9 @@ export function ElectivesManager({ programId }: { programId: string }) {
       </div>
 
       <p className="text-[11px] text-gray-400">
-        Las opciones son asignaturas del programa fuera de la malla exigible (nacen así al crearlas aquí): tienen aula y
-        notas normales, pero no cuentan para el egreso — lo que cuenta es la casilla, que manda también los créditos.
-        La elección por estudiante (fase 2) la operará Registros.
+        Las opciones son asignaturas del programa fuera de la malla exigible (nacen así al crearlas aquí, y sin créditos
+        propios: la casilla manda los créditos). Cada opción pertenece a un solo pool. La elección por estudiante
+        (fase 2) la operará Registros.
       </p>
     </div>
   )

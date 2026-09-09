@@ -117,6 +117,15 @@ export async function POST(req: NextRequest) {
     if (curso.graduation_requirement !== false) {
       return NextResponse.json({ error: 'Una opción debe estar fuera de la malla exigible: quítale "requisito de graduación" en Programas primero.' }, { status: 409 })
     }
+    // Una opción pertenece a UN solo pool (corrección del usuario, 08/09):
+    // una asignatura no puede vivir en dos especialidades.
+    const { data: yaEn } = await sb.from('elective_pool_courses')
+      .select('pool_id, pool:elective_pools(name)').eq('course_id', b.course_id).neq('pool_id', b.pool_id).maybeSingle()
+    if (yaEn) {
+      return NextResponse.json({
+        error: `Esa asignatura ya pertenece al pool "${yaEn.pool?.name ?? yaEn.pool_id}": quítala de ahí primero — una opción vive en un solo pool.`,
+      }, { status: 409 })
+    }
     const { error } = await sb.from('elective_pool_courses')
       .upsert({ pool_id: b.pool_id, course_id: b.course_id }, { onConflict: 'pool_id,course_id' })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -127,7 +136,9 @@ export async function POST(req: NextRequest) {
     if (!b.program_id || !b.name?.trim()) return NextResponse.json({ error: 'Faltan program_id y name' }, { status: 400 })
     const { data, error } = await sb.from('academic_courses').insert({
       program_id: b.program_id, name: b.name.trim(), code: b.code?.trim() || null,
-      credits: b.credits ?? null,
+      // Sin créditos propios: la CASILLA manda los créditos (decisión del
+      // usuario) — dos fuentes serían una contradicción esperando ocurrir.
+      credits: null,
       // Nace como opción: fuera de la malla exigible, jamás casilla.
       graduation_requirement: false, is_elective: false,
     }).select('id, code, name, credits').single()
