@@ -14,7 +14,7 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any
 
-export interface CursoDeGrupo { id: string; code: string | null; name: string | null; credits?: number | null }
+export interface CursoDeGrupo { id: string; code: string | null; name: string | null; credits?: number | null; is_elective?: boolean | null }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function todo(sb: SB, q: (from: number) => any): Promise<any[]> {
@@ -33,7 +33,7 @@ async function todo(sb: SB, q: (from: number) => any): Promise<any[]> {
 export async function asignaturasDeGrupos(sb: SB, groupIds?: string[]): Promise<Map<string, CursoDeGrupo[]>> {
   const filas = await todo(sb, (from: number) => {
     let q = sb.from('academic_group_courses')
-      .select('group_id, orden, course:academic_courses(id, code, name, credits)')
+      .select('group_id, orden, course:academic_courses(id, code, name, credits, is_elective)')
     if (groupIds) q = q.in('group_id', groupIds)
     return q.order('orden', { ascending: true, nullsFirst: false }).range(from, from + 999)
   })

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isStudentUser } from '@/lib/student-identity'
 import { moodleCall, moodleConfigured, moodleUserState, getUserByIdnumber, getUserByEmail } from '@/lib/moodle'
-import { loadGroupCourses, coleccionDe } from '@/lib/moodle-provision'
+import { loadGroupCourses, coleccionDe, aulasDeElecciones } from '@/lib/moodle-provision'
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -64,7 +64,9 @@ export async function GET(req: NextRequest) {
   const activas = new Map<number, string>()
   for (const c of Array.isArray(cursosWS) ? cursosWS : []) activas.set(Number(c.id), String(c.shortname ?? c.fullname ?? c.id))
 
-  // Lo ESPERADO según sus carruseles activos (resuelto por colección)
+  // Lo ESPERADO según sus carruseles activos (resuelto por colección), más
+  // las aulas de sus ELECCIONES de electivas — dos compañeros del mismo
+  // carrusel pueden esperar aulas distintas (Finance vs HR).
   const esperadas = new Set<number>()
   const sinAula: string[] = []
   const { data: membs } = await sb.from('academic_group_students')
@@ -74,6 +76,9 @@ export async function GET(req: NextRequest) {
       const r = await loadGroupCourses(sb, String(m.group_id), await coleccionDe(sb, String(m.group_id), studentId))
       for (const a of r.courseIds) esperadas.add(Number(a))
       sinAula.push(...r.unmapped)
+      const el = await aulasDeElecciones(sb, String(m.group_id), [studentId])
+      for (const a of el.porEstudiante.get(String(studentId)) ?? []) esperadas.add(Number(a))
+      sinAula.push(...el.unmapped)
     } catch { /* un grupo sin resolver no tumba el reporte */ }
   }
 

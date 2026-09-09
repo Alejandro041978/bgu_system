@@ -4,6 +4,8 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { guardPagina } from '@/lib/page-guard'
 import { stableUuid } from '@/lib/grades-write'
 import { recomputeStudentByDocument } from '@/lib/graduates'
+import { marcarParaSincronizar } from '@/lib/moodle-provision'
+import { unenrolUser, moodleConfigured } from '@/lib/moodle'
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -25,7 +27,7 @@ const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function contexto(sb: any, studentId: string, programId: string) {
   const { data: enr } = await sb.from('academic_student_enrollments')
-    .select('id, student_id, program_id, specialty_pool_id, academic_students:student_id(document_number)')
+    .select('id, student_id, program_id, specialty_pool_id, collection_id, academic_students:student_id(document_number)')
     .eq('student_id', studentId).eq('program_id', programId).limit(1).maybeSingle()
   if (!enr) return null
   const [{ data: cursos }, { data: pools }, { data: els }] = await Promise.all([
@@ -94,6 +96,19 @@ export async function POST(req: NextRequest) {
   const documento = ctx.enr.academic_students?.document_number ?? null
   const ahora = new Date().toISOString()
 
+  // El ALTA en el aula de la elegida la hace el reconciliador (un solo dueño):
+  // elegir marca el carrusel del estudiante como primero de la cola.
+  const adelantarReconciliador = async () => {
+    const { data: memb } = await sb.from('academic_group_students')
+      .select('group_id, academic_groups(program_id)').eq('student_id', b.student_id).eq('status', 'activo')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const m of (memb ?? []) as any[]) {
+      if (String(m.academic_groups?.program_id ?? '') === String(b.program_id)) {
+        await marcarParaSincronizar(sb, String(m.group_id)).catch(() => null)
+      }
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const casillas = (ctx.cursos as any[]).filter(c => c.is_elective && c.graduation_requirement !== false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,6 +159,7 @@ export async function POST(req: NextRequest) {
       if (eM) return NextResponse.json({ error: `matrícula de la elegida: ${eM.message}` }, { status: 500 })
     }
     await sb.from('academic_student_enrollments').update({ specialty_pool_id: pool.id }).eq('id', ctx.enr.id)
+    await adelantarReconciliador()
     if (documento) await recomputeStudentByDocument(sb, String(documento)).catch(() => null)
     return NextResponse.json({ ok: true, asignadas: slotsOrden.length })
   }
@@ -168,6 +184,7 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     const eM = await matricularElegida(String(slot.id), String(b.course_id))
     if (eM) return NextResponse.json({ error: `matrícula de la elegida: ${eM.message}` }, { status: 500 })
+    await adelantarReconciliador()
     if (documento) await recomputeStudentByDocument(sb, String(documento)).catch(() => null)
     return NextResponse.json({ ok: true })
   }
@@ -189,6 +206,26 @@ export async function POST(req: NextRequest) {
     // La matrícula creada por esta elección (id determinista) se retira con ella
     await sb.from('academic_course_enrollments')
       .delete().eq('id', stableUuid(`electiva:${ctx.enr.id}:${b.slot_course_id}`))
+    // La BAJA del aula es inmediata (como los avances de carrusel): se suspende
+    // el acceso al aula de la ex-elegida — notas conservadas, como siempre.
+    if (moodleConfigured()) {
+      try {
+        const { data: stu } = await sb.from('academic_students').select('moodle_user_id').eq('id', b.student_id).maybeSingle()
+        const uid = Number(stu?.moodle_user_id)
+        if (Number.isFinite(uid) && uid) {
+          const { data: links } = await sb.from('moodle_course_links')
+            .select('aula_id, collection_id').eq('kind', 'asignatura').is('replaced_at', null)
+            .eq('course_id', el.chosen_course_id)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const rows = (links ?? []) as any[]
+          // La misma preferencia del alta: el aula de SU colección, o cualquiera viva
+          const aula = rows.find(l => ctx.enr.collection_id && String(l.collection_id ?? '') === String(ctx.enr.collection_id))?.aula_id
+            ?? rows[0]?.aula_id
+          if (aula) await unenrolUser(Number(aula), uid)
+        }
+      } catch { /* best effort: el reconciliador repara residuos */ }
+    }
+    await adelantarReconciliador()
     // Si era la última elección de la especialidad, la matrícula deja de tenerla
     if (el.pool_id && String(ctx.enr.specialty_pool_id ?? '') === String(el.pool_id)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -189,6 +189,10 @@ export async function loadGroupCourses(sb: any, groupId: string, collectionId?: 
   const courseIds = new Set<number>()
   const unmapped: string[] = []
   for (const c of cursos) {
+    // Casilla electiva: no tiene aula propia — el aula es la de la ELECCIÓN
+    // de cada estudiante (aulasDeElecciones), así que ni se resuelve ni se
+    // reclama como "sin aula" (fase 2b de electivas, 08/09/2026).
+    if (c.is_elective) continue
     if (collectionId) {
       const deColeccion = porColeccion.get(String(c.id))
       if (deColeccion) courseIds.add(deColeccion)
@@ -206,6 +210,65 @@ export async function loadGroupCourses(sb: any, groupId: string, collectionId?: 
   // para que quien llame pueda contarlo y enseñarlo, en vez de que el respaldo
   // siga siendo invisible mientras sostiene al 98% de los estudiantes.
   return { courseIds: [...courseIds], unmapped: [...new Set(unmapped)], por_respaldo: !collectionId }
+}
+
+// ---------------------------------------------------------------------------
+// Las aulas de las ELECCIONES de electivas de los miembros de un carrusel.
+//
+// Las casillas electivas del grupo no tienen aula propia: cada estudiante va
+// al aula de SU asignatura elegida — dos compañeros del mismo carrusel pueden
+// ir a aulas distintas (Finance vs HR). El aula de la elegida se resuelve por
+// la colección del estudiante primero y por cualquier vínculo vivo después;
+// sin vínculo, se reporta con nombre en courses_unmapped.
+// ---------------------------------------------------------------------------
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function aulasDeElecciones(sb: any, groupId: string, studentIds: string[]): Promise<{ porEstudiante: Map<string, number[]>; unmapped: string[] }> {
+  const vacio = { porEstudiante: new Map<string, number[]>(), unmapped: [] as string[] }
+  if (!studentIds.length) return vacio
+  const cursos = await asignaturasDeGrupo(sb, groupId)
+  const casillas = new Set(cursos.filter(c => c.is_elective).map(c => String(c.id)))
+  if (!casillas.size) return vacio
+  const { data: gr } = await sb.from('academic_groups').select('program_id').eq('id', groupId).maybeSingle()
+  if (!gr?.program_id) return vacio
+
+  const { data: enrs } = await sb.from('academic_student_enrollments')
+    .select('id, student_id, collection_id').eq('program_id', gr.program_id).in('student_id', studentIds)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const enrRows = (enrs ?? []) as any[]
+  if (!enrRows.length) return vacio
+  const estudianteDe = new Map(enrRows.map(e => [String(e.id), String(e.student_id)]))
+  const coleccionDeEstudiante = new Map(enrRows.map(e => [String(e.student_id), e.collection_id ? String(e.collection_id) : null]))
+
+  const { data: els } = await sb.from('student_electives')
+    .select('enrollment_id, slot_course_id, chosen:academic_courses!chosen_course_id(id, code, name)')
+    .in('enrollment_id', enrRows.map(e => String(e.id)))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const elecciones = ((els ?? []) as any[]).filter(e => casillas.has(String(e.slot_course_id)) && e.chosen)
+  if (!elecciones.length) return vacio
+
+  const chosenIds = [...new Set(elecciones.map(e => String(e.chosen.id)))]
+  const { data: links } = await sb.from('moodle_course_links')
+    .select('aula_id, course_id, collection_id').eq('kind', 'asignatura').is('replaced_at', null)
+    .in('course_id', chosenIds)
+  const porColeccionLink = new Map<string, number>()   // `${course}|${coleccion}` → aula
+  const cualquierLink = new Map<string, number>()      // course → primera aula viva
+  for (const l of (links ?? []) as { aula_id: number; course_id: string; collection_id: string | null }[]) {
+    if (l.collection_id) porColeccionLink.set(`${l.course_id}|${l.collection_id}`, Number(l.aula_id))
+    if (!cualquierLink.has(String(l.course_id))) cualquierLink.set(String(l.course_id), Number(l.aula_id))
+  }
+
+  const porEstudiante = new Map<string, number[]>()
+  const unmapped = new Set<string>()
+  for (const el of elecciones) {
+    const sid = estudianteDe.get(String(el.enrollment_id))
+    if (!sid) continue
+    const col = coleccionDeEstudiante.get(sid)
+    const aula = (col ? porColeccionLink.get(`${el.chosen.id}|${col}`) : undefined) ?? cualquierLink.get(String(el.chosen.id))
+    if (!aula) { unmapped.add(`${[el.chosen.code, el.chosen.name].filter(Boolean).join(' ')} (electiva elegida)`); continue }
+    if (!porEstudiante.has(sid)) porEstudiante.set(sid, [])
+    porEstudiante.get(sid)!.push(aula)
+  }
+  return { porEstudiante, unmapped: [...unmapped] }
 }
 
 // La colección elegida en la matrícula de ese programa. Es lo que decide en
@@ -255,12 +318,17 @@ export async function provisionStudent(groupId: string, studentId: string, actio
     const { data: s } = await sb.from('academic_students').select(STUDENT_FIELDS).eq('id', studentId).maybeSingle()
     if (!s) { result.errors.push('Estudiante no encontrado'); return result }
     const { courseIds, unmapped, por_respaldo } = await loadGroupCourses(sb, groupId, await coleccionDe(sb, groupId, studentId))
-    result.courses_unmapped = unmapped
+    // Las aulas de SUS elecciones de electivas viajan con las del grupo: el
+    // alta las incluye, y la baja (avance de carrusel) también — para no
+    // dejar accesos colgados en aulas de elegidas.
+    const elecciones = await aulasDeElecciones(sb, groupId, [studentId]).catch(() => ({ porEstudiante: new Map<string, number[]>(), unmapped: [] as string[] }))
+    result.courses_unmapped = [...unmapped, ...elecciones.unmapped]
     if (por_respaldo) result.sin_coleccion = 1
     const uid = await ensureMoodleUser(sb, s, result)
     if (!uid) { result.no_account = 1; return result }
     result.with_account = 1
-    for (const cid of courseIds) {
+    const aulas = [...courseIds, ...(elecciones.porEstudiante.get(String(studentId)) ?? [])]
+    for (const cid of aulas) {
       try { action === 'enrol' ? await enrolUser(cid, uid) : await unenrolUser(cid, uid); result.enrol_ops++ }
       catch (e) { result.errors.push(e instanceof Error ? e.message : 'error') }
     }
@@ -297,6 +365,12 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
     const students = (members ?? []).map((m: any) => m.academic_students).filter(Boolean)
     result.students_total = students.length
 
+    // Aulas de las ELECCIONES de electivas de los miembros: se resuelven una
+    // vez para todo el grupo, y cada estudiante recibe además las suyas.
+    const elecciones = await aulasDeElecciones(sb, groupId, students.map((s: { id: string }) => String(s.id)))
+      .catch(() => ({ porEstudiante: new Map<string, number[]>(), unmapped: [] as string[] }))
+    result.courses_unmapped = [...new Set([...result.courses_unmapped, ...elecciones.unmapped])]
+
     const enrolments: { userid: number; courseid: number }[] = []
     for (const s of students) {
       const uid = await ensureMoodleUser(sb, s, result)
@@ -306,6 +380,7 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
       if (!col) result.sin_coleccion++
       const suyas = await cargar(col)
       for (const cid of suyas) enrolments.push({ userid: uid, courseid: cid })
+      for (const cid of elecciones.porEstudiante.get(String(s.id)) ?? []) enrolments.push({ userid: uid, courseid: cid })
     }
     for (let i = 0; i < enrolments.length; i += 300) {
       const wave = enrolments.slice(i, i + 300)
@@ -318,15 +393,20 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
     // residuo — p. ej. un sync viejo que lo haya vuelto a matricular).
     const { data: done } = await sb.from('academic_group_students')
       .select('academic_students(id, moodle_user_id)').eq('group_id', groupId).eq('status', 'completado')
-    const unenrolments: { userid: number; courseid: number }[] = []
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const m of (done ?? []) as any[]) {
+    const doneRows = (done ?? []) as any[]
+    const eleccionesDone = await aulasDeElecciones(sb, groupId, doneRows.map(m => String(m.academic_students?.id)).filter(Boolean))
+      .catch(() => ({ porEstudiante: new Map<string, number[]>(), unmapped: [] as string[] }))
+    const unenrolments: { userid: number; courseid: number }[] = []
+    for (const m of doneRows) {
       const uid = Number(m.academic_students?.moodle_user_id)
       if (!Number.isFinite(uid) || !uid) continue
       // Se desmatricula de las aulas de SU colección; si no tiene, de las que
-      // resuelva la oferta, que es el comportamiento de siempre.
+      // resuelva la oferta, que es el comportamiento de siempre. Las aulas de
+      // sus elecciones de electivas también: sin esto quedaban accesos colgados.
       const suyas = await cargar(await coleccionDe(sb, groupId, String(m.academic_students?.id)))
       for (const cid of suyas) unenrolments.push({ userid: uid, courseid: cid })
+      for (const cid of eleccionesDone.porEstudiante.get(String(m.academic_students?.id)) ?? []) unenrolments.push({ userid: uid, courseid: cid })
     }
     for (let i = 0; i < unenrolments.length; i += 300) {
       try { await unenrolUsersBulk(unenrolments.slice(i, i + 300)) }
