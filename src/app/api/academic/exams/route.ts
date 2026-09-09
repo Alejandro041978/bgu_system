@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { applyGradeEdit } from '@/lib/grades-write'
-import { guardStaff, guardSuperadmin, esSuperadmin } from '@/lib/api-guard'
+import { guardStaff, esSuperadmin } from '@/lib/api-guard'
 import { guardPagina } from '@/lib/page-guard'
 import { eligibleCourses, createExamRequest } from '@/lib/exam-requests'
 
@@ -123,10 +123,12 @@ export async function PATCH(req: NextRequest) {
 
   if (b.action === 'nota') {
     // Registrar la nota de la subsanación ES escribir una calificación: va al
-    // acta por la misma vía que el editor. Notificar o anular la solicitud
-    // siguen siendo trabajo de Registros; esto no.
-    const soloSuper = await guardSuperadmin()
-    if (soloSuper) return soloSuper
+    // acta por la misma vía que el editor, con auditoría y blindaje. Quién
+    // puede hacerlo lo decide el configurador (academic_exams · editar) por
+    // decisión de Dirección del 09/09/2026; antes era solo superadmin. El
+    // editor general de notas del registro curricular sigue siendo superadmin.
+    const sinPermiso = await guardPagina('academic_exams')
+    if (sinPermiso) return sinPermiso
     if (r.status !== 'pendiente_evaluacion') return NextResponse.json({ error: 'La solicitud no está pendiente de evaluación' }, { status: 400 })
     const grade = Number(b.grade)
     if (!Number.isFinite(grade) || grade < 0 || grade > 100) return NextResponse.json({ error: 'Nota inválida (0-100)' }, { status: 400 })

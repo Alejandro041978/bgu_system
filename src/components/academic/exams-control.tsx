@@ -23,8 +23,10 @@ const fdate = (d: string | null) => (d ? d.split('T')[0].split('-').reverse().jo
 
 export function ExamsControl() {
   // Notificar y anular siguen siendo trabajo de Registros. Registrar la nota
-  // del examen escribe en el acta: solo superadmin (ver api-guard).
-  const { superadmin } = usePermissions()
+  // del examen escribe en el acta: lo gobierna el permiso de editar de esta
+  // página (decisión de Dirección del 09/09/2026; antes solo superadmin).
+  const { canEdit } = usePermissions()
+  const puedeNota = canEdit('academic_exams')
   const [rows, setRows] = useState<Row[] | null>(null)
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [filter, setFilter] = useState('pendiente_evaluacion')
@@ -136,8 +138,8 @@ export function ExamsControl() {
                     <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-700">
                       <Award className="w-3.5 h-3.5" /> {r.result_grade}
                     </span>
-                  ) : r.status === 'pendiente_evaluacion' && !superadmin ? (
-                    <span className="text-[11px] text-gray-400" title="La nota del examen la registra un superadministrador">pendiente de nota</span>
+                  ) : r.status === 'pendiente_evaluacion' && !puedeNota ? (
+                    <span className="text-[11px] text-gray-400" title="La nota del examen la registra quien tiene el permiso de editar en Exámenes · Hoja de Control">pendiente de nota</span>
                   ) : r.status === 'pendiente_evaluacion' ? (
                     <span className="inline-flex items-center gap-1.5">
                       <input type="number" min={0} max={100} step="0.01" value={grade[r.id] ?? ''}
