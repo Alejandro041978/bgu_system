@@ -93,6 +93,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await notifyStudentEmail(
       s.email, [s.first_name, s.last_name].filter(Boolean).join(' '),
       created, langFor(s.country), restablecer ? 'reset' : 'alta',
+      g.user.email ?? g.user.id,
     )
     return NextResponse.json({ ok: true, sent_to: s.email, email: s.email_alt, restablecida: restablecer })
   } catch (e) {

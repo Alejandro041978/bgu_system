@@ -75,7 +75,7 @@ async function ensureStudentEmail(sb: any, enr: any, stu: any, categoryName: str
   let notified = false
   if (stu.email) {
     try {
-      await notifyStudentEmail(stu.email, [stu.first_name, stu.last_name].filter(Boolean).join(' '), created, langFor(stu.country))
+      await notifyStudentEmail(stu.email, [stu.first_name, stu.last_name].filter(Boolean).join(' '), created, langFor(stu.country), 'alta', 'sistema:activación de matrícula')
       notified = true
     } catch { /* aviso en note */ }
   }

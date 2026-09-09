@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { guardPagina } from '@/lib/page-guard'
-import { notificarEstudiante } from '@/lib/student-notifications'
+import { notificarEstudiante, KINDS_CON_SECRETO } from '@/lib/student-notifications'
 
 export const revalidate = 0
 
@@ -34,6 +34,11 @@ export async function POST(req: NextRequest) {
   const sb = db()
   const { data: orig } = await sb.from('student_notifications').select('*').eq('id', b.resend_id).maybeSingle()
   if (!orig) return NextResponse.json({ error: 'Notificación no encontrada' }, { status: 404 })
+  // El cuerpo guardado de estos tipos tiene el secreto enmascarado: reenviarlo
+  // mandaría puntos. Credenciales y enlaces se regeneran desde su propia página.
+  if (KINDS_CON_SECRETO.has(orig.kind)) {
+    return NextResponse.json({ error: 'Este correo contiene un secreto (contraseña, enlace o código) que la bitácora guarda enmascarado: no se puede reenviar desde aquí. Genera uno nuevo desde su propia página (credenciales, acceso al portal, etc.).' }, { status: 400 })
+  }
   const r = await notificarEstudiante(sb, {
     studentId: orig.student_id, enrollmentId: orig.enrollment_id,
     kind: orig.kind, subject: orig.subject, html: orig.body_html,

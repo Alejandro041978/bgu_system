@@ -103,6 +103,7 @@ async function ensureMoodleUser(sb: any, s: StudentRow, result: SyncResult): Pro
     try {
       await notificarCuentaMoodle({
         to: destino, nombre, usuario: identidad, password: cuenta.password,
+        triggeredBy: 'sistema:aprovisionamiento',
       })
       await sb.from('academic_students').update({
         moodle_credentials_sent_at: new Date().toISOString(),

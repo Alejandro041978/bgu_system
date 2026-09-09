@@ -21,7 +21,17 @@ const KIND: Record<string, { label: string; cls: string }> = {
   iw_aplicado: { label: 'IW', cls: 'bg-rose-50 text-rose-700' },
   reentry_aplicado: { label: 'Re-Entry', cls: 'bg-emerald-50 text-emerald-700' },
   reversion_aplicada: { label: 'Reversión', cls: 'bg-violet-50 text-violet-700' },
+  acceso_portal: { label: 'Acceso al portal', cls: 'bg-blue-50 text-blue-700' },
+  credenciales_campus: { label: 'Credenciales Campus', cls: 'bg-indigo-50 text-indigo-700' },
+  credenciales_correo: { label: 'Correo universitario', cls: 'bg-cyan-50 text-cyan-700' },
+  isic_emitido: { label: 'ISIC', cls: 'bg-teal-50 text-teal-700' },
+  recuperacion_acceso: { label: 'Recuperación de acceso', cls: 'bg-amber-50 text-amber-700' },
+  codigo_verificacion: { label: 'Código de verificación', cls: 'bg-slate-100 text-slate-600' },
 }
+
+// Tipos cuyo cuerpo guardado tiene el secreto enmascarado (••••): el reenvío
+// desde aquí mandaría puntos, así que se regeneran desde su propia página.
+const CON_SECRETO = new Set(['acceso_portal', 'credenciales_campus', 'credenciales_correo', 'recuperacion_acceso', 'codigo_verificacion'])
 
 export function StudentNotificationsView() {
   const [q, setQ] = useState('')
@@ -121,10 +131,16 @@ export function StudentNotificationsView() {
               </button>
               {open === n.id && (
                 <div className="px-6 pb-4 space-y-2">
-                  <button onClick={() => reenviar(n)} disabled={busy === n.id}
-                    className="inline-flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 hover:bg-gray-50 disabled:opacity-40">
-                    {busy === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Reenviar
-                  </button>
+                  {CON_SECRETO.has(n.kind) ? (
+                    <p className="text-[11px] text-gray-400">
+                      El secreto (contraseña, enlace o código) está enmascarado en esta copia. Para reenviarlo, genera uno nuevo desde su propia página.
+                    </p>
+                  ) : (
+                    <button onClick={() => reenviar(n)} disabled={busy === n.id}
+                      className="inline-flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 hover:bg-gray-50 disabled:opacity-40">
+                      {busy === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Reenviar
+                    </button>
+                  )}
                   <div className="border border-gray-100 rounded-lg overflow-hidden">
                     <iframe srcDoc={n.body_html} sandbox="" title={n.subject} className="w-full h-96 bg-white" />
                   </div>

@@ -159,6 +159,7 @@ export async function POST(req: NextRequest) {
     await notificarCuentaMoodle({
       to: destino, nombre, usuario: String(usuario), password,
       lang: /peru|bolivia|ecuador|colombia|chile|mexico|españa|spain/i.test(String(s.country ?? '')) ? 'es' : 'es',
+      triggeredBy: g.user.email ?? g.user.id,
     })
   } catch (e) {
     return NextResponse.json({

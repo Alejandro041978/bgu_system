@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { registrarNotificacion } from './student-notifications'
 
 // Aviso al estudiante de que su carné internacional está emitido.
 //
@@ -17,6 +18,7 @@ export interface IsicNotifyInput {
   cardNumber: string
   registrationUrl: string | null
   validTo: string
+  triggeredBy?: string
 }
 
 export async function notifyIsicCard(i: IsicNotifyInput): Promise<{ ok: boolean; error?: string }> {
@@ -39,13 +41,8 @@ export async function notifyIsicCard(i: IsicNotifyInput): Promise<{ ok: boolean;
          Estamos generando tu enlace de activación. Escríbenos y te lo enviamos.
        </p>`
 
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY)
-    await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL,
-      to: i.to,
-      subject: 'Tu carné internacional de estudiante (ISIC) ya está emitido',
-      html: `
+  const subject = 'Tu carné internacional de estudiante (ISIC) ya está emitido'
+  const html = `
 <!DOCTYPE html>
 <html>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9fafb; margin: 0; padding: 40px 20px;">
@@ -113,10 +110,29 @@ export async function notifyIsicCard(i: IsicNotifyInput): Promise<{ ok: boolean;
     </div>
   </div>
 </body>
-</html>`,
+</html>`
+
+  // El aviso del carné no lleva contraseñas: se guarda completo y se puede
+  // reenviar desde la bitácora.
+  const bitacora = (status: 'enviada' | 'fallida', error?: string) => registrarNotificacion(null, {
+    toEmails: [i.to], kind: 'isic_emitido', subject, html,
+    status, error: error ?? null,
+    triggeredBy: i.triggeredBy ?? 'sistema',
+  })
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const { error } = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL,
+      to: i.to,
+      subject,
+      html,
     })
+    if (error) { await bitacora('fallida', error.message); return { ok: false, error: error.message } }
+    await bitacora('enviada')
     return { ok: true }
   } catch (e) {
+    await bitacora('fallida', (e as Error).message)
     return { ok: false, error: (e as Error).message }
   }
 }

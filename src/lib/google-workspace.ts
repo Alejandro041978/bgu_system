@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { registrarNotificacion, enmascararSecretos } from './student-notifications'
 
 // ---------------------------------------------------------------------------
 // Correo estudiantil en Google Workspace for Education (@blackwell.pro).
@@ -240,14 +241,23 @@ function emailHtml(lang: 'es' | 'en', studentName: string, created: EmailCreatio
 }
 
 // Notificación al correo personal vía Resend (idioma según país del estudiante)
-export async function notifyStudentEmail(personalEmail: string, studentName: string, created: EmailCreation, lang: 'es' | 'en' = 'es', kind: MailKind = 'alta'): Promise<void> {
+export async function notifyStudentEmail(personalEmail: string, studentName: string, created: EmailCreation, lang: 'es' | 'en' = 'es', kind: MailKind = 'alta', triggeredBy?: string): Promise<void> {
   if (!process.env.RESEND_API_KEY) throw new Error('Falta RESEND_API_KEY')
+  const subject = (kind === 'reset' ? RESET[lang] : T[lang]).subject
+  const html = emailHtml(lang, studentName, created, kind)
   const resend = new Resend(process.env.RESEND_API_KEY)
   const { error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to: personalEmail,
-    subject: (kind === 'reset' ? RESET[lang] : T[lang]).subject,
-    html: emailHtml(lang, studentName, created, kind),
+    subject,
+    html,
+  })
+  // La bitácora guarda la copia con la contraseña enmascarada.
+  await registrarNotificacion(null, {
+    toEmails: [personalEmail], kind: 'credenciales_correo', subject,
+    html: enmascararSecretos(html, [created.password]),
+    status: error ? 'fallida' : 'enviada', error: error ? error.message : null,
+    triggeredBy: triggeredBy ?? 'sistema',
   })
   if (error) throw new Error(`Resend: ${error.message}`)
 }

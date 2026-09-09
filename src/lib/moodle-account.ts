@@ -19,6 +19,7 @@
 // ---------------------------------------------------------------------------
 import { Resend } from 'resend'
 import { moodleCall } from './moodle'
+import { registrarNotificacion, enmascararSecretos } from './student-notifications'
 
 // Con margen sobre cualquier política razonable del campus: 14 caracteres con
 // mayúscula, minúscula, dígito y símbolo. Si no cumpliera, Moodle rechaza la
@@ -105,6 +106,7 @@ const TXT = {
 
 export async function notificarCuentaMoodle(args: {
   to: string; nombre: string; usuario: string; password: string; lang?: 'es' | 'en'
+  triggeredBy?: string
 }): Promise<void> {
   if (!process.env.RESEND_API_KEY) throw new Error('Falta RESEND_API_KEY')
   const t = TXT[args.lang ?? 'es']
@@ -130,6 +132,13 @@ export async function notificarCuentaMoodle(args: {
     to: args.to,
     subject: t.subject,
     html,
+  })
+  // La bitácora guarda la copia con la contraseña enmascarada.
+  await registrarNotificacion(null, {
+    toEmails: [args.to], kind: 'credenciales_campus', subject: t.subject,
+    html: enmascararSecretos(html, [args.password]),
+    status: error ? 'fallida' : 'enviada', error: error ? error.message : null,
+    triggeredBy: args.triggeredBy ?? 'sistema',
   })
   if (error) throw new Error(`Resend: ${error.message}`)
 }

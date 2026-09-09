@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { registrarNotificacion, enmascararSecretos } from '@/lib/student-notifications'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
   // El correo debe pertenecer a un estudiante: acepta el personal (email) o el
   // institucional @blackwell.pro (email_alt).
   const { data: stu } = await sb.from('academic_students')
-    .select('first_name, last_name, email, email_alt')
+    .select('id, first_name, last_name, email, email_alt')
     .or(`email.eq.${mail},email_alt.eq.${mail}`)
     .eq('disabled', false).limit(1).maybeSingle()
   if (!stu) return NextResponse.json({ error: 'not_student' }, { status: 404 })
@@ -55,13 +56,8 @@ export async function POST(req: NextRequest) {
 
   // Envía el enlace por Resend
   const firstName = (stu.first_name ?? '').split(' ')[0] || 'Estudiante'
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY!)
-    await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL!,
-      to: mail,
-      subject: 'Tu enlace de acceso · Portal Estudiantil Blackwell',
-      html: `
+  const subject = 'Tu enlace de acceso · Portal Estudiantil Blackwell'
+  const html = `
 <!DOCTYPE html>
 <html>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9fafb; margin: 0; padding: 40px 20px;">
@@ -87,11 +83,32 @@ export async function POST(req: NextRequest) {
     </div>
   </div>
 </body>
-</html>`,
+</html>`
+
+  // En la bitácora el enlace va enmascarado: es un acceso de un solo uso.
+  const bitacora = (status: 'enviada' | 'fallida', error?: string) => registrarNotificacion(sb, {
+    studentId: String(stu.id), toEmails: [mail], kind: 'acceso_portal',
+    subject, html: enmascararSecretos(html, [actionLink, props.hashed_token]),
+    status, error: error ?? null, triggeredBy: 'portal:solicitud de acceso',
+  })
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY!)
+    const { error: sendErr } = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL!,
+      to: mail,
+      subject,
+      html,
     })
+    if (sendErr) {
+      await bitacora('fallida', String(sendErr.message ?? sendErr))
+      return NextResponse.json({ error: 'send_failed', detail: String(sendErr.message ?? sendErr) }, { status: 500 })
+    }
   } catch (e) {
+    await bitacora('fallida', String(e))
     return NextResponse.json({ error: 'send_failed', detail: String(e) }, { status: 500 })
   }
 
+  await bitacora('enviada')
   return NextResponse.json({ ok: true })
 }

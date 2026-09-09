@@ -59,7 +59,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     let notified = false, notifyError: string | null = null
     if (s.email) {
       try {
-        await notifyStudentEmail(s.email, [s.first_name, s.last_name].filter(Boolean).join(' '), created, langFor(s.country))
+        await notifyStudentEmail(s.email, [s.first_name, s.last_name].filter(Boolean).join(' '), created, langFor(s.country), 'alta', user?.email ?? user?.id ?? 'sistema')
         notified = true
       } catch (e) { notifyError = e instanceof Error ? e.message : String(e) }
     } else {

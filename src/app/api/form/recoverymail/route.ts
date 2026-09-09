@@ -7,6 +7,7 @@ import {
   type Desenlace,
 } from '@/lib/email-recovery'
 import { getStudentAccountState, resetStudentPassword, notifyStudentEmail, langFor, googleConfigured } from '@/lib/google-workspace'
+import { registrarNotificacion, enmascararSecretos } from '@/lib/student-notifications'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -107,15 +108,8 @@ export async function POST(req: NextRequest) {
     }
 
     const nombre = String(est.first_name ?? '').split(' ')[0] || ''
-    if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
-      const resend = new Resend(process.env.RESEND_API_KEY)
-      // send() devuelve { data, error } en vez de lanzar: sin mirarlo, el
-      // estudiante esperaría un código que nunca salió.
-      const { error } = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL,
-        to: personal,
-        subject: `${codigo} es tu código de verificación · Blackwell Global University`,
-        html: `
+    const subjectCodigo = `${codigo} es tu código de verificación · Blackwell Global University`
+    const htmlCodigo = `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;padding:40px 20px">
   <div style="max-width:460px;margin:0 auto;background:#fff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden">
     <div style="background:linear-gradient(135deg,#1d4ed8,#2563eb);padding:24px;text-align:center">
@@ -134,9 +128,26 @@ export async function POST(req: NextRequest) {
       </p>
     </div>
   </div>
-</div>`,
+</div>`
+    if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      // send() devuelve { data, error } en vez de lanzar: sin mirarlo, el
+      // estudiante esperaría un código que nunca salió.
+      const { error } = await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL,
+        to: personal,
+        subject: subjectCodigo,
+        html: htmlCodigo,
       })
       if (error) console.error('recoverymail: Resend rechazó el código', error)
+      // El código va enmascarado también en el ASUNTO guardado: es el secreto.
+      await registrarNotificacion(sb, {
+        studentId: String(est.id), toEmails: [personal], kind: 'codigo_verificacion',
+        subject: enmascararSecretos(subjectCodigo, [codigo]),
+        html: enmascararSecretos(htmlCodigo, [codigo]),
+        status: error ? 'fallida' : 'enviada', error: error ? error.message : null,
+        relatedId: req0?.id ?? null, triggeredBy: 'formulario:recuperación de correo',
+      })
     }
     return NextResponse.json({ ...RESPUESTA_OPACA, request_id: req0?.id, hint: req0?.channel_hint })
   }
@@ -252,7 +263,7 @@ export async function POST(req: NextRequest) {
   const creada = await resetStudentPassword(institucional)
   // Las instrucciones van al correo PERSONAL, nunca al institucional: es
   // justamente el buzón al que no puede entrar.
-  await notifyStudentEmail(String(est.email), nombre, creada, langFor(est.country), 'reset').catch(e => {
+  await notifyStudentEmail(String(est.email), nombre, creada, langFor(est.country), 'reset', 'formulario:recuperación de correo').catch(e => {
     console.error('recoverymail: no se pudo enviar la contraseña nueva', e)
   })
 

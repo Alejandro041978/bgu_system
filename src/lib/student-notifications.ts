@@ -10,6 +10,7 @@
 // (@blackwell.pro) y el personal — cuando existen.
 // ---------------------------------------------------------------------------
 import { Resend } from 'resend'
+import { createClient } from '@supabase/supabase-js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any
@@ -60,6 +61,71 @@ export async function notificarEstudiante(sb: SB, n: NotificacionInput): Promise
 
   return status === 'enviada' ? { ok: true } : { ok: false, error: error ?? 'fallida' }
 }
+
+// ── Registro puro (para correos que tienen su propio envío) ─────────────────
+//
+// Las credenciales, los enlaces de acceso y el ISIC no pasan por
+// notificarEstudiante(): tienen reglas propias de destinatario e idioma. El
+// emisor manda como siempre y deja aquí el acta, con el destinatario real y el
+// resultado. La bitácora nunca rompe el envío: si el registro falla, se traga.
+//
+// Si no se conoce el student_id se resuelve por el correo del destinatario; un
+// correo que no corresponde a ningún estudiante no se registra (p. ej. la
+// recuperación de contraseña de un colaborador).
+export async function registrarNotificacion(sbIn: SB | null, r: {
+  studentId?: string | null
+  toEmails: string[]
+  kind: string
+  subject: string
+  html: string                 // ya enmascarado si el correo lleva secretos
+  status: 'enviada' | 'fallida'
+  error?: string | null
+  relatedId?: string | null
+  triggeredBy: string
+}): Promise<void> {
+  try {
+    const sb: SB = sbIn ?? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    let sid = r.studentId ?? null
+    if (!sid) {
+      for (const raw of r.toEmails) {
+        const m = String(raw ?? '').trim().toLowerCase()
+        // El correo se interpola en el filtro `or`: misma criba que api-guard.
+        if (!m || !/^[^\s,()'"]+@[^\s,()'"]+$/.test(m)) continue
+        const { data } = await sb.from('academic_students').select('id')
+          .or(`email.eq.${m},email_alt.eq.${m}`).limit(1).maybeSingle()
+        if (data?.id) { sid = String(data.id); break }
+      }
+    }
+    if (!sid) return
+    await sb.from('student_notifications').insert({
+      student_id: sid, kind: r.kind, subject: r.subject, body_html: r.html,
+      to_emails: r.toEmails, status: r.status, error: r.error ?? null,
+      related_id: r.relatedId ?? null, triggered_by: r.triggeredBy,
+    })
+  } catch (e) {
+    console.error('registrarNotificacion:', e)
+  }
+}
+
+// La copia que se guarda en la bitácora NO contiene el secreto: contraseñas,
+// enlaces de un solo uso y códigos se reemplazan por puntos. La bitácora prueba
+// qué se envió y a dónde sin convertirse en un almacén de credenciales.
+export function enmascararSecretos(texto: string, secretos: (string | null | undefined)[]): string {
+  let out = texto
+  for (const s of secretos) {
+    if (!s || String(s).length < 4) continue
+    out = out.split(String(s)).join('••••••••')
+  }
+  return out
+}
+
+// Tipos cuyo cuerpo guardado está enmascarado: reenviar desde la bitácora
+// mandaría puntos, así que el reenvío se hace desde su propia página (que
+// genera un secreto nuevo).
+export const KINDS_CON_SECRETO = new Set([
+  'acceso_portal', 'credenciales_campus', 'credenciales_correo',
+  'recuperacion_acceso', 'codigo_verificacion',
+])
 
 // ── Plantillas (borradores institucionales; el usuario los ajusta a gusto) ──
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { registrarNotificacion, enmascararSecretos } from '@/lib/student-notifications'
 
 export const revalidate = 0
 
@@ -78,13 +79,8 @@ export async function POST(req: NextRequest) {
     return ok
   }
   const resend = new Resend(process.env.RESEND_API_KEY)
-  // resend.emails.send NO lanza: devuelve { data, error }. Sin mirar ese error
-  // el fallo sería exactamente el que estamos arreglando, con otro disfraz.
-  const { error: mailErr } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL,
-    to: email,
-    subject: 'Restablece tu contraseña · BGU ERP',
-    html: `
+  const subjectRecover = 'Restablece tu contraseña · BGU ERP'
+  const htmlRecover = `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9fafb; padding: 40px 20px;">
   <div style="max-width: 480px; margin: 0 auto; background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; overflow: hidden;">
     <div style="background: linear-gradient(135deg, #1d4ed8, #2563eb); padding: 28px; text-align: center;">
@@ -107,8 +103,24 @@ export async function POST(req: NextRequest) {
       <p style="color: #d1d5db; font-size: 11px; margin: 0;">© Blackwell Global University · BGU ERP</p>
     </div>
   </div>
-</div>`,
+</div>`
+  // resend.emails.send NO lanza: devuelve { data, error }. Sin mirar ese error
+  // el fallo sería exactamente el que estamos arreglando, con otro disfraz.
+  const { error: mailErr } = await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL,
+    to: email,
+    subject: subjectRecover,
+    html: htmlRecover,
   })
   if (mailErr) console.error('recover: Resend rechazó el envío a', email, mailErr)
+  // Bitácora: solo si el correo corresponde a un estudiante (la resolución la
+  // hace registrarNotificacion; un colaborador no se registra aquí). El enlace
+  // va enmascarado y la respuesta pública sigue siendo opaca.
+  await registrarNotificacion(sb, {
+    toEmails: [email], kind: 'recuperacion_acceso', subject: subjectRecover,
+    html: enmascararSecretos(htmlRecover, [enlace, String(data.properties.hashed_token)]),
+    status: mailErr ? 'fallida' : 'enviada', error: mailErr ? mailErr.message : null,
+    triggeredBy: 'portal:recuperación de contraseña',
+  })
   return ok
 }
