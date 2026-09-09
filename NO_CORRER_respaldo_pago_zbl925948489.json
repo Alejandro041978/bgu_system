@@ -1,0 +1,28 @@
+{
+ "aplicado_en": "2026-09-09T02:56:10.145Z",
+ "proposito": "ANTES de mover el giro ZBL925948489 ($300, 20/04/2026) de Mariela Jalanoca (77574026) a Cristian Pari (77816580) por instrucción de la estudiante (sin reembolso), aplicado oct/nov/dic 2026 con distribución oficial. Deshacer: restaurar la fila del pago con estos valores y borrar los abonos distributed_from_payment_id=ee8c5223-7860-4d97-8500-fe7f85ea844a",
+ "antes": {
+  "pago": {
+   "id": "ee8c5223-7860-4d97-8500-fe7f85ea844a",
+   "external_id": "019dac8f-59cc-7b3a-af0a-74824b2b7140",
+   "charge_external_id": "019dab20-0c73-7ce8-a685-1e49908767d6",
+   "student_id": "b7be272c-2223-480d-9e50-558cfde5b0a9",
+   "amount": 300,
+   "paid_date": "2026-04-20",
+   "disbursement_date": "2026-04-20",
+   "receipt_number": null,
+   "series_code": null,
+   "transaction_reference": "ZBL925948489",
+   "payment_type": null,
+   "created_at": "2026-07-08T15:29:17.206325+00:00",
+   "flywire_payment_id": "ZBL925948489",
+   "payment_method": "online",
+   "currency_from": "PEN",
+   "country_from": "Peru",
+   "reconciled_no_charge": false,
+   "books_operation_id": null,
+   "refund_of_payment_id": null,
+   "distributed_from_payment_id": null
+  }
+ }
+}
