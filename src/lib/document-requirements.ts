@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { filaDeCurso } from './course-match'
+import { eleccionesDeEstudiante, elegidaCubierta, type CursoElegido } from './electives'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const admin = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -91,8 +92,10 @@ export async function checkRequirements(
         categoryPassing = cat?.passing_score ?? null
       }
 
-      // Malla del programa
-      const { data: courses } = await sb.from('academic_courses').select('id, code, name').eq('program_id', programId)
+      // Malla del programa: solo lo exigible — las opciones de electivas
+      // (graduation_requirement=false) entran a través de su casilla.
+      const { data: courses } = await sb.from('academic_courses')
+        .select('id, code, name, graduation_requirement, is_elective').eq('program_id', programId)
 
       // Notas reales (excluye convalidación y validación)
       const { data: grades } = await sb.from('academic_grades')
@@ -110,12 +113,20 @@ export async function checkRequirements(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const gradeRows = (grades ?? []) as any[]
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mallaCourses = (courses ?? []) as any[]
+      const mallaCourses = ((courses ?? []) as any[]).filter(c => c.graduation_requirement !== false)
+      const eleccionesDe = (await eleccionesDeEstudiante(sb, studentId)
+        .catch(() => new Map<string, Map<string, CursoElegido>>())).get(String(programId))
 
       let cubiertas = 0
       for (const c of mallaCourses) {
         // Convalidación / validación cubre la asignatura
         if (transferCourseIds.has(c.id)) { cubiertas++; continue }
+        // Casilla electiva: la cubre su elección con la elegida aprobada
+        if (c.is_elective) {
+          const chosen = eleccionesDe?.get(String(c.id))
+          if (chosen && elegidaCubierta(chosen, gradeRows, transferCourseIds, categoryPassing)) cubiertas++
+          continue
+        }
         // Nota real aprobatoria
         const matches = gradeRows.filter(g => filaDeCurso(g, c))
         const values = matches.map(g => (g.retake_grade ?? g.final_grade) as number | null).filter(v => v != null) as number[]

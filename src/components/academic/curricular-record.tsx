@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Search, User, Loader2, FileText, LogOut, Pencil, Undo2 } from 'lucide-react'
 import { usePermissions } from '@/hooks/use-permissions'
+import { StudentElectivesPanel } from './student-electives-panel'
 
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 interface Program { id: string; name: string }
@@ -182,6 +183,13 @@ export function CurricularRecord() {
             <Stat label="Total Tuition (precio oficial)" value={data.enrollment?.list_price != null ? money(data.enrollment.list_price) : '—'} accent />
           </div>
           <Desglose data={data} />
+
+          {/* Elección de electivas (si el programa tiene casillas): la opera
+              Registros; al elegir/quitar se recarga el registro completo. */}
+          {student && programId && (
+            <StudentElectivesPanel studentId={student.id} programId={programId}
+              onChanged={() => load(student.id, programId)} />
+          )}
 
           {/* Un matriculado debería tener su malla entera en el registro; solo
               un IW justifica que falten. Se avisa aquí y no en un informe

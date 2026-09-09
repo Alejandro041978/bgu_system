@@ -1,6 +1,7 @@
 import { readAll } from './withdrawals'
 import { esIntento } from '@/lib/grade-sources'
 import { filaDeCurso } from './course-match'
+import { eleccionesMasivas, eleccionesDeEstudiante, elegidaCubierta } from './electives'
 
 // ---------------------------------------------------------------------------
 // Detección masiva de egresados.
@@ -36,11 +37,11 @@ export async function computeGraduates(sb: any): Promise<{
   //    fallar TODA la consulta si la columna aún no existe, y la malla llegaría
   //    vacía en silencio → cero egresados sin ningún error visible.
   const courses = await readAll(sb, 'academic_courses', '*')
-  const mallaOf = new Map<string, { id: string; code: string | null; name: string | null }[]>()
-  for (const c of courses as { id: string; program_id: string | null; code: string | null; name: string | null; graduation_requirement: boolean | null }[]) {
+  const mallaOf = new Map<string, { id: string; code: string | null; name: string | null; is_elective?: boolean }[]>()
+  for (const c of courses as { id: string; program_id: string | null; code: string | null; name: string | null; graduation_requirement: boolean | null; is_elective?: boolean | null }[]) {
     if (!c.program_id || c.graduation_requirement === false) continue
     if (!mallaOf.has(c.program_id)) mallaOf.set(c.program_id, [])
-    mallaOf.get(c.program_id)!.push({ id: c.id, code: c.code, name: c.name })
+    mallaOf.get(c.program_id)!.push({ id: c.id, code: c.code, name: c.name, is_elective: !!c.is_elective })
   }
 
   // 3) Estudiantes y notas (indexadas por documento)
@@ -79,6 +80,10 @@ export async function computeGraduates(sb: any): Promise<{
     for (const cid of itemsByTc.get(tc.id) ?? []) transferOf.get(k)!.add(cid)
   }
 
+  // 4b) Elecciones de electivas: una casilla (is_elective) se cubre con la
+  // asignatura ELEGIDA aprobada o convalidada — misma vara que la malla.
+  const elecciones = await eleccionesMasivas(sb).catch(() => new Map<string, Map<string, { id: string; code: string | null; name: string | null }>>())
+
   // 5) Recorrer cada matrícula (estudiante × programa)
   const enrolls = await readAll(sb, 'academic_student_enrollments', 'student_id, program_id')
   const seen = new Set<string>()
@@ -101,9 +106,17 @@ export async function computeGraduates(sb: any): Promise<{
     const transferred = transferOf.get(key) ?? new Set<string>()
     const categoryPassing = passingByCat.get(catOfProgram.get(e.program_id) ?? '') ?? null
 
+    const misElecciones = elecciones.get(key)
     let covered = 0
     for (const c of malla) {
       if (transferred.has(c.id)) { covered++; continue }
+      // Casilla electiva: la cubre su ELECCIÓN, con la elegida aprobada o
+      // convalidada. Sin elección, la casilla queda pendiente y no se egresa.
+      if (c.is_elective) {
+        const chosen = misElecciones?.get(c.id)
+        if (chosen && elegidaCubierta(chosen, gradeRows, transferred, categoryPassing)) covered++
+        continue
+      }
       const matches = gradeRows.filter(g => filaDeCurso(g, c))
       const values = matches.map(g => (g.retake_grade ?? g.final_grade)).filter((v): v is number => v != null)
       if (!values.length) continue
@@ -211,6 +224,9 @@ export async function recomputeStudentByDocument(sb: any, documentNumber: string
       }
     }
 
+    const eleccionesDelEstudiante = await eleccionesDeEstudiante(sb, String(stu.id))
+      .catch(() => new Map<string, Map<string, { id: string; code: string | null; name: string | null }>>())
+
     const graduatedPrograms = new Set<string>()
     for (const pid of programIds) {
       const prog = ((progs ?? []) as { id: string; category_id: string | null }[]).find(p => p.id === pid)
@@ -220,14 +236,20 @@ export async function recomputeStudentByDocument(sb: any, documentNumber: string
           .select('passing_score').eq('id', prog.category_id).maybeSingle()
         categoryPassing = cat?.passing_score ?? null
       }
-      const malla = ((courses ?? []) as { id: string; program_id: string; code: string | null; name: string | null; graduation_requirement: boolean | null }[])
+      const malla = ((courses ?? []) as { id: string; program_id: string; code: string | null; name: string | null; graduation_requirement: boolean | null; is_elective?: boolean | null }[])
         .filter(c => c.program_id === pid && c.graduation_requirement !== false)
       if (!malla.length) continue
       const transferred = transferredOf.get(pid) ?? new Set<string>()
+      const misElecciones = eleccionesDelEstudiante.get(pid)
 
       let covered = 0
       for (const c of malla) {
         if (transferred.has(c.id)) { covered++; continue }
+        if (c.is_elective) {
+          const chosen = misElecciones?.get(c.id)
+          if (chosen && elegidaCubierta(chosen, gradeRows, transferred, categoryPassing)) covered++
+          continue
+        }
         const matches = gradeRows.filter(g => filaDeCurso(g, c))
         const values = matches.map(g => (g.retake_grade ?? g.final_grade)).filter((v): v is number => v != null)
         if (!values.length) continue

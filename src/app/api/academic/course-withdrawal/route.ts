@@ -60,10 +60,14 @@ export async function GET(req: NextRequest) {
     categoryPassing = cat?.passing_score ?? null
   }
 
-  const { data: courses } = await sb.from('academic_courses').select('id, code, name, credits, level').eq('program_id', programId)
+  const { data: courses } = await sb.from('academic_courses')
+    .select('id, code, name, credits, level, graduation_requirement, is_elective').eq('program_id', programId)
     .order('level', { ascending: true, nullsFirst: false }).order('code')
+  // Solo la malla exigible: las OPCIONES de electivas (graduation_requirement
+  // =false) no son casillas del registro — entran por la casilla que su
+  // elección cubre (fase 2 de electivas, 08/09/2026).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const malla = (courses ?? []) as any[]
+  const malla = ((courses ?? []) as any[]).filter(c => c.graduation_requirement !== false)
   // Qué notas son de ESTE programa: lo decide filaDeCurso —course_id, y el
   // nombre solo cuando no lo hay—. Nunca el código: son números de orden, y un
   // estudiante con dos programas los tiene repetidos 101–105 en los dos, así
@@ -299,7 +303,32 @@ export async function GET(req: NextRequest) {
     }
   })
 
-  const faltantes = malla.filter(c => !conFila.has(String(c.id)) && !cursosVivos.has(String(c.id))).map(c => ({
+  // Casillas electivas con elección: la casilla figura inscrita y nombra a la
+  // elegida (la asignatura elegida se cursa fuera de la malla; su nota llega
+  // al acta a través de esta casilla). Sin elección, la casilla cae en
+  // "sin registrar" como cualquier hueco de la malla.
+  const { data: elsReg } = await sb.from('student_electives')
+    .select('slot_course_id, chosen:academic_courses!chosen_course_id(code, name), enrollment:academic_student_enrollments!enrollment_id(program_id)')
+    .eq('enrollment_id', (await sb.from('academic_student_enrollments').select('id')
+      .eq('student_id', studentId).eq('program_id', programId).limit(1).maybeSingle()).data?.id ?? '00000000-0000-0000-0000-000000000000')
+  const eleccionDeCasilla = new Map<string, string>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const el of (elsReg ?? []) as any[]) {
+    if (el.chosen) eleccionDeCasilla.set(String(el.slot_course_id), [el.chosen.code, el.chosen.name].filter(Boolean).join(' · '))
+  }
+  const casillasElegidas = malla
+    .filter(c => c.is_elective && eleccionDeCasilla.has(String(c.id)) && !conFilaViva.has(String(c.id)) && !cursosVivos.has(String(c.id)))
+    .map(c => ({
+      external_id: `elec:${c.id}`, course_code: c.code, course_name: c.name,
+      credits: c.credits != null ? Number(c.credits) : null,
+      term: `Electiva · elegida: ${eleccionDeCasilla.get(String(c.id))}`,
+      status: 'inscrita', grade: null, has_grade: false, withdrawn: false, editable: false,
+      final_grade: null, retake_grade: null, kind: 'inscripcion' as const,
+      _cid: String(c.id),
+    }))
+  const conEleccion = new Set(casillasElegidas.map(r => r._cid))
+
+  const faltantes = malla.filter(c => !conFila.has(String(c.id)) && !cursosVivos.has(String(c.id)) && !conEleccion.has(String(c.id))).map(c => ({
     external_id: `falta:${c.id}`, course_code: c.code, course_name: c.name,
     credits: c.credits != null ? Number(c.credits) : null, term: '',
     status: 'no_iniciada', grade: null, has_grade: false, withdrawn: false, editable: false,
@@ -310,7 +339,7 @@ export async function GET(req: NextRequest) {
   // Se devuelve en el orden de la malla (nivel, código); lo que no tenga
   // asignatura identificable va al final.
   const orden = new Map(malla.map((c, i) => [String(c.id), i]))
-  const todas = [...visibles, ...convRows, ...retiradasRegistro, ...inscritasSinFila, ...recursandoRows, ...faltantes]
+  const todas = [...visibles, ...convRows, ...retiradasRegistro, ...inscritasSinFila, ...recursandoRows, ...casillasElegidas, ...faltantes]
     .sort((a, b) => (orden.get(String((a as { _cid?: string | null })._cid ?? '')) ?? 9999) - (orden.get(String((b as { _cid?: string | null })._cid ?? '')) ?? 9999)
       || String(a.course_name).localeCompare(String(b.course_name)))
 

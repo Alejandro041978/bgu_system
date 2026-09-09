@@ -1,4 +1,5 @@
 import { filaDeCurso } from '@/lib/course-match'
+import { eleccionesDeEstudiante, type CursoElegido } from '@/lib/electives'
 
 // ---------------------------------------------------------------------------
 // El acta personal: la malla del programa con el estado de cada asignatura.
@@ -46,8 +47,14 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
     categoryPassing = cat?.passing_score ?? null
   }
 
+  // Solo la MALLA: las opciones de electivas (graduation_requirement=false)
+  // no son casillas del acta ni del precio — entran a través de la casilla
+  // que su elección cubre (fase 2 de electivas, 08/09/2026).
   const { data: courses } = await sb.from('academic_courses')
-    .select('id, code, name, credits').eq('program_id', programId).order('code')
+    .select('id, code, name, credits, is_elective, graduation_requirement')
+    .eq('program_id', programId).order('code')
+  const malla = ((courses ?? []) as { graduation_requirement: boolean | null }[])
+    .filter(c => c.graduation_requirement !== false)
 
   // Notas reales (excluye convalidación y validación, que se resuelven aparte).
   // Las filas de plan SÍ entran: son parte del registro y de ellas depende que
@@ -109,8 +116,44 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
   const gradeRows = (grades ?? []) as any[]
   const summary = { transfer: 0, validation: 0, aprobado: 0, desaprobado: 0, en_proceso: 0, pendiente: 0 }
 
+  // Elecciones de electivas de este programa: la casilla hereda el destino de
+  // la asignatura ELEGIDA (y la casilla manda los créditos).
+  const eleccionesDe = (await eleccionesDeEstudiante(sb, studentId)
+    .catch(() => new Map<string, Map<string, CursoElegido>>())).get(String(programId))
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows: ActaRow[] = (courses ?? []).map((c: any) => {
+  const rows: ActaRow[] = malla.map((c: any) => {
+    // Casilla electiva con elección: registrada, y su estado sale de las
+    // notas/convalidación de la ELEGIDA — el nombre muestra la elección.
+    if (c.is_elective) {
+      const chosen = eleccionesDe?.get(String(c.id))
+      if (!chosen) {
+        summary.pendiente++
+        return { code: c.code, name: c.name, credits: c.credits, registrada: false, status: 'pendiente' as const, grade: null }
+      }
+      const nombre = `${c.name} — ${[chosen.code, chosen.name].filter(Boolean).join(' · ')}`
+      const base = { code: c.code, name: nombre, credits: c.credits, registrada: true }
+      if (transferMap.has(chosen.id)) {
+        const tm = transferMap.get(chosen.id)!
+        if (tm.kind === 'validacion') { summary.validation++; return { ...base, status: 'validation' as const, grade: tm.grade } }
+        summary.transfer++
+        return { ...base, status: 'transfer' as const, grade: tm.grade }
+      }
+      const matches = gradeRows.filter(g => filaDeCurso(g, chosen) && g.source !== 'plan')
+      const withValue = matches.map(g => ({ g, v: (g.retake_grade ?? g.final_grade) as number | null })).filter(x => x.v != null)
+      if (withValue.length) {
+        const best = withValue.reduce((a, b) => (Number(b.v) > Number(a.v) ? b : a))
+        const passing = categoryPassing ?? best.g.passing_score
+        const est = (best.g as { estado_academico?: string | null }).estado_academico
+        if (est === 'pendiente') { summary.en_proceso++; return { ...base, status: 'en_proceso' as const, grade: best.v } }
+        const passed = est === 'aprobado' ? true : est === 'reprobado' ? false
+          : (passing != null ? Number(best.v) >= Number(passing) : true)
+        if (passed) { summary.aprobado++; return { ...base, status: 'aprobado' as const, grade: best.v } }
+        summary.desaprobado++; return { ...base, status: 'desaprobado' as const, grade: best.v }
+      }
+      summary.en_proceso++
+      return { ...base, status: 'en_proceso' as const, grade: null }
+    }
     // Registrada = está en su registro por asignatura, o se la convalidaron.
     // Ya no "tiene una fila en notas".
     const registrada = registradas.has(String(c.id)) || transferMap.has(c.id)
