@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { wdb, nextResolutionNumber, recomputeSituations, matriculaDelRetiro } from '@/lib/withdrawals'
 import { guardStaff } from '@/lib/api-guard'
+import { notificarEstudiante, plantillaLOA, plantillaIW } from '@/lib/student-notifications'
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -158,5 +159,23 @@ export async function POST(req: NextRequest) {
   }
 
   await recomputeSituations(sb)
+
+  // Aviso al estudiante (regla del usuario, 08/09/2026): el registro de un
+  // LOA o IW se notifica a AMBOS correos y queda en la bitácora. Best-effort:
+  // un correo fallido no revierte el retiro — queda 'fallida', reenviable.
+  try {
+    const { data: stuN } = await sb.from('academic_students')
+      .select('first_name, last_name').eq('id', body.student_id).maybeSingle()
+    const nombre = [stuN?.first_name, stuN?.last_name].filter(Boolean).join(' ') || 'estudiante'
+    const p = body.type === 'LOA'
+      ? plantillaLOA({ nombre, programa: mat.enrollment.program, resolucion: resolution, fechaRetiro: date, vence: expires })
+      : plantillaIW({ nombre, programa: mat.enrollment.program, resolucion: resolution, fechaRetiro: date, desdeLOA: false })
+    await notificarEstudiante(sb, {
+      studentId: body.student_id, enrollmentId,
+      kind: body.type === 'LOA' ? 'loa_aplicado' : 'iw_aplicado',
+      subject: p.subject, html: p.html, relatedId: data.id, triggeredBy: user.email ?? user.id,
+    })
+  } catch { /* la bitácora y el envío jamás tumban el registro del retiro */ }
+
   return NextResponse.json({ ...data, loa_convertido: !!loaAConvertir })
 }

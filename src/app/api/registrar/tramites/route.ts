@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { isStudentUser } from '@/lib/student-identity'
 import { createTramiteRequest } from '@/lib/tramites'
 import { recomputeSituations } from '@/lib/withdrawals'
+import { notificarEstudiante, plantillaReentry } from '@/lib/student-notifications'
 
 export const revalidate = 0
 
@@ -173,6 +174,26 @@ export async function PATCH(req: NextRequest) {
     // nocturno: fuera de la campaña de retención y exento de completar su malla.
     // Nueve rutas del ERP ya lo hacían tras tocar un retiro; ésta no.
     if (cerrados.length) await recomputeSituations(sb).catch(() => null)
+
+    // Aviso al estudiante (bitácora student_notifications): su Re-Entry quedó
+    // efectivo. Best-effort — el correo jamás tumba la reincorporación.
+    if (cerrados.length && r.student_id) {
+      try {
+        const { data: stuN } = await sb.from('academic_students')
+          .select('first_name, last_name').eq('id', r.student_id).maybeSingle()
+        const w0 = vigentes[0]
+        const p = plantillaReentry({
+          nombre: [stuN?.first_name, stuN?.last_name].filter(Boolean).join(' ') || 'estudiante',
+          programa: w0?.enrollment?.program?.name ?? 'tu programa',
+          resolucion: w0?.resolution_number ?? null,
+        })
+        await notificarEstudiante(sb, {
+          studentId: r.student_id, enrollmentId: w0?.enrollment_id ?? null,
+          kind: 'reentry_aplicado', subject: p.subject, html: p.html,
+          relatedId: r.id, triggeredBy: g.user!.email ?? g.user!.id,
+        })
+      } catch { /* best effort */ }
+    }
 
     return NextResponse.json({ ok: true, status: 'atendido', reincorporados: cerrados.length, cerrados })
   }

@@ -38,6 +38,7 @@ const navigation: NavGroup[] = [
           { name: 'Efectividad de los IW', href: '/academic/iw-activity', icon: ShieldCheck, pageKey: 'academic_iw_activity' },
           { name: 'Estado de Cuenta', href: '/academic/account', icon: Wallet, pageKey: 'academic_account' },
           { name: 'Cambios en las Fichas', href: '/academic/student-audit', icon: History, pageKey: 'academic_student_audit' },
+          { name: 'Notificaciones', href: '/academic/student-notifications', icon: MessageSquare, pageKey: 'academic_student_notifications' },
         ],
       },
       {

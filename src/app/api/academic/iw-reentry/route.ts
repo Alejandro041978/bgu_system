@@ -4,6 +4,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { guardStaff } from '@/lib/api-guard'
 import { casosPendientes, previewCaso, aplicarCaso, descartarCaso } from '@/lib/iw-reentry'
 import { recomputeSituations } from '@/lib/withdrawals'
+import { notificarEstudiante, plantillaReversion } from '@/lib/student-notifications'
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -79,6 +80,32 @@ export async function POST(req: NextRequest) {
     // La situación del estudiante y los conteos derivan del registro: se
     // recalculan ya, no a las 4:45.
     await recomputeSituations(sb).catch(() => null)
+
+    // Aviso al estudiante al autorizar una REVERSIÓN (bitácora
+    // student_notifications). Best-effort: el correo jamás tumba la gestión.
+    if (caso.kind === 'REVERSION') {
+      try {
+        const { data: stuN } = await sb.from('academic_students')
+          .select('first_name, last_name').eq('id', caso.student_id).maybeSingle()
+        const { data: enrN } = caso.enrollment_id
+          ? await sb.from('academic_student_enrollments')
+            .select('academic_programs(name)').eq('id', caso.enrollment_id).maybeSingle()
+          : { data: null }
+        const { data: wN } = await sb.from('student_withdrawals')
+          .select('resolution_number').eq('id', caso.trigger_id).maybeSingle()
+        const p = plantillaReversion({
+          nombre: [stuN?.first_name, stuN?.last_name].filter(Boolean).join(' ') || 'estudiante',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          programa: (enrN as any)?.academic_programs?.name ?? 'tu programa',
+          resolucion: wN?.resolution_number ?? null,
+        })
+        await notificarEstudiante(sb, {
+          studentId: caso.student_id, enrollmentId: caso.enrollment_id,
+          kind: 'reversion_aplicada', subject: p.subject, html: p.html,
+          relatedId: caso.trigger_id, triggeredBy: user.email ?? user.id,
+        })
+      } catch { /* best effort */ }
+    }
     return NextResponse.json({ ok: true, sin_cambios: preview.sin_cambios })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'No se pudo aplicar' }, { status: 500 })

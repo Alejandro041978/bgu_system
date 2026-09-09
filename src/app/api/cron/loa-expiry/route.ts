@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { wdb, nextResolutionNumber, recomputeSituations } from '@/lib/withdrawals'
+import { notificarEstudiante, plantillaIW } from '@/lib/student-notifications'
 
 export const maxDuration = 300
 
@@ -28,6 +29,28 @@ async function run() {
     await sb.from('student_withdrawals')
       .update({ status: 'convertido_iw', converted_to_id: iw?.id ?? null }).eq('id', loa.id)
     converted.push(loa.student_id)
+
+    // Aviso al estudiante (bitácora student_notifications): su LOA venció y
+    // pasó a IW. Best-effort — el correo jamás tumba la conversión.
+    try {
+      const { data: stuN } = await sb.from('academic_students')
+        .select('first_name, last_name').eq('id', loa.student_id).maybeSingle()
+      const { data: enrN } = loa.enrollment_id
+        ? await sb.from('academic_student_enrollments')
+          .select('academic_programs(name)').eq('id', loa.enrollment_id).maybeSingle()
+        : { data: null }
+      const p = plantillaIW({
+        nombre: [stuN?.first_name, stuN?.last_name].filter(Boolean).join(' ') || 'estudiante',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        programa: (enrN as any)?.academic_programs?.name ?? 'tu programa',
+        resolucion: resolution, fechaRetiro: loa.expires_at, desdeLOA: true,
+      })
+      await notificarEstudiante(sb, {
+        studentId: loa.student_id, enrollmentId: loa.enrollment_id,
+        kind: 'iw_aplicado', subject: p.subject, html: p.html,
+        relatedId: iw?.id ?? null, triggeredBy: 'cron:loa-expiry',
+      })
+    } catch { /* best effort */ }
   }
 
   const situations = await recomputeSituations(sb)
