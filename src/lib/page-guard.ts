@@ -28,7 +28,7 @@ const admin = () => createClient(
 // —academic_director tiene academic_programs · editar—. El código pregunta por
 // el permiso; quién lo tiene se decide en el configurador, no aquí.
 // ---------------------------------------------------------------------------
-export async function guardPagina(pageKey: string, accion: 'edit' | 'delete' = 'edit'): Promise<NextResponse | null> {
+export async function guardPagina(pageKey: string, accion: 'view' | 'edit' | 'delete' = 'edit'): Promise<NextResponse | null> {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -50,7 +50,9 @@ export async function guardPagina(pageKey: string, accion: 'edit' | 'delete' = '
   if (!emp?.role_id) return negar
 
   const { data: perm } = await sb.from('role_permissions')
-    .select('can_edit, can_delete').eq('role_id', emp.role_id).eq('page_key', pageKey).maybeSingle()
-  const ok = accion === 'delete' ? perm?.can_delete : perm?.can_edit
+    .select('can_view, can_edit, can_delete').eq('role_id', emp.role_id).eq('page_key', pageKey).maybeSingle()
+  // 'view' es para los GET de consulta: quien puede VER la página puede leer
+  // sus datos; editar sigue siendo otra casilla (lección Notificaciones 09/09).
+  const ok = accion === 'delete' ? perm?.can_delete : accion === 'view' ? perm?.can_view : perm?.can_edit
   return ok ? null : negar
 }

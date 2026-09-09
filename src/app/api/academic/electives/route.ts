@@ -21,7 +21,8 @@ const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 // ---------------------------------------------------------------------------
 
 export async function GET(req: NextRequest) {
-  const noAutorizado = await guardPagina('academic_programs')
+  // Consultar la configuración es VER la página; los cambios (POST) piden editar.
+  const noAutorizado = await guardPagina('academic_programs', 'view')
   if (noAutorizado) return noAutorizado
   const programId = req.nextUrl.searchParams.get('program_id')
   if (!programId) return NextResponse.json({ error: 'Falta program_id' }, { status: 400 })

@@ -13,7 +13,8 @@ const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 // POST { resend_id } → reenvía una notificación (misma plantilla y asunto,
 // como una fila NUEVA de la bitácora — la fallida original queda como historia).
 export async function GET(req: NextRequest) {
-  const noAutorizado = await guardPagina('academic_student_notifications')
+  // Consultar la bitácora es VER la página; reenviar (POST) exige editar.
+  const noAutorizado = await guardPagina('academic_student_notifications', 'view')
   if (noAutorizado) return noAutorizado
   const studentId = req.nextUrl.searchParams.get('student_id')
   if (!studentId) return NextResponse.json({ error: 'Falta student_id' }, { status: 400 })

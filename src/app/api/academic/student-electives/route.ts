@@ -44,7 +44,8 @@ async function contexto(sb: any, studentId: string, programId: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const noAutorizado = await guardPagina('academic_curricular')
+  // Consultar las elecciones es VER la página; elegir/quitar (POST) pide editar.
+  const noAutorizado = await guardPagina('academic_curricular', 'view')
   if (noAutorizado) return noAutorizado
   const studentId = req.nextUrl.searchParams.get('student_id')
   const programId = req.nextUrl.searchParams.get('program_id')
