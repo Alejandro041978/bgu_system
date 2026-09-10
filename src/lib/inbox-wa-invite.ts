@@ -16,9 +16,10 @@ import { sendWhatsAppTemplate } from '@/lib/twilio'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any
 
-// Content SID de la plantilla registrada por el usuario (10/09/2026) en la
-// cuenta del número de soporte. Sobreescribible por si se re-registra.
-const CONTENT_SID = process.env.INBOX_WA_INVITE_CONTENT_SID || 'HXd16dbc631802f354a422534a12aae777'
+// Content SID de la plantilla APROBADA por Meta (10/09/2026, segunda versión —
+// la primera fue rechazada) en la cuenta del número de soporte. Sobreescribible
+// por si se re-registra.
+const CONTENT_SID = process.env.INBOX_WA_INVITE_CONTENT_SID || 'HX0958296505d3be1ac14790ae9aba1c21'
 
 const soloDigitos = (t: string) => t.replace(/\D/g, '')
 const aWhatsApp = (t: string | null | undefined): string | null => {
