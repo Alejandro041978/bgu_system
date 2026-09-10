@@ -4,8 +4,6 @@ import { setUserSuspended, resolveMoodleUserId, moodleConfigured, findMoodleUser
 type SB = any
 
 // Tope de excepciones de autoservicio (portal del estudiante) por semestre.
-export const SELF_SERVICE_MAX_PER_SEMESTER = 2
-
 export interface AccessRow {
   student_id: string
   name: string
@@ -91,26 +89,8 @@ export async function activeExceptionMap(sb: SB): Promise<Map<string, ActiveExce
   return m
 }
 
-// Semestre académico vigente (el que contiene hoy), si existe.
-export async function currentSemesterRange(sb: SB): Promise<{ start: string; end: string } | null> {
-  const today = new Date().toISOString().slice(0, 10)
-  const { data } = await sb.from('academic_semesters')
-    .select('start_date, end_date').lte('start_date', today).gte('end_date', today)
-    .order('start_date', { ascending: false }).limit(1).maybeSingle()
-  return data?.start_date && data?.end_date ? { start: data.start_date, end: data.end_date } : null
-}
-
-// Nº de excepciones de AUTOSERVICIO aceptadas del estudiante en el semestre vigente
-// (fallback: últimos 120 días si no hay semestre que contenga hoy).
-export async function selfServiceUsedThisSemester(sb: SB, studentId: string): Promise<number> {
-  const sem = await currentSemesterRange(sb)
-  const from = sem ? sem.start : new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10)
-  let q = sb.from('moodle_exception_requests').select('id', { count: 'exact', head: true })
-    .eq('student_id', studentId).eq('decision', 'aceptada').gte('created_at', from)
-  if (sem) q = q.lte('created_at', sem.end + 'T23:59:59')
-  const { count } = await q
-  return count ?? 0
-}
+// (El tope de 2 excepciones por semestre se retiró el 09/09/2026: la regla
+// vigente es el espaciamiento de DIAS_ENTRE_EXCEPCIONES — ver más abajo.)
 
 // Plan de acceso: qué estudiantes deberían quedar suspendidos (vencido>0 y sin
 // excepción vigente) vs. su estado actual. Incluye también a los ya suspendidos
@@ -264,20 +244,39 @@ export async function unsuspendStudent(sb: SB, studentId: string): Promise<void>
 }
 
 // Vencido de UN estudiante (consulta ligera, para reconciliar tras un pago).
-export async function overdueForStudent(sb: SB, studentId: string): Promise<number> {
+// Detalle del vencido: monto total Y cuántas cuotas lo componen. La regla del
+// usuario (09/09/2026) solo concede excepción con UNA cuota vencida — con dos
+// o más la mora ya no es un desfase puntual y se coordina con un asesor.
+export async function overdueDetailForStudent(sb: SB, studentId: string): Promise<{ total: number; cuotas: number }> {
   const today = new Date().toISOString().slice(0, 10)
   const { data: charges } = await sb.from('account_charges')
     .select('external_id, amount, due_date').eq('student_id', studentId).not('due_date', 'is', null).lte('due_date', today)
-  if (!charges?.length) return 0
+  if (!charges?.length) return { total: 0, cuotas: 0 }
   const extIds = charges.map((c: { external_id: string }) => c.external_id)
   const paid = new Map<string, number>()
   for (let i = 0; i < extIds.length; i += 300) {
     const { data } = await sb.from('account_payments').select('charge_external_id, amount').in('charge_external_id', extIds.slice(i, i + 300))
     for (const p of data ?? []) paid.set(p.charge_external_id, (paid.get(p.charge_external_id) ?? 0) + Number(p.amount || 0))
   }
-  let over = 0
-  for (const c of charges) { const bal = Number(c.amount || 0) - (paid.get(c.external_id) ?? 0); if (bal > 0.005) over += bal }
-  return Math.round(over * 100) / 100
+  let over = 0, cuotas = 0
+  for (const c of charges) { const bal = Number(c.amount || 0) - (paid.get(c.external_id) ?? 0); if (bal > 0.005) { over += bal; cuotas++ } }
+  return { total: Math.round(over * 100) / 100, cuotas }
+}
+
+export async function overdueForStudent(sb: SB, studentId: string): Promise<number> {
+  return (await overdueDetailForStudent(sb, studentId)).total
+}
+
+// Regla de espaciamiento (09/09/2026, reemplaza el tope de 2 por semestre):
+// entre excepción y excepción deben pasar al menos 50 días SIN excepciones —
+// se cuenta desde que VENCIÓ la última (de cualquier origen: estudiante o
+// staff). Devuelve el vencimiento más reciente, o null si nunca tuvo.
+export const DIAS_ENTRE_EXCEPCIONES = 50
+export async function ultimaExcepcionVencimiento(sb: SB, studentId: string): Promise<string | null> {
+  const { data } = await sb.from('moodle_access_exceptions')
+    .select('expires_at').eq('student_id', studentId)
+    .order('expires_at', { ascending: false }).limit(1).maybeSingle()
+  return data?.expires_at ?? null
 }
 
 // Reconcilia el acceso de UN estudiante (suspende/reactiva según su vencido y

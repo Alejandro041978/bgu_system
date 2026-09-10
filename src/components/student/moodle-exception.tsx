@@ -5,9 +5,11 @@ import Link from 'next/link'
 import { Loader2, ShieldCheck, Clock, AlertTriangle, CheckCircle2, XCircle, MessageCircle, CalendarClock } from 'lucide-react'
 
 interface Status {
-  overdue: number; is_partner: boolean
+  overdue: number; cuotas_vencidas: number; is_partner: boolean
   active_exception: { expires_at: string; days: number; source: string } | null
-  used: number; max: number; can_request: boolean
+  dias_entre_excepciones: number
+  elegible_desde: string | null   // null = el espaciamiento ya se cumple
+  can_request: boolean
   recientes: { days: number; decision: string; decision_reason: string | null; created_at: string }[]
 }
 interface Result { decision: 'aceptada' | 'rechazada'; reason: string; expires_at: string | null; sofia?: boolean }
@@ -57,6 +59,20 @@ export function MoodleException() {
       <div>
         <h1 className="text-xl font-bold text-gray-900">Excepción Temporal de Deuda</h1>
         <p className="text-sm text-gray-500 mt-1">Si tienes una deuda vencida, puedes solicitar 3 o 5 días de gracia para recuperar el acceso al aula virtual, comprometiéndote a pagar dentro de ese plazo.</p>
+      </div>
+
+      {/* Condiciones y requisitos — siempre visibles: el estudiante debe saber
+          de antemano por qué se acepta o se niega una solicitud. */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5">
+        <p className="text-sm font-semibold text-gray-900 mb-2">Condiciones y requisitos</p>
+        <ul className="space-y-1.5 text-sm text-gray-600 list-disc pl-5">
+          <li>Aplica solo si tienes <b>una (1) cuota vencida</b>. Con dos o más cuotas vencidas la excepción no procede: coordina un plan de pago con Sofía.</li>
+          <li>Eliges <b>3 o 5 días</b> de gracia y te comprometes a pagar dentro de ese plazo.</li>
+          <li>Debes escribir una <b>justificación</b>, que será evaluada: se acepta cuando es coherente, específica y de buena fe (un imprevisto puntual, un pago en camino, una fecha concreta de pago); se rechaza cuando es vacía, evasiva o no muestra intención real de regularizar.</li>
+          <li>No puedes tener otra <b>excepción vigente</b>.</li>
+          <li>Entre excepción y excepción deben pasar al menos <b>{st?.dias_entre_excepciones ?? 50} días</b> sin excepciones (contados desde que venció la última).</li>
+          <li>No aplica a programas de <b>campus aliado</b> ni levanta un retiro institucional.</li>
+        </ul>
       </div>
 
       {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>}
@@ -123,7 +139,6 @@ export function MoodleException() {
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
             <p className="text-[11px] text-gray-400 mt-1">{justif.trim().length}/800 · Se evaluará para decidir tu solicitud.</p>
           </div>
-          <p className="text-[11px] text-gray-400">Te quedan {st.max - st.used} de {st.max} solicitudes este semestre.</p>
           <button onClick={submit} disabled={sending || justif.trim().length < 15}
             className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium">
             {sending ? <><Loader2 className="w-4 h-4 animate-spin" /> Evaluando tu solicitud…</> : 'Solicitar excepción'}
@@ -131,11 +146,20 @@ export function MoodleException() {
         </div>
       )}
 
-      {/* Límite alcanzado */}
-      {st && st.overdue > 0.005 && !st.is_partner && !st.active_exception && !st.can_request && st.used >= st.max && (
+      {/* Dos o más cuotas vencidas: la excepción no procede */}
+      {st && st.overdue > 0.005 && st.cuotas_vencidas > 1 && !st.is_partner && !st.active_exception && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-sm text-amber-800">
-          <p className="flex items-center gap-2 font-medium"><Clock className="w-4 h-4" /> Alcanzaste el máximo de {st.max} excepciones este semestre.</p>
-          <p className="mt-1">Para coordinar una solución de pago, contáctate con Sofía.</p>
+          <p className="flex items-center gap-2 font-medium"><AlertTriangle className="w-4 h-4" /> Tienes {st.cuotas_vencidas} cuotas vencidas ({money(st.overdue)}).</p>
+          <p className="mt-1">La excepción temporal aplica solo cuando la deuda corresponde a <b>una</b> cuota vencida. Para regularizar más de una, coordina un plan de pago con Sofía.</p>
+          {sofiaLink}
+        </div>
+      )}
+
+      {/* Espaciamiento entre excepciones aún no cumplido */}
+      {st && st.overdue > 0.005 && st.cuotas_vencidas === 1 && st.elegible_desde && !st.is_partner && !st.active_exception && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-sm text-amber-800">
+          <p className="flex items-center gap-2 font-medium"><Clock className="w-4 h-4" /> Aún no puedes solicitar una nueva excepción.</p>
+          <p className="mt-1">Entre excepción y excepción deben pasar {st.dias_entre_excepciones} días desde que venció la última. Podrás solicitar una nueva a partir del <b>{fdate(st.elegible_desde)}</b>. Si necesitas apoyo antes, escríbele a Sofía.</p>
           {sofiaLink}
         </div>
       )}

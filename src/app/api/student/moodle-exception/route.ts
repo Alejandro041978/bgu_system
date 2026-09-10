@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { getEffectiveStudent } from '@/lib/student-identity'
-import { overdueForStudent, unsuspendStudent, selfServiceUsedThisSemester, SELF_SERVICE_MAX_PER_SEMESTER } from '@/lib/moodle-access'
+import { overdueDetailForStudent, unsuspendStudent, ultimaExcepcionVencimiento, DIAS_ENTRE_EXCEPCIONES } from '@/lib/moodle-access'
 import { reviewJustification } from '@/lib/exception-review'
 
 export const revalidate = 0
@@ -24,22 +24,30 @@ async function resolveStudent(sb: any, ident: { email: string | null; document_n
   return null
 }
 
+// Reglas vigentes (09/09/2026): UNA sola cuota vencida (con dos o más se
+// coordina con un asesor) y 50 días sin excepciones desde que venció la
+// última (de cualquier origen). Reemplaza el tope de 2 por semestre.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function status(sb: any, studentId: string, situation: string) {
   const now = new Date().toISOString()
-  const overdue = await overdueForStudent(sb, studentId)
+  const { total: overdue, cuotas } = await overdueDetailForStudent(sb, studentId)
   const { data: exc } = await sb.from('moodle_access_exceptions')
     .select('id, expires_at, days, source').eq('student_id', studentId).gt('expires_at', now)
     .order('expires_at', { ascending: false }).limit(1).maybeSingle()
-  const used = await selfServiceUsedThisSemester(sb, studentId)
   const isPartner = situation === 'campus_socio'
+  const ultima = await ultimaExcepcionVencimiento(sb, studentId)
+  const elegibleDesde = ultima
+    ? new Date(new Date(ultima).getTime() + DIAS_ENTRE_EXCEPCIONES * 86400000).toISOString()
+    : null
+  const espaciamientoOk = !elegibleDesde || elegibleDesde <= now
   const { data: recientes } = await sb.from('moodle_exception_requests')
     .select('days, decision, decision_reason, created_at').eq('student_id', studentId)
     .order('created_at', { ascending: false }).limit(5)
   return {
-    overdue, is_partner: isPartner, active_exception: exc ?? null,
-    used, max: SELF_SERVICE_MAX_PER_SEMESTER,
-    can_request: overdue > 0.005 && !isPartner && !exc && used < SELF_SERVICE_MAX_PER_SEMESTER,
+    overdue, cuotas_vencidas: cuotas, is_partner: isPartner, active_exception: exc ?? null,
+    dias_entre_excepciones: DIAS_ENTRE_EXCEPCIONES,
+    elegible_desde: espaciamientoOk ? null : elegibleDesde,
+    can_request: overdue > 0.005 && cuotas === 1 && !isPartner && !exc && espaciamientoOk,
     recientes: recientes ?? [],
   }
 }
@@ -78,7 +86,13 @@ export async function POST(req: NextRequest) {
   if (st.overdue <= 0.005) return NextResponse.json({ error: 'No tienes deuda vencida: no necesitas una excepción.' }, { status: 400 })
   if (st.is_partner) return NextResponse.json({ error: 'Tu programa es de un campus aliado; esta excepción no aplica.' }, { status: 400 })
   if (st.active_exception) return NextResponse.json({ error: 'Ya tienes una excepción vigente. Espera a que venza para pedir otra.' }, { status: 400 })
-  if (st.used >= st.max) return NextResponse.json({ error: `Ya usaste tus ${st.max} excepciones de este semestre. Escríbele a Sofía para coordinar una solución.`, sofia: true }, { status: 400 })
+  if (st.cuotas_vencidas > 1) {
+    return NextResponse.json({ error: `Tienes ${st.cuotas_vencidas} cuotas vencidas. La excepción aplica solo con una cuota vencida: para regularizar más de una, coordina un plan con Sofía.`, sofia: true }, { status: 400 })
+  }
+  if (st.elegible_desde) {
+    const f = new Date(st.elegible_desde).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    return NextResponse.json({ error: `Entre excepción y excepción deben pasar ${st.dias_entre_excepciones} días. Podrás solicitar una nueva a partir del ${f}. Si necesitas apoyo antes, escríbele a Sofía.`, sofia: true }, { status: 400 })
+  }
 
   const name = [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' ')
   const verdict = await reviewJustification({ studentName: name, days, overdue: st.overdue, justification })
