@@ -1,0 +1,2783 @@
+{
+  "motivo": "Respaldo antes del colapso de actividades del Plan Estratégico (simplificación 10/09/2026; 0 avances reportados)",
+  "actividades": [
+    {
+      "id": "83454640-319d-42a4-9b54-a3381f4194fe",
+      "action_id": "4271fead-0f6e-4fc0-84f3-ccb79f843530",
+      "employee_id": "d6443489-7eaa-4b52-a428-fe11f34e6a01",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:29:17.8679+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Manage accreditations and licenses with regulatory bodies in the United States and Latin America."
+    },
+    {
+      "id": "95511860-4556-409e-a468-f35153d31093",
+      "action_id": "4271fead-0f6e-4fc0-84f3-ccb79f843530",
+      "employee_id": "675bdafe-7bb9-4776-a69f-a862d25b9a8c",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:30:08.37928+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Implement cost audits to ensure the financial sustainability of the portfolio."
+    },
+    {
+      "id": "830ae3a1-577c-4937-84cc-d8efdc9d2133",
+      "action_id": "4271fead-0f6e-4fc0-84f3-ccb79f843530",
+      "employee_id": "d6443489-7eaa-4b52-a428-fe11f34e6a01",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:30:47.623896+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Coordinate international academic committees to validate the relevance of programs."
+    },
+    {
+      "id": "025de7c7-bd0e-437a-8778-10b0fbff896c",
+      "action_id": "0f1910a4-65aa-4ff1-8fb8-aa1e68e61350",
+      "employee_id": "d6443489-7eaa-4b52-a428-fe11f34e6a01",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:54:35.033443+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Promote partnerships in strategic international markets."
+    },
+    {
+      "id": "a1a1a2aa-ff44-4927-a291-abc0a4025b14",
+      "action_id": "0f1910a4-65aa-4ff1-8fb8-aa1e68e61350",
+      "employee_id": "45469bcf-7028-4f24-baa6-3901388a6ae2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:55:19.068915+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "1. Identify universities with complementary programs and relevant accreditations."
+    },
+    {
+      "id": "79e7656b-757d-4231-9899-be6db0890085",
+      "action_id": "0f1910a4-65aa-4ff1-8fb8-aa1e68e61350",
+      "employee_id": "45469bcf-7028-4f24-baa6-3901388a6ae2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:55:44.015301+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Organize joint webinars with partner universities to attract students."
+    },
+    {
+      "id": "b9fec9d7-21a5-4cae-8052-7f1a76b07b1b",
+      "action_id": "0f1910a4-65aa-4ff1-8fb8-aa1e68e61350",
+      "employee_id": "45469bcf-7028-4f24-baa6-3901388a6ae2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:56:13.649582+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Design dual degree programs and faculty-student mobility projects."
+    },
+    {
+      "id": "35303847-d80e-4cd2-8911-6899a3fc9ab6",
+      "action_id": "0f1910a4-65aa-4ff1-8fb8-aa1e68e61350",
+      "employee_id": "45469bcf-7028-4f24-baa6-3901388a6ae2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:56:32.035839+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Generate marketing materials highlighting the benefits of the agreements."
+    },
+    {
+      "id": "9fc47f79-efed-4498-a0f6-0eacd80e0c86",
+      "action_id": "0f1910a4-65aa-4ff1-8fb8-aa1e68e61350",
+      "employee_id": "45469bcf-7028-4f24-baa6-3901388a6ae2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:56:47.394711+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Formalize framework agreements with goals and academic impact indicators."
+    },
+    {
+      "id": "6cef4fa6-70d8-4df0-b1bb-f4506b47133f",
+      "action_id": "2c27ec40-b619-4b32-86d6-5d0426c63adc",
+      "employee_id": "45469bcf-7028-4f24-baa6-3901388a6ae2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:57:58.771147+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Finance international campaigns based on projected ROI."
+    },
+    {
+      "id": "28ebae99-c188-422e-a64c-37561a3f63de",
+      "action_id": "2c27ec40-b619-4b32-86d6-5d0426c63adc",
+      "employee_id": "45469bcf-7028-4f24-baa6-3901388a6ae2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:58:11.434055+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Execute targeted digital campaigns on social media and search engines."
+    },
+    {
+      "id": "edbb14fe-6225-4758-a27e-407cecf68850",
+      "action_id": "2c27ec40-b619-4b32-86d6-5d0426c63adc",
+      "employee_id": "45469bcf-7028-4f24-baa6-3901388a6ae2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:58:26.160841+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Establish financial control mechanisms over recruitment investment."
+    },
+    {
+      "id": "f8de1659-a015-44e3-9564-d5c447cdf705",
+      "action_id": "2c27ec40-b619-4b32-86d6-5d0426c63adc",
+      "employee_id": "45469bcf-7028-4f24-baa6-3901388a6ae2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:59:02.122379+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Train the admissions team in global recruitment techniques."
+    },
+    {
+      "id": "d10a5b9c-1041-4b34-a463-c1a27f131be2",
+      "action_id": "2c27ec40-b619-4b32-86d6-5d0426c63adc",
+      "employee_id": "45469bcf-7028-4f24-baa6-3901388a6ae2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:59:18.077074+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Coordinate payments and contracts with international advertising agencies."
+    },
+    {
+      "id": "e13c30b9-e8a5-4192-898f-0327383ad90e",
+      "action_id": "2c27ec40-b619-4b32-86d6-5d0426c63adc",
+      "employee_id": "d6443489-7eaa-4b52-a428-fe11f34e6a01",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:59:36.325804+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Implement a CRM system for tracking international prospects."
+    },
+    {
+      "id": "7b273906-f6b4-4aa2-8908-0185ff0596b8",
+      "action_id": "4271fead-0f6e-4fc0-84f3-ccb79f843530",
+      "employee_id": "675bdafe-7bb9-4776-a69f-a862d25b9a8c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:20:28.245949+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Allocate an annual budget for the development and validation of multilingual programs."
+    },
+    {
+      "id": "029115e8-1e1e-4569-a730-8e81d35dad43",
+      "action_id": "4271fead-0f6e-4fc0-84f3-ccb79f843530",
+      "employee_id": "d6443489-7eaa-4b52-a428-fe11f34e6a01",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:20:41.756607+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Create study plans adapted to international standards in at least three languages."
+    },
+    {
+      "id": "82524e0f-5edd-408d-99f4-3dfc002cfd1c",
+      "action_id": "4271fead-0f6e-4fc0-84f3-ccb79f843530",
+      "employee_id": "675bdafe-7bb9-4776-a69f-a862d25b9a8c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-06-30T06:28:06.988712+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Manage contracts with translation and certification service providers."
+    },
+    {
+      "id": "dd6c7225-fa71-4b4a-90ad-7df13988dde3",
+      "action_id": "27893395-e771-4247-9df5-d825dd497dcc",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:31:57.89129+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Negociar acuerdos con certificadoras internacionales para validación externa."
+    },
+    {
+      "id": "7aef0575-24ea-4dd9-819c-ae5d03bee39c",
+      "action_id": "27893395-e771-4247-9df5-d825dd497dcc",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:32:54.88838+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Implementar evaluaciones piloto de programas con feedback de empresas."
+    },
+    {
+      "id": "32f93730-fe16-4087-956c-48cc4fabdcf0",
+      "action_id": "27893395-e771-4247-9df5-d825dd497dcc",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:31:11.206664+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Asignar fondos para desarrollo de contenidos y contratación de expertos."
+    },
+    {
+      "id": "d3249135-d175-4fbd-b3fb-6cf74c5057de",
+      "action_id": "27893395-e771-4247-9df5-d825dd497dcc",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:32:18.811049+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Diseñar microcredenciales en áreas de alta demanda (tecnología, salud, negocios)."
+    },
+    {
+      "id": "0cce8b61-231d-4bb7-8c3b-a196ccd45a92",
+      "action_id": "9d7fd280-aa6a-4751-bd2c-8b8860e8f903",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:34:55.587083+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Invitar expertos internacionales para dictar talleres y diplomados."
+    },
+    {
+      "id": "0d927125-06ea-434f-96ce-79761b85415b",
+      "action_id": "27893395-e771-4247-9df5-d825dd497dcc",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:31:34.681594+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Analizar tendencias laborales globales para definir cursos de corta duración."
+    },
+    {
+      "id": "86a2a7dc-3b17-413d-a360-b7ea98d2c5b1",
+      "action_id": "998a6bc3-79fa-4c7e-8f7a-8d2e1add4216",
+      "employee_id": "192e282e-01bb-473d-bb61-26d7f0d95199",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:45:21.478592+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Diseñar campañas dirigidas a sectores específicos (ej. salud, tecnología, turismo)."
+    },
+    {
+      "id": "c4dd7172-ea70-4e7a-b54a-0d52a829d1a2",
+      "action_id": "9d7fd280-aa6a-4751-bd2c-8b8860e8f903",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:33:33.913644+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Promocionar la oferta de formación continua a empresas multinacionales."
+    },
+    {
+      "id": "a0cb7ba9-23d5-414b-93ed-bbb9320bf660",
+      "action_id": "998a6bc3-79fa-4c7e-8f7a-8d2e1add4216",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:44:17.752912+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Financiar campañas con métricas de rentabilidad y alcance por región."
+    },
+    {
+      "id": "59c94bfa-46c4-4979-8f56-de2b67f7193d",
+      "action_id": "27893395-e771-4247-9df5-d825dd497dcc",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:32:35.669513+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Monitorear la rentabilidad de cada curso en el portafolio."
+    },
+    {
+      "id": "50ae5ff3-d9ee-446c-9936-272ccacd1ac6",
+      "action_id": "9d7fd280-aa6a-4751-bd2c-8b8860e8f903",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:35:36.600894+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Difundir testimonios de empresas que se beneficien de la capacitación."
+    },
+    {
+      "id": "16f589db-ea0d-4d5c-9462-fdeeb65dedc6",
+      "action_id": "9d7fd280-aa6a-4751-bd2c-8b8860e8f903",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:34:12.409477+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Establecer convenios con cámaras de comercio y asociaciones empresariales."
+    },
+    {
+      "id": "a98c1414-5bf2-4e03-93d9-7d4491335527",
+      "action_id": "998a6bc3-79fa-4c7e-8f7a-8d2e1add4216",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:47:05.627378+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Establecer KPIs financieros para medir costo por adquisición de estudiante."
+    },
+    {
+      "id": "4cf3965c-b856-4fcc-a7aa-d8819ada0ee0",
+      "action_id": "9d7fd280-aa6a-4751-bd2c-8b8860e8f903",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:34:12.433908+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Crear catálogos digitales bilingües de cursos conjuntos."
+    },
+    {
+      "id": "3ebebedf-5237-4297-b171-ad83999c6b90",
+      "action_id": "998a6bc3-79fa-4c7e-8f7a-8d2e1add4216",
+      "employee_id": "192e282e-01bb-473d-bb61-26d7f0d95199",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:49:47.35511+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Optimizar el SEO de la página web de educación continua."
+    },
+    {
+      "id": "beba1546-1d9f-4f98-86b6-6f61af057855",
+      "action_id": "9d7fd280-aa6a-4751-bd2c-8b8860e8f903",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:36:25.266933+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Desarrollar programas conjuntos con organismos profesionales globales."
+    },
+    {
+      "id": "4125d116-75c3-4070-a5f9-08b66ecc5768",
+      "action_id": "998a6bc3-79fa-4c7e-8f7a-8d2e1add4216",
+      "employee_id": "192e282e-01bb-473d-bb61-26d7f0d95199",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:50:27.390292+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Supervisar contratos con agencias de marketing digital."
+    },
+    {
+      "id": "165821ac-7e85-4e51-b576-d1c0b18ecc5d",
+      "action_id": "998a6bc3-79fa-4c7e-8f7a-8d2e1add4216",
+      "employee_id": "192e282e-01bb-473d-bb61-26d7f0d95199",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T21:50:53.631923+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Implementar remarketing para prospectos que visiten la web de formación continua."
+    },
+    {
+      "id": "5a801054-290b-45af-b22d-cffda9d5a3ef",
+      "action_id": "abf8e757-5b83-4191-a455-657670c8da5f",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:01:45.703318+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Publicar convocatorias docentes en redes globales (LinkedIn, ResearchGate)."
+    },
+    {
+      "id": "08755e1f-f0f3-4f09-ad44-716fa2eb146f",
+      "action_id": "abf8e757-5b83-4191-a455-657670c8da5f",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:02:22.161327+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Identificar rankings de docentes en asociaciones académicas."
+    },
+    {
+      "id": "5301f16b-0f6a-4ee6-b7d8-59c0d3953f77",
+      "action_id": "abf8e757-5b83-4191-a455-657670c8da5f",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:02:50.18969+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Promocionar beneficios de docencia en BGU en ferias internacionales."
+    },
+    {
+      "id": "0dae644b-669a-4af9-bee7-0fcbaaf4a0ee",
+      "action_id": "abf8e757-5b83-4191-a455-657670c8da5f",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:04:47.235391+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Coordinar invitaciones formales con departamentos académicos."
+    },
+    {
+      "id": "97cf9d98-49c2-40f3-b1ca-c60d351f4add",
+      "action_id": "94edb9cf-96cc-4216-9619-1c0859fca934",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:34:19.239648+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Coordinar con facultades para integración curricular."
+    },
+    {
+      "id": "18110ff5-60c6-4464-85f8-8a123c7082e2",
+      "action_id": "db7367e1-eb41-45b3-98b0-79cbf828266c",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:38:51.948798+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Diseñar protocolos de recuperación de datos."
+    },
+    {
+      "id": "96ac40d3-71a2-4a64-9fca-2525d342888d",
+      "action_id": "abf8e757-5b83-4191-a455-657670c8da5f",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:04:47.413774+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Mantener base de datos de prospectos académicos internacionales."
+    },
+    {
+      "id": "10dc6d5b-8eac-4649-bce4-da5d1a686559",
+      "action_id": "abf8e757-5b83-4191-a455-657670c8da5f",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:05:37.505534+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Establecer comités de evaluación docente."
+    },
+    {
+      "id": "16d7e1ac-f7a8-495d-8f28-493fc60dee56",
+      "action_id": "e7d3687c-fe54-43e5-b9b2-f9db2e0f70db",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:06:59.64209+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Diseñar un sistema de bonos por desempeño."
+    },
+    {
+      "id": "b52182ca-b709-4746-a095-83970c380e5a",
+      "action_id": "e7d3687c-fe54-43e5-b9b2-f9db2e0f70db",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:07:15.5638+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Promover representación en redes y foros internacionales."
+    },
+    {
+      "id": "9296f27e-4441-4815-9789-fc2feab281e4",
+      "action_id": "e7d3687c-fe54-43e5-b9b2-f9db2e0f70db",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:07:35.45038+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Implementar becas de formación para docentes."
+    },
+    {
+      "id": "0c6d6400-d0ff-4142-ae77-8a58e5e64dfe",
+      "action_id": "e7d3687c-fe54-43e5-b9b2-f9db2e0f70db",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:07:59.953785+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Diseñar programas de investigación colaborativa."
+    },
+    {
+      "id": "d2faf4d7-711d-4ebe-99b0-de1af38d24c3",
+      "action_id": "e7d3687c-fe54-43e5-b9b2-f9db2e0f70db",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:08:25.613567+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Crear paquetes de beneficios de salud y bienestar."
+    },
+    {
+      "id": "795721c3-e4ca-49bb-bac4-15009209b227",
+      "action_id": "e7d3687c-fe54-43e5-b9b2-f9db2e0f70db",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:08:45.514765+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Generar publicaciones institucionales con coautoría docente."
+    },
+    {
+      "id": "c07ae3d8-a8b6-4bf5-827f-ff18ef32bd19",
+      "action_id": "76db173a-42c9-4400-ae34-2ee353bdfba4",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:11:34.884897+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Organizar talleres semestrales de innovación pedagógica."
+    },
+    {
+      "id": "e392d26a-effd-4054-ba2f-bef8690286c4",
+      "action_id": "76db173a-42c9-4400-ae34-2ee353bdfba4",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:12:06.270532+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Ofrecer diplomados especializados para docentes"
+    },
+    {
+      "id": "a87a60df-c9a8-4e2a-b1dc-e0032d91da36",
+      "action_id": "76db173a-42c9-4400-ae34-2ee353bdfba4",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:12:34.1309+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Impulsar certificaciones docentes en tecnología educativa."
+    },
+    {
+      "id": "e22e25db-bc1e-478e-a250-8875c9982869",
+      "action_id": "76db173a-42c9-4400-ae34-2ee353bdfba4",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:12:51.562677+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Crear un programa de mentoría interdocente."
+    },
+    {
+      "id": "388557f6-9f02-4968-8b94-a610155776f5",
+      "action_id": "76db173a-42c9-4400-ae34-2ee353bdfba4",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:13:15.547266+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Promover la formación en metodologías activas."
+    },
+    {
+      "id": "b019c341-3f71-4f42-a470-6d77ecc9dc22",
+      "action_id": "76db173a-42c9-4400-ae34-2ee353bdfba4",
+      "employee_id": "752f627d-11dc-44d1-8135-78bf6388fbb2",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:13:30.925264+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Implementar cursos de actualización en tendencias globales."
+    },
+    {
+      "id": "9dd9e4ec-5248-4ac4-87a1-f61960e099d7",
+      "action_id": "0cec4399-3131-46be-9d11-48992902689a",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:14:36.111843+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Definir perfiles de puestos bilingües"
+    },
+    {
+      "id": "7ee5c65a-0f4d-4b6c-b32a-30ae3e572650",
+      "action_id": "0cec4399-3131-46be-9d11-48992902689a",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:15:02.199858+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Participar en ferias de empleo locales."
+    },
+    {
+      "id": "d486ee8c-2452-4a54-aaaf-7231e6c922c5",
+      "action_id": "0cec4399-3131-46be-9d11-48992902689a",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:15:24.695233+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Crear sistema de selección basado en competencias globales."
+    },
+    {
+      "id": "dcad961f-77d6-4241-84ae-0822d9426e1f",
+      "action_id": "0cec4399-3131-46be-9d11-48992902689a",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:15:43.926289+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Crear programas de onboarding inclusivos."
+    },
+    {
+      "id": "281e7ee1-fb03-4578-acb3-1478dcf1fc41",
+      "action_id": "0cec4399-3131-46be-9d11-48992902689a",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:16:06.959111+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Implementar pruebas de idiomas como filtro de selección."
+    },
+    {
+      "id": "c48d594a-65f9-43cf-92e7-76755c447afc",
+      "action_id": "0cec4399-3131-46be-9d11-48992902689a",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:16:28.981471+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Realizar encuestas de satisfacción laboral."
+    },
+    {
+      "id": "58815a3f-58a1-47ef-9f0c-da798a465353",
+      "action_id": "d210f0ba-5463-4c10-a293-0c20d30cbaf8",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:17:05.618514+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Diseñar escalas salariales competitivas."
+    },
+    {
+      "id": "b0ece728-8254-4f31-82d7-b9620e70abc3",
+      "action_id": "d210f0ba-5463-4c10-a293-0c20d30cbaf8",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:17:25.264386+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Vincular desarrollo administrativo con resultados académicos."
+    },
+    {
+      "id": "0dac11ff-9098-466d-b21f-a5392e1a7e96",
+      "action_id": "d210f0ba-5463-4c10-a293-0c20d30cbaf8",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:17:39.614239+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Definir rutas de promoción interna."
+    },
+    {
+      "id": "fba9fecc-eb96-4ca1-aee1-d642d5dfa619",
+      "action_id": "d210f0ba-5463-4c10-a293-0c20d30cbaf8",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:18:13.630477+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Brindar capacitaciones en gestión universitaria."
+    },
+    {
+      "id": "daa1c736-ae94-4e6c-8064-7492b27db826",
+      "action_id": "d210f0ba-5463-4c10-a293-0c20d30cbaf8",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:19:14.313244+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Crear programas de incentivos por desempeño."
+    },
+    {
+      "id": "50b9615e-f8f9-4f28-b28b-9949dc20bbd0",
+      "action_id": "d210f0ba-5463-4c10-a293-0c20d30cbaf8",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:19:42.845795+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Supervisar impacto del personal en indicadores académicos."
+    },
+    {
+      "id": "f3d63e1e-9bc5-410a-8529-4e92c01a8fe4",
+      "action_id": "7bd64add-05c3-470a-9207-1c57c7ab16d9",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:28:30.402583+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Crear talleres en innovación administrativa."
+    },
+    {
+      "id": "128716a4-e1f4-4f1c-b45d-d9bc5ff689ca",
+      "action_id": "7bd64add-05c3-470a-9207-1c57c7ab16d9",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:29:03.275598+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Ofrecer cursos cortos en herramientas tecnológicas."
+    },
+    {
+      "id": "9acc052c-75e5-4d7a-ae54-6e127e6754ef",
+      "action_id": "7bd64add-05c3-470a-9207-1c57c7ab16d9",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:29:28.145113+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Implementar capacitaciones en servicio al cliente digital."
+    },
+    {
+      "id": "d03075e4-cfbe-44a9-9165-60363a066beb",
+      "action_id": "7bd64add-05c3-470a-9207-1c57c7ab16d9",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:30:18.583375+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Diseñar certificaciones internas de gestión digital."
+    },
+    {
+      "id": "f1514391-15e6-4d13-ba16-5d720c9a6fe6",
+      "action_id": "7bd64add-05c3-470a-9207-1c57c7ab16d9",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:30:43.272602+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Establecer un sistema de feedback continuo."
+    },
+    {
+      "id": "0df3cb6b-c963-47fd-b36e-afee2e02a182",
+      "action_id": "7bd64add-05c3-470a-9207-1c57c7ab16d9",
+      "employee_id": "cb7a4b8a-e7ec-49d0-b8c1-0b705419f98c",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:31:03.067571+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Actualizar cada 2 años el currículo de formación administrativa."
+    },
+    {
+      "id": "9e9509b8-9079-43aa-8db9-f3bb2eb0b2a7",
+      "action_id": "94edb9cf-96cc-4216-9619-1c0859fca934",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:32:35.969037+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Gestionar presupuestos de adquisición tecnológica"
+    },
+    {
+      "id": "c8facc11-f1d4-4697-8c4f-5f2fb9b9f460",
+      "action_id": "94edb9cf-96cc-4216-9619-1c0859fca934",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:33:05.194188+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Seleccionar software LMS con estándares internacionales."
+    },
+    {
+      "id": "09e83f16-c68c-4864-b2eb-4f3364f21cec",
+      "action_id": "94edb9cf-96cc-4216-9619-1c0859fca934",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:33:26.673357+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Negociar licencias y contratos con proveedores."
+    },
+    {
+      "id": "a559d1de-9777-446c-b4f6-f93656a05950",
+      "action_id": "94edb9cf-96cc-4216-9619-1c0859fca934",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:33:41.329772+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Diseñar módulos de aprendizaje adaptativo."
+    },
+    {
+      "id": "a72067f3-ec2d-44ad-8912-9b85cdfcf134",
+      "action_id": "94edb9cf-96cc-4216-9619-1c0859fca934",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:33:58.348482+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Implementar auditorías de uso de plataformas."
+    },
+    {
+      "id": "f07115ba-f0eb-4b46-9c4d-8d9616a9f436",
+      "action_id": "db7367e1-eb41-45b3-98b0-79cbf828266c",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:38:52.086314+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Capacitar a estudiantes en ciberseguridad básica."
+    },
+    {
+      "id": "27611912-da73-402d-baef-1c229c832947",
+      "action_id": "db7367e1-eb41-45b3-98b0-79cbf828266c",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:39:33.56481+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Implementar firewalls y sistemas anti-hackeo."
+    },
+    {
+      "id": "3a9edda6-67b1-4f04-867c-ab0855cbf5af",
+      "action_id": "db7367e1-eb41-45b3-98b0-79cbf828266c",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:39:50.179888+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Implementar canal de soporte técnico 24/7."
+    },
+    {
+      "id": "09742b0c-381e-4a74-88af-163c651ff35b",
+      "action_id": "db7367e1-eb41-45b3-98b0-79cbf828266c",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:40:12.85083+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Realizar simulacros anuales de contingencia."
+    },
+    {
+      "id": "0e60d8ad-7e72-4d0e-90dd-ad2c97fd968d",
+      "action_id": "db7367e1-eb41-45b3-98b0-79cbf828266c",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:40:34.791459+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Crear encuestas de confianza digital en usuarios."
+    },
+    {
+      "id": "37aa44d4-f47c-4eb7-8bd1-f7e02b4be9a7",
+      "action_id": "db7367e1-eb41-45b3-98b0-79cbf828266c",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2023,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:40:35.427047+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Crear encuestas de confianza digital en usuarios."
+    },
+    {
+      "id": "4cd701f3-7788-47c2-b334-c812fe433653",
+      "action_id": "14a250d7-5018-450c-bb92-c29f66e9e468",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:46:59.996246+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Diseñar cursos introductorios al LMS para docentes."
+    },
+    {
+      "id": "4332ef7b-2ca8-4e72-9824-cd1f1d829106",
+      "action_id": "14a250d7-5018-450c-bb92-c29f66e9e468",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:47:25.566362+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Ofrecer certificaciones cortas en enseñanza online"
+    },
+    {
+      "id": "a341d25f-9d69-49fb-a48e-ffdc2f6485f9",
+      "action_id": "14a250d7-5018-450c-bb92-c29f66e9e468",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:47:39.614269+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Establecer laboratorios de práctica tecnológica."
+    },
+    {
+      "id": "f902ba91-d8a6-413e-8e71-32d9eb62b299",
+      "action_id": "14a250d7-5018-450c-bb92-c29f66e9e468",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:48:01.350924+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Crear talleres de actualización tecnológica cada año"
+    },
+    {
+      "id": "4f8348aa-17c6-45d3-9c28-2d8b6ee5e5c1",
+      "action_id": "14a250d7-5018-450c-bb92-c29f66e9e468",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:48:15.769063+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Generar tutoriales y manuales digitales."
+    },
+    {
+      "id": "a60720e0-79ea-4876-ba82-c2b03ad1e002",
+      "action_id": "14a250d7-5018-450c-bb92-c29f66e9e468",
+      "employee_id": "d1265632-e564-4260-ab99-54d2030b1855",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-07T22:48:28.53269+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Promover MOOC internos sobre nuevas herramientas."
+    },
+    {
+      "id": "c3d2d64e-fda6-42d1-bc99-7433a3977204",
+      "action_id": "b3d037d3-3b91-4c2b-82be-8b6045e723e2",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:31:57.635054+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Elaborar un mapa de actores estratégicos en América y Europa."
+    },
+    {
+      "id": "3b5fc3da-71b9-4a11-8150-202c360edc13",
+      "action_id": "b3d037d3-3b91-4c2b-82be-8b6045e723e2",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:32:24.486733+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Identificar asociaciones académicas internacionales por disciplina."
+    },
+    {
+      "id": "b40ef750-cbc5-4560-82a5-011617aff69f",
+      "action_id": "b3d037d3-3b91-4c2b-82be-8b6045e723e2",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:32:49.47539+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Crear un sistema de priorización de alianzas"
+    },
+    {
+      "id": "4da0a46a-27ba-4f96-a2b6-4be033df000b",
+      "action_id": "b3d037d3-3b91-4c2b-82be-8b6045e723e2",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2024,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:33:11.447263+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Contactar con redes de investigación y acreditación."
+    },
+    {
+      "id": "f574d5df-ea10-4c0e-9c25-6696156d23f1",
+      "action_id": "b3d037d3-3b91-4c2b-82be-8b6045e723e2",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:33:35.980918+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Difundir informes de mercado con oportunidades de vinculación."
+    },
+    {
+      "id": "b1b22736-66ac-4d48-afda-87ba0f1b9487",
+      "action_id": "b3d037d3-3b91-4c2b-82be-8b6045e723e2",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:33:36.795102+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Generar reportes anuales de oportunidades de colaboración académica"
+    },
+    {
+      "id": "1525fc8d-e7da-46f7-9576-48a0bacb70c5",
+      "action_id": "6ebe2f5d-7438-465c-a1bb-fbc504b05764",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:35:01.096037+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Diseñar modelos financieros para sostenibilidad de convenios."
+    },
+    {
+      "id": "abfe7e75-96d6-4496-8a36-cb0784328220",
+      "action_id": "6ebe2f5d-7438-465c-a1bb-fbc504b05764",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:36:23.72017+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Negociar convenios de movilidad docente y estudiantil."
+    },
+    {
+      "id": "325d4829-b67b-4025-b7d0-06c6ecff0ffb",
+      "action_id": "6ebe2f5d-7438-465c-a1bb-fbc504b05764",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:36:59.116384+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Establecer fondos de cofinanciamiento con socios externos."
+    },
+    {
+      "id": "2257d97a-c3ad-450d-8627-f37dfeb27f54",
+      "action_id": "6ebe2f5d-7438-465c-a1bb-fbc504b05764",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:37:23.293185+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Firmar acuerdos de doble titulación."
+    },
+    {
+      "id": "6fe482c5-ba9a-47fd-ba41-27ff58f15690",
+      "action_id": "6ebe2f5d-7438-465c-a1bb-fbc504b05764",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2026,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:38:27.581397+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Formalizar convenios de investigación conjunta."
+    },
+    {
+      "id": "7f4f7d4e-55ea-4b94-801e-988d58ecc544",
+      "action_id": "6ebe2f5d-7438-465c-a1bb-fbc504b05764",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2026,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:37:23.779015+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Implementar auditorías de ejecución de convenios."
+    },
+    {
+      "id": "e7709a84-b3ba-4e3b-b2c6-2335e2d647a2",
+      "action_id": "5ac661af-49a7-4664-88fa-6f9bebd66f6f",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:39:30.433916+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR1",
+      "name": "Participar en ferias virtuales y presenciales de educación internacional."
+    },
+    {
+      "id": "c6617181-f433-4a6e-93a0-36f2bf8a4536",
+      "action_id": "5ac661af-49a7-4664-88fa-6f9bebd66f6f",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:39:51.538066+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR2",
+      "name": "Organizar delegaciones estudiantiles para ferias internacionales"
+    },
+    {
+      "id": "25be0bc9-5a14-4faf-ae80-244cc1aeb263",
+      "action_id": "5ac661af-49a7-4664-88fa-6f9bebd66f6f",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:40:19.380521+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR3",
+      "name": "Crear stands digitales para representar a BGU en eventos."
+    },
+    {
+      "id": "b7c9d261-7e04-4b7b-b3fa-af51360a6770",
+      "action_id": "5ac661af-49a7-4664-88fa-6f9bebd66f6f",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:40:44.963081+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR4",
+      "name": "Crear un programa de liderazgo estudiantil global."
+    },
+    {
+      "id": "2b90c325-86cd-4265-8e18-b13c85f74125",
+      "action_id": "5ac661af-49a7-4664-88fa-6f9bebd66f6f",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:41:13.577742+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR5",
+      "name": "Documentar casos de éxito y difundirlos en redes institucionales."
+    },
+    {
+      "id": "3b9388ef-468c-4525-a2e8-e5f4e22e00ec",
+      "action_id": "5ac661af-49a7-4664-88fa-6f9bebd66f6f",
+      "employee_id": "dc294066-cbf0-4350-bb33-6353b7f18952",
+      "role": "principal",
+      "assigned_from_year": 2025,
+      "assigned_to_year": null,
+      "created_at": "2026-07-08T13:42:22.084603+00:00",
+      "status": "active",
+      "progress_pct": 0,
+      "notes": null,
+      "code": "AR6",
+      "name": "Dar soporte logístico a la movilidad de estudiantes y staff."
+    }
+  ],
+  "years": [
+    {
+      "id": "f915087c-ccbc-4a12-b6bc-7f17f9f1a13d",
+      "responsible_id": "7b273906-f6b4-4aa2-8908-0185ff0596b8",
+      "year": 2024
+    },
+    {
+      "id": "1f47dbbb-6323-45c4-9f01-5df4f9543df8",
+      "responsible_id": "7b273906-f6b4-4aa2-8908-0185ff0596b8",
+      "year": 2025
+    },
+    {
+      "id": "47811be8-0a7f-4c63-8f4f-8d9c35ca7899",
+      "responsible_id": "029115e8-1e1e-4569-a730-8e81d35dad43",
+      "year": 2024
+    },
+    {
+      "id": "8ac2c2f9-d332-4234-af5f-6fc1f73f8eb7",
+      "responsible_id": "029115e8-1e1e-4569-a730-8e81d35dad43",
+      "year": 2025
+    },
+    {
+      "id": "8f509f9c-6318-4cce-9456-05093b9f6de5",
+      "responsible_id": "82524e0f-5edd-408d-99f4-3dfc002cfd1c",
+      "year": 2024
+    },
+    {
+      "id": "88ff6a0f-11a9-4b14-a788-04482e531cb5",
+      "responsible_id": "c4dd7172-ea70-4e7a-b54a-0d52a829d1a2",
+      "year": 2024
+    },
+    {
+      "id": "87b2f11d-b2de-4292-9af4-41983c86e73c",
+      "responsible_id": "c4dd7172-ea70-4e7a-b54a-0d52a829d1a2",
+      "year": 2025
+    },
+    {
+      "id": "f2354008-fac9-4ebe-9c4e-02af00155e95",
+      "responsible_id": "c4dd7172-ea70-4e7a-b54a-0d52a829d1a2",
+      "year": 2026
+    },
+    {
+      "id": "c259e5be-6988-4779-bab3-f18c6f1e7a8d",
+      "responsible_id": "16f589db-ea0d-4d5c-9462-fdeeb65dedc6",
+      "year": 2024
+    },
+    {
+      "id": "b5fff14f-f97e-4297-ae3a-62b0f5fb3c1a",
+      "responsible_id": "16f589db-ea0d-4d5c-9462-fdeeb65dedc6",
+      "year": 2025
+    },
+    {
+      "id": "df2f7a72-0637-4188-8952-bee9c5c40b66",
+      "responsible_id": "16f589db-ea0d-4d5c-9462-fdeeb65dedc6",
+      "year": 2026
+    },
+    {
+      "id": "b43b1989-0ac2-4a77-b465-e4dcf7a77e60",
+      "responsible_id": "4cf3965c-b856-4fcc-a7aa-d8819ada0ee0",
+      "year": 2024
+    },
+    {
+      "id": "4b487130-9526-4893-8d98-594072c9942a",
+      "responsible_id": "4cf3965c-b856-4fcc-a7aa-d8819ada0ee0",
+      "year": 2025
+    },
+    {
+      "id": "ed1df743-8b45-499e-93bb-bcb1707ca655",
+      "responsible_id": "4cf3965c-b856-4fcc-a7aa-d8819ada0ee0",
+      "year": 2026
+    },
+    {
+      "id": "8053612a-9b54-4001-b0e9-027ba2908d8f",
+      "responsible_id": "0cce8b61-231d-4bb7-8c3b-a196ccd45a92",
+      "year": 2024
+    },
+    {
+      "id": "c800d099-92c3-4b0a-9029-da414bc52a35",
+      "responsible_id": "0cce8b61-231d-4bb7-8c3b-a196ccd45a92",
+      "year": 2025
+    },
+    {
+      "id": "540f82e4-d91f-4057-a3ad-2522f94718fa",
+      "responsible_id": "0cce8b61-231d-4bb7-8c3b-a196ccd45a92",
+      "year": 2026
+    },
+    {
+      "id": "f7b3c70a-3c66-48c9-bdb0-f45ef36b7ede",
+      "responsible_id": "50ae5ff3-d9ee-446c-9936-272ccacd1ac6",
+      "year": 2024
+    },
+    {
+      "id": "4d64e40c-42a6-469e-8c28-e071d3347e2b",
+      "responsible_id": "50ae5ff3-d9ee-446c-9936-272ccacd1ac6",
+      "year": 2025
+    },
+    {
+      "id": "501ec9cf-6f6b-4e1a-ba6e-35d9e6bd8c82",
+      "responsible_id": "50ae5ff3-d9ee-446c-9936-272ccacd1ac6",
+      "year": 2026
+    },
+    {
+      "id": "2ade708d-846e-4725-9cc0-f2a19fc80e66",
+      "responsible_id": "beba1546-1d9f-4f98-86b6-6f61af057855",
+      "year": 2024
+    },
+    {
+      "id": "7c9998c4-bfab-46df-8e05-0bbb71382520",
+      "responsible_id": "beba1546-1d9f-4f98-86b6-6f61af057855",
+      "year": 2025
+    },
+    {
+      "id": "62e3d7a8-396c-4688-a785-e5ae73897dbf",
+      "responsible_id": "beba1546-1d9f-4f98-86b6-6f61af057855",
+      "year": 2026
+    },
+    {
+      "id": "fb196e69-a703-4012-b87d-4e8b7bcf1fc3",
+      "responsible_id": "86a2a7dc-3b17-413d-a360-b7ea98d2c5b1",
+      "year": 2024
+    },
+    {
+      "id": "bba47b23-8725-4388-9dec-6bc58dd5ec04",
+      "responsible_id": "86a2a7dc-3b17-413d-a360-b7ea98d2c5b1",
+      "year": 2025
+    },
+    {
+      "id": "977a3718-1872-4f0b-9485-ee5ad023e037",
+      "responsible_id": "86a2a7dc-3b17-413d-a360-b7ea98d2c5b1",
+      "year": 2026
+    },
+    {
+      "id": "9d9951ea-0ef4-4477-a0d2-c6388d696586",
+      "responsible_id": "86a2a7dc-3b17-413d-a360-b7ea98d2c5b1",
+      "year": 2027
+    },
+    {
+      "id": "b43190f2-5e6d-4070-84f6-196404bfb68f",
+      "responsible_id": "86a2a7dc-3b17-413d-a360-b7ea98d2c5b1",
+      "year": 2028
+    },
+    {
+      "id": "ae4cefc1-3b97-463f-ade4-fa9f83913862",
+      "responsible_id": "a0cb7ba9-23d5-414b-93ed-bbb9320bf660",
+      "year": 2024
+    },
+    {
+      "id": "ef61feee-075e-453e-86ee-7344cf32b828",
+      "responsible_id": "a0cb7ba9-23d5-414b-93ed-bbb9320bf660",
+      "year": 2025
+    },
+    {
+      "id": "bf8c05fa-b8ee-4add-94cd-feea27d7a7f0",
+      "responsible_id": "a0cb7ba9-23d5-414b-93ed-bbb9320bf660",
+      "year": 2026
+    },
+    {
+      "id": "2c1783b9-77d8-42e9-bbef-868dd2dcee96",
+      "responsible_id": "a0cb7ba9-23d5-414b-93ed-bbb9320bf660",
+      "year": 2027
+    },
+    {
+      "id": "499b3b04-be63-431b-989a-2d018719a3f7",
+      "responsible_id": "a0cb7ba9-23d5-414b-93ed-bbb9320bf660",
+      "year": 2028
+    },
+    {
+      "id": "911d461c-e28d-4fcd-888d-8e42f9577500",
+      "responsible_id": "32f93730-fe16-4087-956c-48cc4fabdcf0",
+      "year": 2024
+    },
+    {
+      "id": "8ed14585-fddc-4de4-adbe-8b10054e9b08",
+      "responsible_id": "32f93730-fe16-4087-956c-48cc4fabdcf0",
+      "year": 2025
+    },
+    {
+      "id": "a758d80a-3883-4fc6-a23f-5afc2a842eb9",
+      "responsible_id": "a98c1414-5bf2-4e03-93d9-7d4491335527",
+      "year": 2024
+    },
+    {
+      "id": "61b0bdf5-8423-45aa-a717-811f7e19a6e6",
+      "responsible_id": "a98c1414-5bf2-4e03-93d9-7d4491335527",
+      "year": 2025
+    },
+    {
+      "id": "6077442c-84fb-479d-83f9-489f72b13695",
+      "responsible_id": "3ebebedf-5237-4297-b171-ad83999c6b90",
+      "year": 2024
+    },
+    {
+      "id": "058f0455-3f5d-4309-962a-807d0121b21c",
+      "responsible_id": "3ebebedf-5237-4297-b171-ad83999c6b90",
+      "year": 2025
+    },
+    {
+      "id": "e15a1a2f-cb53-4a88-86c0-803703d6847e",
+      "responsible_id": "0d927125-06ea-434f-96ce-79761b85415b",
+      "year": 2024
+    },
+    {
+      "id": "078b8e9d-2990-42e6-b32a-8ef535de4e53",
+      "responsible_id": "0d927125-06ea-434f-96ce-79761b85415b",
+      "year": 2025
+    },
+    {
+      "id": "f4a0db5b-5c6d-4f36-bc64-be74c2f8c33b",
+      "responsible_id": "4125d116-75c3-4070-a5f9-08b66ecc5768",
+      "year": 2023
+    },
+    {
+      "id": "cb6c4296-b5de-406f-a1bb-ba7eb88ae685",
+      "responsible_id": "dd6c7225-fa71-4b4a-90ad-7df13988dde3",
+      "year": 2024
+    },
+    {
+      "id": "ba574f30-5ede-438d-9d29-27d5863180df",
+      "responsible_id": "4125d116-75c3-4070-a5f9-08b66ecc5768",
+      "year": 2024
+    },
+    {
+      "id": "3f01f3b5-f705-4dbf-92d6-b06934d33318",
+      "responsible_id": "d3249135-d175-4fbd-b3fb-6cf74c5057de",
+      "year": 2024
+    },
+    {
+      "id": "944aaa24-0d32-43ac-8e0c-f2b49f94b8ab",
+      "responsible_id": "4125d116-75c3-4070-a5f9-08b66ecc5768",
+      "year": 2025
+    },
+    {
+      "id": "4b211ab9-c17f-421a-9e42-d1f67810b8b2",
+      "responsible_id": "165821ac-7e85-4e51-b576-d1c0b18ecc5d",
+      "year": 2023
+    },
+    {
+      "id": "b83bc496-5861-4998-be4b-c803bde69ef2",
+      "responsible_id": "59c94bfa-46c4-4979-8f56-de2b67f7193d",
+      "year": 2025
+    },
+    {
+      "id": "eb6cc418-45c0-4936-8536-6e584d6a2ff0",
+      "responsible_id": "165821ac-7e85-4e51-b576-d1c0b18ecc5d",
+      "year": 2024
+    },
+    {
+      "id": "ae97d1ac-ac1a-4bdb-a92c-c5268a05babb",
+      "responsible_id": "7aef0575-24ea-4dd9-819c-ae5d03bee39c",
+      "year": 2025
+    },
+    {
+      "id": "74439c34-33be-4848-8f18-fba25676c745",
+      "responsible_id": "165821ac-7e85-4e51-b576-d1c0b18ecc5d",
+      "year": 2025
+    },
+    {
+      "id": "454bad0f-12f3-4e1d-90d9-c5a121ea9d35",
+      "responsible_id": "5a801054-290b-45af-b22d-cffda9d5a3ef",
+      "year": 2024
+    },
+    {
+      "id": "0f715f04-de42-4ad1-a14a-b0292cd74b8d",
+      "responsible_id": "5a801054-290b-45af-b22d-cffda9d5a3ef",
+      "year": 2025
+    },
+    {
+      "id": "cc6281e8-cfc3-4733-b340-9d9eff77c464",
+      "responsible_id": "5a801054-290b-45af-b22d-cffda9d5a3ef",
+      "year": 2026
+    },
+    {
+      "id": "cd560402-bfd4-4dbe-856f-1b223c568d58",
+      "responsible_id": "08755e1f-f0f3-4f09-ad44-716fa2eb146f",
+      "year": 2024
+    },
+    {
+      "id": "d0becb87-5146-42e2-9ca3-f20549eebc68",
+      "responsible_id": "08755e1f-f0f3-4f09-ad44-716fa2eb146f",
+      "year": 2025
+    },
+    {
+      "id": "781bc26f-9cfe-4794-bba3-3eb34802d69a",
+      "responsible_id": "08755e1f-f0f3-4f09-ad44-716fa2eb146f",
+      "year": 2026
+    },
+    {
+      "id": "98bc7a04-e236-470a-bef8-b3e5e626af61",
+      "responsible_id": "5301f16b-0f6a-4ee6-b7d8-59c0d3953f77",
+      "year": 2024
+    },
+    {
+      "id": "ef65d421-49ef-4adc-94eb-7e5b96749fde",
+      "responsible_id": "5301f16b-0f6a-4ee6-b7d8-59c0d3953f77",
+      "year": 2025
+    },
+    {
+      "id": "5883f8a1-3c83-496e-b1bd-ebc10cfc4770",
+      "responsible_id": "5301f16b-0f6a-4ee6-b7d8-59c0d3953f77",
+      "year": 2026
+    },
+    {
+      "id": "7c82dcbc-083f-462b-a0a6-17b1a55c2ebb",
+      "responsible_id": "0dae644b-669a-4af9-bee7-0fcbaaf4a0ee",
+      "year": 2024
+    },
+    {
+      "id": "cb852c2e-3b90-453d-a674-9e0905dd054e",
+      "responsible_id": "0dae644b-669a-4af9-bee7-0fcbaaf4a0ee",
+      "year": 2025
+    },
+    {
+      "id": "98b6d42c-4f5b-4902-be35-e0038c5a0db7",
+      "responsible_id": "0dae644b-669a-4af9-bee7-0fcbaaf4a0ee",
+      "year": 2026
+    },
+    {
+      "id": "448c40b7-1e0a-4e73-8b6b-0ef4663ba480",
+      "responsible_id": "96ac40d3-71a2-4a64-9fca-2525d342888d",
+      "year": 2023
+    },
+    {
+      "id": "e15acd50-0780-4ddd-9fc3-21fc2ebc700e",
+      "responsible_id": "96ac40d3-71a2-4a64-9fca-2525d342888d",
+      "year": 2024
+    },
+    {
+      "id": "d04f360d-5e13-4f53-8870-fd7df1a321f3",
+      "responsible_id": "96ac40d3-71a2-4a64-9fca-2525d342888d",
+      "year": 2025
+    },
+    {
+      "id": "ae84c66b-c06d-4992-b640-78f894f5cd1b",
+      "responsible_id": "10dc6d5b-8eac-4649-bce4-da5d1a686559",
+      "year": 2023
+    },
+    {
+      "id": "92c0d0e9-b5cc-4898-897e-2448ffd968e6",
+      "responsible_id": "10dc6d5b-8eac-4649-bce4-da5d1a686559",
+      "year": 2024
+    },
+    {
+      "id": "9a0c3c74-366a-4d34-b624-7af92892f27e",
+      "responsible_id": "10dc6d5b-8eac-4649-bce4-da5d1a686559",
+      "year": 2025
+    },
+    {
+      "id": "0a26045e-c27a-47fc-893d-c7dbafa284f8",
+      "responsible_id": "16d7e1ac-f7a8-495d-8f28-493fc60dee56",
+      "year": 2024
+    },
+    {
+      "id": "a0925187-404e-44cf-a875-20f5718b1d37",
+      "responsible_id": "16d7e1ac-f7a8-495d-8f28-493fc60dee56",
+      "year": 2025
+    },
+    {
+      "id": "f90e652f-0ac2-46ef-98e7-88c05df27350",
+      "responsible_id": "b52182ca-b709-4746-a095-83970c380e5a",
+      "year": 2024
+    },
+    {
+      "id": "aff45c75-bb15-481b-86a2-975924f6b50b",
+      "responsible_id": "b52182ca-b709-4746-a095-83970c380e5a",
+      "year": 2025
+    },
+    {
+      "id": "9ddb0893-726b-43b5-826e-7ed75386203d",
+      "responsible_id": "9296f27e-4441-4815-9789-fc2feab281e4",
+      "year": 2024
+    },
+    {
+      "id": "1c16caff-1083-4a41-8030-1081f1d7dca9",
+      "responsible_id": "9296f27e-4441-4815-9789-fc2feab281e4",
+      "year": 2025
+    },
+    {
+      "id": "05eccea9-70d8-4947-bd11-8d6c8a39e9bb",
+      "responsible_id": "0c6d6400-d0ff-4142-ae77-8a58e5e64dfe",
+      "year": 2024
+    },
+    {
+      "id": "f3bd61f7-005e-4a99-b4d5-227b7bb8f958",
+      "responsible_id": "0c6d6400-d0ff-4142-ae77-8a58e5e64dfe",
+      "year": 2025
+    },
+    {
+      "id": "d93028da-3c2e-4f2a-b60b-3c883f388c3e",
+      "responsible_id": "d2faf4d7-711d-4ebe-99b0-de1af38d24c3",
+      "year": 2024
+    },
+    {
+      "id": "e49d4cae-ceb2-4a1c-9092-9809584d78f1",
+      "responsible_id": "d2faf4d7-711d-4ebe-99b0-de1af38d24c3",
+      "year": 2025
+    },
+    {
+      "id": "ac00b390-3931-43bf-b65c-789ed551441b",
+      "responsible_id": "795721c3-e4ca-49bb-bac4-15009209b227",
+      "year": 2024
+    },
+    {
+      "id": "d2af7109-d976-40b4-818b-14d3d4c681ed",
+      "responsible_id": "795721c3-e4ca-49bb-bac4-15009209b227",
+      "year": 2025
+    },
+    {
+      "id": "b2e21ae9-6ee6-40d9-8ed3-3d7ee20ca376",
+      "responsible_id": "c07ae3d8-a8b6-4bf5-827f-ff18ef32bd19",
+      "year": 2025
+    },
+    {
+      "id": "97019748-9f7d-4654-8d19-e915fdd17708",
+      "responsible_id": "c07ae3d8-a8b6-4bf5-827f-ff18ef32bd19",
+      "year": 2026
+    },
+    {
+      "id": "d25c71cd-a10f-4191-a93d-05a40d80c1b5",
+      "responsible_id": "c07ae3d8-a8b6-4bf5-827f-ff18ef32bd19",
+      "year": 2027
+    },
+    {
+      "id": "1eebb5f1-750c-4bea-b718-e5bcab39fb12",
+      "responsible_id": "c07ae3d8-a8b6-4bf5-827f-ff18ef32bd19",
+      "year": 2028
+    },
+    {
+      "id": "67d2e1ac-6ff9-48cb-bb69-7cdcc53994f6",
+      "responsible_id": "e392d26a-effd-4054-ba2f-bef8690286c4",
+      "year": 2025
+    },
+    {
+      "id": "cea79230-0138-46d8-9988-14c67475a611",
+      "responsible_id": "e392d26a-effd-4054-ba2f-bef8690286c4",
+      "year": 2026
+    },
+    {
+      "id": "7735d27c-a6f2-4c39-93c0-f261db31d470",
+      "responsible_id": "e392d26a-effd-4054-ba2f-bef8690286c4",
+      "year": 2027
+    },
+    {
+      "id": "864fd280-40ef-4515-99c2-604a442b216a",
+      "responsible_id": "e392d26a-effd-4054-ba2f-bef8690286c4",
+      "year": 2028
+    },
+    {
+      "id": "d2fa42a0-8584-48df-aaab-9fbf11274698",
+      "responsible_id": "a87a60df-c9a8-4e2a-b1dc-e0032d91da36",
+      "year": 2025
+    },
+    {
+      "id": "ed3dd4fd-ab2e-4765-b39a-a3f38ebd3c03",
+      "responsible_id": "a87a60df-c9a8-4e2a-b1dc-e0032d91da36",
+      "year": 2026
+    },
+    {
+      "id": "09910146-d05c-45df-b27d-180da63bb937",
+      "responsible_id": "a87a60df-c9a8-4e2a-b1dc-e0032d91da36",
+      "year": 2027
+    },
+    {
+      "id": "2e0729a7-378c-41be-b4bd-c3659efeeff7",
+      "responsible_id": "a87a60df-c9a8-4e2a-b1dc-e0032d91da36",
+      "year": 2028
+    },
+    {
+      "id": "f0185f0b-6354-4943-a818-b63c21dd5080",
+      "responsible_id": "e22e25db-bc1e-478e-a250-8875c9982869",
+      "year": 2025
+    },
+    {
+      "id": "966577e2-6594-486a-8511-c02c2f1922c3",
+      "responsible_id": "e22e25db-bc1e-478e-a250-8875c9982869",
+      "year": 2026
+    },
+    {
+      "id": "bb0f9dd3-6925-45a4-afab-0131898f99eb",
+      "responsible_id": "e22e25db-bc1e-478e-a250-8875c9982869",
+      "year": 2027
+    },
+    {
+      "id": "9733df27-d839-41a6-9342-5a00be4ba3fa",
+      "responsible_id": "e22e25db-bc1e-478e-a250-8875c9982869",
+      "year": 2028
+    },
+    {
+      "id": "b642147a-6845-4917-9248-44cd60ebaf63",
+      "responsible_id": "388557f6-9f02-4968-8b94-a610155776f5",
+      "year": 2025
+    },
+    {
+      "id": "1c46b0e4-c6a9-4118-bcdf-dac5fea8c226",
+      "responsible_id": "388557f6-9f02-4968-8b94-a610155776f5",
+      "year": 2026
+    },
+    {
+      "id": "7687e0a1-34c4-4f26-8df9-93eaa6f808d6",
+      "responsible_id": "388557f6-9f02-4968-8b94-a610155776f5",
+      "year": 2027
+    },
+    {
+      "id": "4eab9a04-c2cd-4c6d-a59f-6e06da3a61be",
+      "responsible_id": "388557f6-9f02-4968-8b94-a610155776f5",
+      "year": 2028
+    },
+    {
+      "id": "02dba09c-7c59-4b46-8b2d-2bb686b7e98a",
+      "responsible_id": "b019c341-3f71-4f42-a470-6d77ecc9dc22",
+      "year": 2025
+    },
+    {
+      "id": "ce51be9a-d8f1-4aca-950a-c7fe932e8f9d",
+      "responsible_id": "b019c341-3f71-4f42-a470-6d77ecc9dc22",
+      "year": 2026
+    },
+    {
+      "id": "c86e1985-2404-42ec-9f07-76b29561a2d7",
+      "responsible_id": "b019c341-3f71-4f42-a470-6d77ecc9dc22",
+      "year": 2027
+    },
+    {
+      "id": "e497541a-7338-4003-b91f-57c4aa418d4c",
+      "responsible_id": "b019c341-3f71-4f42-a470-6d77ecc9dc22",
+      "year": 2028
+    },
+    {
+      "id": "62bd0436-20fb-4f33-96d9-7c45bd937f9a",
+      "responsible_id": "9dd9e4ec-5248-4ac4-87a1-f61960e099d7",
+      "year": 2023
+    },
+    {
+      "id": "46a8ab9c-6831-45cf-9b62-f10e53076e24",
+      "responsible_id": "9dd9e4ec-5248-4ac4-87a1-f61960e099d7",
+      "year": 2024
+    },
+    {
+      "id": "90b5f9b0-5850-41ee-a785-1c0ed0d8bf33",
+      "responsible_id": "9dd9e4ec-5248-4ac4-87a1-f61960e099d7",
+      "year": 2025
+    },
+    {
+      "id": "ff653003-26d3-4c68-bcc1-bd3732b968fb",
+      "responsible_id": "7ee5c65a-0f4d-4b6c-b32a-30ae3e572650",
+      "year": 2023
+    },
+    {
+      "id": "25fce23c-29ec-4968-b394-1781fca376eb",
+      "responsible_id": "7ee5c65a-0f4d-4b6c-b32a-30ae3e572650",
+      "year": 2024
+    },
+    {
+      "id": "a220e18d-a5c5-42ae-b11e-c8c4b1e10534",
+      "responsible_id": "7ee5c65a-0f4d-4b6c-b32a-30ae3e572650",
+      "year": 2025
+    },
+    {
+      "id": "581855eb-1deb-4d9e-8b53-711026f4d239",
+      "responsible_id": "d486ee8c-2452-4a54-aaaf-7231e6c922c5",
+      "year": 2023
+    },
+    {
+      "id": "bac6a46b-41ef-47b9-a16e-d450eea8b99a",
+      "responsible_id": "d486ee8c-2452-4a54-aaaf-7231e6c922c5",
+      "year": 2024
+    },
+    {
+      "id": "0245a283-fb60-4903-a292-e80852c8fb74",
+      "responsible_id": "dcad961f-77d6-4241-84ae-0822d9426e1f",
+      "year": 2023
+    },
+    {
+      "id": "6957dd50-a165-458d-aaf3-2ff64a28acc4",
+      "responsible_id": "dcad961f-77d6-4241-84ae-0822d9426e1f",
+      "year": 2024
+    },
+    {
+      "id": "d29b75d3-ab7b-400e-831a-32bed8a3e023",
+      "responsible_id": "281e7ee1-fb03-4578-acb3-1478dcf1fc41",
+      "year": 2024
+    },
+    {
+      "id": "9e24f67b-1482-4112-a8f9-1a1809e72dd1",
+      "responsible_id": "281e7ee1-fb03-4578-acb3-1478dcf1fc41",
+      "year": 2025
+    },
+    {
+      "id": "ea49cabb-f25e-44e4-8546-91a050b763bc",
+      "responsible_id": "281e7ee1-fb03-4578-acb3-1478dcf1fc41",
+      "year": 2026
+    },
+    {
+      "id": "c8aa519a-42bd-4dbc-926d-d829f41db625",
+      "responsible_id": "c48d594a-65f9-43cf-92e7-76755c447afc",
+      "year": 2024
+    },
+    {
+      "id": "7cacafd4-7394-433f-9470-5362c430ebfb",
+      "responsible_id": "c48d594a-65f9-43cf-92e7-76755c447afc",
+      "year": 2025
+    },
+    {
+      "id": "ebcc69cc-834a-4724-9465-a9877cefb540",
+      "responsible_id": "c48d594a-65f9-43cf-92e7-76755c447afc",
+      "year": 2026
+    },
+    {
+      "id": "5c2cd8db-117a-4f41-a4ff-4625ec9cb640",
+      "responsible_id": "58815a3f-58a1-47ef-9f0c-da798a465353",
+      "year": 2024
+    },
+    {
+      "id": "3d95190c-6346-499b-bd5e-2692bdb6d71d",
+      "responsible_id": "58815a3f-58a1-47ef-9f0c-da798a465353",
+      "year": 2025
+    },
+    {
+      "id": "ea17d40d-1389-4b7e-96a5-e954f29ecc02",
+      "responsible_id": "b0ece728-8254-4f31-82d7-b9620e70abc3",
+      "year": 2024
+    },
+    {
+      "id": "6aa7b08e-0bfe-485f-a9e8-166ff8a5602a",
+      "responsible_id": "b0ece728-8254-4f31-82d7-b9620e70abc3",
+      "year": 2025
+    },
+    {
+      "id": "fec6f283-9df0-463e-9a9f-ce2b62a4fcb7",
+      "responsible_id": "0dac11ff-9098-466d-b21f-a5392e1a7e96",
+      "year": 2024
+    },
+    {
+      "id": "74c6348d-f6ad-49c2-a9ee-f249c208f57c",
+      "responsible_id": "0dac11ff-9098-466d-b21f-a5392e1a7e96",
+      "year": 2025
+    },
+    {
+      "id": "de9cb859-e0a2-4c91-ab5c-5e283ccf97da",
+      "responsible_id": "fba9fecc-eb96-4ca1-aee1-d642d5dfa619",
+      "year": 2024
+    },
+    {
+      "id": "00681d08-f529-4021-922a-040dd3b6b48b",
+      "responsible_id": "fba9fecc-eb96-4ca1-aee1-d642d5dfa619",
+      "year": 2025
+    },
+    {
+      "id": "12251d59-7739-48b8-a4b2-3ca2c539a569",
+      "responsible_id": "daa1c736-ae94-4e6c-8064-7492b27db826",
+      "year": 2024
+    },
+    {
+      "id": "608a2ada-fee4-415b-80b8-c34f441a4bdc",
+      "responsible_id": "daa1c736-ae94-4e6c-8064-7492b27db826",
+      "year": 2025
+    },
+    {
+      "id": "39ece150-285f-45c4-b191-07817432a9c2",
+      "responsible_id": "50b9615e-f8f9-4f28-b28b-9949dc20bbd0",
+      "year": 2024
+    },
+    {
+      "id": "b45b09a1-9c80-4e51-b327-9c31a35bf9bd",
+      "responsible_id": "50b9615e-f8f9-4f28-b28b-9949dc20bbd0",
+      "year": 2025
+    },
+    {
+      "id": "5595dd43-cbfe-4b87-9f7e-11edef7ae10e",
+      "responsible_id": "f3d63e1e-9bc5-410a-8529-4e92c01a8fe4",
+      "year": 2025
+    },
+    {
+      "id": "c63acaab-c7b5-45c0-b3ad-97367db4e5ec",
+      "responsible_id": "f3d63e1e-9bc5-410a-8529-4e92c01a8fe4",
+      "year": 2026
+    },
+    {
+      "id": "7bf12391-9b97-45a5-a3d8-f4fa732baec9",
+      "responsible_id": "128716a4-e1f4-4f1c-b45d-d9bc5ff689ca",
+      "year": 2025
+    },
+    {
+      "id": "556d033a-1fbf-4ebc-9352-aebe3fe94d77",
+      "responsible_id": "128716a4-e1f4-4f1c-b45d-d9bc5ff689ca",
+      "year": 2026
+    },
+    {
+      "id": "068f498b-b864-4ea0-83fd-c00c668eb3fb",
+      "responsible_id": "9acc052c-75e5-4d7a-ae54-6e127e6754ef",
+      "year": 2025
+    },
+    {
+      "id": "bf74f464-7d43-46d1-a3cb-17a5a15cd870",
+      "responsible_id": "9acc052c-75e5-4d7a-ae54-6e127e6754ef",
+      "year": 2026
+    },
+    {
+      "id": "5b46257a-a0e2-4b53-a32b-8e60a21a2d68",
+      "responsible_id": "d03075e4-cfbe-44a9-9165-60363a066beb",
+      "year": 2025
+    },
+    {
+      "id": "34a2da36-48c7-4958-ab18-07ea039732cd",
+      "responsible_id": "d03075e4-cfbe-44a9-9165-60363a066beb",
+      "year": 2026
+    },
+    {
+      "id": "e29e4fd0-e6e3-4b82-ada3-37257da96e7c",
+      "responsible_id": "f1514391-15e6-4d13-ba16-5d720c9a6fe6",
+      "year": 2025
+    },
+    {
+      "id": "f6e1bb0e-73e1-4538-a50b-83e11613e812",
+      "responsible_id": "f1514391-15e6-4d13-ba16-5d720c9a6fe6",
+      "year": 2026
+    },
+    {
+      "id": "75dded45-db47-4c19-93d0-9ba729b34cbc",
+      "responsible_id": "0df3cb6b-c963-47fd-b36e-afee2e02a182",
+      "year": 2025
+    },
+    {
+      "id": "1333012c-a43a-4fe1-847b-1298b2193563",
+      "responsible_id": "0df3cb6b-c963-47fd-b36e-afee2e02a182",
+      "year": 2026
+    },
+    {
+      "id": "36509e26-493d-4888-8679-29607561628b",
+      "responsible_id": "9e9509b8-9079-43aa-8db9-f3bb2eb0b2a7",
+      "year": 2023
+    },
+    {
+      "id": "800e1ca8-e602-4386-875e-7f89086dc5ba",
+      "responsible_id": "9e9509b8-9079-43aa-8db9-f3bb2eb0b2a7",
+      "year": 2024
+    },
+    {
+      "id": "b6a23183-cff5-4392-a7c9-ed2c70496dbf",
+      "responsible_id": "c8facc11-f1d4-4697-8c4f-5f2fb9b9f460",
+      "year": 2023
+    },
+    {
+      "id": "a02a454a-9099-4237-9d5b-47d6b3368aff",
+      "responsible_id": "c8facc11-f1d4-4697-8c4f-5f2fb9b9f460",
+      "year": 2024
+    },
+    {
+      "id": "f77df97f-ed9d-46b8-8fa4-05f9c5caea41",
+      "responsible_id": "09e83f16-c68c-4864-b2eb-4f3364f21cec",
+      "year": 2023
+    },
+    {
+      "id": "3b8ea56f-19a9-4333-ab0f-1f5fbc1f7bff",
+      "responsible_id": "09e83f16-c68c-4864-b2eb-4f3364f21cec",
+      "year": 2024
+    },
+    {
+      "id": "d9ab930b-3a3c-40f7-bd6f-0f33de5d03e7",
+      "responsible_id": "a559d1de-9777-446c-b4f6-f93656a05950",
+      "year": 2023
+    },
+    {
+      "id": "33c7fb8d-c2c6-4dd5-88d2-e8759b0a01db",
+      "responsible_id": "a559d1de-9777-446c-b4f6-f93656a05950",
+      "year": 2024
+    },
+    {
+      "id": "edb4295b-8e6f-484d-a302-d52e5a973952",
+      "responsible_id": "a72067f3-ec2d-44ad-8912-9b85cdfcf134",
+      "year": 2023
+    },
+    {
+      "id": "732ccabe-f29e-473f-a4cd-77bc1b09e639",
+      "responsible_id": "a72067f3-ec2d-44ad-8912-9b85cdfcf134",
+      "year": 2024
+    },
+    {
+      "id": "54b4ba23-d183-47a1-8b27-cabf0e325a56",
+      "responsible_id": "a72067f3-ec2d-44ad-8912-9b85cdfcf134",
+      "year": 2025
+    },
+    {
+      "id": "e0f5a81e-0066-4311-826f-ddbd29b73c03",
+      "responsible_id": "97cf9d98-49c2-40f3-b1ca-c60d351f4add",
+      "year": 2023
+    },
+    {
+      "id": "6369cb65-461e-441d-8cb5-9e9c9be3e6a9",
+      "responsible_id": "97cf9d98-49c2-40f3-b1ca-c60d351f4add",
+      "year": 2024
+    },
+    {
+      "id": "3b94b4ce-89af-41a5-880d-4472cdaab4c0",
+      "responsible_id": "97cf9d98-49c2-40f3-b1ca-c60d351f4add",
+      "year": 2025
+    },
+    {
+      "id": "ef1281f1-2e36-44f7-9efd-e2b5a4fec938",
+      "responsible_id": "18110ff5-60c6-4464-85f8-8a123c7082e2",
+      "year": 2024
+    },
+    {
+      "id": "4a544603-745a-45dc-ac0d-ec86fc679a2b",
+      "responsible_id": "18110ff5-60c6-4464-85f8-8a123c7082e2",
+      "year": 2025
+    },
+    {
+      "id": "101a1359-5a3a-45e7-8e49-72ccfec6ee57",
+      "responsible_id": "f07115ba-f0eb-4b46-9c4d-8d9616a9f436",
+      "year": 2024
+    },
+    {
+      "id": "1879ee08-fe48-4e2b-ac9d-5dbf15a9b46f",
+      "responsible_id": "f07115ba-f0eb-4b46-9c4d-8d9616a9f436",
+      "year": 2025
+    },
+    {
+      "id": "098e0de4-5bfb-44ea-93af-df36802e6490",
+      "responsible_id": "27611912-da73-402d-baef-1c229c832947",
+      "year": 2023
+    },
+    {
+      "id": "22d4a838-661a-4a66-b42b-eff0ac2dcd5e",
+      "responsible_id": "27611912-da73-402d-baef-1c229c832947",
+      "year": 2024
+    },
+    {
+      "id": "77460415-5c8c-4bb2-af5c-4c4ac6ace992",
+      "responsible_id": "27611912-da73-402d-baef-1c229c832947",
+      "year": 2025
+    },
+    {
+      "id": "34932526-06a5-448e-a6ef-1a9dcdb09341",
+      "responsible_id": "3a9edda6-67b1-4f04-867c-ab0855cbf5af",
+      "year": 2023
+    },
+    {
+      "id": "defae82c-bea4-492b-9918-d9514b7628f3",
+      "responsible_id": "3a9edda6-67b1-4f04-867c-ab0855cbf5af",
+      "year": 2024
+    },
+    {
+      "id": "c8ba6a4c-892b-4824-9f8c-7314e683117a",
+      "responsible_id": "3a9edda6-67b1-4f04-867c-ab0855cbf5af",
+      "year": 2025
+    },
+    {
+      "id": "099a2554-b4c0-4a37-ba7f-ef8925f0f8a4",
+      "responsible_id": "09742b0c-381e-4a74-88af-163c651ff35b",
+      "year": 2023
+    },
+    {
+      "id": "aa136812-ac3a-41bb-8aa5-d87bba170463",
+      "responsible_id": "09742b0c-381e-4a74-88af-163c651ff35b",
+      "year": 2024
+    },
+    {
+      "id": "e9ca0c29-61b9-4712-9a99-f3647590c7f2",
+      "responsible_id": "09742b0c-381e-4a74-88af-163c651ff35b",
+      "year": 2025
+    },
+    {
+      "id": "ef645032-4ba2-4977-8a49-e1594c16dda6",
+      "responsible_id": "0e60d8ad-7e72-4d0e-90dd-ad2c97fd968d",
+      "year": 2023
+    },
+    {
+      "id": "35b15683-be96-4eb8-9272-09e8bcc048b7",
+      "responsible_id": "0e60d8ad-7e72-4d0e-90dd-ad2c97fd968d",
+      "year": 2024
+    },
+    {
+      "id": "07b06597-6e03-49ef-8b6d-77477b4b1937",
+      "responsible_id": "0e60d8ad-7e72-4d0e-90dd-ad2c97fd968d",
+      "year": 2025
+    },
+    {
+      "id": "a22ebff2-a0ba-4712-bd5b-0977a45059dc",
+      "responsible_id": "37aa44d4-f47c-4eb7-8bd1-f7e02b4be9a7",
+      "year": 2023
+    },
+    {
+      "id": "51aed148-564f-4e6f-92ac-6e16a2cb5656",
+      "responsible_id": "37aa44d4-f47c-4eb7-8bd1-f7e02b4be9a7",
+      "year": 2024
+    },
+    {
+      "id": "339e398a-e199-404f-a7dc-efdf61b58992",
+      "responsible_id": "37aa44d4-f47c-4eb7-8bd1-f7e02b4be9a7",
+      "year": 2025
+    },
+    {
+      "id": "6fd0ac12-4faa-4b6b-87c3-2e2b6bc76b32",
+      "responsible_id": "4cd701f3-7788-47c2-b334-c812fe433653",
+      "year": 2024
+    },
+    {
+      "id": "18ba0a0f-82a8-498a-81b2-03a61ce62fc1",
+      "responsible_id": "4cd701f3-7788-47c2-b334-c812fe433653",
+      "year": 2025
+    },
+    {
+      "id": "9208e458-76bd-4ffe-aaa9-23fa249c5880",
+      "responsible_id": "4332ef7b-2ca8-4e72-9824-cd1f1d829106",
+      "year": 2024
+    },
+    {
+      "id": "24aeb0b6-95cf-4880-b0dc-3efa9bfbc4f7",
+      "responsible_id": "4332ef7b-2ca8-4e72-9824-cd1f1d829106",
+      "year": 2025
+    },
+    {
+      "id": "36323f66-9840-4cc4-9431-01f90989a466",
+      "responsible_id": "a341d25f-9d69-49fb-a48e-ffdc2f6485f9",
+      "year": 2024
+    },
+    {
+      "id": "976e27ac-ba03-489c-8df4-abb483167290",
+      "responsible_id": "a341d25f-9d69-49fb-a48e-ffdc2f6485f9",
+      "year": 2025
+    },
+    {
+      "id": "d6634b52-1b63-4e60-8fdf-8cd8a80e6b29",
+      "responsible_id": "f902ba91-d8a6-413e-8e71-32d9eb62b299",
+      "year": 2024
+    },
+    {
+      "id": "22e5dfb3-5c4c-465c-8171-ad907ca3d590",
+      "responsible_id": "f902ba91-d8a6-413e-8e71-32d9eb62b299",
+      "year": 2025
+    },
+    {
+      "id": "d320791a-bf78-43fe-9d66-6b10b876d863",
+      "responsible_id": "4f8348aa-17c6-45d3-9c28-2d8b6ee5e5c1",
+      "year": 2024
+    },
+    {
+      "id": "868483c9-d177-4887-8657-2327e390f276",
+      "responsible_id": "4f8348aa-17c6-45d3-9c28-2d8b6ee5e5c1",
+      "year": 2025
+    },
+    {
+      "id": "c625c7bd-d077-43c3-9029-bff8c9e35329",
+      "responsible_id": "a60720e0-79ea-4876-ba82-c2b03ad1e002",
+      "year": 2024
+    },
+    {
+      "id": "9f00acc7-7f2c-4497-9d34-279394924f80",
+      "responsible_id": "a60720e0-79ea-4876-ba82-c2b03ad1e002",
+      "year": 2025
+    },
+    {
+      "id": "401a00ca-6d3a-49a7-918a-ff38d1ee573f",
+      "responsible_id": "c3d2d64e-fda6-42d1-bc99-7433a3977204",
+      "year": 2024
+    },
+    {
+      "id": "e967fc06-78c5-4ba3-b52c-025498a1a2c4",
+      "responsible_id": "c3d2d64e-fda6-42d1-bc99-7433a3977204",
+      "year": 2025
+    },
+    {
+      "id": "d9c42f28-53af-4125-b3ac-d776e4bd20b9",
+      "responsible_id": "c3d2d64e-fda6-42d1-bc99-7433a3977204",
+      "year": 2026
+    },
+    {
+      "id": "1d8fb524-93f0-4972-8686-7a4d42fc953b",
+      "responsible_id": "3b5fc3da-71b9-4a11-8150-202c360edc13",
+      "year": 2024
+    },
+    {
+      "id": "50aab021-e4d3-4f79-964d-296132266c4d",
+      "responsible_id": "3b5fc3da-71b9-4a11-8150-202c360edc13",
+      "year": 2025
+    },
+    {
+      "id": "b4b1ed94-1410-44aa-b05c-abe2361d426e",
+      "responsible_id": "3b5fc3da-71b9-4a11-8150-202c360edc13",
+      "year": 2026
+    },
+    {
+      "id": "2bbf726d-57c7-449e-ac2b-d071c89fee53",
+      "responsible_id": "b40ef750-cbc5-4560-82a5-011617aff69f",
+      "year": 2024
+    },
+    {
+      "id": "29732d87-53de-4b73-8dd9-9975978d2754",
+      "responsible_id": "b40ef750-cbc5-4560-82a5-011617aff69f",
+      "year": 2025
+    },
+    {
+      "id": "c5337396-2c36-4268-b81a-db2d6a4ab553",
+      "responsible_id": "b40ef750-cbc5-4560-82a5-011617aff69f",
+      "year": 2026
+    },
+    {
+      "id": "b1b91a8e-2c94-423a-bbdf-4aa8f817d3e9",
+      "responsible_id": "4da0a46a-27ba-4f96-a2b6-4be033df000b",
+      "year": 2024
+    },
+    {
+      "id": "f9edc22a-6ce3-4f2e-ac39-4447186fd941",
+      "responsible_id": "4da0a46a-27ba-4f96-a2b6-4be033df000b",
+      "year": 2025
+    },
+    {
+      "id": "e3a2d7f2-30f9-4e3d-ad7b-9bdc28867a14",
+      "responsible_id": "4da0a46a-27ba-4f96-a2b6-4be033df000b",
+      "year": 2026
+    },
+    {
+      "id": "7ebdb62e-7bf2-4239-b0b8-ce4a1ce861c6",
+      "responsible_id": "f574d5df-ea10-4c0e-9c25-6696156d23f1",
+      "year": 2025
+    },
+    {
+      "id": "546e621d-f42c-4d97-80cc-5bd32247e620",
+      "responsible_id": "f574d5df-ea10-4c0e-9c25-6696156d23f1",
+      "year": 2026
+    },
+    {
+      "id": "3d1984b1-4b42-4f11-a1d7-5ced8da42cde",
+      "responsible_id": "f574d5df-ea10-4c0e-9c25-6696156d23f1",
+      "year": 2027
+    },
+    {
+      "id": "62f5dfe7-f062-4d7b-a0c9-6b35f2bc55ff",
+      "responsible_id": "b1b22736-66ac-4d48-afda-87ba0f1b9487",
+      "year": 2025
+    },
+    {
+      "id": "07fc8cb0-4b9a-4f43-832e-3e1b673de1fd",
+      "responsible_id": "b1b22736-66ac-4d48-afda-87ba0f1b9487",
+      "year": 2026
+    },
+    {
+      "id": "f5a6932b-8358-447b-aa50-6f24602df75e",
+      "responsible_id": "b1b22736-66ac-4d48-afda-87ba0f1b9487",
+      "year": 2027
+    },
+    {
+      "id": "961311d5-f7e8-4907-8fae-9da9daf1702e",
+      "responsible_id": "1525fc8d-e7da-46f7-9576-48a0bacb70c5",
+      "year": 2025
+    },
+    {
+      "id": "0aafeb8a-c2ea-4c20-afda-f3bd895d97d6",
+      "responsible_id": "1525fc8d-e7da-46f7-9576-48a0bacb70c5",
+      "year": 2026
+    },
+    {
+      "id": "924d8cf4-90d2-4ca8-b57f-2e5013ad7d41",
+      "responsible_id": "1525fc8d-e7da-46f7-9576-48a0bacb70c5",
+      "year": 2027
+    },
+    {
+      "id": "7a54844d-abc4-466e-80bb-f4b0d3a99f8f",
+      "responsible_id": "abfe7e75-96d6-4496-8a36-cb0784328220",
+      "year": 2025
+    },
+    {
+      "id": "737c56dd-823b-4983-a222-d67fc5f7d1b2",
+      "responsible_id": "abfe7e75-96d6-4496-8a36-cb0784328220",
+      "year": 2026
+    },
+    {
+      "id": "60b888c8-9db2-4144-a1ff-10841f30fd9f",
+      "responsible_id": "abfe7e75-96d6-4496-8a36-cb0784328220",
+      "year": 2027
+    },
+    {
+      "id": "f6244bf3-2048-43de-8c09-33011732a381",
+      "responsible_id": "325d4829-b67b-4025-b7d0-06c6ecff0ffb",
+      "year": 2025
+    },
+    {
+      "id": "9f684f2a-1945-4851-8f3d-65e08ba17873",
+      "responsible_id": "325d4829-b67b-4025-b7d0-06c6ecff0ffb",
+      "year": 2026
+    },
+    {
+      "id": "f9d2a0df-c2d5-4500-982f-b46be0d6aa5c",
+      "responsible_id": "325d4829-b67b-4025-b7d0-06c6ecff0ffb",
+      "year": 2027
+    },
+    {
+      "id": "7963c744-5483-4097-beff-804030f5accc",
+      "responsible_id": "2257d97a-c3ad-450d-8627-f37dfeb27f54",
+      "year": 2025
+    },
+    {
+      "id": "ec51b5d3-c0ec-4a6f-9bb4-87c1554dc8fd",
+      "responsible_id": "2257d97a-c3ad-450d-8627-f37dfeb27f54",
+      "year": 2026
+    },
+    {
+      "id": "54dfdce2-b2ac-4832-8f4f-c1b8219a8f4f",
+      "responsible_id": "2257d97a-c3ad-450d-8627-f37dfeb27f54",
+      "year": 2027
+    },
+    {
+      "id": "8e0422b0-ecd7-4269-ad09-c9fe67dfacdc",
+      "responsible_id": "6fe482c5-ba9a-47fd-ba41-27ff58f15690",
+      "year": 2026
+    },
+    {
+      "id": "59a140f1-cbaf-4470-a8cd-0d4e7778cb1e",
+      "responsible_id": "6fe482c5-ba9a-47fd-ba41-27ff58f15690",
+      "year": 2027
+    },
+    {
+      "id": "3a31a361-661c-4b14-a1d8-3e9ceb56fec3",
+      "responsible_id": "6fe482c5-ba9a-47fd-ba41-27ff58f15690",
+      "year": 2028
+    },
+    {
+      "id": "b8b288e3-ccd3-4410-88b6-6e0d4ea6af40",
+      "responsible_id": "7f4f7d4e-55ea-4b94-801e-988d58ecc544",
+      "year": 2026
+    },
+    {
+      "id": "8a1973c2-d7f2-446b-b52c-8b282f4746fe",
+      "responsible_id": "7f4f7d4e-55ea-4b94-801e-988d58ecc544",
+      "year": 2027
+    },
+    {
+      "id": "1a10a9a8-f0fd-4f00-825a-4377dd1562e7",
+      "responsible_id": "7f4f7d4e-55ea-4b94-801e-988d58ecc544",
+      "year": 2028
+    },
+    {
+      "id": "4b92449e-03b7-459d-b348-4c9742d622af",
+      "responsible_id": "e7709a84-b3ba-4e3b-b2c6-2335e2d647a2",
+      "year": 2025
+    },
+    {
+      "id": "8da95c83-e7d1-4799-8959-25cb1c584111",
+      "responsible_id": "e7709a84-b3ba-4e3b-b2c6-2335e2d647a2",
+      "year": 2026
+    },
+    {
+      "id": "54f2095b-55a3-4cfc-9d1f-9a78b9a050cc",
+      "responsible_id": "e7709a84-b3ba-4e3b-b2c6-2335e2d647a2",
+      "year": 2027
+    },
+    {
+      "id": "850e589f-50bf-465b-9b9b-159ef4446563",
+      "responsible_id": "e7709a84-b3ba-4e3b-b2c6-2335e2d647a2",
+      "year": 2028
+    },
+    {
+      "id": "2c8244ba-44ac-4951-b57c-22911619f3dc",
+      "responsible_id": "c6617181-f433-4a6e-93a0-36f2bf8a4536",
+      "year": 2025
+    },
+    {
+      "id": "83a9df37-f52f-4ac6-b38b-2fed59d275a8",
+      "responsible_id": "c6617181-f433-4a6e-93a0-36f2bf8a4536",
+      "year": 2026
+    },
+    {
+      "id": "902466da-5a38-4219-a921-1d29aa7b1a49",
+      "responsible_id": "c6617181-f433-4a6e-93a0-36f2bf8a4536",
+      "year": 2027
+    },
+    {
+      "id": "343ed1ff-70ec-4be5-8542-d4e4b450b373",
+      "responsible_id": "c6617181-f433-4a6e-93a0-36f2bf8a4536",
+      "year": 2028
+    },
+    {
+      "id": "96b7e389-1c3b-46c1-a1fd-675b9bda52f6",
+      "responsible_id": "25be0bc9-5a14-4faf-ae80-244cc1aeb263",
+      "year": 2025
+    },
+    {
+      "id": "b5742057-b236-440e-9879-fb7f51e01701",
+      "responsible_id": "25be0bc9-5a14-4faf-ae80-244cc1aeb263",
+      "year": 2026
+    },
+    {
+      "id": "1a29046e-47dc-4826-a10a-c6757fc28560",
+      "responsible_id": "25be0bc9-5a14-4faf-ae80-244cc1aeb263",
+      "year": 2027
+    },
+    {
+      "id": "a039e8cf-cff3-4c59-9a49-14e3a619462f",
+      "responsible_id": "25be0bc9-5a14-4faf-ae80-244cc1aeb263",
+      "year": 2028
+    },
+    {
+      "id": "f1ea51e2-b53b-4b19-8a11-2a1ee8469981",
+      "responsible_id": "b7c9d261-7e04-4b7b-b3fa-af51360a6770",
+      "year": 2025
+    },
+    {
+      "id": "a185606c-a844-4419-8649-ebb22a82badc",
+      "responsible_id": "b7c9d261-7e04-4b7b-b3fa-af51360a6770",
+      "year": 2026
+    },
+    {
+      "id": "586aa427-227f-4887-91d2-6081528f0246",
+      "responsible_id": "b7c9d261-7e04-4b7b-b3fa-af51360a6770",
+      "year": 2027
+    },
+    {
+      "id": "c132ea5d-d320-47fe-98f0-04c2482c7f6b",
+      "responsible_id": "b7c9d261-7e04-4b7b-b3fa-af51360a6770",
+      "year": 2028
+    },
+    {
+      "id": "5a433c7a-5f33-46f9-a9ae-fe107a560718",
+      "responsible_id": "2b90c325-86cd-4265-8e18-b13c85f74125",
+      "year": 2025
+    },
+    {
+      "id": "cd7ef45e-03ef-4248-b742-5a2b16efe4d5",
+      "responsible_id": "2b90c325-86cd-4265-8e18-b13c85f74125",
+      "year": 2026
+    },
+    {
+      "id": "293180f9-40e2-4c08-9294-d471d728b874",
+      "responsible_id": "2b90c325-86cd-4265-8e18-b13c85f74125",
+      "year": 2027
+    },
+    {
+      "id": "c37b8223-458e-423e-b40f-8c865ac47f91",
+      "responsible_id": "2b90c325-86cd-4265-8e18-b13c85f74125",
+      "year": 2028
+    },
+    {
+      "id": "a96eafab-e9b0-4dbf-ac9c-a09fe4ea21dc",
+      "responsible_id": "3b9388ef-468c-4525-a2e8-e5f4e22e00ec",
+      "year": 2025
+    },
+    {
+      "id": "c723ec1c-f5bb-49b5-9f51-2a65d8c59ec5",
+      "responsible_id": "3b9388ef-468c-4525-a2e8-e5f4e22e00ec",
+      "year": 2026
+    },
+    {
+      "id": "f9398edc-a0a9-497b-962b-3a7e985244d0",
+      "responsible_id": "3b9388ef-468c-4525-a2e8-e5f4e22e00ec",
+      "year": 2027
+    },
+    {
+      "id": "fbf98b12-9759-4224-9c82-368bfd2628f0",
+      "responsible_id": "3b9388ef-468c-4525-a2e8-e5f4e22e00ec",
+      "year": 2028
+    }
+  ]
+}
