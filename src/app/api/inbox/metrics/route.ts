@@ -50,7 +50,15 @@ export async function GET(req: NextRequest) {
 
   // Conversaciones del buzón (canal + responsable + tiempos). Solo columnas garantizadas.
   const convs = await readAll((f, t) => sb.from('wa_conversations')
-    .select('id, channel, assigned_name, first_customer_at, created_at, first_response_at').range(f, t))
+    .select('id, channel, assigned_name, assigned_to, first_customer_at, created_at, first_response_at').range(f, t))
+
+  // Nombre VIGENTE de cada colaborador: el reparto se agrupa por identidad
+  // (assigned_to), no por el texto congelado del nombre — un colaborador cuyo
+  // nombre se completó después salía partido en dos personas (caso Adriana
+  // Masias / Adriana Jazmin Masias Pari, 10/09/2026).
+  const { data: empRows } = await sb.from('hr_employees').select('user_id, full_name').not('user_id', 'is', null)
+  const nombreVigente = new Map<string, string>((empRows ?? []).map(
+    (e: { user_id: string; full_name: string }) => [String(e.user_id), e.full_name]))
 
   // Cierres (columna closed_at; si aún no existe el migration, la consulta
   // falla y readAll devuelve [] sin romper el resto de la página).
@@ -85,10 +93,9 @@ export async function GET(req: NextRequest) {
   // Reparto por responsable (quién atiende qué, por canal): responde
   // directamente "a quiénes se va distribuyendo".
   const agents = new Map<string, { name: string; email: number; whatsapp: number; ticket: number; total: number }>()
-  const bumpAgent = (name: string, channel: string) => {
-    const key = name || '(sin asignar)'
+  const bumpAgent = (key: string, name: string, channel: string) => {
     let a = agents.get(key)
-    if (!a) { a = { name: key, email: 0, whatsapp: 0, ticket: 0, total: 0 }; agents.set(key, a) }
+    if (!a) { a = { name, email: 0, whatsapp: 0, ticket: 0, total: 0 }; agents.set(key, a) }
     if (channel === 'email') a.email++
     else if (channel === 'ticket') a.ticket++
     else a.whatsapp++
@@ -105,7 +112,11 @@ export async function GET(req: NextRequest) {
     const ch = c.channel ?? 'whatsapp'
     if (ch === 'email') totals.email_conversations++
     else { b.wa_conversations++; totals.whatsapp_conversations++ }
-    bumpAgent(c.assigned_name ?? '', ch)
+    // Llave = identidad; etiqueta = nombre vigente de la ficha (el texto
+    // congelado queda de respaldo para asignaciones viejas sin id).
+    const key = c.assigned_to ? `u:${c.assigned_to}` : (c.assigned_name || '(sin asignar)')
+    const label = (c.assigned_to ? nombreVigente.get(String(c.assigned_to)) : null) ?? c.assigned_name ?? '(sin asignar)'
+    bumpAgent(key, label, ch)
   }
 
   const by_agent = [...agents.values()].sort((a, b) => b.total - a.total)

@@ -1,0 +1,191 @@
+{
+  "motivo": "Saneo de assigned_name congelado en wa_conversations al nombre vigente del assigned_to (caso dos Adrianas, 10/09/2026)",
+  "cambios": [
+    {
+      "id": "03b5b491-6d3b-4cce-9037-121a5c3a8a2d",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "0acb06d2-e0ac-48a5-a1d2-b8fc058e3bb8",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "14af15fc-5f87-4848-ba67-b69f1100063a",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "191b0916-9fa8-4075-a6bd-63c6438472c2",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "1be183c1-34c5-463f-89c2-b27c9b10f082",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "24c4fe7a-d9a4-432a-a7c3-17971f6095db",
+      "assigned_to": "7ced71cf-c9d7-4a87-a946-51dc943eab8a",
+      "viejo": "Claudia Quispe Llanos",
+      "nuevo": "Claudia Viviana Quispe Llanos"
+    },
+    {
+      "id": "2647db11-c80d-4bbe-b050-e43f376b85de",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "27a43903-d071-45a4-8c77-45c341648760",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "3c11fb0f-fcb8-4137-96aa-87fa603d9995",
+      "assigned_to": "7ced71cf-c9d7-4a87-a946-51dc943eab8a",
+      "viejo": "Claudia Quispe Llanos",
+      "nuevo": "Claudia Viviana Quispe Llanos"
+    },
+    {
+      "id": "45043d1b-d64c-49d7-9343-7c88702829c0",
+      "assigned_to": "7ced71cf-c9d7-4a87-a946-51dc943eab8a",
+      "viejo": "Claudia Quispe Llanos",
+      "nuevo": "Claudia Viviana Quispe Llanos"
+    },
+    {
+      "id": "50a56bb6-a167-4e5c-8733-89ff9314562a",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "59de652f-a783-4c69-b2ed-bebfac2c73f1",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "645e6379-c915-4900-8b1c-2aeddc5751cb",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "68949c23-2565-4834-804d-5c43b8286b7f",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "70ea069a-58f2-49b3-b356-6321bec1c678",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "76f754eb-a995-4106-acba-4f005f6894f1",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "78a848e1-71ab-4d74-8d61-404fce612a1a",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "80f38e0f-5c21-4b03-bee9-68b820f9f1c5",
+      "assigned_to": "7ced71cf-c9d7-4a87-a946-51dc943eab8a",
+      "viejo": "Claudia Quispe Llanos",
+      "nuevo": "Claudia Viviana Quispe Llanos"
+    },
+    {
+      "id": "8411903f-ed45-4ca2-8419-84eb9fecef0e",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "974e0550-42bb-4d40-bc51-4ff4ae07b8e5",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "98af4b61-afb6-46bd-a98c-0dfde5fa0846",
+      "assigned_to": "7ced71cf-c9d7-4a87-a946-51dc943eab8a",
+      "viejo": "Claudia Quispe Llanos",
+      "nuevo": "Claudia Viviana Quispe Llanos"
+    },
+    {
+      "id": "9d902463-f55c-4034-b9ab-2f826353258d",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "a5fd0216-23e7-4be2-9284-4c3902b753cb",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "cb1c89c9-3393-442f-bb02-e1b7e8da9e06",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "d4bac236-cf2c-4c44-99aa-738d880fa3fc",
+      "assigned_to": "7ced71cf-c9d7-4a87-a946-51dc943eab8a",
+      "viejo": "Claudia Quispe Llanos",
+      "nuevo": "Claudia Viviana Quispe Llanos"
+    },
+    {
+      "id": "dd83a12a-a04e-4299-a80f-9ff811e042f2",
+      "assigned_to": "7ced71cf-c9d7-4a87-a946-51dc943eab8a",
+      "viejo": "Claudia Quispe Llanos",
+      "nuevo": "Claudia Viviana Quispe Llanos"
+    },
+    {
+      "id": "e3a00ee4-660e-486f-b9f4-6960c893ce5d",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    },
+    {
+      "id": "e7307853-f505-4ca9-a544-2b6567133c4f",
+      "assigned_to": "7ced71cf-c9d7-4a87-a946-51dc943eab8a",
+      "viejo": "Claudia Quispe Llanos",
+      "nuevo": "Claudia Viviana Quispe Llanos"
+    },
+    {
+      "id": "e848e0b3-8b60-46e6-aaf2-b08074439b80",
+      "assigned_to": "7ced71cf-c9d7-4a87-a946-51dc943eab8a",
+      "viejo": "Claudia Quispe Llanos",
+      "nuevo": "Claudia Viviana Quispe Llanos"
+    },
+    {
+      "id": "f63828ac-de26-444a-90b3-de4934404197",
+      "assigned_to": "7ced71cf-c9d7-4a87-a946-51dc943eab8a",
+      "viejo": "Claudia Quispe Llanos",
+      "nuevo": "Claudia Viviana Quispe Llanos"
+    },
+    {
+      "id": "fcda644b-cdff-4d86-b2ad-409e6b43a72c",
+      "assigned_to": "b2a543af-2aca-448a-80b8-6083ba7bdc25",
+      "viejo": "Adriana Masias",
+      "nuevo": "Adriana Jazmin Masias Pari"
+    }
+  ]
+}
