@@ -13,9 +13,10 @@ const DOMAIN = process.env.STUDENT_EMAIL_DOMAIN || 'blackwell.pro'
 const ORG_UNIT = process.env.STUDENT_EMAIL_ORG_UNIT || '/blackwell.pro'
 
 // Docentes: mismo tenant de Google (confirmado 09/09/2026), otro dominio y
-// otra unidad organizativa — políticas separadas de las de alumnos.
+// otra unidad organizativa — políticas separadas de las de alumnos. La OU se
+// llama "faculty.blackwell" en la consola (creada por el usuario el 10/09).
 const FACULTY_DOMAIN = process.env.FACULTY_EMAIL_DOMAIN || 'faculty.blackwell.university'
-const FACULTY_ORG_UNIT = process.env.FACULTY_EMAIL_ORG_UNIT || '/Faculty'
+const FACULTY_ORG_UNIT = process.env.FACULTY_EMAIL_ORG_UNIT || '/faculty.blackwell'
 
 export function googleConfigured(): boolean {
   return !!(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET && process.env.GOOGLE_OAUTH_REFRESH_TOKEN)
