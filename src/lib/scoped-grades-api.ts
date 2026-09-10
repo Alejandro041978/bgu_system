@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { applyGradeEdit, fetchByIn, stableUuid, type GradeChanges } from '@/lib/grades-write'
 import { cursosDelAmbito, notaEnAmbito, guardAmbito, marcadosExternos, externosDeCurso, TITULO, type Ambito } from '@/lib/grade-scope'
+import { esSuperadmin } from '@/lib/api-guard'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -310,6 +311,25 @@ export async function editar(ambito: Ambito, req: NextRequest) {
   // notas de capstone" sería "puede editar cualquier nota, si sabe pedirlo".
   if (!(await notaEnAmbito(sb, externalId, ambito))) {
     return NextResponse.json({ error: 'Esa nota no pertenece a este ámbito.' }, { status: 403 })
+  }
+
+  // Cuatro ojos en los pares marcados individualmente (10/09/2026): quien
+  // MARCÓ el par no puede CALIFICARLO — el uso indebido exige a dos personas.
+  // Vale aunque alguien acumule los dos permisos; el superadministrador queda
+  // exento como en todas las guardas.
+  if (ambito === 'campus_externo' && !(await esSuperadmin(user))) {
+    const { data: nota } = await sb.from('academic_grades')
+      .select('course_id, student_id').eq('external_id', externalId).maybeSingle()
+    if (nota?.course_id && nota?.student_id
+      && !(await cursosDelAmbito(sb, 'campus_externo')).has(String(nota.course_id))) {
+      const { data: marca } = await sb.from('external_campus_students')
+        .select('created_by').eq('student_id', nota.student_id).eq('course_id', nota.course_id).maybeSingle()
+      if (marca?.created_by && (marca.created_by === user.email || marca.created_by === user.id)) {
+        return NextResponse.json({
+          error: 'Este par lo marcaste tú como campus externo: la calificación debe registrarla otro colaborador (control de cuatro ojos).',
+        }, { status: 403 })
+      }
+    }
   }
 
   const result = await applyGradeEdit(sb, {

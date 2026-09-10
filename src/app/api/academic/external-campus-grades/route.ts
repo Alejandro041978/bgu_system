@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { listar, editar } from '@/lib/scoped-grades-api'
-import { guardAmbito, cursosDelAmbito } from '@/lib/grade-scope'
+import { cursosDelAmbito } from '@/lib/grade-scope'
+import { guardPagina } from '@/lib/page-guard'
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -61,7 +62,7 @@ async function cursosConNota(sb: any, studentId: string, courseIds: string[]): P
 // marca individual) y SIN calificación: una "en curso" sin nota final sí; una
 // aprobada o desaprobada, no.
 async function cursosDeEstudiante(req: NextRequest) {
-  const noAutorizado = await guardAmbito('campus_externo')
+  const noAutorizado = await guardPagina('academic_external_campus_marks', 'view')
   if (noAutorizado) return noAutorizado
   const studentId = req.nextUrl.searchParams.get('student_id')
   if (!studentId) return NextResponse.json({ error: 'Falta student_id' }, { status: 400 })
@@ -85,7 +86,7 @@ async function cursosDeEstudiante(req: NextRequest) {
 export async function PATCH(req: NextRequest) { return editar('campus_externo', req) }
 
 async function listarMarcados() {
-  const noAutorizado = await guardAmbito('campus_externo')
+  const noAutorizado = await guardPagina('academic_external_campus_marks', 'view')
   if (noAutorizado) return noAutorizado
   const sb = db()
   const { data, error } = await sb.from('external_campus_students')
@@ -104,7 +105,8 @@ async function listarMarcados() {
 }
 
 export async function POST(req: NextRequest) {
-  const noAutorizado = await guardAmbito('campus_externo')
+  // Marcar/desmarcar es del permiso de MARCAR, no del de calificar.
+  const noAutorizado = await guardPagina('academic_external_campus_marks')
   if (noAutorizado) return noAutorizado
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()

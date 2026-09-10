@@ -289,6 +289,49 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
   const porFuente = new Map<string, number>()
   for (const n of inscripciones) porFuente.set(String(n.source), (porFuente.get(String(n.source)) ?? 0) + 1)
 
+  // ---- 5. Cuatro ojos del campus externo individual -----------------------
+  // Pares estudiante+asignatura marcados como campus externo que YA tienen
+  // calificación: se cruza quién marcó con quién calificó y cuánto tiempo
+  // pasó. Sospechoso = la misma persona en ambos actos (el servidor lo rechaza
+  // desde el 10/09; superadmin exento), o nota puesta a menos de una hora de
+  // la marca — el patrón del "camino rápido" que motivó el control.
+  const { data: marcasExt } = await sb.from('external_campus_students')
+    .select('student_id, course_id, created_by, created_at')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const marcasRows = (marcasExt ?? []) as any[]
+  const cuatroOjos: string[] = []
+  let nCuatroOjos = 0
+  if (marcasRows.length) {
+    // El editor firma la auditoría con el user_id: se traduce a correo para
+    // poder compararlo con created_by (que guarda el correo del marcador).
+    const { data: emps } = await sb.from('hr_employees').select('user_id, email').not('user_id', 'is', null)
+    const correoDe = new Map((emps ?? []).map((e: { user_id: string; email: string }) => [String(e.user_id), String(e.email)]))
+    const notaDePar = new Map<string, { external_id: string; nombre: string; curso: string }>()
+    for (const n of notas) {
+      if (n.withdrawn_at || (n.retake_grade ?? n.final_grade) == null || !n.student_id || !n.course_id) continue
+      notaDePar.set(`${n.student_id}|${n.course_id}`, { external_id: String(n.external_id), nombre: String(n.student_name ?? '—'), curso: String(n.course_name ?? '—') })
+    }
+    for (const m of marcasRows) {
+      const par = notaDePar.get(`${m.student_id}|${m.course_id}`)
+      if (!par) continue
+      const { data: aud } = await sb.from('grade_audit')
+        .select('changed_by, changed_at').eq('grade_external_id', par.external_id)
+        .in('field', ['final_grade', 'retake_grade'])
+        .order('changed_at', { ascending: true }).limit(1).maybeSingle()
+      if (!aud) continue
+      const quienCalifico = correoDe.get(String(aud.changed_by)) ?? String(aud.changed_by ?? '—')
+      const minutos = Math.round((new Date(aud.changed_at).getTime() - new Date(m.created_at).getTime()) / 60000)
+      const mismaPersona = !!m.created_by && (m.created_by === quienCalifico || m.created_by === String(aud.changed_by))
+      const muyRapido = minutos >= 0 && minutos < 60
+      if (mismaPersona || muyRapido) {
+        nCuatroOjos++
+        if (cuatroOjos.length < 10) {
+          cuatroOjos.push(`${par.nombre} · ${par.curso} · marcó ${m.created_by ?? '—'} / calificó ${quienCalifico} · ${minutos} min entre marca y nota${mismaPersona ? ' · MISMA PERSONA' : ''}`)
+        }
+      }
+    }
+  }
+
   const hallazgos: Hallazgo[] = [
     {
       clave: 'sin_matricula',
@@ -353,6 +396,13 @@ export async function auditarRegistro(sb: SB): Promise<{ hallazgos: Hallazgo[]; 
       siSube: 'Alguien volvió a crear inscripciones aquí, o entraron notas nuevas sin calificar. Lo segundo es normal si el campus abrió aulas hoy; lo primero no.',
       n: inscripciones.length, esperado: 0,
       ejemplos: [...porFuente.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${v} de ${k}`),
+    },
+    {
+      clave: 'externo_cuatro_ojos',
+      titulo: 'Campus externo individual: marca y calificación sospechosas',
+      explica: 'Pares estudiante+asignatura marcados como campus externo y ya calificados donde marcó y calificó la misma persona, o la nota se puso a menos de una hora de la marca. El control exige dos colaboradores distintos y un tiempo verosímil de cursado externo.',
+      siSube: 'Alguien está usando la marca individual como camino rápido para aprobar sin aula. Los dos nombres y el tiempo están en el ejemplo: es un caso de revisión con las personas, no de corrección de datos.',
+      n: nCuatroOjos, esperado: 0, ejemplos: cuatroOjos,
     },
   ]
 

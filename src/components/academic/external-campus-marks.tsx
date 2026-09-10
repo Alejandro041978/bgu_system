@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Search, Loader2, Globe, X, Plus } from 'lucide-react'
+import { usePermissions } from '@/hooks/use-permissions'
 
 // ---------------------------------------------------------------------------
 // Campus externo POR ESTUDIANTE (09/09/2026): un estudiante concreto cursa una
@@ -20,6 +21,9 @@ interface Curso { id: string; code: string | null; name: string }
 const API = '/api/academic/external-campus-grades'
 
 export function ExternalCampusMarks() {
+  // Cuatro ojos: marcar es un permiso distinto al de calificar. Quien no lo
+  // tiene no ve esta sección — y aunque la forzara, el servidor la niega.
+  const { loading: permsLoading, canView, canEdit } = usePermissions()
   const [marcados, setMarcados] = useState<Marcado[] | null>(null)
   const [abierto, setAbierto] = useState(false)
   const [q, setQ] = useState('')
@@ -73,6 +77,8 @@ export function ExternalCampusMarks() {
     cargar()
   }
 
+  if (permsLoading || !canView('academic_external_campus_marks')) return null
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl mt-6">
       <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
@@ -80,13 +86,15 @@ export function ExternalCampusMarks() {
         <div className="flex-1">
           <p className="text-sm font-semibold text-gray-900">Estudiantes en campus externo</p>
           <p className="text-[11px] text-gray-400">
-            Para asignaturas con aula de Moodle que un estudiante concreto cursa en otra institución: su nota se ingresa aquí, el importador lo salta y se le retira el aula.
+            Para asignaturas con aula de Moodle que un estudiante concreto cursa en otra institución: su nota se ingresa aquí, el importador lo salta y se le retira el aula. La calificación la registra otro colaborador: quien marca no califica.
           </p>
         </div>
-        <button onClick={() => setAbierto(a => !a)}
-          className="inline-flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 hover:bg-gray-50">
-          <Plus className="w-3 h-3" /> Marcar estudiante
-        </button>
+        {canEdit('academic_external_campus_marks') && (
+          <button onClick={() => setAbierto(a => !a)}
+            className="inline-flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 hover:bg-gray-50">
+            <Plus className="w-3 h-3" /> Marcar estudiante
+          </button>
+        )}
       </div>
 
       {msg && <p className={`mx-4 mt-3 text-xs rounded-md px-3 py-2 ${msg.kind === 'ok' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{msg.text}</p>}
@@ -154,10 +162,12 @@ export function ExternalCampusMarks() {
                   {m.course}{m.note ? ` · ${m.note}` : ''} · marcado el {new Date(m.created_at).toLocaleDateString('es-PE')}{m.created_by ? ` por ${m.created_by}` : ''}
                 </p>
               </div>
-              <button onClick={() => desmarcar(m)} disabled={busy}
-                className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-40">
-                Quitar
-              </button>
+              {canEdit('academic_external_campus_marks') && (
+                <button onClick={() => desmarcar(m)} disabled={busy}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-40">
+                  Quitar
+                </button>
+              )}
             </li>
           ))}
         </ul>

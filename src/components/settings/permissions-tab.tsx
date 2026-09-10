@@ -90,6 +90,10 @@ const PAGE_GROUPS = [
       // Calificaciones
       { key: 'academic_grades', label: 'Notas' },
       { key: 'academic_external_campus', label: 'Notas de campus externo' },
+      // Cuatro ojos (10/09/2026): marcar el par estudiante+asignatura es un
+      // permiso DISTINTO al de calificarlo, para que lo tengan personas
+      // distintas. El servidor además rechaza que el marcador califique.
+      { key: 'academic_external_campus_marks', label: 'Campus externo · Marcar estudiantes' },
       { key: 'academic_capstone', label: 'Notas de Capstone' },
       { key: 'academic_acta', label: 'Acta Personal' },
       { key: 'academic_acta_detail', label: 'Acta Detallada' },
