@@ -25,9 +25,41 @@ export async function GET(req: NextRequest) {
   return listar('campus_externo', req)
 }
 
+// Asignaturas del estudiante donde ya existe una CALIFICACIÓN viva (final o
+// subsanación, en cualquier intento no retirado). Regla del usuario
+// (10/09/2026): una asignatura calificada —aprobada O desaprobada— no se marca
+// como campus externo; el acta es un hecho y esta vía no la reabre. Las notas
+// viejas pueden vivir solo con documento, así que se mira por ambas llaves.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function cursosConNota(sb: any, studentId: string, courseIds: string[]): Promise<Set<string>> {
+  const out = new Set<string>()
+  if (!courseIds.length) return out
+  const { data: est } = await sb.from('academic_students')
+    .select('document_number').eq('id', studentId).maybeSingle()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const marcar = (rows: any[]) => {
+    for (const g of rows) if (g.final_grade != null || g.retake_grade != null) out.add(String(g.course_id))
+  }
+  for (let i = 0; i < courseIds.length; i += 200) {
+    const lote = courseIds.slice(i, i + 200)
+    const { data: porUuid } = await sb.from('academic_grades')
+      .select('course_id, final_grade, retake_grade')
+      .eq('student_id', studentId).in('course_id', lote).is('withdrawn_at', null)
+    marcar(porUuid ?? [])
+    if (est?.document_number != null) {
+      const { data: porDoc } = await sb.from('academic_grades')
+        .select('course_id, final_grade, retake_grade')
+        .eq('document_number', String(est.document_number)).in('course_id', lote).is('withdrawn_at', null)
+      marcar(porDoc ?? [])
+    }
+  }
+  return out
+}
+
 // Las asignaturas inscritas (vivas) de un estudiante, para elegir cuál cursa
-// fuera. Se ofrecen las de aula normal: las que ya son de ámbito completo no
-// necesitan marca individual.
+// fuera. Se ofrecen las de aula normal (las de ámbito completo no necesitan
+// marca individual) y SIN calificación: una "en curso" sin nota final sí; una
+// aprobada o desaprobada, no.
 async function cursosDeEstudiante(req: NextRequest) {
   const noAutorizado = await guardAmbito('campus_externo')
   if (noAutorizado) return noAutorizado
@@ -41,11 +73,14 @@ async function cursosDeEstudiante(req: NextRequest) {
   const ambito = await cursosDelAmbito(sb, 'campus_externo')
   const vistos = new Set<string>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cursos = ((data ?? []) as any[])
+  const candidatos = ((data ?? []) as any[])
     .filter(r => r.course && !ambito.has(String(r.course_id)) && !vistos.has(String(r.course_id)) && vistos.add(String(r.course_id)))
+  const conNota = await cursosConNota(sb, studentId, candidatos.map(r => String(r.course_id)))
+  const cursos = candidatos
+    .filter(r => !conNota.has(String(r.course_id)))
     .map(r => ({ id: String(r.course.id), code: r.course.code, name: r.course.name }))
     .sort((a, b) => String(a.code ?? a.name).localeCompare(String(b.code ?? b.name)))
-  return NextResponse.json({ cursos })
+  return NextResponse.json({ cursos, con_nota: conNota.size })
 }
 export async function PATCH(req: NextRequest) { return editar('campus_externo', req) }
 
@@ -99,6 +134,11 @@ export async function POST(req: NextRequest) {
   // y confunde el registro: se rechaza con la explicación.
   if ((await cursosDelAmbito(sb, 'campus_externo')).has(String(cur.id))) {
     return NextResponse.json({ error: `${cur.code ?? cur.name} ya pertenece por completo al campus externo: no hace falta marcar estudiantes individuales.` }, { status: 409 })
+  }
+  // Una asignatura ya calificada —aprobada o desaprobada— no se marca: el acta
+  // es un hecho y esta vía no la reabre (regla del usuario, 10/09/2026).
+  if ((await cursosConNota(sb, String(est.id), [String(cur.id)])).size) {
+    return NextResponse.json({ error: `${cur.code ?? cur.name} ya tiene calificación para este estudiante: una asignatura calificada no se marca como campus externo.` }, { status: 409 })
   }
 
   const { error } = await sb.from('external_campus_students').insert({
