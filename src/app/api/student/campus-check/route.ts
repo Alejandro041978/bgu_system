@@ -74,13 +74,29 @@ async function verificarCampus(sb: any, stu: any) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const grupos = ((members ?? []) as any[]).map(m => m.group).filter(Boolean)
   const { data: enrs } = await sb.from('academic_student_enrollments')
-    .select('program_id, collection_id, program:academic_programs(name), coleccion:moodle_collections(name)')
+    .select('program_id, collection_id, status, program:academic_programs(name, partner_campus), coleccion:moodle_collections(name)')
     .eq('student_id', stu.id)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const enrDe = new Map(((enrs ?? []) as any[]).map(e => [String(e.program_id), e]))
-  const cursosDe = await asignaturasDeGrupos(sb, grupos.map((g: { id: string }) => String(g.id)))
 
-  const collectionIds = [...new Set(grupos.map((g: { program_id: string }) => enrDe.get(String(g.program_id))?.collection_id).filter(Boolean))]
+  // Programas de campus aliado (10/09/2026): se dictan en el LMS del aliado.
+  // No se les verifica cuenta ni aulas de Blackwell — se le dice al estudiante
+  // dónde se cursa su programa. Salen de las MATRÍCULAS (no del carrusel) para
+  // cubrir también a quien aún no está colocado.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sociosSet = new Set(((enrs ?? []) as any[]).filter(e => e.program?.partner_campus).map(e => String(e.program_id)))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const partnerPrograms = ((enrs ?? []) as any[])
+    .filter(e => e.program?.partner_campus && e.status !== 'anulada')
+    .map(e => ({ program: String(e.program?.name ?? 'Programa') }))
+  const gruposPropios = grupos.filter((g: { program_id: string }) => !sociosSet.has(String(g.program_id)))
+  const soloSocio = partnerPrograms.length > 0 && gruposPropios.length === 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    && !((enrs ?? []) as any[]).some(e => !e.program?.partner_campus && e.status !== 'anulada')
+
+  const cursosDe = await asignaturasDeGrupos(sb, gruposPropios.map((g: { id: string }) => String(g.id)))
+
+  const collectionIds = [...new Set(gruposPropios.map((g: { program_id: string }) => enrDe.get(String(g.program_id))?.collection_id).filter(Boolean))]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let links: any[] = []
   if (collectionIds.length) {
@@ -134,7 +150,7 @@ async function verificarCampus(sb: any, stu: any) {
     }
   }
 
-  const programs: ProgramaCheck[] = grupos.map((g: { id: string; program_id: string; abbreviation: string | null; name: string | null }) => {
+  const programs: ProgramaCheck[] = gruposPropios.map((g: { id: string; program_id: string; abbreviation: string | null; name: string | null }) => {
     const enr = enrDe.get(String(g.program_id))
     const cid = enr?.collection_id ? String(enr.collection_id) : null
     const courses: CursoCheck[] = (cursosDe.get(String(g.id)) ?? []).map(c => {
@@ -159,7 +175,11 @@ async function verificarCampus(sb: any, stu: any) {
     ? (realCourses ?? []).filter(c => !esperadasSet.has(c.id)).map(c => ({ id: c.id, name: c.shortname || c.fullname }))
     : []
 
-  return { account, programs, extras, moodle_ok: vivo && realIds != null, checked_at: new Date().toISOString() }
+  return {
+    account, programs, extras,
+    partner_programs: partnerPrograms, solo_socio: soloSocio,
+    moodle_ok: vivo && realIds != null, checked_at: new Date().toISOString(),
+  }
 }
 
 export async function GET() {
@@ -189,6 +209,9 @@ export async function POST(req: NextRequest) {
   const foto = await verificarCampus(sb, stu)
   const lineas: string[] = []
   lineas.push(`Cuenta Moodle: ${foto.account.exists ? (foto.account.suspended ? 'SUSPENDIDA' : foto.account.suspended === false ? 'activa' : 'existe (estado sin comprobar)') : 'SIN CUENTA'}`)
+  for (const p of foto.partner_programs) {
+    lineas.push(`Programa en campus aliado: ${p.program} — se cursa en el LMS del aliado, sin aprovisionamiento Blackwell`)
+  }
   for (const p of foto.programs) {
     lineas.push(`\n${p.program} · ${p.group}${p.collection ? ` · colección ${p.collection}` : ''}`)
     for (const c of p.courses) {

@@ -9,6 +9,8 @@ interface Data {
   account: { exists: boolean; suspended: boolean | null; lastaccess: number | null }
   programs: Programa[]
   extras: { id: number; name: string }[]
+  partner_programs: { program: string }[]
+  solo_socio: boolean
   moodle_ok: boolean
 }
 
@@ -59,25 +61,44 @@ export function CampusCheck() {
 
   return (
     <div className="space-y-5">
-      {/* Estado de la cuenta */}
-      <div className={`flex items-center gap-3 border rounded-xl px-4 py-3 ${cuenta.cls}`}>
-        {cuenta.icon}
-        <div>
-          <p className="text-sm font-medium">{cuenta.label}</p>
-          {data.account.lastaccess ? (
-            <p className="text-[11px] opacity-70">Último ingreso: {new Date(data.account.lastaccess * 1000).toLocaleString('es-PE')}</p>
-          ) : null}
+      {/* Programas de campus aliado: se cursan en el LMS de la institución
+          aliada — aquí no hay cuenta ni aulas de Blackwell que verificar. */}
+      {(data.partner_programs ?? []).map((p, i) => (
+        <div key={i} className="flex items-start gap-3 border border-blue-200 bg-blue-50 rounded-xl px-4 py-3">
+          <Monitor className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-blue-900">{p.program} se desarrolla en el campus de nuestra institución aliada</p>
+            <p className="text-xs text-blue-800 mt-1">
+              Tus clases, materiales y evaluaciones están en la plataforma de esa institución, que es quien te entrega tus accesos.
+              Este verificador no aplica a ese campus. Si aún no tienes tus accesos, escríbenos y te ayudamos a coordinarlos.
+            </p>
+          </div>
         </div>
-      </div>
+      ))}
 
-      {!data.moodle_ok && (
+      {/* Estado de la cuenta Blackwell: solo si tiene programas que se cursan
+          en NUESTRO campus. Al de campus aliado, mostrarle "cuenta activa"
+          aquí solo lo confunde: entra y no hay nada que ver. */}
+      {!data.solo_socio && (
+        <div className={`flex items-center gap-3 border rounded-xl px-4 py-3 ${cuenta.cls}`}>
+          {cuenta.icon}
+          <div>
+            <p className="text-sm font-medium">{cuenta.label}</p>
+            {data.account.lastaccess ? (
+              <p className="text-[11px] opacity-70">Último ingreso: {new Date(data.account.lastaccess * 1000).toLocaleString('es-PE')}</p>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {!data.solo_socio && !data.moodle_ok && (
         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
           El campus no respondió durante la verificación: la columna de acceso puede aparecer &quot;sin comprobar&quot;. Vuelve a intentar en unos minutos.
         </p>
       )}
 
-      {/* Asignaturas a las que debería tener acceso */}
-      {data.programs.length === 0 && (
+      {/* Asignaturas a las que debería tener acceso (solo campus propio) */}
+      {data.programs.length === 0 && !data.solo_socio && (
         <p className="text-sm text-gray-500 bg-white border border-gray-200 rounded-xl px-4 py-6 text-center">
           No tienes una ruta de asignaturas activa en este momento. Si crees que deberías estar cursando, repórtalo abajo.
         </p>

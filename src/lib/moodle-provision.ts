@@ -19,6 +19,9 @@ export interface SyncResult {
   // cuenta para que se vea en vez de suponerse.
   sin_coleccion: number
   errors: string[]
+  // El grupo es de un programa de campus aliado: el aprovisionamiento no lo
+  // toca (ni cuentas, ni credenciales, ni matrículas) — 10/09/2026.
+  campus_socio?: boolean
 }
 
 interface StudentRow {
@@ -333,6 +336,19 @@ export async function marcarParaSincronizar(sb: any, groupId: string): Promise<v
   catch { /* el cron pasa igual por rotación; esto solo adelanta el turno */ }
 }
 
+// ¿El grupo pertenece a un programa de campus aliado? Esos programas se
+// dictan en el LMS del aliado: el ERP lleva su carrusel (secuencia, avance,
+// egreso) pero NO les aprovisiona el Moodle de Blackwell. Antes sí lo hacía y
+// el estudiante recibía credenciales de un campus donde no hay nada que ver
+// (caso Camacho / DCE Epigenetics, reportado el 10/09/2026).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function esGrupoDeCampusSocio(sb: any, groupId: string): Promise<boolean> {
+  const { data: g } = await sb.from('academic_groups').select('program_id').eq('id', groupId).maybeSingle()
+  if (!g?.program_id) return false
+  const { data: p } = await sb.from('academic_programs').select('partner_campus').eq('id', g.program_id).maybeSingle()
+  return !!p?.partner_campus
+}
+
 // Matricula/desmatricula UN estudiante en las aulas del grupo. Best-effort.
 //
 // La BAJA se sigue llamando en el momento —quien completó un carrusel no debe
@@ -343,6 +359,7 @@ export async function provisionStudent(groupId: string, studentId: string, actio
   if (!result.configured) return result
   const sb = admin()
   try {
+    if (await esGrupoDeCampusSocio(sb, groupId)) { result.campus_socio = true; return result }
     const { data: s } = await sb.from('academic_students').select(STUDENT_FIELDS).eq('id', studentId).maybeSingle()
     if (!s) { result.errors.push('Estudiante no encontrado'); return result }
     const { courseIds, aulaDeCurso, unmapped, por_respaldo } = await loadGroupCourses(sb, groupId, await coleccionDe(sb, groupId, studentId))
@@ -385,6 +402,7 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
   if (!result.configured) return result
   const sb = admin()
   try {
+    if (await esGrupoDeCampusSocio(sb, groupId)) { result.campus_socio = true; return result }
     // Las aulas dependen de la COLECCIÓN de cada estudiante, así que no hay un
     // único juego para todo el grupo: en el mismo carrusel puede haber gente de
     // la colección regular y del campus asociado. Se resuelve una vez por
