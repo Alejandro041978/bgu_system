@@ -58,7 +58,7 @@ export async function GET() {
     sb.from('indicator_composition').select('parent_id, child_id'),
     sb.from('indicator_results').select('indicator_id, academic_year_id, value, period'),
   ])
-  const { data: spk } = await sb.from('strategic_plan_kpis').select('kpi_id, objective_id')
+  const { data: spk } = await sb.from('strategic_plan_kpis').select('kpi_id, objective_id, valid_to_year_id')
 
   const hoy = new Date().toISOString().slice(0, 10)
   const anioActual = (anios ?? []).find((y: { start_date: string; end_date: string }) => y.start_date <= hoy && hoy <= y.end_date)
@@ -246,6 +246,33 @@ export async function GET() {
     sugerencia: 'Definir los años de ejecución en Cargar Plan. Sin esto, el dashboard del plan estratégico se queda vacío para siempre.',
     afectados: [`${sinAnios} acciones bloqueadas`],
   })
+
+  // ── 11b. Objetivos cuyos KPI del plan estratégico ya vencieron ───────────
+  // La vigencia es por años académicos (año final INCLUSIVE, 10/09/2026). Un
+  // objetivo cuyos KPI vencieron todos queda sin medición hacia adelante.
+  if (anioActual) {
+    const inicioDe = new Map((anios ?? []).map((y: { id: string; start_date: string }) => [String(y.id), String(y.start_date)]))
+    const porObjetivoSpk = new Map<string, { total: number; vigentes: number }>()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of (spk ?? []) as any[]) {
+      const k = String(r.objective_id)
+      const e = porObjetivoSpk.get(k) ?? { total: 0, vigentes: 0 }
+      e.total++
+      const vencido = r.valid_to_year_id && (inicioDe.get(String(r.valid_to_year_id)) ?? '9999') < String(anioActual.start_date)
+      if (!vencido) e.vigentes++
+      porObjetivoSpk.set(k, e)
+    }
+    add({
+      id: 'kpi-vencidos', sev: 'media', grupo: 'Operación',
+      titulo: 'Objetivos cuyos KPI del plan estratégico ya vencieron todos',
+      detalle: 'Todos los KPI asociados al objetivo tienen un año final anterior al año académico vigente: el objetivo queda sin medición hacia adelante.',
+      sugerencia: 'Crear el KPI sucesor con su año de inicio, o extender la vigencia del actual en el Tablero de Indicadores.',
+      afectados: [...porObjetivoSpk.entries()]
+        .filter(([, v]) => v.total > 0 && v.vigentes === 0)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map(([oid, v]) => { const o = objPorId.get(oid) as any; return `${o?.code ?? oid} · ${o?.name ?? ''} (${v.total} KPI vencidos)` }),
+    })
+  }
 
   // ── 12. Responsables sin persona vinculada ───────────────────────────────
   add({

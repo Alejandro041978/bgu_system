@@ -11,6 +11,8 @@ interface Indicador {
   resultado: number | null; resultado_at: string | null
   responsable: string | null
   origen: 'objetivo' | 'accion'; origen_nombre: string | null
+  vigencia_desde: { id: string; etiqueta: string } | null
+  vigencia_hasta: { id: string; etiqueta: string } | null
 }
 interface Objetivo { id: string; code: string; name: string; indicadores: Indicador[] }
 interface Dimension { id: string; code: string; name: string; objetivos: Objetivo[] }
@@ -47,6 +49,27 @@ export function PlanIndicators() {
   const [anioId, setAnioId] = useState<string>('')
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Editor de vigencia (por KPI; ambos extremos inclusive, vacío = abierto)
+  const [editandoVig, setEditandoVig] = useState<string | null>(null)
+  const [vigForm, setVigForm] = useState<{ desde: string; hasta: string }>({ desde: '', hasta: '' })
+  const [vigMsg, setVigMsg] = useState<string | null>(null)
+  const [vigGuardando, setVigGuardando] = useState(false)
+
+  async function guardarVigencia(i: Indicador, objectiveId: string) {
+    setVigGuardando(true); setVigMsg(null)
+    const r = await fetch('/api/planning/indicators', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kpi_id: i.id, objective_id: objectiveId,
+        valid_from_year_id: vigForm.desde || null, valid_to_year_id: vigForm.hasta || null,
+      }),
+    })
+    const j = await r.json().catch(() => ({}))
+    setVigGuardando(false)
+    if (!r.ok) { setVigMsg(j.error ?? 'No se pudo guardar'); return }
+    setEditandoVig(null)
+    traer(anioId)
+  }
 
   const traer = async (id?: string) => {
     setCargando(true); setError(null)
@@ -137,6 +160,7 @@ export function PlanIndicators() {
                         <th className="px-3 py-1.5 font-medium text-right">Meta</th>
                         <th className="px-3 py-1.5 font-medium text-right">Resultado</th>
                         <th className="px-3 py-1.5 font-medium">Responsable</th>
+                        <th className="px-3 py-1.5 font-medium">Vigencia</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -167,6 +191,36 @@ export function PlanIndicators() {
                               {fmt(i.resultado, i.value_type)}
                             </td>
                             <td className="px-3 py-2 text-[12px] text-gray-500">{i.responsable ?? '—'}</td>
+                            <td className="px-3 py-2 text-[12px]">
+                              {editandoVig === i.id ? (
+                                <span className="flex items-center gap-1 flex-wrap">
+                                  <select value={vigForm.desde} onChange={e => setVigForm(p => ({ ...p, desde: e.target.value }))}
+                                    className="border border-blue-300 rounded px-1 py-0.5 text-[11px] bg-white">
+                                    <option value="">inicio del ciclo</option>
+                                    {d.anios.map(y => <option key={y.id} value={y.id}>{y.etiqueta}</option>)}
+                                  </select>
+                                  <span className="text-gray-400">→</span>
+                                  <select value={vigForm.hasta} onChange={e => setVigForm(p => ({ ...p, hasta: e.target.value }))}
+                                    className="border border-blue-300 rounded px-1 py-0.5 text-[11px] bg-white">
+                                    <option value="">fin del ciclo</option>
+                                    {d.anios.map(y => <option key={y.id} value={y.id}>{y.etiqueta}</option>)}
+                                  </select>
+                                  <button onClick={() => guardarVigencia(i, o.id)} disabled={vigGuardando}
+                                    className="text-[11px] text-blue-600 hover:underline disabled:opacity-50">{vigGuardando ? '…' : 'guardar'}</button>
+                                  <button onClick={() => { setEditandoVig(null); setVigMsg(null) }}
+                                    className="text-[11px] text-gray-400 hover:underline">cancelar</button>
+                                  {vigMsg && <span className="text-[11px] text-red-600 w-full">{vigMsg}</span>}
+                                </span>
+                              ) : (
+                                <button onClick={() => { setEditandoVig(i.id); setVigMsg(null); setVigForm({ desde: i.vigencia_desde?.id ?? '', hasta: i.vigencia_hasta?.id ?? '' }) }}
+                                  title="Editar vigencia (el año final es inclusive)"
+                                  className="text-gray-500 hover:text-blue-600">
+                                  {!i.vigencia_desde && !i.vigencia_hasta
+                                    ? 'todo el ciclo'
+                                    : `${i.vigencia_desde?.etiqueta ?? 'inicio'} → ${i.vigencia_hasta?.etiqueta ?? 'fin'}`}
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         )
                       })}
@@ -182,7 +236,9 @@ export function PlanIndicators() {
       <p className="text-xs text-gray-500">
         Los indicadores se administran desde <b>Plan de Efectividad → Cargar Plan</b>; aquí se ven ordenados por
         el árbol del plan estratégico, que es donde se nota cuál objetivo quedó sin medir. La <b>meta</b> es de
-        cada plan y puede diferir; el <b>resultado</b> es único por indicador y año académico.
+        cada plan y puede diferir; el <b>resultado</b> es único por indicador y año académico. La <b>vigencia</b> se
+        expresa en años académicos, con ambos extremos inclusive: sin años, el KPI rige todo el ciclo; un KPI fuera
+        de vigencia no aparece en ese año (sí en los años en que regía).
       </p>
     </div>
   )
