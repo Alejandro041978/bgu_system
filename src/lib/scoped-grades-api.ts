@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { applyGradeEdit, fetchByIn, stableUuid, type GradeChanges } from '@/lib/grades-write'
-import { cursosDelAmbito, notaEnAmbito, guardAmbito, TITULO, type Ambito } from '@/lib/grade-scope'
+import { cursosDelAmbito, notaEnAmbito, guardAmbito, marcadosExternos, externosDeCurso, TITULO, type Ambito } from '@/lib/grade-scope'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -60,14 +60,18 @@ async function listarInterno(ambito: Ambito, req: NextRequest) {
   const cursoFiltro = req.nextUrl.searchParams.get('course') ?? ''
 
   const cursosOk = await cursosDelAmbito(sb, ambito)
-  if (!cursosOk.size) {
+  // Campus externo por estudiante: los pares marcados amplían el universo — la
+  // asignatura entra al listado, pero solo con SUS estudiantes marcados.
+  const marcados = ambito === 'campus_externo' ? await marcadosExternos(sb) : new Map<string, Set<string>>()
+  const cursosListado = new Set([...cursosOk, ...marcados.keys()])
+  if (!cursosListado.size) {
     return NextResponse.json({ titulo: TITULO[ambito], asignaturas: [], filas: [], total: 0, sin_alcance: true })
   }
 
   const cursos = await todo(sb, 'academic_courses', 'id, name, code, program_id')
   const programas = await todo(sb, 'academic_programs', 'id, name')
   const nomPrograma = new Map(programas.map((p: { id: string; name: string }) => [String(p.id), p.name]))
-  const delAmbito = cursos.filter((c: { id: string }) => cursosOk.has(String(c.id)))
+  const delAmbito = cursos.filter((c: { id: string }) => cursosListado.has(String(c.id)))
 
   // El periodo se guarda como semester_id y se resuelve contra el catálogo. La
   // columna `semester` no existe: pedirla devolvía error, y como el lector lo
@@ -78,7 +82,7 @@ async function listarInterno(ambito: Ambito, req: NextRequest) {
   const notas = await todo(sb, 'academic_grades',
     'external_id, student_id, document_number, student_name, course_id, course_name, final_grade, retake_grade, estado_academico, semester_id, source, edited_at, course_enrollment_id, withdrawn_at',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (query: any) => query.in('course_id', [...cursosOk]), 'external_id')
+    (query: any) => query.in('course_id', [...cursosListado]), 'external_id')
 
   // El listado sale del REGISTRO, no de las notas.
   //
@@ -95,8 +99,13 @@ async function listarInterno(ambito: Ambito, req: NextRequest) {
   // ya la tiene y vacía si no.
   const matriculas = await todo(sb, 'academic_course_enrollments', 'id, student_id, course_id, status',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (query: any) => query.in('course_id', [...cursosOk]))
-  const vivas = matriculas.filter((m: { status: string }) => m.status !== 'retirada')
+    (query: any) => query.in('course_id', [...cursosListado]))
+  // De una asignatura que entró solo por pares marcados, aparecen ÚNICAMENTE
+  // esos estudiantes: sus compañeros siguen en el aula de Moodle y su nota no
+  // se toca desde aquí.
+  const vivas = matriculas.filter((m: { status: string; student_id: string; course_id: string }) =>
+    m.status !== 'retirada' &&
+    (cursosOk.has(String(m.course_id)) || marcados.get(String(m.course_id))?.has(String(m.student_id))))
 
   const estudiantes = vivas.length
     ? await fetchByIn(sb, 'academic_students', 'id, first_name, last_name, second_last_name, document_number',
@@ -150,6 +159,7 @@ async function listarInterno(ambito: Ambito, req: NextRequest) {
       retake_grade: n?.retake_grade ?? null,
       estado: n?.estado_academico ?? null,
       editada: !!n?.edited_at,
+      externo_individual: !cursosOk.has(String(m.course_id)),
     }
   })
 
@@ -158,7 +168,10 @@ async function listarInterno(ambito: Ambito, req: NextRequest) {
   // que existe, aunque su registro esté incompleto.
   const yaMostradas = new Set(crudas.filter(f => f.external_id).map(f => String(f.external_id)))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const huerfanas = (notas as any[]).filter(n => !n.withdrawn_at && !yaMostradas.has(String(n.external_id))).map(n => ({
+  const huerfanas = (notas as any[]).filter(n => !n.withdrawn_at && !yaMostradas.has(String(n.external_id))
+    // De asignaturas que entraron solo por pares marcados, una huérfana aparece
+    // solo si es de un estudiante marcado — lo demás pertenece al aula.
+    && (cursosOk.has(String(n.course_id)) || (n.student_id && marcados.get(String(n.course_id))?.has(String(n.student_id))))).map(n => ({
     external_id: String(n.external_id),
     enrollment_id: null as string | null,
     student_id: null as string | null,
@@ -212,10 +225,13 @@ async function crearNotaDeMatricula(
   if (!mat) return { error: 'Esa inscripción no existe', status: 404 }
   if (mat.status === 'retirada') return { error: 'Esa asignatura está retirada: no se le puede poner nota', status: 400 }
 
-  // El ámbito se comprueba sobre la ASIGNATURA, antes de crear nada.
+  // El ámbito se comprueba sobre la ASIGNATURA — o, en campus externo, sobre
+  // el par estudiante+asignatura marcado — antes de crear nada.
   const cursosOk = await cursosDelAmbito(sb, ambito)
   if (!cursosOk.has(String(mat.course_id))) {
-    return { error: 'Esa asignatura no pertenece a este ámbito.', status: 403 }
+    const parMarcado = ambito === 'campus_externo'
+      && (await externosDeCurso(sb, String(mat.course_id))).has(String(mat.student_id))
+    if (!parMarcado) return { error: 'Esa asignatura no pertenece a este ámbito.', status: 403 }
   }
 
   // Si ya hay nota para esa matrícula, se usa esa en vez de crear otra: dos

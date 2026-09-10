@@ -1,5 +1,6 @@
 import { Topbar } from '@/components/layout/topbar'
 import { ScopedGrades } from '@/components/academic/scoped-grades'
+import { ExternalCampusMarks } from '@/components/academic/external-campus-marks'
 
 export const revalidate = 0
 
@@ -13,6 +14,7 @@ export default function ExternalCampusGradesPage() {
             endpoint="/api/academic/external-campus-grades"
             explica="Estos programas se dictan en otra institución y la calificación nace en su plataforma, no en nuestras aulas. Por eso alguien tiene que traerla a mano: aquí, y solo para estas asignaturas."
           />
+          <ExternalCampusMarks />
         </div>
       </div>
     </>

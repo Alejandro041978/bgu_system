@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { isStudentUser } from '@/lib/student-identity'
 import { moodleCall, moodleConfigured, moodleUserState, getUserByIdnumber, getUserByEmail } from '@/lib/moodle'
-import { loadGroupCourses, coleccionDe, aulasDeElecciones } from '@/lib/moodle-provision'
+import { loadGroupCourses, coleccionDe, aulasDeElecciones, externosDeEstudiantes } from '@/lib/moodle-provision'
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -69,12 +69,17 @@ export async function GET(req: NextRequest) {
   // carrusel pueden esperar aulas distintas (Finance vs HR).
   const esperadas = new Set<number>()
   const sinAula: string[] = []
+  // Campus externo por estudiante: el aula de una asignatura marcada NO se
+  // espera — el par se cursa fuera y el aprovisionador lo excluye.
+  const externos = (await externosDeEstudiantes(sb, [studentId])).get(String(studentId)) ?? new Set<string>()
   const { data: membs } = await sb.from('academic_group_students')
     .select('group_id, status').eq('student_id', studentId).eq('status', 'activo')
   for (const m of membs ?? []) {
     try {
       const r = await loadGroupCourses(sb, String(m.group_id), await coleccionDe(sb, String(m.group_id), studentId))
-      for (const a of r.courseIds) esperadas.add(Number(a))
+      const fuera = new Set<number>()
+      for (const [cursoId, aula] of r.aulaDeCurso) if (externos.has(cursoId)) fuera.add(aula)
+      for (const a of r.courseIds) if (!fuera.has(a)) esperadas.add(Number(a))
       sinAula.push(...r.unmapped)
       const el = await aulasDeElecciones(sb, String(m.group_id), [studentId])
       for (const a of el.porEstudiante.get(String(studentId)) ?? []) esperadas.add(Number(a))

@@ -15,6 +15,7 @@ interface Fila {
   retake_grade: number | null
   estado: string | null
   editada: boolean
+  externo_individual?: boolean
 }
 interface Asignatura { id: string; name: string; programa: string }
 interface Data {
@@ -160,6 +161,7 @@ export function ScopedGrades({ endpoint, explica }: { endpoint: string; explica:
                         </td>
                         <td className="px-3 py-2.5 text-gray-700">
                           {f.course_name ?? '—'}
+                          {f.externo_individual && <span className="ml-1.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 align-middle">marcado individual</span>}
                           {f.semester && <span className="block text-[11px] text-gray-400">{f.semester}</span>}
                         </td>
                         <td className="px-3 py-2.5 text-gray-500 text-xs">{f.programa}</td>

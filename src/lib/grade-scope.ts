@@ -72,6 +72,30 @@ export async function cursosDelAmbito(sb: any, ambito: Ambito): Promise<Set<stri
   return out
 }
 
+// Tercer nivel del campus externo (09/09/2026): pares estudiante+asignatura.
+// Un estudiante concreto cursa fuera una asignatura que SÍ tiene aula de
+// Moodle para sus compañeros. Devuelve course_id → set de student_ids.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function marcadosExternos(sb: any): Promise<Map<string, Set<string>>> {
+  const out = new Map<string, Set<string>>()
+  const { data } = await sb.from('external_campus_students').select('student_id, course_id')
+  for (const r of (data ?? []) as { student_id: string; course_id: string }[]) {
+    const k = String(r.course_id)
+    if (!out.has(k)) out.set(k, new Set())
+    out.get(k)!.add(String(r.student_id))
+  }
+  return out
+}
+
+// Los estudiantes marcados como campus externo en UNA asignatura (para que el
+// importador y el aprovisionador consulten solo lo suyo).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function externosDeCurso(sb: any, courseId: string): Promise<Set<string>> {
+  const { data } = await sb.from('external_campus_students')
+    .select('student_id').eq('course_id', courseId)
+  return new Set((data ?? []).map((r: { student_id: string }) => String(r.student_id)))
+}
+
 /**
  * ¿Esta nota concreta cae dentro del ámbito?
  *
@@ -79,18 +103,25 @@ export async function cursosDelAmbito(sb: any, ambito: Ambito): Promise<Set<stri
  * del navegador. Si no se hiciera, el permiso de "notas de capstone" sería en
  * realidad el permiso de editar cualquier nota: basta con mandar otro
  * external_id. La pantalla filtra por comodidad; esto es lo que manda.
+ *
+ * En campus_externo el ámbito es la asignatura O el par estudiante+asignatura
+ * marcado individualmente.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function notaEnAmbito(sb: any, externalId: string, ambito: Ambito): Promise<boolean> {
   const { data: nota } = await sb.from('academic_grades')
-    .select('course_id').eq('external_id', externalId).maybeSingle()
+    .select('course_id, student_id').eq('external_id', externalId).maybeSingle()
   const cursoId = nota?.course_id ? String(nota.course_id) : null
   // Una nota sin asignatura enlazada no pertenece a ningún ámbito. Es
   // deliberado: sin saber qué asignatura es, no hay forma de afirmar que le
   // toca a este colaborador, y afirmarlo por descarte es como se archivaron mal
   // cincuenta notas en las aulas reutilizadas.
   if (!cursoId) return false
-  return (await cursosDelAmbito(sb, ambito)).has(cursoId)
+  if ((await cursosDelAmbito(sb, ambito)).has(cursoId)) return true
+  if (ambito === 'campus_externo' && nota?.student_id) {
+    return (await externosDeCurso(sb, cursoId)).has(String(nota.student_id))
+  }
+  return false
 }
 
 /**

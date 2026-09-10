@@ -188,6 +188,9 @@ export async function loadGroupCourses(sb: any, groupId: string, collectionId?: 
   }
 
   const courseIds = new Set<number>()
+  // Qué aula corresponde a qué asignatura del ERP: lo necesita la exclusión de
+  // campus externo por estudiante (quitar SOLO el aula de la asignatura marcada).
+  const aulaDeCurso = new Map<string, number>()
   const unmapped: string[] = []
   for (const c of cursos) {
     // Casilla electiva: no tiene aula propia — el aula es la de la ELECCIÓN
@@ -196,7 +199,7 @@ export async function loadGroupCourses(sb: any, groupId: string, collectionId?: 
     if (c.is_elective) continue
     if (collectionId) {
       const deColeccion = porColeccion.get(String(c.id))
-      if (deColeccion) courseIds.add(deColeccion)
+      if (deColeccion) { courseIds.add(deColeccion); aulaDeCurso.set(String(c.id), deColeccion) }
       else unmapped.push(c.name ?? c.id)
       continue
     }
@@ -204,13 +207,33 @@ export async function loadGroupCourses(sb: any, groupId: string, collectionId?: 
     const cid = o
       ? await ensureCourse(sb, { id: o.id, moodle_course_id: o.aula, code: c.code ?? null })
       : null
-    if (cid) courseIds.add(cid)
+    if (cid) { courseIds.add(cid); aulaDeCurso.set(String(c.id), cid) }
     else unmapped.push(c.name ?? c.id)
   }
   // por_respaldo: este juego de aulas no salió de una colección. Se devuelve
   // para que quien llame pueda contarlo y enseñarlo, en vez de que el respaldo
   // siga siendo invisible mientras sostiene al 98% de los estudiantes.
-  return { courseIds: [...courseIds], unmapped: [...new Set(unmapped)], por_respaldo: !collectionId }
+  return { courseIds: [...courseIds], aulaDeCurso, unmapped: [...new Set(unmapped)], por_respaldo: !collectionId }
+}
+
+// Pares campus-externo de estos estudiantes: student_id → set de course_ids
+// que cursan fuera. El aprovisionador no les da (y les quita) el aula de esas
+// asignaturas: su nota entra por Notas de campus externo y el importador ya
+// los salta — dejarles el aula sería invitar al reclamo "yo tenía nota ahí".
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function externosDeEstudiantes(sb: any, studentIds: string[]): Promise<Map<string, Set<string>>> {
+  const out = new Map<string, Set<string>>()
+  if (!studentIds.length) return out
+  for (let i = 0; i < studentIds.length; i += 200) {
+    const { data } = await sb.from('external_campus_students')
+      .select('student_id, course_id').in('student_id', studentIds.slice(i, i + 200))
+    for (const r of (data ?? []) as { student_id: string; course_id: string }[]) {
+      const k = String(r.student_id)
+      if (!out.has(k)) out.set(k, new Set())
+      out.get(k)!.add(String(r.course_id))
+    }
+  }
+  return out
 }
 
 // ---------------------------------------------------------------------------
@@ -258,11 +281,15 @@ export async function aulasDeElecciones(sb: any, groupId: string, studentIds: st
     if (!cualquierLink.has(String(l.course_id))) cualquierLink.set(String(l.course_id), Number(l.aula_id))
   }
 
+  // Un par marcado como campus externo tampoco recibe el aula de su ELEGIDA.
+  const externos = await externosDeEstudiantes(sb, studentIds)
+
   const porEstudiante = new Map<string, number[]>()
   const unmapped = new Set<string>()
   for (const el of elecciones) {
     const sid = estudianteDe.get(String(el.enrollment_id))
     if (!sid) continue
+    if (externos.get(sid)?.has(String(el.chosen.id))) continue
     const col = coleccionDeEstudiante.get(sid)
     const aula = (col ? porColeccionLink.get(`${el.chosen.id}|${col}`) : undefined) ?? cualquierLink.get(String(el.chosen.id))
     if (!aula) { unmapped.add(`${[el.chosen.code, el.chosen.name].filter(Boolean).join(' ')} (electiva elegida)`); continue }
@@ -318,7 +345,7 @@ export async function provisionStudent(groupId: string, studentId: string, actio
   try {
     const { data: s } = await sb.from('academic_students').select(STUDENT_FIELDS).eq('id', studentId).maybeSingle()
     if (!s) { result.errors.push('Estudiante no encontrado'); return result }
-    const { courseIds, unmapped, por_respaldo } = await loadGroupCourses(sb, groupId, await coleccionDe(sb, groupId, studentId))
+    const { courseIds, aulaDeCurso, unmapped, por_respaldo } = await loadGroupCourses(sb, groupId, await coleccionDe(sb, groupId, studentId))
     // Las aulas de SUS elecciones de electivas viajan con las del grupo: el
     // alta las incluye, y la baja (avance de carrusel) también — para no
     // dejar accesos colgados en aulas de elegidas.
@@ -328,10 +355,22 @@ export async function provisionStudent(groupId: string, studentId: string, actio
     const uid = await ensureMoodleUser(sb, s, result)
     if (!uid) { result.no_account = 1; return result }
     result.with_account = 1
+    // Campus externo por estudiante: el aula de la asignatura marcada no se le
+    // da — y en el alta se le retira activamente si la tuviera.
+    const externosSet = (await externosDeEstudiantes(sb, [studentId])).get(String(studentId)) ?? new Set<string>()
+    const aulasExcluidas = new Set<number>()
+    for (const [cursoId, aula] of aulaDeCurso) if (externosSet.has(cursoId)) aulasExcluidas.add(aula)
     const aulas = [...courseIds, ...(elecciones.porEstudiante.get(String(studentId)) ?? [])]
+      .filter(cid => !aulasExcluidas.has(cid))
     for (const cid of aulas) {
       try { action === 'enrol' ? await enrolUser(cid, uid) : await unenrolUser(cid, uid); result.enrol_ops++ }
       catch (e) { result.errors.push(e instanceof Error ? e.message : 'error') }
+    }
+    if (action === 'enrol') {
+      for (const cid of aulasExcluidas) {
+        try { await unenrolUser(cid, uid) }
+        catch { /* si no estaba matriculado, no hay nada que retirar */ }
+      }
     }
   } catch (e) { result.errors.push(e instanceof Error ? e.message : 'error') }
   return result
@@ -350,12 +389,12 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
     // único juego para todo el grupo: en el mismo carrusel puede haber gente de
     // la colección regular y del campus asociado. Se resuelve una vez por
     // colección distinta y se reutiliza.
-    const porColeccion = new Map<string, number[]>()
+    const porColeccion = new Map<string, { courseIds: number[]; aulaDeCurso: Map<string, number> }>()
     const cargar = async (colId: string | null) => {
       const k = colId ?? '—'
       if (!porColeccion.has(k)) {
         const r = await loadGroupCourses(sb, groupId, colId)
-        porColeccion.set(k, r.courseIds)
+        porColeccion.set(k, { courseIds: r.courseIds, aulaDeCurso: r.aulaDeCurso })
         result.courses_unmapped = [...new Set([...result.courses_unmapped, ...r.unmapped])]
       }
       return porColeccion.get(k)!
@@ -372,6 +411,11 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
       .catch(() => ({ porEstudiante: new Map<string, number[]>(), unmapped: [] as string[] }))
     result.courses_unmapped = [...new Set([...result.courses_unmapped, ...elecciones.unmapped])]
 
+    // Campus externo por estudiante: a los pares marcados no se les da el aula
+    // de esa asignatura, y si ya la tenían se les retira (suspende) aquí mismo.
+    const externosGrupo = await externosDeEstudiantes(sb, students.map((s: { id: string }) => String(s.id)))
+    const bajasExternos: { userid: number; courseid: number }[] = []
+
     const enrolments: { userid: number; courseid: number }[] = []
     for (const s of students) {
       const uid = await ensureMoodleUser(sb, s, result)
@@ -380,7 +424,13 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
       const col = await coleccionDe(sb, groupId, s.id)
       if (!col) result.sin_coleccion++
       const suyas = await cargar(col)
-      for (const cid of suyas) enrolments.push({ userid: uid, courseid: cid })
+      const fuera = externosGrupo.get(String(s.id))
+      const aulasFuera = new Set<number>()
+      if (fuera?.size) for (const [cursoId, aula] of suyas.aulaDeCurso) if (fuera.has(cursoId)) aulasFuera.add(aula)
+      for (const cid of suyas.courseIds) {
+        if (aulasFuera.has(cid)) { bajasExternos.push({ userid: uid, courseid: cid }); continue }
+        enrolments.push({ userid: uid, courseid: cid })
+      }
       for (const cid of elecciones.porEstudiante.get(String(s.id)) ?? []) enrolments.push({ userid: uid, courseid: cid })
     }
     for (let i = 0; i < enrolments.length; i += 300) {
@@ -406,9 +456,11 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
       // resuelva la oferta, que es el comportamiento de siempre. Las aulas de
       // sus elecciones de electivas también: sin esto quedaban accesos colgados.
       const suyas = await cargar(await coleccionDe(sb, groupId, String(m.academic_students?.id)))
-      for (const cid of suyas) unenrolments.push({ userid: uid, courseid: cid })
+      for (const cid of suyas.courseIds) unenrolments.push({ userid: uid, courseid: cid })
       for (const cid of eleccionesDone.porEstudiante.get(String(m.academic_students?.id)) ?? []) unenrolments.push({ userid: uid, courseid: cid })
     }
+    // Las bajas de campus externo viajan en las mismas olas de desmatrícula.
+    unenrolments.push(...bajasExternos)
     for (let i = 0; i < unenrolments.length; i += 300) {
       try { await unenrolUsersBulk(unenrolments.slice(i, i + 300)) }
       catch { /* best effort: desmatricular a quien no está matriculado puede fallar sin consecuencia */ }

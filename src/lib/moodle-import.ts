@@ -2,6 +2,7 @@ import { moodleCall } from './moodle'
 import { rendidoPct, estadoAcademico, huboEvaluacionNueva, esItemBono, type ItemProceso } from './grade-status'
 import { importGrades, resolveImportTarget, fetchByIn, stableUuid, type ImportRow } from './grades-write'
 import { asegurarMatriculas, estadoDeNota, type MatriculaDeNota } from './course-enrollments'
+import { externosDeCurso } from './grade-scope'
 
 // ---------------------------------------------------------------------------
 // Importación de un acta de Moodle al expediente. Pipeline compartido entre
@@ -341,12 +342,17 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   // de la estructura de evaluación.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const detailByExternal = new Map<string, { student_id: string; process: any[]; total: number }>()
-  let sinPuente = 0, sinTotal = 0, yaRegistradas = 0, rellenadas = 0, recursados = 0
+  // Campus externo POR ESTUDIANTE (09/09/2026): los pares marcados no viajan
+  // desde el aula — su única vía es Notas de campus externo, como el candado de
+  // capstone pero acotado a estudiantes concretos.
+  const externos = await externosDeCurso(sb, String(destCourse.id)).catch(() => new Set<string>())
+  let sinPuente = 0, sinTotal = 0, yaRegistradas = 0, rellenadas = 0, recursados = 0, saltadosExternos = 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const ug of ((report?.usergrades ?? []) as any[])) {
     const u = users.get(Number(ug.userid))
     const stu = u?.idnumber ? byExternal.get(u.idnumber) : null
     if (!stu) { sinPuente++; continue }
+    if (externos.has(String(stu.id))) { saltadosExternos++; continue }
     const total = courseTotal(ug.gradeitems)
     if (total == null) { sinTotal++; continue }
 
@@ -656,6 +662,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     summary: {
       ...result, sin_puente: sinPuente, sin_total: sinTotal, importables: rows.length,
       ya_registradas_activa: yaRegistradas, rellenadas_pendientes: rellenadas, recursados,
+      saltados_campus_externo: saltadosExternos,
       detalles_escritos: detallesEscritos,
     },
   }
