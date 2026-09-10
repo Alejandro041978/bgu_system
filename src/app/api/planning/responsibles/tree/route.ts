@@ -4,18 +4,18 @@ import { guardPlanning } from '@/lib/planning-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-// Devuelve todas las Acciones por Responsable de un ciclo, con el contexto completo
-// (dimensión > objetivo > estrategia > acción). Se arma con queries separadas porque
-// Supabase no resuelve bien los joins anidados de más de 2-3 niveles.
+// Devuelve las ACCIONES ESTRATÉGICAS de un ciclo con su contexto completo
+// (dimensión > objetivo > estrategia), sus responsables (principal/apoyo) y
+// sus años de ejecución. Desde la simplificación del 10/09/2026 la acción es
+// la unidad de reporte: las "actividades" por responsable se retiraron.
 export async function GET(req: NextRequest) {
   const noAutorizado = await guardPlanning()
   if (noAutorizado) return noAutorizado
 
   const cycleId = req.nextUrl.searchParams.get('cycle_id')
   if (!cycleId) return NextResponse.json({ error: 'cycle_id requerido' }, { status: 400 })
-  const supabase = db()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any
+  const sb = db() as any
 
   const { data: dims } = await sb.from('strategic_dimensions').select('id, code, name').eq('cycle_id', cycleId).eq('status', 'active')
   const dimIds = (dims ?? []).map((d: { id: string }) => d.id)
@@ -33,26 +33,37 @@ export async function GET(req: NextRequest) {
   const actionIds = (actions ?? []).map((a: { id: string }) => a.id)
   if (!actionIds.length) return NextResponse.json([])
 
-  const { data: responsibles } = await sb
-    .from('strategic_action_responsibles')
-    .select('id, code, name, assigned_from_year, action_id, employee:hr_employees(id, full_name, position), years:strategic_responsible_years(year)')
-    .in('action_id', actionIds)
+  const [{ data: responsibles }, { data: yearsRows }] = await Promise.all([
+    sb.from('strategic_action_responsibles')
+      .select('id, role, action_id, employee:hr_employees(id, full_name, position)')
+      .in('action_id', actionIds),
+    sb.from('strategic_action_years').select('action_id, year').in('action_id', actionIds),
+  ])
 
   const dimById = Object.fromEntries((dims ?? []).map((d: { id: string }) => [d.id, d]))
   const objById = Object.fromEntries((objs ?? []).map((o: { id: string }) => [o.id, o]))
   const stratById = Object.fromEntries((strats ?? []).map((s: { id: string }) => [s.id, s]))
-  const actionById = Object.fromEntries((actions ?? []).map((a: { id: string }) => [a.id, a]))
+
+  const yearsByAction: Record<string, number[]> = {}
+  for (const y of (yearsRows ?? []) as { action_id: string; year: number }[]) {
+    (yearsByAction[y.action_id] ??= []).push(y.year)
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const respByAction: Record<string, any[]> = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const r of (responsibles ?? []) as any[]) {
+    (respByAction[r.action_id] ??= []).push({ id: r.id, role: r.role, employee: r.employee })
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = (responsibles ?? []).map((r: any) => {
-    const action = actionById[r.action_id]
-    const strat = action ? stratById[action.strategy_id] : null
+  const result = (actions ?? []).map((a: any) => {
+    const strat = stratById[a.strategy_id]
     const obj = strat ? objById[strat.objective_id] : null
     const dim = obj ? dimById[obj.dimension_id] : null
     return {
-      id: r.id, code: r.code, name: r.name, assigned_from_year: r.assigned_from_year, employee: r.employee,
-      years: (r.years ?? []).map((y: { year: number }) => y.year).sort((a: number, b: number) => a - b),
-      action: action ? { id: action.id, code: action.code, name: action.name } : null,
+      id: a.id, code: a.code, name: a.name,
+      years: (yearsByAction[a.id] ?? []).sort((x, y) => x - y),
+      responsables: respByAction[a.id] ?? [],
       strategy: strat ? { id: strat.id, code: strat.code, name: strat.name } : null,
       objective: obj ? { id: obj.id, code: obj.code, name: obj.name } : null,
       dimension: dim ? { id: dim.id, code: dim.code, name: dim.name } : null,

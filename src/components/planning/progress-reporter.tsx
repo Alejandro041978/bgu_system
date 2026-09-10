@@ -6,9 +6,13 @@ import { ACTION_STATUS } from './status'
 
 type Employee = { id: string; full_name: string; position: string | null }
 type Crumb = { id: string; code?: string; name?: string } | null
-type ResponsibleItem = {
-  id: string; code: string | null; name: string | null; assigned_from_year: number; years: number[]; employee: Employee
-  action: Crumb; strategy: Crumb; objective: Crumb; dimension: Crumb
+type Responsable = { id: string; role: string; employee: Employee }
+// Desde la simplificación del 10/09/2026 la unidad de reporte es la ACCIÓN
+// estratégica: cada fila es una acción con sus responsables y sus años.
+type ActionItem = {
+  id: string; code: string | null; name: string | null; years: number[]
+  responsables: Responsable[]
+  strategy: Crumb; objective: Crumb; dimension: Crumb
 }
 type ProgressEntry = {
   id: string; year: number; status: string; progress_pct: number | null; notes: string | null
@@ -18,7 +22,7 @@ type Cycle = { id: string; name: string; start_year: number; end_year: number }
 
 export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; employees: Employee[] }) {
   const [selectedCycleId, setSelectedCycleId] = useState(cycles[0]?.id ?? '')
-  const [items, setItems] = useState<ResponsibleItem[]>([])
+  const [items, setItems] = useState<ActionItem[]>([])
   const [loading, setLoading] = useState(false)
   const [filterEmployeeId, setFilterEmployeeId] = useState('')
   const [filterObjectiveId, setFilterObjectiveId] = useState('')
@@ -43,7 +47,7 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
   }, [selectedCycleId])
 
   async function loadProgress(respId: string) {
-    const res = await fetch(`/api/planning/progress?responsible_id=${respId}`)
+    const res = await fetch(`/api/planning/progress?action_id=${respId}`)
     const data = await res.json()
     setProgressByResp(prev => ({ ...prev, [respId]: Array.isArray(data) ? data : [] }))
   }
@@ -60,7 +64,7 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
     const res = await fetch('/api/planning/progress', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        responsible_id: respId, year: Number(form.year), status: form.status, progress_pct: Number(form.progress_pct), notes: form.notes || null,
+        action_id: respId, year: Number(form.year), status: form.status, progress_pct: Number(form.progress_pct), notes: form.notes || null,
       }),
     })
     const data = await res.json()
@@ -74,7 +78,7 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
     setSaving(false)
   }
 
-  function openProgressForm(item: ResponsibleItem) {
+  function openProgressForm(item: ActionItem) {
     const reported = new Set((progressByResp[item.id] ?? []).map(p => p.year))
     const availableYears = (item.years ?? []).filter(y => !reported.has(y))
     setForm({ year: String(availableYears[0] ?? item.years?.[0] ?? ''), status: 'active', progress_pct: '0', notes: '' })
@@ -94,14 +98,14 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
   ).values()].sort((a, b) => (a.code ?? '').localeCompare(b.code ?? ''))
 
   const filtered = items.filter(i =>
-    (!filterEmployeeId || i.employee?.id === filterEmployeeId) &&
+    (!filterEmployeeId || (i.responsables ?? []).some(r => r.employee?.id === filterEmployeeId)) &&
     (!filterObjectiveId || i.objective?.id === filterObjectiveId))
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Reportar Avances</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Cada responsable registra el avance de sus acciones, año por año</p>
+        <p className="text-sm text-gray-500 mt-0.5">El avance se reporta por acción estratégica, año por año — un reporte por año</p>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
@@ -164,7 +168,11 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
                       {item.code && <span className="text-gray-400 mr-1.5">{item.code}</span>}{item.name ?? 'Sin descripción'}
                     </p>
                     <p className="text-xs text-gray-400 truncate">
-                      {item.dimension?.code} › {item.objective?.code} › {item.strategy?.code} › {item.action?.code} · {item.employee?.full_name}
+                      {item.dimension?.code} › {item.objective?.code} › {item.strategy?.code}
+                      {' · '}
+                      {(item.responsables ?? []).length
+                        ? item.responsables.map(r => `${r.employee?.full_name}${r.role === 'apoyo' ? ' (apoyo)' : ''}`).join(', ')
+                        : 'sin responsables'}
                       {item.years?.length ? ` · años: ${item.years.join(', ')}` : ' · sin años habilitados'}
                     </p>
                   </div>
@@ -192,7 +200,7 @@ export function ProgressReporter({ cycles, employees }: { cycles: Cycle[]; emplo
                     ))}
 
                     {!item.years || item.years.length === 0 ? (
-                      <p className="text-xs text-amber-600">Esta acción no tiene años habilitados. Defínelos en Cargar Plan antes de reportar avance.</p>
+                      <p className="text-xs text-amber-600">Esta acción no tiene años de ejecución definidos. Defínelos en Cargar Plan antes de reportar avance.</p>
                     ) : showForm === item.id ? (
                       <div className="bg-white border border-blue-200 rounded-lg p-3 space-y-2">
                         {errorMsg && <p className="text-xs text-red-600">{errorMsg}</p>}

@@ -1,0 +1,20 @@
+{
+  "motivo": "Cuota Liquidación IW $72 de Isac Mamani (76609431) creada por el gestor con cursado sobrecontado (69cr vs 66 reales). Autorizado eliminar 10/09/2026.",
+  "cargo": {
+    "id": "d29bb0aa-7dbd-4f39-b8e6-9f61c184df88",
+    "external_id": "912eb5a6-0d83-4ce3-aea3-f391763d341e",
+    "student_id": "c3bea6e7-d52f-4f11-a441-a6e737c6c104",
+    "enrollment_id": "6ec041a4-33d0-4d81-9634-c8bf2139ebf4",
+    "convocatoria_id": null,
+    "amount": 72,
+    "due_date": "2026-08-21",
+    "charge_type": 2,
+    "course_registration_external_id": null,
+    "created_at": "2026-08-22T04:52:14.909306+00:00",
+    "source": "erp",
+    "flywire_status": null,
+    "flywire_payment_id": null,
+    "is_initial": false,
+    "reference": "Liquidación IW"
+  }
+}

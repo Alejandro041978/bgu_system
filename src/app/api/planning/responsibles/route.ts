@@ -9,26 +9,20 @@ export async function POST(req: NextRequest) {
   if (noAutorizado) return noAutorizado
 
   const body = await req.json()
-  const supabase = db()
-  const years: number[] = Array.isArray(body.years) ? body.years : []
+  // Asignación pura (10/09/2026): persona + rol sobre la ACCIÓN. La identidad
+  // de "actividad" (código/nombre/años propios) se retiró — los años de
+  // ejecución viven en la acción.
+  const role = body.role === 'apoyo' ? 'apoyo' : 'principal'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await (db() as any)
     .from('strategic_action_responsibles')
     .insert({
       action_id: body.action_id, employee_id: body.employee_id,
-      role: body.role ?? 'principal', assigned_from_year: body.assigned_from_year,
-      code: body.code ?? null, name: body.name ?? null,
+      role, assigned_from_year: body.assigned_from_year ?? new Date().getFullYear(),
       status: 'active', progress_pct: 0,
     })
-    .select('id, role, assigned_from_year, assigned_to_year, code, name, status, progress_pct, notes, employee:hr_employees(id, full_name, position)')
+    .select('id, role, employee:hr_employees(id, full_name, position)')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  if (years.length) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from('strategic_responsible_years')
-      .insert(years.map(y => ({ responsible_id: data.id, year: y })))
-  }
-
-  return NextResponse.json({ ...data, years: years.sort((a, b) => a - b) })
+  return NextResponse.json(data)
 }

@@ -42,23 +42,21 @@ export async function GET(req: NextRequest) {
   const [objRes, actRes, respRes] = await Promise.all([
     objIds.length ? sb.from('strategic_objectives').select('id, code, name').in('id', objIds) : { data: [] },
     actIds.length ? sb.from('strategic_actions').select('id, code, name').in('id', actIds) : { data: [] },
-    respIds.length ? sb.from('strategic_responsible_progress').select('id, action_id, responsible_id').in('id', respIds) : { data: [] },
+    // Desde el 10/09/2026 el avance vive por ACCIÓN (strategic_action_progress);
+    // el link_type 'accion_responsable' se conserva por compatibilidad.
+    respIds.length ? sb.from('strategic_action_progress').select('id, action_id, year').in('id', respIds) : { data: [] },
   ])
 
   const objMap = Object.fromEntries((objRes.data ?? []).map((o: { id: string; code: string; name: string }) => [o.id, o.code]))
   const actMap = Object.fromEntries((actRes.data ?? []).map((a: { id: string; code: string; name: string }) => [a.id, a.code]))
 
-  // For responsible actions, get action + employee names
   const respActionIds = [...new Set((respRes.data ?? []).map((r: { action_id: string }) => r.action_id))]
-  const respEmpIds = [...new Set((respRes.data ?? []).map((r: { responsible_id: string }) => r.responsible_id))]
-  const [raRes, reRes] = await Promise.all([
-    respActionIds.length ? sb.from('strategic_actions').select('id, code, name').in('id', respActionIds) : { data: [] },
-    respEmpIds.length ? sb.from('hr_employees').select('id, full_name').in('id', respEmpIds) : { data: [] },
-  ])
+  const raRes = respActionIds.length
+    ? await sb.from('strategic_actions').select('id, code, name').in('id', respActionIds)
+    : { data: [] }
   const raMap = Object.fromEntries((raRes.data ?? []).map((a: { id: string; code: string; name: string }) => [a.id, a.code]))
-  const reMap = Object.fromEntries((reRes.data ?? []).map((e: { id: string; full_name: string }) => [e.id, e.full_name]))
-  const respMap = Object.fromEntries((respRes.data ?? []).map((r: { id: string; action_id: string; responsible_id: string }) => [
-    r.id, `${raMap[r.action_id] ?? '—'} → ${reMap[r.responsible_id] ?? '—'}`
+  const respMap = Object.fromEntries((respRes.data ?? []).map((r: { id: string; action_id: string; year: number }) => [
+    r.id, `${raMap[r.action_id] ?? '—'} → avance ${r.year}`
   ]))
 
   const enriched = rows.map(pk => ({

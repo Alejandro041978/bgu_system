@@ -4,7 +4,7 @@ import { guardPlanning } from '@/lib/planning-guard'
 
 const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-const SELECT = '*, responsibles:strategic_action_responsibles(id, role, assigned_from_year, assigned_to_year, code, name, status, progress_pct, notes, employee:hr_employees(id, full_name, position), years:strategic_responsible_years(year))'
+const SELECT = '*, responsibles:strategic_action_responsibles(id, role, employee:hr_employees(id, full_name, position)), years:strategic_action_years(year)'
 
 // PATCH simple = ajustar estado/avance sin versionar (ej. progress_pct, status: completed/at_risk/overdue)
 // Para cambios de redacción (name/description/valid_from_year/strategy) usar PATCH con revise=true
@@ -23,6 +23,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.start_year !== undefined) patch.start_year = body.start_year
     if (body.target_close_year !== undefined) patch.target_close_year = body.target_close_year
     if (body.code !== undefined) patch.code = body.code
+    // Años de ejecución de la acción (desde la simplificación del 10/09/2026,
+    // los años viven en la acción — la unidad de reporte —, no en actividades).
+    if (Array.isArray(body.years)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('strategic_action_years').delete().eq('action_id', id)
+      const years = [...new Set((body.years as number[]).filter(y => Number.isInteger(y) && y > 1900))]
+      if (years.length) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('strategic_action_years').insert(years.map(y => ({ action_id: id, year: y })))
+      }
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
       .from('strategic_actions').update(patch).eq('id', id).select(SELECT).single()
@@ -55,6 +66,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   // Re-apunta los responsables existentes al nuevo id, para que no queden huérfanos bajo la versión superada
   await (supabase as any).from('strategic_action_responsibles').update({ action_id: next.id }).eq('action_id', prev.id)
+  // Los años de ejecución y los avances viajan con la acción vigente.
+  await (supabase as any).from('strategic_action_years').update({ action_id: next.id }).eq('action_id', prev.id)
+  await (supabase as any).from('strategic_action_progress').update({ action_id: next.id }).eq('action_id', prev.id)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: refreshed } = await (supabase as any).from('strategic_actions').select(SELECT).eq('id', next.id).single()

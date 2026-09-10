@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.notes !== undefined) patch.notes = body.notes
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (db() as any)
-    .from('strategic_responsible_progress').update(patch).eq('id', id)
+    .from('strategic_action_progress').update(patch).eq('id', id)
     .select('id, year, status, progress_pct, notes, reported_at, reported_by:hr_employees(id, full_name)')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -29,7 +29,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (db() as any).from('strategic_responsible_progress').delete().eq('id', id)
+  const { error } = await (db() as any).from('strategic_action_progress').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

@@ -9,8 +9,9 @@ function avg(nums: number[]) {
   return nums.reduce((a, b) => a + b, 0) / nums.length
 }
 
-// Rollup de avance por Dimensión > Objetivo > Estrategia > Acción para un año dado,
-// calculado a partir de los reportes anuales de cada Acción por Responsable.
+// Rollup de avance por Dimensión > Objetivo > Estrategia > Acción para un año
+// dado, calculado desde el avance anual de cada ACCIÓN (la unidad de reporte
+// desde la simplificación del 10/09/2026).
 export async function GET(req: NextRequest) {
   const noAutorizado = await guardPlanning()
   if (noAutorizado) return noAutorizado
@@ -35,30 +36,16 @@ export async function GET(req: NextRequest) {
   const { data: actions } = await sb.from('strategic_actions').select('id, code, name, strategy_id').in('strategy_id', stratIds.length ? stratIds : ['']).eq('status', 'active')
   const actionIds = (actions ?? []).map((a: { id: string }) => a.id)
 
-  const { data: responsibles } = await sb.from('strategic_action_responsibles').select('id, action_id').in('action_id', actionIds.length ? actionIds : [''])
-  const respIds = (responsibles ?? []).map((r: { id: string }) => r.id)
-
   const { data: progress } = await sb
-    .from('strategic_responsible_progress')
-    .select('responsible_id, progress_pct')
-    .in('responsible_id', respIds.length ? respIds : [''])
+    .from('strategic_action_progress')
+    .select('action_id, progress_pct')
+    .in('action_id', actionIds.length ? actionIds : [''])
     .eq('year', Number(year))
 
-  const progressByResp: Record<string, number> = {}
-  for (const p of progress ?? []) progressByResp[p.responsible_id] = p.progress_pct ?? 0
-
-  const respByAction: Record<string, string[]> = {}
-  for (const r of responsibles ?? []) {
-    if (!respByAction[r.action_id]) respByAction[r.action_id] = []
-    respByAction[r.action_id].push(r.id)
-  }
-
+  // Un avance por acción y año: el rollup ya no promedia actividades.
   const actionAvg: Record<string, number | null> = {}
-  for (const a of actions ?? []) {
-    const ids = respByAction[a.id] ?? []
-    const vals = ids.filter(id => progressByResp[id] !== undefined).map(id => progressByResp[id])
-    actionAvg[a.id] = avg(vals)
-  }
+  for (const a of actions ?? []) actionAvg[a.id] = null
+  for (const p of progress ?? []) actionAvg[p.action_id] = p.progress_pct ?? 0
 
   const actionsByStrat: Record<string, string[]> = {}
   for (const a of actions ?? []) {

@@ -232,17 +232,19 @@ export async function GET() {
     afectados: [`${sinDoc} documento(s) pendientes de adjuntar`],
   })
 
-  // ── 11. Acciones sin años habilitados: nadie puede reportar avance ───────
+  // ── 11. Acciones sin años de ejecución: nadie puede reportar avance ──────
+  // (Desde el 10/09/2026 los años viven en la ACCIÓN — la unidad de reporte.)
   const conAnios = new Set<string>()
-  const { data: anosResp } = await sb.from('strategic_responsible_years').select('responsible_id')
-  for (const a of anosResp ?? []) conAnios.add(a.responsible_id)
-  const sinAnios = (resp ?? []).filter((r: { id: string }) => !conAnios.has(r.id)).length
+  const { data: anosAccion } = await sb.from('strategic_action_years').select('action_id')
+  for (const a of anosAccion ?? []) conAnios.add(a.action_id)
+  const { data: accionesActivas } = await sb.from('strategic_actions').select('id').eq('status', 'active')
+  const sinAnios = (accionesActivas ?? []).filter((a: { id: string }) => !conAnios.has(a.id)).length
   if (sinAnios) h.push({
     id: 'sin-anios', sev: 'alta', grupo: 'Operación',
-    titulo: 'Acciones por responsable sin años habilitados',
-    detalle: `${sinAnios} de ${(resp ?? []).length} responsables no pueden registrar avance: la pantalla se los impide hasta que se les definan los años.`,
-    sugerencia: 'Habilitar los años del ciclo en Cargar Plan. Sin esto, el dashboard del plan estratégico se queda vacío para siempre.',
-    afectados: [`${sinAnios} responsables bloqueados`],
+    titulo: 'Acciones estratégicas sin años de ejecución',
+    detalle: `${sinAnios} de ${(accionesActivas ?? []).length} acciones no pueden recibir avance: la pantalla lo impide hasta que se les definan los años.`,
+    sugerencia: 'Definir los años de ejecución en Cargar Plan. Sin esto, el dashboard del plan estratégico se queda vacío para siempre.',
+    afectados: [`${sinAnios} acciones bloqueadas`],
   })
 
   // ── 12. Responsables sin persona vinculada ───────────────────────────────

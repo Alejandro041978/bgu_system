@@ -10,34 +10,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params
   const body = await req.json()
-  const supabase = db()
+  // La asignación solo tiene rol que cambiar (10/09/2026): todo lo demás vive
+  // en la acción o en su avance.
   const patch: Record<string, unknown> = {}
-  if (body.status !== undefined) patch.status = body.status
-  if (body.progress_pct !== undefined) patch.progress_pct = body.progress_pct
-  if (body.notes !== undefined) patch.notes = body.notes
-  if (body.code !== undefined) patch.code = body.code
-  if (body.name !== undefined) patch.name = body.name
-  if (body.assigned_from_year !== undefined) patch.assigned_from_year = body.assigned_from_year
+  if (body.role !== undefined) patch.role = body.role === 'apoyo' ? 'apoyo' : 'principal'
+  if (!Object.keys(patch).length) return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await (db() as any)
     .from('strategic_action_responsibles').update(patch).eq('id', id)
-    .select('id, role, assigned_from_year, assigned_to_year, code, name, status, progress_pct, notes, employee:hr_employees(id, full_name, position)')
+    .select('id, role, employee:hr_employees(id, full_name, position)')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  let years: number[] | undefined
-  if (Array.isArray(body.years)) {
-    years = body.years as number[]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from('strategic_responsible_years').delete().eq('responsible_id', id)
-    if (years.length) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('strategic_responsible_years')
-        .insert(years.map(y => ({ responsible_id: id, year: y })))
-    }
-  }
-
-  return NextResponse.json(years !== undefined ? { ...data, years: years.sort((a, b) => a - b) } : data)
+  return NextResponse.json(data)
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {

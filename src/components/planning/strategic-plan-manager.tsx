@@ -7,11 +7,10 @@ import {
 } from 'lucide-react'
 
 type Employee = { id: string; full_name: string; position: string | null }
-type Responsible = {
-  id: string; role: string; assigned_from_year: number; assigned_to_year: number | null
-  code: string | null; name: string | null; years: number[]
-  status: string; progress_pct: number | null; notes: string | null; employee: Employee
-}
+// Asignación pura desde la simplificación del 10/09/2026: persona + rol.
+// La identidad de "actividad" (código/nombre/años propios) se retiró; los
+// años de ejecución viven en la acción.
+type Responsible = { id: string; role: string; employee: Employee }
 
 function parseYears(input: string): number[] {
   return Array.from(new Set(input.split(',').map(s => Number(s.trim())).filter(n => Number.isInteger(n) && n > 1900))).sort((a, b) => a - b)
@@ -20,6 +19,7 @@ type Action = {
   id: string; code: string; name: string; description: string | null
   start_year: number | null; target_close_year: number | null; progress_pct: number | null
   valid_from_year: number; status: string; responsibles: Responsible[]
+  years: { year: number }[]
 }
 type Strategy = { id: string; code: string; name: string; description: string | null; valid_from_year: number }
 type Objective = { id: string; code: string; name: string; description: string | null; valid_from_year: number }
@@ -77,11 +77,11 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
   // Responsible assignment per action
   const [assigningAction, setAssigningAction] = useState<string | null>(null)
   const [assignEmployeeId, setAssignEmployeeId] = useState('')
-  const [assignForm, setAssignForm] = useState({ code: '', name: '', years: '' })
+  const [assignRole, setAssignRole] = useState<'principal' | 'apoyo'>('principal')
+  // Años de ejecución de la acción (editor CSV por acción)
+  const [yearsDraft, setYearsDraft] = useState<Record<string, string>>({})
+  const [editingYears, setEditingYears] = useState<string | null>(null)
 
-  // Inline edit of a responsible action's code/name/year
-  const [editingResp, setEditingResp] = useState<{ id: string; actionId: string; stratId: string } | null>(null)
-  const [respEditForm, setRespEditForm] = useState({ code: '', name: '', years: '' })
 
   // Quick code edit (no versioning, code is just an identifier)
   const [editingCode, setEditingCode] = useState<{ level: 'dimension' | 'objective' | 'strategy' | 'action'; id: string; parentId: string } | null>(null)
@@ -290,15 +290,10 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
   }
 
   async function assignResponsible(actionId: string, stratId: string) {
-    const years = parseYears(assignForm.years)
-    if (!assignEmployeeId || !assignForm.name || years.length === 0) return
+    if (!assignEmployeeId) return
     const res = await fetch('/api/planning/responsibles', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action_id: actionId, employee_id: assignEmployeeId,
-        code: assignForm.code || null, name: assignForm.name,
-        assigned_from_year: years[0], years,
-      }),
+      body: JSON.stringify({ action_id: actionId, employee_id: assignEmployeeId, role: assignRole }),
     })
     const data = await res.json()
     if (res.ok) {
@@ -306,9 +301,26 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
         ...prev,
         [stratId]: (prev[stratId] ?? []).map(a => a.id === actionId ? { ...a, responsibles: [...a.responsibles, data] } : a),
       }))
-      setAssignForm({ code: '', name: '', years: '' })
       setAssigningAction(null)
       setAssignEmployeeId('')
+      setAssignRole('principal')
+    }
+  }
+
+  // Años de ejecución de la acción (guardados en la acción; el avance anual
+  // solo acepta esos años).
+  async function saveActionYears(actionId: string, stratId: string) {
+    const years = parseYears(yearsDraft[actionId] ?? '')
+    const res = await fetch(`/api/planning/actions/${actionId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ years }),
+    })
+    if (res.ok) {
+      setActionsByStrat(prev => ({
+        ...prev,
+        [stratId]: (prev[stratId] ?? []).map(a => a.id === actionId ? { ...a, years: years.map(y => ({ year: y })) } : a),
+      }))
+      setEditingYears(null)
     }
   }
 
@@ -320,35 +332,21 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
     }))
   }
 
-  async function updateResponsibleField(respId: string, actionId: string, stratId: string, patch: Partial<Responsible>) {
-    const res = await fetch(`/api/planning/responsibles/${respId}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+  // Alternar el rol de un responsable (principal ↔ apoyo)
+  async function toggleRole(r: Responsible, actionId: string, stratId: string) {
+    const res = await fetch(`/api/planning/responsibles/${r.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: r.role === 'apoyo' ? 'principal' : 'apoyo' }),
     })
     const data = await res.json()
     if (res.ok) {
       setActionsByStrat(prev => ({
         ...prev,
         [stratId]: (prev[stratId] ?? []).map(a => a.id === actionId
-          ? { ...a, responsibles: a.responsibles.map(r => r.id === respId ? data : r) }
+          ? { ...a, responsibles: a.responsibles.map(x => x.id === r.id ? data : x) }
           : a),
       }))
     }
-  }
-
-  function startEditResp(r: Responsible, actionId: string, stratId: string) {
-    setEditingResp({ id: r.id, actionId, stratId })
-    setRespEditForm({ code: r.code ?? '', name: r.name ?? '', years: (r.years ?? []).join(', ') })
-  }
-
-  async function saveRespEdit() {
-    if (!editingResp || !respEditForm.name) return
-    const years = parseYears(respEditForm.years)
-    if (years.length === 0) return
-    await updateResponsibleField(editingResp.id, editingResp.actionId, editingResp.stratId, {
-      code: respEditForm.code || null, name: respEditForm.name,
-      assigned_from_year: years[0], years,
-    })
-    setEditingResp(null)
   }
 
   const selectedCycle = allCycles.find(c => c.id === selectedCycleId)
@@ -540,44 +538,42 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
 
                                               {isActionOpen && (
                                                 <div className="border-t border-gray-100 px-3 py-2 pl-9 space-y-2 bg-gray-50/50">
-                                                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Acciones por responsable</p>
+                                                  <div className="flex items-center gap-2">
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Años de ejecución</p>
+                                                    {editingYears === action.id ? (
+                                                      <span className="flex items-center gap-1.5">
+                                                        <input autoFocus value={yearsDraft[action.id] ?? ''} onChange={e => setYearsDraft(p => ({ ...p, [action.id]: e.target.value }))}
+                                                          placeholder={`ej. ${currentYear}, ${currentYear + 1}`}
+                                                          className="border border-blue-300 rounded-lg px-2 py-1 text-xs w-52 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                                        <button onClick={() => saveActionYears(action.id, strat.id)} className="p-1 text-blue-600 hover:text-blue-700"><Check className="w-3.5 h-3.5" /></button>
+                                                        <button onClick={() => setEditingYears(null)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>
+                                                      </span>
+                                                    ) : (
+                                                      <button onClick={() => { setEditingYears(action.id); setYearsDraft(p => ({ ...p, [action.id]: (action.years ?? []).map(y => y.year).join(', ') })) }}
+                                                        className="text-xs text-gray-600 hover:text-blue-600">
+                                                        {(action.years ?? []).length ? (action.years ?? []).map(y => y.year).sort((a, b) => a - b).join(', ') : 'sin definir'} <Pencil className="w-3 h-3 inline text-gray-300" />
+                                                      </button>
+                                                    )}
+                                                  </div>
+
+                                                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Responsables</p>
                                                   {action.responsibles.length === 0 && !isAssigning && (
                                                     <p className="text-xs text-gray-400">Sin responsables asignados todavía.</p>
                                                   )}
-                                                  {action.responsibles.map(r => {
-                                                    const isEditingResp = editingResp?.id === r.id
-                                                    return isEditingResp ? (
-                                                      <div key={r.id} className="bg-white border border-blue-200 rounded-lg p-2.5 space-y-2">
-                                                        <div className="grid grid-cols-4 gap-2">
-                                                          <input value={respEditForm.code} onChange={e => setRespEditForm(p => ({ ...p, code: e.target.value }))}
-                                                            placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                                          <input value={respEditForm.name} onChange={e => setRespEditForm(p => ({ ...p, name: e.target.value }))}
-                                                            placeholder="Descripción de la acción del responsable" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                                          <input value={respEditForm.years} onChange={e => setRespEditForm(p => ({ ...p, years: e.target.value }))}
-                                                            placeholder="Años, ej. 2024, 2025, 2026" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                                        </div>
-                                                        <div className="flex gap-2">
-                                                          <button onClick={saveRespEdit} disabled={!respEditForm.name}
-                                                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-medium rounded-lg">Guardar</button>
-                                                          <button onClick={() => setEditingResp(null)} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50">Cancelar</button>
-                                                        </div>
+                                                  {action.responsibles.map(r => (
+                                                    <div key={r.id} className="flex items-center gap-2 bg-white border border-gray-100 rounded-lg px-3 py-2">
+                                                      <UserCheck className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+                                                      <div className="flex-1 min-w-0">
+                                                        <p className="text-sm text-gray-800 truncate">{r.employee.full_name}{r.employee.position ? <span className="text-gray-400"> — {r.employee.position}</span> : null}</p>
                                                       </div>
-                                                    ) : (
-                                                      <div key={r.id} className="flex items-center gap-2 bg-white border border-gray-100 rounded-lg px-3 py-2 group/resp">
-                                                        <UserCheck className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-                                                        <div className="flex-1 min-w-0">
-                                                          <p className="text-sm text-gray-800 truncate">
-                                                            {r.code && <span className="text-gray-400 mr-1.5">{r.code}</span>}
-                                                            {r.name ?? <span className="text-gray-400 italic">Sin descripción</span>}
-                                                          </p>
-                                                          <p className="text-xs text-gray-400">{r.employee.full_name}{r.employee.position ? ` — ${r.employee.position}` : ''} · años: {(r.years ?? []).length ? r.years.join(', ') : 'sin definir'}</p>
-                                                        </div>
-                                                        <button onClick={() => startEditResp(r, action.id, strat.id)}
-                                                          className="p-1 text-gray-300 hover:text-blue-500 opacity-0 group-hover/resp:opacity-100 transition-all"><Pencil className="w-3.5 h-3.5" /></button>
-                                                        <button onClick={() => removeResponsible(r.id, action.id, strat.id)} className="p-1 text-gray-300 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>
-                                                      </div>
-                                                    )
-                                                  })}
+                                                      <button onClick={() => toggleRole(r, action.id, strat.id)}
+                                                        title="Cambiar rol"
+                                                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${r.role === 'apoyo' ? 'bg-gray-100 text-gray-600' : 'bg-indigo-50 text-indigo-700'}`}>
+                                                        {r.role === 'apoyo' ? 'apoyo' : 'principal'}
+                                                      </button>
+                                                      <button onClick={() => removeResponsible(r.id, action.id, strat.id)} className="p-1 text-gray-300 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>
+                                                    </div>
+                                                  ))}
                                                   {isAssigning ? (
                                                     <div className="bg-white border border-indigo-200 rounded-lg p-2.5 space-y-2">
                                                       <div className="grid grid-cols-2 gap-2">
@@ -586,23 +582,22 @@ export function StrategicPlanManager({ cycles, faculty }: { cycles: Cycle[]; fac
                                                           <option value="">— Responsable —</option>
                                                           {faculty.map(f => <option key={f.id} value={f.id}>{f.full_name}</option>)}
                                                         </select>
-                                                        <input value={assignForm.code} onChange={e => setAssignForm(p => ({ ...p, code: e.target.value }))}
-                                                          placeholder="Código" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                                                        <input value={assignForm.name} onChange={e => setAssignForm(p => ({ ...p, name: e.target.value }))}
-                                                          placeholder="Descripción de la acción del responsable" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                                                        <input value={assignForm.years} onChange={e => setAssignForm(p => ({ ...p, years: e.target.value }))}
-                                                          placeholder={`Años en que se ejecuta, ej. ${currentYear}, ${currentYear + 1}`} className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                                        <select value={assignRole} onChange={e => setAssignRole(e.target.value === 'apoyo' ? 'apoyo' : 'principal')}
+                                                          className="border border-indigo-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                                          <option value="principal">Principal</option>
+                                                          <option value="apoyo">Apoyo</option>
+                                                        </select>
                                                       </div>
                                                       <div className="flex gap-2">
-                                                        <button onClick={() => assignResponsible(action.id, strat.id)} disabled={!assignEmployeeId || !assignForm.name || parseYears(assignForm.years).length === 0}
-                                                          className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-medium rounded-lg"><Check className="w-3 h-3" /> Guardar</button>
-                                                        <button onClick={() => { setAssigningAction(null); setAssignForm({ code: '', name: '', years: '' }) }}
+                                                        <button onClick={() => assignResponsible(action.id, strat.id)} disabled={!assignEmployeeId}
+                                                          className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-medium rounded-lg"><Check className="w-3 h-3" /> Asignar</button>
+                                                        <button onClick={() => setAssigningAction(null)}
                                                           className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-white">Cancelar</button>
                                                       </div>
                                                     </div>
                                                   ) : (
-                                                    <button onClick={() => { setAssigningAction(action.id); setAssignEmployeeId(''); setAssignForm({ code: '', name: '', years: '' }) }}
-                                                      className="text-xs text-indigo-600 hover:text-indigo-700 px-1.5 py-1 border border-dashed border-indigo-200 rounded-full">+ Acción por responsable</button>
+                                                    <button onClick={() => { setAssigningAction(action.id); setAssignEmployeeId(''); setAssignRole('principal') }}
+                                                      className="text-xs text-indigo-600 hover:text-indigo-700 px-1.5 py-1 border border-dashed border-indigo-200 rounded-full">+ Responsable</button>
                                                   )}
                                                 </div>
                                               )}

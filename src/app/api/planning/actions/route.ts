@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (db() as any)
     .from('strategic_actions')
-    .select('*, responsibles:strategic_action_responsibles(id, role, assigned_from_year, assigned_to_year, code, name, status, progress_pct, notes, employee:hr_employees(id, full_name, position), years:strategic_responsible_years(year))')
+    .select('*, responsibles:strategic_action_responsibles(id, role, employee:hr_employees(id, full_name, position)), years:strategic_action_years(year)')
     .eq('strategy_id', strategyId)
     .eq('status', 'active')
     .order('code')
@@ -34,8 +34,16 @@ export async function POST(req: NextRequest) {
       start_year: body.start_year ?? null, target_close_year: body.target_close_year ?? null,
       valid_from_year: body.valid_from_year, status: 'active',
     })
-    .select('*, responsibles:strategic_action_responsibles(id, role, assigned_from_year, assigned_to_year, code, name, status, progress_pct, notes, employee:hr_employees(id, full_name, position), years:strategic_responsible_years(year))')
+    // (los años de ejecución se agregan abajo, tras conocer el id)
+    .select('*, responsibles:strategic_action_responsibles(id, role, employee:hr_employees(id, full_name, position)), years:strategic_action_years(year)')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  const years = Array.isArray(body.years)
+    ? [...new Set((body.years as number[]).filter(y => Number.isInteger(y) && y > 1900))]
+    : []
+  if (years.length) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db() as any).from('strategic_action_years').insert(years.map(y => ({ action_id: data.id, year: y })))
+  }
+  return NextResponse.json({ ...data, years: years.map(y => ({ year: y })) })
 }

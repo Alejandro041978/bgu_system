@@ -64,13 +64,15 @@ export async function GET(req: NextRequest) {
   }
 
   if (linkType === 'accion_responsable') {
+    // Desde la simplificación del 10/09/2026 el avance vive POR ACCIÓN
+    // (strategic_action_progress); el nombre del link_type se conserva por
+    // compatibilidad con los vínculos ya guardados.
     const { data, error } = await sb
-      .from('strategic_responsible_progress')
-      .select('id, action_id, responsible_id, created_at')
-      .order('created_at', { ascending: true })
+      .from('strategic_action_progress')
+      .select('id, action_id, year')
+      .order('year', { ascending: true })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    // Get distinct action_ids and filter by year via the actions table
     const actionIds = [...new Set((data ?? []).map((r: { action_id: string }) => r.action_id))]
     if (actionIds.length === 0) return NextResponse.json([])
 
@@ -84,17 +86,12 @@ export async function GET(req: NextRequest) {
     const bestActionIds = new Set(bestActions.map(a => a.id))
     const actionMap = Object.fromEntries(bestActions.map(a => [a.id, a]))
 
-    const empIds = [...new Set((data ?? []).map((r: { responsible_id: string }) => r.responsible_id).filter(Boolean))]
-    const { data: emps } = await sb.from('hr_employees').select('id, full_name').in('id', empIds)
-    const empMap = Object.fromEntries((emps ?? []).map((e: { id: string; full_name: string }) => [e.id, e]))
-
     const filtered = (data ?? []).filter((r: { action_id: string }) => bestActionIds.has(r.action_id))
-    return NextResponse.json(filtered.map((r: { id: string; action_id: string; responsible_id: string }) => {
+    return NextResponse.json(filtered.map((r: { id: string; action_id: string; year: number }) => {
       const act = actionMap[r.action_id]
-      const emp = empMap[r.responsible_id]
       return {
         id: r.id,
-        label: `${act?.code ?? ''} · ${act?.name ?? ''} → ${emp?.full_name ?? '—'}`,
+        label: `${act?.code ?? ''} · ${act?.name ?? ''} → avance ${r.year}`,
         code: act?.code, name: act?.name,
       }
     }))
