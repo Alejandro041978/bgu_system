@@ -30,6 +30,9 @@ type Employee = {
   contract_count: number
   is_faculty: boolean | null
   is_helpdesk: boolean | null
+  faculty_email: string | null
+  faculty_email_sent_at: string | null
+  faculty_email_sent_to: string | null
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -64,6 +67,33 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
   const [resending, setResending] = useState(false)
   const [resendStatus, setResendStatus] = useState<'idle' | 'ok' | 'error'>('idle')
   const [resendError, setResendError] = useState<string | null>(null)
+  const [facultyBusy, setFacultyBusy] = useState(false)
+  const [facultyMsg, setFacultyMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+
+  // Correo institucional docente (@faculty.blackwell.university): crear la
+  // cuenta en Google y avisar al correo personal; o restablecer la contraseña
+  // y reenviar credenciales. Solo con la casilla Faculty.
+  async function handleFacultyEmail(action: 'crear' | 'reset') {
+    const pregunta = action === 'crear'
+      ? `¿Crear el correo institucional docente de ${e.full_name}?\n\nSe creará la cuenta @faculty.blackwell.university en Google y recibirá sus credenciales en ${e.email}.`
+      : `¿Restablecer la contraseña de ${e.faculty_email} y reenviar las credenciales a ${e.email}?`
+    if (!confirm(pregunta)) return
+    setFacultyBusy(true); setFacultyMsg(null)
+    const res = await fetch(`/api/hr/employees/${e.id}/faculty-email`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    })
+    const d = await res.json().catch(() => ({}))
+    setFacultyBusy(false)
+    if (!res.ok) { setFacultyMsg({ kind: 'error', text: d.error ?? 'No se pudo completar' }); return }
+    setFacultyMsg({
+      kind: 'ok',
+      text: action === 'crear'
+        ? `Correo creado: ${d.email}${d.notified ? ` · credenciales enviadas a ${e.email}` : ` · la cuenta existe pero el aviso falló (${d.notify_error ?? 'sin detalle'}) — usa reenviar`}`
+        : `Contraseña restablecida y credenciales enviadas a ${d.sent_to}`,
+    })
+    router.refresh()
+  }
 
   // Activar y reenviar son la misma llamada, pero no el mismo acto: una da de
   // alta un acceso que no existía, la otra repite un correo. Activar se
@@ -387,6 +417,45 @@ export function EmployeeProfile({ employee: e }: { employee: Employee }) {
           <Pencil className="w-3.5 h-3.5" /> Editar
         </button>
       </div>
+
+      {e.is_faculty && (
+        <div className="border border-indigo-100 bg-indigo-50/50 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <GraduationCap className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+            {e.faculty_email ? (
+              <>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{e.faculty_email}</p>
+                  <p className="text-[11px] text-gray-400">
+                    Correo institucional docente
+                    {e.faculty_email_sent_at ? ` · credenciales enviadas el ${new Date(e.faculty_email_sent_at).toLocaleDateString('es-PE')} a ${e.faculty_email_sent_to}` : ''}
+                  </p>
+                </div>
+                <button onClick={() => handleFacultyEmail('reset')} disabled={facultyBusy}
+                  className="text-xs border border-indigo-200 text-indigo-700 rounded-lg px-3 py-1.5 hover:bg-indigo-100 disabled:opacity-50">
+                  {facultyBusy ? 'Procesando…' : 'Restablecer y reenviar credenciales'}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700">Sin correo institucional docente</p>
+                  <p className="text-[11px] text-gray-400">Se crea en Google (@faculty.blackwell.university) y las credenciales van a su correo personal.</p>
+                </div>
+                <button onClick={() => handleFacultyEmail('crear')} disabled={facultyBusy}
+                  className="text-xs bg-indigo-600 text-white rounded-lg px-3.5 py-1.5 hover:bg-indigo-700 disabled:opacity-50">
+                  {facultyBusy ? 'Creando…' : 'Crear correo docente'}
+                </button>
+              </>
+            )}
+          </div>
+          {facultyMsg && (
+            <p className={`mt-2 text-xs rounded-md px-2 py-1 ${facultyMsg.kind === 'ok' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+              {facultyMsg.text}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm border-t border-gray-100 pt-4">
         <div className="flex items-center gap-2 text-gray-600">

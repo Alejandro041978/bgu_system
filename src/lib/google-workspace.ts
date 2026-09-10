@@ -12,6 +12,11 @@ const DOMAIN = process.env.STUDENT_EMAIL_DOMAIN || 'blackwell.pro'
 // Unidad organizativa donde nacen los correos de alumnos (sub-OU de Neumann)
 const ORG_UNIT = process.env.STUDENT_EMAIL_ORG_UNIT || '/blackwell.pro'
 
+// Docentes: mismo tenant de Google (confirmado 09/09/2026), otro dominio y
+// otra unidad organizativa — políticas separadas de las de alumnos.
+const FACULTY_DOMAIN = process.env.FACULTY_EMAIL_DOMAIN || 'faculty.blackwell.university'
+const FACULTY_ORG_UNIT = process.env.FACULTY_EMAIL_ORG_UNIT || '/Faculty'
+
 export function googleConfigured(): boolean {
   return !!(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET && process.env.GOOGLE_OAUTH_REFRESH_TOKEN)
 }
@@ -59,20 +64,24 @@ function tempPassword(): string {
 
 export interface EmailCreation { email: string; password: string }
 
-// Crea la cuenta con la convención nombre.apellido@dominio, resolviendo
-// colisiones contra Google y contra los alias que le pasemos como ocupados.
-export async function createStudentEmail(
-  student: { first_name: string | null; last_name: string | null; second_last_name?: string | null },
-  takenLocally: Set<string>,
-  recovery?: { email?: string | null; phone?: string | null },
-): Promise<EmailCreation> {
+// Núcleo compartido: crea la cuenta con la convención nombre.apellido@dominio,
+// resolviendo colisiones contra Google y contra los alias que le pasemos como
+// ocupados. Estudiantes y docentes difieren solo en dominio, unidad
+// organizativa y de dónde salen las piezas del alias.
+async function createGoogleAccount(args: {
+  domain: string
+  orgUnit: string
+  aliasFirst: string          // ya pasado por strip()
+  aliasLast: string           // ya pasado por strip()
+  secondInitial?: string
+  givenName: string
+  familyName: string
+  takenLocally: Set<string>
+  recovery?: { email?: string | null; phone?: string | null }
+}): Promise<EmailCreation> {
   if (!googleConfigured()) throw new Error('Faltan GOOGLE_OAUTH_CLIENT_ID / SECRET / REFRESH_TOKEN en Vercel')
-  const first = strip((student.first_name ?? '').trim().split(/\s+/)[0])
-  // Apellido paterno COMPLETO sin espacios: "De Los Santos" → delossantos
-  // (strip elimina espacios y tildes al filtrar a-z)
-  const last = strip(student.last_name ?? '')
-  if (!first || !last) throw new Error('El estudiante no tiene nombre y apellido válidos para generar el alias')
-  const secondInitial = strip((student.second_last_name ?? '').trim().split(/\s+/)[0]).slice(0, 1)
+  const { aliasFirst: first, aliasLast: last, secondInitial } = args
+  if (!first || !last) throw new Error('No hay nombre y apellido válidos para generar el alias')
 
   const candidates = [
     `${first}.${last}`,
@@ -83,14 +92,15 @@ export async function createStudentEmail(
   const token = await getAccessToken()
   let chosen: string | null = null
   for (const c of candidates) {
-    const email = `${c}@${DOMAIN}`
-    if (takenLocally.has(email)) continue
+    const email = `${c}@${args.domain}`
+    if (args.takenLocally.has(email)) continue
     if (await emailExistsInGoogle(token, email)) continue
     chosen = email
     break
   }
   if (!chosen) throw new Error('No se encontró un alias libre (agotados los candidatos)')
 
+  const recovery = args.recovery
   const password = tempPassword()
   // Recuperación autónoma: correo personal y teléfono E.164 si existen
   // (el estudiante recupera su acceso sin pasar por helpdesk)
@@ -107,12 +117,12 @@ export async function createStudentEmail(
     body: JSON.stringify({
       primaryEmail: chosen,
       name: {
-        givenName: (student.first_name ?? '').trim() || 'Estudiante',
-        familyName: [student.last_name, student.second_last_name].filter(Boolean).join(' ').trim() || 'BGU',
+        givenName: args.givenName.trim() || 'BGU',
+        familyName: args.familyName.trim() || 'BGU',
       },
       password,
       changePasswordAtNextLogin: true,
-      orgUnitPath: ORG_UNIT,
+      orgUnitPath: args.orgUnit,
       ...(withRecovery && recoveryEmail ? { recoveryEmail } : {}),
       ...(withRecovery && recoveryPhone ? { recoveryPhone } : {}),
     }),
@@ -128,6 +138,45 @@ export async function createStudentEmail(
     throw new Error(`Google users.insert ${res.status}: ${d.error?.message ?? 'error'}`)
   }
   return { email: chosen, password }
+}
+
+// Estudiantes: nombre.apellidopaterno@blackwell.pro (comportamiento original).
+export async function createStudentEmail(
+  student: { first_name: string | null; last_name: string | null; second_last_name?: string | null },
+  takenLocally: Set<string>,
+  recovery?: { email?: string | null; phone?: string | null },
+): Promise<EmailCreation> {
+  return createGoogleAccount({
+    domain: DOMAIN, orgUnit: ORG_UNIT,
+    aliasFirst: strip((student.first_name ?? '').trim().split(/\s+/)[0]),
+    // Apellido paterno COMPLETO sin espacios: "De Los Santos" → delossantos
+    // (strip elimina espacios y tildes al filtrar a-z)
+    aliasLast: strip(student.last_name ?? ''),
+    secondInitial: strip((student.second_last_name ?? '').trim().split(/\s+/)[0]).slice(0, 1),
+    givenName: (student.first_name ?? '').trim() || 'Estudiante',
+    familyName: [student.last_name, student.second_last_name].filter(Boolean).join(' ').trim() || 'BGU',
+    takenLocally, recovery,
+  })
+}
+
+// Docentes: primernombre.primerapellido@faculty.blackwell.university. La ficha
+// del colaborador trae nombres y apellidos como texto libre; el alias usa la
+// primera palabra de cada uno y la inicial del segundo apellido desempata.
+export async function createFacultyEmail(
+  emp: { first_names: string | null; last_names: string | null },
+  takenLocally: Set<string>,
+  recovery?: { email?: string | null; phone?: string | null },
+): Promise<EmailCreation> {
+  const apellidos = (emp.last_names ?? '').trim().split(/\s+/)
+  return createGoogleAccount({
+    domain: FACULTY_DOMAIN, orgUnit: FACULTY_ORG_UNIT,
+    aliasFirst: strip((emp.first_names ?? '').trim().split(/\s+/)[0]),
+    aliasLast: strip(apellidos[0] ?? ''),
+    secondInitial: strip(apellidos[1] ?? '').slice(0, 1),
+    givenName: (emp.first_names ?? '').trim() || 'Docente',
+    familyName: (emp.last_names ?? '').trim() || 'BGU',
+    takenLocally, recovery,
+  })
 }
 
 // Cuando es un restablecimiento y no un alta, el mensaje cambia: decirle
@@ -258,6 +307,61 @@ export async function notifyStudentEmail(personalEmail: string, studentName: str
     html: enmascararSecretos(html, [created.password]),
     status: error ? 'fallida' : 'enviada', error: error ? error.message : null,
     triggeredBy: triggeredBy ?? 'sistema',
+  })
+  if (error) throw new Error(`Resend: ${error.message}`)
+}
+
+// ── Correo del docente: aviso con credenciales ─────────────────────────────
+// Va al correo personal del colaborador. No pasa por la bitácora de
+// notificaciones (esa es de estudiantes); el acuse queda en Resend y la ficha
+// guarda cuándo y a dónde se envió.
+const FT = {
+  alta: {
+    subject: 'Tu correo institucional docente · Blackwell Global University',
+    title: 'Tu correo institucional docente',
+    intro: 'Como parte del cuerpo docente de Blackwell Global University hemos creado para ti un correo institucional con todas las herramientas de Google Workspace.',
+  },
+  reset: {
+    subject: 'Se restableció la contraseña de tu correo docente',
+    title: 'Nueva contraseña de tu correo docente',
+    intro: 'Restablecimos la contraseña de tu correo institucional docente. Ingresa con la contraseña temporal que aparece abajo: el sistema te pedirá cambiarla apenas entres.',
+  },
+}
+
+function facultyEmailHtml(name: string, created: EmailCreation, kind: MailKind): string {
+  const t = FT[kind]
+  return `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;padding:40px 20px">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden">
+    <div style="background:linear-gradient(135deg,#0f2a5f,#1d4ed8);padding:28px 32px;text-align:center">
+      <h1 style="color:#fff;margin:0;font-size:20px;font-weight:700">${t.title}</h1>
+      <p style="color:#bfdbfe;margin:6px 0 0;font-size:13px">Blackwell Global University · Faculty</p>
+    </div>
+    <div style="padding:32px">
+      <p style="color:#111827;font-size:15px;margin:0 0 12px">Estimado/a <strong>${name}</strong>:</p>
+      <p style="color:#4b5563;font-size:14px;line-height:1.7;margin:0 0 20px">${t.intro}</p>
+      <table style="width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin:0 0 18px">
+        <tr><td style="padding:10px 16px;font-size:13px;color:#64748b">Correo</td>
+            <td style="padding:10px 16px;font-size:15px;font-weight:600">${created.email}</td></tr>
+        <tr><td style="padding:10px 16px;font-size:13px;color:#64748b;border-top:1px solid #e2e8f0">Contraseña temporal</td>
+            <td style="padding:10px 16px;font-size:16px;font-weight:700;font-family:ui-monospace,monospace;border-top:1px solid #e2e8f0">${created.password}</td></tr>
+      </table>
+      <p style="color:#4b5563;font-size:13px;line-height:1.6;margin:0 0 20px">En tu primer ingreso el sistema te pedirá elegir una contraseña nueva. Guarda esta información en un lugar seguro.</p>
+      <a href="https://mail.google.com" style="display:block;background:#0f2a5f;color:#fff;text-align:center;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;margin:0 0 20px">Ingresar a mi correo →</a>
+      <p style="color:#9ca3af;font-size:12px;margin:0;line-height:1.6">Si no reconoces este mensaje, responde a este correo y te ayudamos.</p>
+    </div>
+  </div>
+</div>`
+}
+
+export async function notifyFacultyEmail(personalEmail: string, name: string, created: EmailCreation, kind: MailKind = 'alta'): Promise<void> {
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) throw new Error('Falta RESEND_API_KEY / RESEND_FROM_EMAIL')
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  const { error } = await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL,
+    to: personalEmail,
+    subject: FT[kind].subject,
+    html: facultyEmailHtml(name, created, kind),
   })
   if (error) throw new Error(`Resend: ${error.message}`)
 }
