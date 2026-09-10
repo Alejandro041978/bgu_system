@@ -1,0 +1,417 @@
+{
+  "motivo": "Ola correctiva de liquidaciones del gestor con créditos fantasma (censo 10/09, autorizada). Recorte solo de cuotas Liquidación IW impagas hasta facturado=oficial.",
+  "plan": [
+    {
+      "eid": "019dcfce-3da6-7947-93aa-0fb87266c7eb",
+      "nombre": "Sandra Abigail Suazo  (44255632)",
+      "oficial": 0,
+      "facturado": 468,
+      "acciones": [
+        {
+          "tipo": "eliminar",
+          "external_id": "253d5393-22f6-4e1c-a1d2-326ca28f0ef5",
+          "amount": 468,
+          "due_date": "2026-06-18"
+        }
+      ],
+      "exceso_restante": 0
+    },
+    {
+      "eid": "7e97619b-4302-411b-823e-1d999d511e8f",
+      "nombre": "Richard John Luque (43480079)",
+      "oficial": 1872,
+      "facturado": 2304,
+      "acciones": [
+        {
+          "tipo": "reducir",
+          "external_id": "780a4c6d-8bca-45d1-a382-ee1e0f9f54b6",
+          "amount": 1164,
+          "nuevo": 732,
+          "due_date": "2024-08-30"
+        }
+      ],
+      "exceso_restante": 0
+    },
+    {
+      "eid": "e8f8c9b6-ce44-454d-b783-809422b08f83",
+      "nombre": "Mariapia Dayanna Arboleda (3050248008)",
+      "oficial": 0,
+      "facturado": 234,
+      "acciones": [
+        {
+          "tipo": "eliminar",
+          "external_id": "f0f5b78c-1f30-463e-ac75-fd45a87f9619",
+          "amount": 234,
+          "due_date": "2024-08-02"
+        }
+      ],
+      "exceso_restante": 0
+    },
+    {
+      "eid": "b28f1302-b4c2-4191-9703-0b7ff2d28157",
+      "nombre": "Cristian Daniel Quilcahuanca (72909720)",
+      "oficial": 144,
+      "facturado": 432,
+      "acciones": [
+        {
+          "tipo": "reducir",
+          "external_id": "3a84389c-9537-4d33-ab49-a7e7504be65b",
+          "amount": 432,
+          "nuevo": 144,
+          "due_date": "2024-08-30"
+        }
+      ],
+      "exceso_restante": 0
+    },
+    {
+      "eid": "90f0f608-aaef-4710-a623-39c4c949272f",
+      "nombre": "Diego Eduardo Fernandez (71122852)",
+      "oficial": 864,
+      "facturado": 1152,
+      "acciones": [
+        {
+          "tipo": "reducir",
+          "external_id": "4ddd4ae0-6362-4848-a151-077d57d72543",
+          "amount": 612,
+          "nuevo": 324,
+          "due_date": "2024-08-28"
+        }
+      ],
+      "exceso_restante": 0
+    },
+    {
+      "eid": "74c155f5-b3bb-42ae-a6d8-7eae16855c94",
+      "nombre": "Maximo Mullisaca (45827866)",
+      "oficial": 0,
+      "facturado": 432,
+      "acciones": [
+        {
+          "tipo": "eliminar",
+          "external_id": "097f0cc3-cfb4-4582-ab15-dbfeecb73d6c",
+          "amount": 432,
+          "due_date": "2025-02-17"
+        }
+      ],
+      "exceso_restante": 0
+    },
+    {
+      "eid": "ce7539c4-9d8c-4b00-8f23-8bba966a2c5c",
+      "nombre": "Manuel Alejandro Jaramillo (72977288)",
+      "oficial": 2304,
+      "facturado": 2592,
+      "acciones": [
+        {
+          "tipo": "eliminar",
+          "external_id": "d6fde44d-c475-41d8-acea-fa5922e30ed5",
+          "amount": 192,
+          "due_date": "2025-09-05"
+        }
+      ],
+      "exceso_restante": 96
+    },
+    {
+      "eid": "0d43fbd5-8b31-471a-8886-83d7a9271fa2",
+      "nombre": "Jorge Luis Mamani (70988173)",
+      "oficial": 0,
+      "facturado": 144,
+      "acciones": [
+        {
+          "tipo": "eliminar",
+          "external_id": "003aee11-f857-415e-aebc-5b4cf48bf847",
+          "amount": 144,
+          "due_date": "2023-09-07"
+        }
+      ],
+      "exceso_restante": 0
+    },
+    {
+      "eid": "70e1af71-57ec-40fe-9b13-1a6a9518f13a",
+      "nombre": "Luis Antonio Chumbes (44565493)",
+      "oficial": 144,
+      "facturado": 288,
+      "acciones": [
+        {
+          "tipo": "reducir",
+          "external_id": "c1c36c8e-ecd1-40f2-a26d-3dc6a9ff7778",
+          "amount": 288,
+          "nuevo": 144,
+          "due_date": "2023-09-07"
+        }
+      ],
+      "exceso_restante": 0
+    },
+    {
+      "eid": "7cf3f3fe-ae47-44ff-8eb7-c6fff115f336",
+      "nombre": "Saida Chura (45889365)",
+      "oficial": 288,
+      "facturado": 432,
+      "acciones": [
+        {
+          "tipo": "reducir",
+          "external_id": "5df4ca7f-c1f2-47fa-a9ea-57e61ab8ac66",
+          "amount": 312,
+          "nuevo": 168,
+          "due_date": "2023-10-07"
+        }
+      ],
+      "exceso_restante": 0
+    },
+    {
+      "eid": "08b4657b-1c68-45eb-9551-34d1d29518ab",
+      "nombre": "Lennon Jhoser Cárdenas (46973645)",
+      "oficial": 288,
+      "facturado": 432,
+      "acciones": [
+        {
+          "tipo": "reducir",
+          "external_id": "d40a8e6e-8d85-4e0a-a1eb-fe14ecaa24d0",
+          "amount": 312,
+          "nuevo": 168,
+          "due_date": "2023-11-14"
+        }
+      ],
+      "exceso_restante": 0
+    },
+    {
+      "eid": "bdd1faad-8fab-4225-b8a5-8250aa6f3651",
+      "nombre": "Fabrizio Geanfranco Benavides (71045360)",
+      "oficial": 2304,
+      "facturado": 2448,
+      "acciones": [
+        {
+          "tipo": "reducir",
+          "external_id": "674d9714-d0d4-4f86-ace0-42761af4d1a3",
+          "amount": 288,
+          "nuevo": 144,
+          "due_date": "2026-02-05"
+        }
+      ],
+      "exceso_restante": 0
+    }
+  ],
+  "solo_reporte": [
+    "Heyner Humberto Calvo (43665025) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $576 — pagado o en cuotas normales; queda a decisión",
+    "Jose Armando Castillo (75101393) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $144 — pagado o en cuotas normales; queda a decisión",
+    "Manuel Alejandro Jaramillo (72977288) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $96 — pagado o en cuotas normales; queda a decisión",
+    "Edwin Araca (76623709) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $144 — pagado o en cuotas normales; queda a decisión",
+    "Samuel Alejandro Tejada (73583706) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $240 — pagado o en cuotas normales; queda a decisión",
+    "Ana Lizbeth Olivares (73055323) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $288 — pagado o en cuotas normales; queda a decisión",
+    "Jefferson Aldazabal (45930315) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $97.5 — pagado o en cuotas normales; queda a decisión",
+    "Milagros Diana Vilca (71470162) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $216 — pagado o en cuotas normales; queda a decisión",
+    "Darwin Mark Copari (77674833) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $48 — pagado o en cuotas normales; queda a decisión",
+    "Anthonela del Pilar Apaza (72855956) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $744 — pagado o en cuotas normales; queda a decisión",
+    "Jorge Isaac Rivadeneira (032731116) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $130 — pagado o en cuotas normales; queda a decisión",
+    "Julia Mery Gonzales (71229761) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $624 — pagado o en cuotas normales; queda a decisión",
+    "Katy Tuesta (08752529) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $156 — pagado o en cuotas normales; queda a decisión",
+    "Katherine Milagros Soto (73059274) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $144 — pagado o en cuotas normales; queda a decisión",
+    "Rocio Soledad Yufra (74568883) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $528 — pagado o en cuotas normales; queda a decisión",
+    "Isac Doroteo Mamani (76609431) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $72 — pagado o en cuotas normales; queda a decisión",
+    "Joel Ronald Ramos (72176101) | exceso no corregible (sin cuota Liq.IW impaga que recortar): $612 — pagado o en cuotas normales; queda a decisión"
+  ],
+  "cargos_respaldados": [
+    {
+      "id": "5894f69d-5245-4d51-8496-f0b45d3d2e5f",
+      "external_id": "253d5393-22f6-4e1c-a1d2-326ca28f0ef5",
+      "student_id": "02f677af-70da-4dff-85df-93064305586a",
+      "enrollment_id": "019dcfce-3da6-7947-93aa-0fb87266c7eb",
+      "convocatoria_id": null,
+      "amount": 468,
+      "due_date": "2026-06-18",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-20T23:30:55.383468+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    },
+    {
+      "id": "8311021b-eb3c-4e31-a82d-dc522a89094f",
+      "external_id": "780a4c6d-8bca-45d1-a382-ee1e0f9f54b6",
+      "student_id": "f4c9ee49-c656-4721-ba82-f50e49273f94",
+      "enrollment_id": "7e97619b-4302-411b-823e-1d999d511e8f",
+      "convocatoria_id": null,
+      "amount": 1164,
+      "due_date": "2024-08-30",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-20T23:32:08.317177+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    },
+    {
+      "id": "d1563593-a9ee-48f3-8480-92fed25e87b7",
+      "external_id": "f0f5b78c-1f30-463e-ac75-fd45a87f9619",
+      "student_id": "43c1c013-de73-4a18-a5e4-4c727edf1a7b",
+      "enrollment_id": "e8f8c9b6-ce44-454d-b783-809422b08f83",
+      "convocatoria_id": null,
+      "amount": 234,
+      "due_date": "2024-08-02",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-20T23:34:34.826334+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    },
+    {
+      "id": "14043ea5-12a9-417f-b621-56d07d041e64",
+      "external_id": "3a84389c-9537-4d33-ab49-a7e7504be65b",
+      "student_id": "f45050dd-61d3-4771-9cec-839973959498",
+      "enrollment_id": "b28f1302-b4c2-4191-9703-0b7ff2d28157",
+      "convocatoria_id": null,
+      "amount": 432,
+      "due_date": "2024-08-30",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-20T23:33:27.052816+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    },
+    {
+      "id": "c02a0f4b-fa9f-4bc7-8bfc-326676457b25",
+      "external_id": "4ddd4ae0-6362-4848-a151-077d57d72543",
+      "student_id": "9cbc6faa-42db-4ebc-90c1-c82a772ee0dd",
+      "enrollment_id": "90f0f608-aaef-4710-a623-39c4c949272f",
+      "convocatoria_id": null,
+      "amount": 612,
+      "due_date": "2024-08-28",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-20T23:33:52.563687+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    },
+    {
+      "id": "1f545d9b-0523-4e90-98d9-a5bb5bd05eb3",
+      "external_id": "097f0cc3-cfb4-4582-ab15-dbfeecb73d6c",
+      "student_id": "3eb6638c-485e-4e1f-b4fa-68f41abcda2f",
+      "enrollment_id": "74c155f5-b3bb-42ae-a6d8-7eae16855c94",
+      "convocatoria_id": null,
+      "amount": 432,
+      "due_date": "2025-02-17",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-21T02:28:14.37511+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    },
+    {
+      "id": "5726a7c9-27b3-47df-b8a9-9967f3d5db96",
+      "external_id": "d6fde44d-c475-41d8-acea-fa5922e30ed5",
+      "student_id": "cdbc2a21-f1c7-4959-94e6-8c7b46c49e1e",
+      "enrollment_id": "ce7539c4-9d8c-4b00-8f23-8bba966a2c5c",
+      "convocatoria_id": null,
+      "amount": 192,
+      "due_date": "2025-09-05",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-21T02:29:05.385369+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    },
+    {
+      "id": "45ee923e-fe93-4ef2-bd10-260a90e68885",
+      "external_id": "003aee11-f857-415e-aebc-5b4cf48bf847",
+      "student_id": "89d359cf-d89a-4315-9718-c7165433938e",
+      "enrollment_id": "0d43fbd5-8b31-471a-8886-83d7a9271fa2",
+      "convocatoria_id": null,
+      "amount": 144,
+      "due_date": "2023-09-07",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-21T02:31:34.890253+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    },
+    {
+      "id": "d9fe22e5-4e10-46e7-871f-314b2e969d2d",
+      "external_id": "c1c36c8e-ecd1-40f2-a26d-3dc6a9ff7778",
+      "student_id": "8d8a9062-7841-411d-ba14-939c51193715",
+      "enrollment_id": "70e1af71-57ec-40fe-9b13-1a6a9518f13a",
+      "convocatoria_id": null,
+      "amount": 288,
+      "due_date": "2023-09-07",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-21T02:32:19.763364+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    },
+    {
+      "id": "aec7b583-c20c-4d56-aaf5-9ec2750a8a3d",
+      "external_id": "5df4ca7f-c1f2-47fa-a9ea-57e61ab8ac66",
+      "student_id": "75a5099d-f373-43c4-bcd7-50cc4be337c3",
+      "enrollment_id": "7cf3f3fe-ae47-44ff-8eb7-c6fff115f336",
+      "convocatoria_id": null,
+      "amount": 312,
+      "due_date": "2023-10-07",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-21T02:34:36.411537+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    },
+    {
+      "id": "02952091-dbb6-46a1-be80-4378032a13ed",
+      "external_id": "d40a8e6e-8d85-4e0a-a1eb-fe14ecaa24d0",
+      "student_id": "7611dd3d-601b-45b4-ba23-4f8beb047e8b",
+      "enrollment_id": "08b4657b-1c68-45eb-9551-34d1d29518ab",
+      "convocatoria_id": null,
+      "amount": 312,
+      "due_date": "2023-11-14",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-21T02:39:26.722986+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    },
+    {
+      "id": "7869f402-8b53-4c17-8103-deff6a3f2cdf",
+      "external_id": "674d9714-d0d4-4f86-ace0-42761af4d1a3",
+      "student_id": "02e3f4ac-3b5d-4cf8-ae85-6e22431e73d8",
+      "enrollment_id": "bdd1faad-8fab-4225-b8a5-8250aa6f3651",
+      "convocatoria_id": null,
+      "amount": 288,
+      "due_date": "2026-02-05",
+      "charge_type": 2,
+      "course_registration_external_id": null,
+      "created_at": "2026-08-21T18:07:35.148988+00:00",
+      "source": "erp",
+      "flywire_status": null,
+      "flywire_payment_id": null,
+      "is_initial": false,
+      "reference": "Liquidación IW"
+    }
+  ]
+}
