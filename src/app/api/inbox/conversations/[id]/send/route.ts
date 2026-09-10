@@ -16,9 +16,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const { id } = await params
-  const { body, attachments } = await req.json() as {
+  const { body, attachments, via } = await req.json() as {
     body?: string
     attachments?: { storage_path: string; filename: string; mime_type: string; size_bytes: number }[]
+    // 'whatsapp' en un caso de correo = responder por el canal WhatsApp del
+    // caso bicanal (solo con ventana de 24h abierta).
+    via?: 'whatsapp' | 'email'
   }
   const adjuntos = attachments ?? []
   // Un adjunto sin texto es un envío válido: mandar solo el archivo es normal.
@@ -38,7 +41,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // formulario) SIEMPRE por correo — aunque traiga teléfono: ese teléfono es
   // el diálogo con Sofía (los humanos no acceden a ese número) y un WhatsApp
   // frío desde el número humano exigiría plantilla de Meta.
-  const porCorreo = conv.channel === 'email' || conv.channel === 'ticket'
+  //
+  // EXCEPCIÓN bicanal (10/09/2026): si el estudiante respondió a la invitación
+  // de WhatsApp del caso, la ventana de 24h está abierta y el agente puede
+  // elegir via='whatsapp' — texto libre por el número de soporte, dentro del
+  // mismo caso. Fuera de ventana, el servidor lo rechaza: Meta lo bloquearía.
+  let waEnCorreo = false
+  if (via === 'whatsapp' && (conv.channel === 'email' || conv.channel === 'ticket')) {
+    const telefono = conv.wa_invite_phone ?? conv.customer_phone
+    if (!telefono) return NextResponse.json({ error: 'Este caso no tiene teléfono de WhatsApp asociado.' }, { status: 400 })
+    const hace24h = new Date(Date.now() - 24 * 3600_000).toISOString()
+    const { data: ultimoIn } = await sb.from('wa_messages')
+      .select('id').eq('conversation_id', id).eq('direction', 'in').eq('via', 'whatsapp')
+      .gte('created_at', hace24h).limit(1).maybeSingle()
+    if (!ultimoIn) {
+      return NextResponse.json({ error: 'La ventana de WhatsApp de 24 horas no está abierta: el estudiante no ha escrito por WhatsApp en las últimas 24 horas. Responde por correo (Meta bloquea el texto libre fuera de ventana).' }, { status: 409 })
+    }
+    conv.customer_phone = telefono
+    waEnCorreo = true
+  }
+  const porCorreo = (conv.channel === 'email' || conv.channel === 'ticket') && !waEnCorreo
 
   // Sin correo en el caso, se busca en la ficha del estudiante antes de
   // rendirse: casi siempre lo tiene, y pedirle al agente que lo complete a mano
@@ -198,6 +220,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // donde venga.
   const { data: msg } = await sb.from('wa_messages').insert({
     conversation_id: id, direction: 'out', body: storedBody, subject: outSubject, agent_id: user.id, agent_name: agentNm,
+    via: waEnCorreo ? 'whatsapp' : null,
     twilio_sid: twilioSid, delivery_status: twilioSid ? 'sent' : null,
   }).select('*').single()
 

@@ -1,3 +1,33 @@
+// Envía una PLANTILLA aprobada de Meta (Twilio Content API). Es la única vía
+// permitida fuera de la ventana de 24h: texto libre en frío está prohibido y
+// Meta lo bloquea. variables = {"1": "...", "2": "..."} según la plantilla.
+export async function sendWhatsAppTemplate(
+  to: string,
+  contentSid: string,
+  variables: Record<string, string>,
+  creds: { from: string; sid: string; token: string },
+): Promise<{ ok: boolean; error?: string; messageSid?: string }> {
+  const params = new URLSearchParams({
+    From: creds.from, To: to,
+    ContentSid: contentSid,
+    ContentVariables: JSON.stringify(variables),
+  })
+  const resp = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${creds.sid}/Messages.json`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${Buffer.from(`${creds.sid}:${creds.token}`).toString('base64')}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
+  })
+  if (!resp.ok) {
+    const t = await resp.text()
+    return { ok: false, error: `Twilio ${resp.status}: ${t}` }
+  }
+  const d = await resp.json().catch(() => null) as { sid?: string } | null
+  return { ok: true, messageSid: d?.sid }
+}
+
 // Envía un mensaje de WhatsApp por Twilio con credenciales explícitas.
 // Devuelve el SID del mensaje para poder seguir sus vistos (statusCallback:
 // Twilio notifica sent/delivered/read a esa URL).

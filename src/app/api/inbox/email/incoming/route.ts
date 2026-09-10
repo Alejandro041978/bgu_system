@@ -4,6 +4,7 @@ import { classifyInbound } from '@/lib/inbox-classify'
 import { autoAssign, identifyStudentByEmail } from '@/lib/inbox-assign'
 import { recordInboxConversation } from '@/lib/inbox-record'
 import { gmailHelpdeskConfigured, importEmailAttachments } from '@/lib/gmail-helpdesk'
+import { enviarInvitacionWhatsApp } from '@/lib/inbox-wa-invite'
 
 export const maxDuration = 60
 
@@ -169,7 +170,9 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Crear o actualizar conversación ───────────────────────────────────────
+    let esNueva = false
     if (!conversationId) {
+      esNueva = true
       const { language, topic } = await classifyInbound(subject, bodyText)
       // Identificar al estudiante por el remitente → asignación por las
       // CATEGORÍAS de programa de las asesoras (contenido desempata)
@@ -214,7 +217,15 @@ export async function POST(req: NextRequest) {
     // Registro para el supervisor del equipo humano
     if (conversationId) await recordInboxConversation(conversationId)
 
-    return NextResponse.json({ ok: true, conversation_id: conversationId, attachments, attachment_errors: attachmentErrors.slice(0, 3) })
+    // Invitación de WhatsApp (10/09/2026): solo en casos NUEVOS con teléfono
+    // conocido. Best-effort — un fallo de Twilio no toca el caso.
+    let invitacion: string | null = null
+    if (esNueva && conversationId) {
+      const inv = await enviarInvitacionWhatsApp(sb, conversationId)
+      invitacion = inv.note
+    }
+
+    return NextResponse.json({ ok: true, conversation_id: conversationId, attachments, attachment_errors: attachmentErrors.slice(0, 3), wa_invite: invitacion })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }

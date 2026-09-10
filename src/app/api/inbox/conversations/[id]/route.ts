@@ -65,7 +65,18 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   // Marcar como leído
   if (conv.unread_count > 0) await sb.from('wa_conversations').update({ unread_count: 0 }).eq('id', id)
 
-  return NextResponse.json({ conversation: conv, messages: enriched })
+  // Caso bicanal (10/09/2026): ¿la ventana de 24h de WhatsApp está abierta?
+  // Abierta = el estudiante escribió por WhatsApp (mensaje via 'whatsapp')
+  // dentro de las últimas 24 horas — habilita responder por ese canal.
+  let waWindowOpen = false
+  if ((conv.channel === 'email' || conv.channel === 'ticket') && (conv.wa_invite_phone || conv.customer_phone)) {
+    const hace24h = new Date(Date.now() - 24 * 3600_000).toISOString()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    waWindowOpen = ((messages ?? []) as any[]).some(m =>
+      m.direction === 'in' && m.via === 'whatsapp' && String(m.created_at) >= hace24h)
+  }
+
+  return NextResponse.json({ conversation: conv, messages: enriched, wa_window_open: waWindowOpen })
 }
 
 // PATCH { action: 'claim' | 'release' | 'close' | 'reopen' }

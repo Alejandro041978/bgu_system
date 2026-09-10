@@ -40,6 +40,7 @@ interface Conversation {
   language?: string | null
   topic?: string | null
   summary?: string | null
+  wa_invite_phone?: string | null
 }
 
 function convName(c: Conversation): string {
@@ -67,6 +68,8 @@ interface Message {
   subject?: string | null; agent_name: string | null; created_at: string
   delivery_status?: string | null
   attachments?: Attachment[]
+  // Canal del mensaje en casos bicanal ('whatsapp' | 'nota'; null = el canal del caso)
+  via?: string | null
 }
 
 const fsize = (n: number | null) => {
@@ -127,6 +130,9 @@ export function InboxView() {
   const [hitsEst, setHitsEst] = useState<{ id: string; name: string; document_number: string | null }[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  // Caso bicanal: ventana de 24h de WhatsApp abierta → el agente puede elegir canal
+  const [waWindowOpen, setWaWindowOpen] = useState(false)
+  const [viaCanal, setViaCanal] = useState<'email' | 'whatsapp'>('email')
   const [sending, setSending] = useState(false)
   const [adjuntos, setAdjuntos] = useState<{ storage_path: string; filename: string; mime_type: string; size_bytes: number }[]>([])
   const [subiendo, setSubiendo] = useState(false)
@@ -169,7 +175,12 @@ export function InboxView() {
   async function loadThread(id: string) {
     const res = await fetch(`/api/inbox/conversations/${id}`)
     const data = await res.json()
-    if (data.conversation) { setSelected(data.conversation); setMessages(data.messages ?? []) }
+    if (data.conversation) {
+      setSelected(data.conversation); setMessages(data.messages ?? [])
+      const abierta = !!data.wa_window_open
+      setWaWindowOpen(abierta)
+      if (!abierta) setViaCanal('email')
+    }
   }
 
   // Lista de agentes helpdesk (para "Derivar a…")
@@ -256,7 +267,10 @@ export function InboxView() {
     setInput(''); setAdjuntos([])
     const res = await fetch(`/api/inbox/conversations/${selected.id}/send`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: text, attachments: files }),
+      body: JSON.stringify({
+        body: text, attachments: files,
+        ...(selected.channel === 'email' && viaCanal === 'whatsapp' ? { via: 'whatsapp' } : {}),
+      }),
     })
     if (!res.ok) {
       const d = await res.json().catch(() => ({}))
@@ -511,6 +525,9 @@ export function InboxView() {
                         </div>
                       )}
                       <p className={`text-[10px] mt-1 flex items-center gap-1 ${m.direction === 'out' ? 'text-blue-100 justify-end' : 'text-gray-400'}`}>
+                        {m.via === 'whatsapp' && (
+                          <span className={`px-1.5 py-0.5 rounded-full font-medium ${m.direction === 'out' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-700'}`}>WhatsApp</span>
+                        )}
                         {m.direction === 'out' && m.agent_name ? `${m.agent_name} · ` : ''}{timeLabel(m.created_at)}
                         {m.direction === 'out' && <DeliveryTicks status={m.delivery_status} />}
                       </p>
@@ -525,8 +542,26 @@ export function InboxView() {
               /* Compositor de CORREO: Enter hace salto de línea (nunca envía);
                  el correo sale solo con el botón. Adiós a los correos partidos. */
               <div className="p-3 border-t border-gray-100 space-y-2">
+                {/* Caso bicanal: cuando el estudiante respondió a la invitación
+                    de WhatsApp, la ventana de 24h permite elegir canal. */}
+                {waWindowOpen && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-gray-400">Responder por:</span>
+                    {(['email', 'whatsapp'] as const).map(c => (
+                      <button key={c} onClick={() => setViaCanal(c)}
+                        className={`text-[11px] font-medium px-2.5 py-1 rounded-full border ${viaCanal === c
+                          ? (c === 'whatsapp' ? 'bg-green-600 text-white border-green-600' : 'bg-blue-600 text-white border-blue-600')
+                          : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                        {c === 'email' ? 'Correo' : 'WhatsApp'}
+                      </button>
+                    ))}
+                    <span className="text-[10px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full">ventana de 24h abierta</span>
+                  </div>
+                )}
                 <p className="text-[11px] text-gray-400">
-                  <b>Para:</b> {selected.customer_email ?? '—'} · <b>Asunto:</b> {selected.subject ? (/^re:/i.test(selected.subject) ? selected.subject : `Re: ${selected.subject}`) : 'Re:'}
+                  {viaCanal === 'whatsapp' && waWindowOpen
+                    ? <><b>WhatsApp a:</b> {(selected.wa_invite_phone ?? selected.customer_phone ?? '—').replace('whatsapp:', '')}</>
+                    : <><b>Para:</b> {selected.customer_email ?? '—'} · <b>Asunto:</b> {selected.subject ? (/^re:/i.test(selected.subject) ? selected.subject : `Re: ${selected.subject}`) : 'Re:'}</>}
                   {selected.case_number != null && ` [Caso #${selected.case_number}]`}
                 </p>
                 <textarea value={input} onChange={e => setInput(e.target.value)}
@@ -536,9 +571,9 @@ export function InboxView() {
                 <div className="flex justify-end gap-2">
                   {botonAdjuntar}
                   <button onClick={send} disabled={(!input.trim() && !adjuntos.length) || sending || subiendo}
-                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                    {sending ? 'Enviando…' : 'Enviar correo'}
+                    className={`flex items-center gap-1.5 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium ${viaCanal === 'whatsapp' && waWindowOpen ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : viaCanal === 'whatsapp' && waWindowOpen ? <Send className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
+                    {sending ? 'Enviando…' : viaCanal === 'whatsapp' && waWindowOpen ? 'Enviar WhatsApp' : 'Enviar correo'}
                   </button>
                 </div>
               </div>

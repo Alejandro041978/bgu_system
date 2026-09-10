@@ -351,6 +351,39 @@ async function receiveInboxMessage(from: string, body: string, inboxKey: string,
     return
   }
 
+  // 2b) Respuesta a la INVITACIÓN de WhatsApp de un caso de correo (10/09/2026):
+  // la invitación es la segunda llave de la puerta dura. Cascada de asociación:
+  // teléfono invitado → si tiene varios casos abiertos, el #ticket del texto
+  // desempata → si no viene, el caso más reciente (con nota para el agente).
+  // El mensaje se adjunta AL MISMO caso: la conversación queda bicanal y la
+  // ventana de 24h abierta para responder en texto libre.
+  {
+    const { data: invitados } = await sb.from('wa_conversations')
+      .select('id, unread_count, case_number, wa_invite_sent_at')
+      .eq('wa_invite_phone', from).eq('status', 'open')
+      .order('wa_invite_sent_at', { ascending: false })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const abiertos = (invitados ?? []) as any[]
+    if (abiertos.length) {
+      let caso = abiertos[0]
+      let nota: string | null = null
+      if (abiertos.length > 1) {
+        const num = body.match(/#?\s*(\d{1,8})/)?.[1]
+        const porNumero = num ? abiertos.find(c => String(c.case_number) === num) : null
+        if (porNumero) caso = porNumero
+        else nota = `⚠ Este teléfono tiene ${abiertos.length} casos abiertos invitados a WhatsApp y el mensaje no trae número de ticket: se adjuntó al más reciente.`
+      }
+      await sb.from('wa_conversations').update({
+        unread_count: (caso.unread_count ?? 0) + 1, last_message_at: now,
+        last_message_preview: body.slice(0, 120), updated_at: now,
+      }).eq('id', caso.id)
+      await sb.from('wa_messages').insert({ conversation_id: caso.id, direction: 'in', body, via: 'whatsapp' })
+      if (nota) await sb.from('wa_messages').insert({ conversation_id: caso.id, direction: 'out', via: 'nota', body: nota })
+      await recordInboxConversation(caso.id)
+      return
+    }
+  }
+
   // 3) Sin código y sin conversación → puerta dura (deriva a Sofia, no crea conversación)
   const sofiaDigits = (process.env.TWILIO_WHATSAPP_NUMBER ?? '').replace(/\D/g, '')
   const isEn = detectLang(body) === 'en'
