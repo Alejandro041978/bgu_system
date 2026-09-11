@@ -100,6 +100,48 @@ async function run(dryRun: boolean) {
     for (const s of data ?? []) stu.set(s.id, s)
   }
 
+  // ── Estado personal para campañas CON SECUENCIA (fusión Retención→Ausente,
+  // 10/09/2026): compromisos, conversaciones activas, no-contactar y
+  // expedientes humanos se respetan igual que en el motor viejo. ────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const trackingDe = new Map<string, any>()
+  const conExpediente = new Set<string>()
+  {
+    for (let f = 0; ; f += 1000) {
+      const { data } = await sb.from('student_tracking')
+        .select('student_id, inactivity_days, do_not_contact, last_outcome_at, commitment_date, commitment_kept').range(f, f + 999)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const t of (data ?? []) as any[]) trackingDe.set(String(t.student_id), t)
+      if ((data ?? []).length < 1000) break
+    }
+    const { data: reqs } = await sb.from('withdrawal_requests').select('student_id, stage')
+    for (const r of (reqs ?? []) as { student_id: string; stage: string }[]) {
+      if (r.stage !== 'resuelto' && r.stage !== 'anulado') conExpediente.add(String(r.student_id))
+    }
+  }
+  const DAY = 86_400_000
+  const protegido = (sid: string): string | null => {
+    const t = trackingDe.get(sid)
+    if (t?.do_not_contact) return 'no contactar'
+    if (conExpediente.has(sid)) return 'expediente humano abierto'
+    // Está conversando: la ventana de 24h se maneja libre, sin plantillas.
+    if (t?.last_outcome_at && Date.now() - new Date(t.last_outcome_at).getTime() < 7 * DAY) return 'conversando'
+    // Prometió volver y su fecha aún no llega: se le da su plazo.
+    if (t?.commitment_date && t.commitment_kept === null && new Date(t.commitment_date).getTime() >= Date.now()) return 'con compromiso'
+    return null
+  }
+  // Toques por persona y campaña (para el paso de la secuencia)
+  const toquesDe = new Map<string, number>()
+  for (let f = 0; ; f += 1000) {
+    const { data } = await sb.from('campaign_contacts')
+      .select('student_id, campaign_key, status').eq('status', 'sent').range(f, f + 999)
+    for (const r of (data ?? []) as { student_id: string; campaign_key: string }[]) {
+      const k = `${r.student_id}|${r.campaign_key}`
+      toquesDe.set(k, (toquesDe.get(k) ?? 0) + 1)
+    }
+    if ((data ?? []).length < 1000) break
+  }
+
   const resumen: Record<string, { elegibles: number; enviados: number; saltados: number; motivo?: string }> = {}
   let enviados = 0
   const errores: string[] = []
@@ -125,14 +167,89 @@ async function run(dryRun: boolean) {
       resumen[camp.key].motivo = `bot "${def.bot_key}" inactivo o sin número`
       continue
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const steps: any[] | null = Array.isArray(def.config?.steps) && def.config.steps.length ? def.config.steps : null
     const tplKey = def.template_key ?? `camila_${camp.key}`
-    if (!tplOf.has(`${tplKey}|es`) && !tplOf.has(`${tplKey}|en`)) {
+    if (!steps && !tplOf.has(`${tplKey}|es`) && !tplOf.has(`${tplKey}|en`)) {
       resumen[camp.key].motivo = `sin plantilla registrada (${tplKey}) — créala y apruébala en Twilio`
       continue
     }
     if (cupo <= 0) { resumen[camp.key].motivo = 'cupo diario alcanzado'; continue }
 
     const creds = { sid: bot.twilio_account_sid!, token: bot.twilio_auth_token!, from: bot.twilio_number! }
+
+    // ── Campaña CON SECUENCIA (fusión Retención→Ausente, 10/09/2026): cada
+    // paso tiene su plantilla y su espera; el estado personal (compromisos,
+    // conversaciones, no-contactar, expediente) se respeta como en el motor
+    // viejo. La secuencia se DETIENE sola si el estudiante volvió al aula
+    // (su inactividad bajó del umbral) y no se reinicia a quien la agotó. ────
+    if (steps) {
+      const umbral = Number(def.config?.inactivity_days ?? 7)
+      type Cand = { sid: string; attempt: number; dias: number; reason: string }
+      const cands: Cand[] = []
+      // Continuaciones: a mitad de secuencia, con su espera cumplida y aún ausentes
+      for (const [k, n] of toquesDe) {
+        const [sid, ck] = k.split('|')
+        if (ck !== camp.key || n <= 0 || n >= steps.length) continue
+        const t = trackingDe.get(sid)
+        if ((t?.inactivity_days ?? 0) < umbral) continue
+        const last = ultimoContacto.get(`${sid}|${camp.key}`)
+        const gap = Number(steps[n]?.gap_days ?? 7)
+        if (last && Date.now() - new Date(last).getTime() < gap * DAY) continue
+        cands.push({ sid, attempt: n, dias: Number(t?.inactivity_days ?? 0), reason: `paso ${n + 1} de la secuencia` })
+      }
+      // Nuevos: la cola del resolver, solo quienes nunca recibieron el paso 1
+      for (const a of cola) {
+        if ((toquesDe.get(`${a.student_id}|${camp.key}`) ?? 0) > 0) continue
+        const t = trackingDe.get(String(a.student_id))
+        cands.push({ sid: String(a.student_id), attempt: 0, dias: Number(t?.inactivity_days ?? 0), reason: a.reason })
+      }
+      // Quien está a mitad de cadencia va primero (no dejar conversaciones a
+      // medias); entre nuevos, los frescos primero — quien lleva 7 días fuera
+      // vuelve más fácil que quien lleva 90 (lección del motor de retención).
+      cands.sort((x, y) => (y.attempt > 0 ? 1 : 0) - (x.attempt > 0 ? 1 : 0) || x.dias - y.dias)
+      resumen[camp.key].elegibles = cands.length
+
+      // Datos de los de continuación que no vinieron en la cola del resolver
+      const faltan = cands.map(c => c.sid).filter(sid => !stu.has(sid))
+      for (let i = 0; i < faltan.length; i += 300) {
+        const { data } = await sb.from('academic_students')
+          .select('id, first_name, last_name, phone_code, phone_number, country').in('id', faltan.slice(i, i + 300))
+        for (const s of data ?? []) stu.set(s.id, s)
+      }
+
+      let usados = 0
+      for (const c of cands) {
+        if (usados >= cupo) break
+        const s = stu.get(c.sid)
+        const tel = telefonoE164(s)
+        const nombre = saludo(s?.first_name ?? null)
+        if (!s || !tel || tel.length < 8 || !nombre) { resumen[camp.key].saltados++; continue }
+        if (protegido(c.sid)) { resumen[camp.key].saltados++; continue }
+        const paso = steps[c.attempt]
+        const lang = langOf(s.country)
+        const tpl = tplOf.get(`${paso.template_key}|${lang}`) ?? tplOf.get(`${paso.template_key}|es`)
+        if (!tpl) { resumen[camp.key].saltados++; errores.push(`${camp.key}: sin plantilla ${paso.template_key}`); continue }
+        const vars: Record<string, string> = { '1': nombre }
+        if (paso.con_dias) vars['2'] = String(c.dias)
+        const bitacora = {
+          student_id: c.sid, campaign_key: camp.key, template_key: paso.template_key,
+          language: lang, reason: c.reason, sent_at: new Date().toISOString(),
+        }
+        if (dryRun) { resumen[camp.key].enviados++; enviados++; usados++; continue }
+        try {
+          const sid = await sendTemplate(tel.startsWith('whatsapp:') ? tel : `whatsapp:${tel}`, tpl.sid, vars, creds)
+          await sb.from('campaign_contacts').insert({ ...bitacora, twilio_sid: sid, status: 'sent' })
+          resumen[camp.key].enviados++; enviados++; usados++
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          await sb.from('campaign_contacts').insert({ ...bitacora, status: 'failed', error: msg.slice(0, 300) })
+          errores.push(`${camp.key}/${c.sid}: ${msg.slice(0, 120)}`)
+          usados++
+        }
+      }
+      continue
+    }
 
     // El cupo se llena con quien SE PUEDE contactar, no con los primeros de la
     // cola.

@@ -120,7 +120,10 @@ export async function resolveEligibility(sb: any): Promise<{
     if (/retiro_temporal|loa|licencia/i.test(situ)) candidatos.push({ key: 'loa', reason: 'en licencia (LOA)' })
     else if (/retiro_permanente|iw/i.test(situ)) candidatos.push({ key: 'iw', reason: 'retirado (IW)' })
     if (pendienteTitulo.has(sid)) candidatos.push({ key: 'titulacion', reason: 'egresado sin título' })
-    if (/activo|egresado/.test(situ) && dias >= umbralDias) candidatos.push({ key: 'ausente', reason: `${dias} días sin actividad` })
+    // Ausente (fusión con Retención, 10/09/2026): SOLO activos (un egresado no
+    // "falta a clases") y SIN deuda vencida — el deudor ausente va a Cobranza
+    // por la cascada, como lo hacía el motor de retención.
+    if (/activo/.test(situ) && vencida <= 0.5 && dias >= umbralDias) candidatos.push({ key: 'ausente', reason: `${dias} días sin actividad` })
     if (/activo/.test(situ) && vencida > 0.5) candidatos.push({ key: 'cobranza', reason: `deuda vencida $${vencida.toFixed(2)}` })
     if (/activo/.test(situ) && vencida <= 0.5 && saldoTotal > 0.5) candidatos.push({ key: 'cashpay', reason: `al día, saldo futuro $${saldoTotal.toFixed(2)}` })
     const elegido = candidatos.find(c => activeKeys.has(c.key))

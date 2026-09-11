@@ -53,10 +53,6 @@
       "schedule": "55 4 * * *"
     },
     {
-      "path": "/api/cron/retention-campaign",
-      "schedule": "0 14 * * 1-5"
-    },
-    {
       "path": "/api/cron/campaigns",
       "schedule": "15 14 * * 1-5"
     },
