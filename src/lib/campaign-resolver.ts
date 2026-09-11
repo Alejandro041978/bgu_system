@@ -71,7 +71,12 @@ export async function resolveEligibility(sb: any): Promise<{
     if (!c.student_id) continue
     const amt = Number(c.amount ?? 0)
     totalBy.set(String(c.student_id), (totalBy.get(String(c.student_id)) ?? 0) + amt)
-    if (!c.due_date || String(c.due_date).slice(0, 10) <= hoy) {
+    // "Vencida" = la definición OFICIAL del ERP (la misma de la restricción de
+    // Moodle y el reporte de deuda): con fecha de vencimiento y ya cumplida.
+    // Una cuota SIN fecha (p. ej. el enrollment) no está vencida — cuenta en el
+    // saldo total (cashpay), no en cobranza. Antes se contaba como vencida y
+    // la campaña habría cobrado deudas que el resto del ERP no llama deuda.
+    if (c.due_date && String(c.due_date).slice(0, 10) <= hoy) {
       exigibleBy.set(String(c.student_id), (exigibleBy.get(String(c.student_id)) ?? 0) + amt)
     }
   }
@@ -102,18 +107,25 @@ export async function resolveEligibility(sb: any): Promise<{
     const saldoTotal = (totalBy.get(sid) ?? 0) - (paidBy.get(sid) ?? 0)
     const dias = inactivos.get(sid) ?? 0
 
-    let key: string | null = null, reason = ''
-    // LOA ANTES que IW, y con patrones precisos: la situación de una licencia
-    // es 'retiro_temporal', que el viejo /iw|retir/ atrapaba primero — los LOA
-    // caían en la campaña IW ("regresa y termina tu programa") y la rama LOA
-    // era inalcanzable (ninguna situación real dice 'loa'). 10/09/2026.
-    if (/retiro_temporal|loa|licencia/i.test(situ)) { key = 'loa'; reason = 'en licencia (LOA)' }
-    else if (/retiro_permanente|iw/i.test(situ)) { key = 'iw'; reason = 'retirado (IW)' }
-    else if (pendienteTitulo.has(sid)) { key = 'titulacion'; reason = 'egresado sin título' }
-    else if (/activo|egresado/.test(situ) && dias >= umbralDias) { key = 'ausente'; reason = `${dias} días sin actividad` }
-    else if (/activo/.test(situ) && vencida > 0.5) { key = 'cobranza'; reason = `deuda vencida $${vencida.toFixed(2)}` }
-    else if (/activo/.test(situ) && vencida <= 0.5 && saldoTotal > 0.5) { key = 'cashpay'; reason = `al día, saldo futuro $${saldoTotal.toFixed(2)}` }
-    if (!key || !activeKeys.has(key)) continue
+    // Reglas en orden de precedencia. LOA ANTES que IW y con patrones
+    // precisos: la situación de una licencia es 'retiro_temporal', que el
+    // viejo /iw|retir/ atrapaba primero (10/09/2026).
+    //
+    // CASCADA (10/09/2026): si la campaña que le toca está APAGADA, se evalúa
+    // la siguiente regla que le calce en vez de descartar al estudiante.
+    // Antes, un deudor con 7+ días de inactividad caía en 'ausente' y, con
+    // esa campaña apagada, desaparecía de TODAS: 22 de los 25 deudores
+    // activos estaban en ese limbo y Cobranza mostraba 2 elegibles.
+    const candidatos: { key: string; reason: string }[] = []
+    if (/retiro_temporal|loa|licencia/i.test(situ)) candidatos.push({ key: 'loa', reason: 'en licencia (LOA)' })
+    else if (/retiro_permanente|iw/i.test(situ)) candidatos.push({ key: 'iw', reason: 'retirado (IW)' })
+    if (pendienteTitulo.has(sid)) candidatos.push({ key: 'titulacion', reason: 'egresado sin título' })
+    if (/activo|egresado/.test(situ) && dias >= umbralDias) candidatos.push({ key: 'ausente', reason: `${dias} días sin actividad` })
+    if (/activo/.test(situ) && vencida > 0.5) candidatos.push({ key: 'cobranza', reason: `deuda vencida $${vencida.toFixed(2)}` })
+    if (/activo/.test(situ) && vencida <= 0.5 && saldoTotal > 0.5) candidatos.push({ key: 'cashpay', reason: `al día, saldo futuro $${saldoTotal.toFixed(2)}` })
+    const elegido = candidatos.find(c => activeKeys.has(c.key))
+    if (!elegido) continue
+    const key = elegido.key, reason = elegido.reason
 
     // Cooldown global entre campañas
     const last = lastContact.get(sid)

@@ -67,16 +67,52 @@ export async function GET() {
   // "ausente" pero con una SECUENCIA de 5 plantillas (día 1/3/7/14 + deuda),
   // algo que el motor nuevo todavía no sabe hacer. Se muestra aquí para tener
   // la foto completa en un solo lugar; su encendido se controla en su página.
-  const { data: rCfg } = await sb.from('retention_settings').select('enabled, daily_cap').eq('id', 1).maybeSingle()
+  const { data: rCfg } = await sb.from('retention_settings').select('enabled, daily_cap, contact_debtors').eq('id', 1).maybeSingle()
   const { data: rRecent } = await sb.from('retention_contacts')
     .select('replied_at, status').gte('sent_at', desde)
+
+  // Elegibles REALES del motor de retención (antes esta tarjeta mostraba un 0
+  // fijo y confundía — 10/09/2026). Su audiencia: activos en riesgo
+  // nudge7/warn14 con teléfono, sin do_not_contact, sin expediente abierto y,
+  // salvo que la config diga lo contrario, sin deuda (los deudores van por su
+  // propia vía). Los tiempos de la cadencia no restan elegibilidad: regulan
+  // CUÁNDO, no A QUIÉN.
+  let rElegibles = 0
+  {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const track: any[] = []
+    for (let f = 0; ; f += 1000) {
+      const { data } = await sb.from('student_tracking')
+        .select('student_id, risk_level, do_not_contact, balance').in('risk_level', ['nudge7', 'warn14']).range(f, f + 999)
+      track.push(...(data ?? []))
+      if ((data ?? []).length < 1000) break
+    }
+    const ids = [...new Set(track.map(t => String(t.student_id)))]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const situDe = new Map<string, any>()
+    for (let i = 0; i < ids.length; i += 300) {
+      const { data } = await sb.from('academic_students').select('id, situation, phone_number').in('id', ids.slice(i, i + 300))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const s of (data ?? []) as any[]) situDe.set(String(s.id), s)
+    }
+    const { data: reqs } = await sb.from('withdrawal_requests').select('student_id, stage')
+    const conExpediente = new Set(((reqs ?? []) as { student_id: string; stage: string }[])
+      .filter(r => r.stage !== 'resuelto' && r.stage !== 'anulado').map(r => String(r.student_id)))
+    for (const t of track) {
+      const s = situDe.get(String(t.student_id))
+      if (!s || s.situation !== 'activo' || !s.phone_number) continue
+      if (t.do_not_contact || conExpediente.has(String(t.student_id))) continue
+      if (!rCfg?.contact_debtors && Number(t.balance ?? 0) > 0.005) continue
+      rElegibles++
+    }
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rEnviados = ((rRecent ?? []) as any[]).filter(c => c.status !== 'failed')
   const legacy = {
     key: 'retencion', name: 'Retención', priority: 15, cooldown_days: 7,
     active: !!rCfg?.enabled, config: {}, legacy: true,
     description: 'Ausente del aula: secuencia de 5 mensajes (día 1/3/7/14 + deuda). Motor anterior, con su propio cron y bitácora.',
-    eligible: 0, sample: [] as { student_id: string; reason: string; name: string }[],
+    eligible: rElegibles, sample: [] as { student_id: string; reason: string; name: string }[],
     sent_30d: rEnviados.length,
     converted_30d: rEnviados.filter(c => c.replied_at).length,
     daily_cap: Number(rCfg?.daily_cap ?? 0),
