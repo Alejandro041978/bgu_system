@@ -131,13 +131,21 @@ const navigation: NavGroup[] = [
           { name: 'Base de Seguimiento', href: '/academic/seguimiento', icon: Activity, pageKey: 'academic_tracking' },
           { name: 'Camila · Tablero', href: '/academic/camila', icon: Gauge, pageKey: 'academic_camila' },
           { name: 'Retención', href: '/academic/retencion', icon: HeartHandshake, pageKey: 'academic_retention' },
-          { name: 'Campañas', href: '/campaigns', icon: Megaphone, pageKey: 'seguimiento_campaigns' },
-          { name: 'Campaña · Titulación', href: '/campaigns/titulacion', icon: Megaphone, pageKey: 'campaign_titulacion' },
-          { name: 'Campaña · Cobranza', href: '/campaigns/cobranza', icon: Megaphone, pageKey: 'campaign_cobranza' },
-          { name: 'Campaña · Cash Pay', href: '/campaigns/cashpay', icon: Megaphone, pageKey: 'campaign_cashpay' },
-          { name: 'Campaña · Ausentes', href: '/campaigns/ausente', icon: Megaphone, pageKey: 'campaign_ausente' },
-          { name: 'Campaña · IW', href: '/campaigns/iw', icon: Megaphone, pageKey: 'campaign_iw' },
-          { name: 'Campaña · LOA', href: '/campaigns/loa', icon: Megaphone, pageKey: 'campaign_loa' },
+          {
+            // Las campañas de Camila agrupadas (pedido del usuario, 10/09/2026):
+            // cada una conserva su permiso propio; el grupo muestra solo las
+            // que el rol puede ver.
+            name: 'Campañas', href: '/campaigns', icon: Megaphone,
+            children: [
+              { name: 'Resumen de campañas', href: '/campaigns', icon: Megaphone, pageKey: 'seguimiento_campaigns' },
+              { name: 'Titulación', href: '/campaigns/titulacion', icon: Megaphone, pageKey: 'campaign_titulacion' },
+              { name: 'Cobranza', href: '/campaigns/cobranza', icon: Megaphone, pageKey: 'campaign_cobranza' },
+              { name: 'Cash Pay', href: '/campaigns/cashpay', icon: Megaphone, pageKey: 'campaign_cashpay' },
+              { name: 'Ausentes', href: '/campaigns/ausente', icon: Megaphone, pageKey: 'campaign_ausente' },
+              { name: 'IW', href: '/campaigns/iw', icon: Megaphone, pageKey: 'campaign_iw' },
+              { name: 'LOA', href: '/campaigns/loa', icon: Megaphone, pageKey: 'campaign_loa' },
+            ],
+          },
           { name: 'Retiros', href: '/academic/retiros', icon: UserMinus, pageKey: 'academic_withdrawals' },
         ],
       },
