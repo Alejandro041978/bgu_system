@@ -103,8 +103,12 @@ export async function resolveEligibility(sb: any): Promise<{
     const dias = inactivos.get(sid) ?? 0
 
     let key: string | null = null, reason = ''
-    if (/iw|retir/i.test(situ)) { key = 'iw'; reason = 'retirado (IW)' }
-    else if (/loa|licencia/i.test(situ)) { key = 'loa'; reason = 'en licencia (LOA)' }
+    // LOA ANTES que IW, y con patrones precisos: la situación de una licencia
+    // es 'retiro_temporal', que el viejo /iw|retir/ atrapaba primero — los LOA
+    // caían en la campaña IW ("regresa y termina tu programa") y la rama LOA
+    // era inalcanzable (ninguna situación real dice 'loa'). 10/09/2026.
+    if (/retiro_temporal|loa|licencia/i.test(situ)) { key = 'loa'; reason = 'en licencia (LOA)' }
+    else if (/retiro_permanente|iw/i.test(situ)) { key = 'iw'; reason = 'retirado (IW)' }
     else if (pendienteTitulo.has(sid)) { key = 'titulacion'; reason = 'egresado sin título' }
     else if (/activo|egresado/.test(situ) && dias >= umbralDias) { key = 'ausente'; reason = `${dias} días sin actividad` }
     else if (/activo/.test(situ) && vencida > 0.5) { key = 'cobranza'; reason = `deuda vencida $${vencida.toFixed(2)}` }
