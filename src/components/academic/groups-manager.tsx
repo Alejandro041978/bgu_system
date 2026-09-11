@@ -36,7 +36,7 @@ export function GroupsManager() {
     setSavingEdit(false); setEditingId(null); load(programId)
   }
   async function delGroup(id: string) {
-    if (!confirm('¿Eliminar este grupo? (sus asignaturas se desligan)')) return
+    if (!confirm('¿Eliminar este carrusel? (sus asignaturas se desligan)')) return
     await fetch(`/api/academic/groups?id=${id}`, { method: 'DELETE' }); load(programId)
   }
 
@@ -88,12 +88,14 @@ export function GroupsManager() {
       </div>
 
       {!programId ? (
-        <p className="text-sm text-gray-400 py-10 text-center">Selecciona categoría y programa para ver y crear grupos.</p>
+        <p className="text-sm text-gray-400 py-10 text-center">Selecciona categoría y programa para ver sus cadenas de carruseles.</p>
       ) : (
         <>
-          {/* Crear grupo */}
+          {/* Crear carrusel (la fila de academic_groups: "grupo" es solo el
+              nombre histórico de la tabla; el vocabulario visible es
+              carrusel = bolsa de asignaturas, cadena = la secuencia) */}
           <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Nuevo grupo</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Nuevo carrusel</h3>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
               <label>
                 <span className="block text-xs text-gray-500 mb-1">Abreviatura</span>
@@ -101,7 +103,7 @@ export function GroupsManager() {
               </label>
               <label>
                 <span className="block text-xs text-gray-500 mb-1">Denominación</span>
-                <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={inp} placeholder="Ej. Grupo A" />
+                <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={inp} placeholder="Ej. Carrusel 1" />
               </label>
               <label>
                 <span className="block text-xs text-gray-500 mb-1">Detalle (opcional)</span>
@@ -118,7 +120,7 @@ export function GroupsManager() {
           {loading ? (
             <div className="flex items-center justify-center py-16 text-gray-400"><Loader2 className="w-5 h-5 animate-spin" /></div>
           ) : groups.length === 0 ? (
-            <p className="text-sm text-gray-400 py-10 text-center">No hay grupos para este programa.</p>
+            <p className="text-sm text-gray-400 py-10 text-center">No hay carruseles para este programa.</p>
           ) : (
             <div className="grid gap-3">
               {groups.map(g => editingId === g.id ? (

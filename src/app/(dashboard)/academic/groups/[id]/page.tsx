@@ -7,7 +7,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const { id } = await params
   return (
     <>
-      <Topbar title="Detalle del Grupo" subtitle="Gestión académica" />
+      <Topbar title="Detalle del Carrusel" subtitle="Gestión académica" />
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-3xl mx-auto">
           <GroupDetail groupId={id} />

@@ -204,7 +204,10 @@ const navigation: NavGroup[] = [
           { name: 'Programas', href: '/academic/programs', icon: BookOpen, pageKey: 'academic_programs' },
           { name: 'Sílabos', href: '/academic/syllabi', icon: FileText, pageKey: 'academic_syllabi' },
           { name: 'Oferta', href: '/academic/offer', icon: ClipboardList, pageKey: 'academic_offer' },
-          { name: 'Grupos', href: '/academic/groups', icon: Users, pageKey: 'academic_groups' },
+          // "Cadenas" (11/09/2026): la página muestra las cadenas de carruseles
+          // (entrada, secuencia, final); "grupo" queda solo como nombre
+          // histórico de las tablas. URL y pageKey no cambian.
+          { name: 'Cadenas', href: '/academic/groups', icon: Users, pageKey: 'academic_groups' },
           { name: 'Carruseles', href: '/academic/carruseles', icon: Layers, pageKey: 'academic_carousels' },
           { name: 'Cronogramas', href: '/academic/schedules', icon: CalendarDays, pageKey: 'academic_schedules' },
         ],

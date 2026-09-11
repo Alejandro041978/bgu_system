@@ -79,7 +79,7 @@ export function OfferManager({
   const programsForFilter = fCategory ? programsWithCourses.filter(p => p.category_id === fCategory) : programsWithCourses
 
   // Grupos (entidad) — helpers
-  const groupLabel = (g: { abbreviation: string | null; name: string | null }) => [g.abbreviation, g.name].filter(Boolean).join(' · ') || '(grupo)'
+  const groupLabel = (g: { abbreviation: string | null; name: string | null }) => [g.abbreviation, g.name].filter(Boolean).join(' · ') || '(carrusel)'
   const groupsForProgram = (pid: string | null | undefined) => groups.filter(g => g.program_id === pid)
   const groupsForFilter = fProgram ? groupsForProgram(fProgram) : groups
 
@@ -176,7 +176,7 @@ export function OfferManager({
         <p className="text-sm text-gray-500 mt-0.5">Gestiona los cursos y docentes asignados</p>
       </div>
 
-      {/* Filtros: Categoría · Programa · Grupo · Año · Semestre */}
+      {/* Filtros: Categoría · Programa · Carrusel · Año · Semestre */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative">
           <select value={fCategory} onChange={e => { setFCategory(e.target.value); setFProgram('') }} className={selCls}>
@@ -194,7 +194,7 @@ export function OfferManager({
         </div>
         <div className="relative">
           <select value={fGroup} onChange={e => setFGroup(e.target.value)} className={selCls}>
-            <option value="">Todos los grupos</option>
+            <option value="">Todos los carruseles</option>
             {groupsForFilter.map(g => <option key={g.id} value={g.id}>{groupLabel(g)}</option>)}
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
@@ -282,10 +282,10 @@ export function OfferManager({
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Grupo <span className="text-gray-400">(opcional)</span></label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Carrusel <span className="text-gray-400">(opcional)</span></label>
               <select value={addGroupId} onChange={e => setAddGroupId(e.target.value)} disabled={!addProgramId}
                 className="w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
-                <option value="">— Sin grupo —</option>
+                <option value="">— Sin carrusel —</option>
                 {groupsForProgram(addProgramId).map(g => <option key={g.id} value={g.id}>{groupLabel(g)}</option>)}
               </select>
             </div>
@@ -337,7 +337,7 @@ export function OfferManager({
                           <div className="flex items-center gap-1 mt-1">
                             <select autoFocus value={offering.group_id ?? ''} onChange={e => saveOfferingGroup(offering, e.target.value)}
                               className="border border-gray-300 rounded px-2 py-0.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[180px]">
-                              <option value="">— Sin grupo —</option>
+                              <option value="">— Sin carrusel —</option>
                               {groupsForProgram(offering.course.program_id).map(g => <option key={g.id} value={g.id}>{groupLabel(g)}</option>)}
                             </select>
                             <button onClick={() => setEditingGroupId(null)} className="text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5" /></button>
@@ -345,7 +345,7 @@ export function OfferManager({
                         ) : offering.group ? (
                           <button onClick={() => startEditGroup(offering)} className="mt-1 text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full hover:bg-indigo-100">{groupLabel(offering.group)}</button>
                         ) : (
-                          <button onClick={() => startEditGroup(offering)} className="mt-1 flex items-center gap-1 text-xs text-gray-300 hover:text-indigo-600"><Pencil className="w-3 h-3" /> Grupo</button>
+                          <button onClick={() => startEditGroup(offering)} className="mt-1 flex items-center gap-1 text-xs text-gray-300 hover:text-indigo-600"><Pencil className="w-3 h-3" /> Carrusel</button>
                         )}
                       </td>
                       <td className="px-3 py-3 text-xs text-gray-500">

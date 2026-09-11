@@ -100,13 +100,13 @@ export function GroupDetail({ groupId }: { groupId: string }) {
   }
 
   if (loading) return <div className="flex items-center justify-center py-20 text-gray-400"><Loader2 className="w-5 h-5 animate-spin" /></div>
-  if (!data) return <p className="text-sm text-gray-400 py-10 text-center">Grupo no encontrado.</p>
+  if (!data) return <p className="text-sm text-gray-400 py-10 text-center">Carrusel no encontrado.</p>
 
   return (
     <div className="space-y-5">
       <div>
         <Link href="/academic/groups" className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-2">
-          <ArrowLeft className="w-3.5 h-3.5" /> Grupos
+          <ArrowLeft className="w-3.5 h-3.5" /> Cadenas
         </Link>
         <h2 className="text-lg font-bold text-gray-900">
           {data.group.abbreviation && <span className="text-blue-600">{data.group.abbreviation}</span>}
