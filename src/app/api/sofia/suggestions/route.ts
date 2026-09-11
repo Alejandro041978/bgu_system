@@ -64,7 +64,23 @@ export async function GET(req: NextRequest) {
   const counts: Record<string, number> = {}
   for (const r of (pend ?? []) as { bot_key: string }[]) counts[r.bot_key] = (counts[r.bot_key] ?? 0) + 1
 
-  return NextResponse.json({ rows: data ?? [], counts })
+  // Métricas de la campaña: cuántas oportunidades identificó el supervisor y
+  // en qué quedaron. Se cuentan TODAS (no solo la página listada).
+  let resumen: { identificadas: number; pendientes: number; aprobadas: number; descartadas: number } | null = null
+  if (campaign) {
+    const { data: todas } = await sb.from('supervisor_suggestions')
+      .select('status').eq('bot_key', 'retencion').eq('campaign_key', campaign)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filas = (todas ?? []) as any[]
+    resumen = {
+      identificadas: filas.length,
+      pendientes: filas.filter(f => f.status === 'pending').length,
+      aprobadas: filas.filter(f => f.status === 'approved').length,
+      descartadas: filas.filter(f => f.status === 'rejected').length,
+    }
+  }
+
+  return NextResponse.json({ rows: data ?? [], counts, resumen })
 }
 
 // PUT { id, ...campos } → EDITA una sugerencia pendiente antes de aprobarla.

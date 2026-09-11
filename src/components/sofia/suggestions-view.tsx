@@ -32,6 +32,7 @@ export function SuggestionsView({ bots, campaign }: { bots: BotOpt[]; campaign?:
   const [status, setStatus] = useState<'pending' | 'all'>('pending')
   const [rows, setRows] = useState<Suggestion[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
+  const [resumen, setResumen] = useState<{ identificadas: number; pendientes: number; aprobadas: number; descartadas: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const [draft, setDraft] = useState<{
@@ -45,7 +46,7 @@ export function SuggestionsView({ bots, campaign }: { bots: BotOpt[]; campaign?:
     if (campaign) qs.set('campaign', campaign)
     else if (bot) qs.set('bot', bot)
     const d = await fetch(`/api/sofia/suggestions?${qs}`).then(r => r.json())
-    setRows(d.rows ?? []); setCounts(d.counts ?? {}); setLoading(false)
+    setRows(d.rows ?? []); setCounts(d.counts ?? {}); setResumen(d.resumen ?? null); setLoading(false)
   }, [bot, status, campaign])
   useEffect(() => { load() }, [load])
 
@@ -93,6 +94,24 @@ export function SuggestionsView({ bots, campaign }: { bots: BotOpt[]; campaign?:
           ? <>Propuestas del supervisor de Camila para <b>esta campaña</b>: cada mejora que se apruebe se agrega a su prompt o a su base de conocimientos, y aplica solo aquí. Las transversales (todas las campañas) se deciden en Bots · Mejora continua.</>
           : <>Cada mejora que apruebes se aplica al bot: el ajuste se agrega a su prompt, o el dato a su base de conocimientos. Así los bots mejoran con el uso.</>}
       </p>
+
+      {/* Métricas de la mejora continua de la campaña: cuántas oportunidades
+          identificó el supervisor y en qué quedaron. */}
+      {campaign && resumen && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { t: 'Oportunidades identificadas', v: resumen.identificadas, cls: 'text-gray-900' },
+            { t: 'Pendientes de decisión', v: resumen.pendientes, cls: resumen.pendientes > 0 ? 'text-amber-700' : 'text-gray-900' },
+            { t: 'Aprobadas y aplicadas', v: resumen.aprobadas, cls: 'text-green-700' },
+            { t: 'Descartadas', v: resumen.descartadas, cls: 'text-gray-500' },
+          ].map(c => (
+            <div key={c.t} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+              <p className={`text-2xl font-bold tabular-nums ${c.cls}`}>{c.v}</p>
+              <p className="text-[11px] text-gray-400">{c.t}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         {!campaign && (
