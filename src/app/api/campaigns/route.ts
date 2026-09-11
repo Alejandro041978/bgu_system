@@ -112,6 +112,8 @@ export async function PATCH(req: NextRequest) {
   const patch: Record<string, unknown> = {}
   if (b.active != null) patch.active = !!b.active
   if (b.cooldown_days != null) patch.cooldown_days = Math.max(1, Number(b.cooldown_days) || 7)
+  // Intensidad: mensajes por día de la campaña (1–100)
+  if (b.daily_cap != null) patch.daily_cap = Math.min(100, Math.max(1, Number(b.daily_cap) || 5))
   if (b.config != null) patch.config = b.config
   const { error } = await db().from('campaigns').update(patch).eq('key', b.key)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

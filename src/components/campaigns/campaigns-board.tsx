@@ -8,6 +8,7 @@ interface Campaign {
   priority: number; cooldown_days: number; active: boolean; legacy?: boolean
   eligible: number; sample: { student_id: string; name: string; reason: string }[]
   sent_30d: number; converted_30d: number; failed_30d?: number
+  daily_cap?: number
 }
 
 export function CampaignsBoard() {
@@ -84,7 +85,15 @@ export function CampaignsBoard() {
                   {c.failed_30d} fallidos
                 </span>
               )}
+              {/* Intensidad: mensajes por día. En retención (motor legado) se
+                  edita en su propia página; aquí solo se muestra. */}
               <label className="ml-auto flex items-center gap-1.5 text-gray-400">
+                intensidad
+                <input defaultValue={c.daily_cap ?? 5} disabled={c.legacy} onBlur={e => { const v = Number(e.target.value); if (v && v !== c.daily_cap) patch(c.key, { daily_cap: v }) }}
+                  inputMode="numeric" className="w-12 border border-gray-200 rounded px-1.5 py-0.5 text-xs text-center disabled:bg-gray-50 disabled:text-gray-400" />
+                /día
+              </label>
+              <label className="flex items-center gap-1.5 text-gray-400">
                 cooldown
                 <input defaultValue={c.cooldown_days} disabled={c.legacy} onBlur={e => { const v = Number(e.target.value); if (v && v !== c.cooldown_days) patch(c.key, { cooldown_days: v }) }}
                   inputMode="numeric" className="w-12 border border-gray-200 rounded px-1.5 py-0.5 text-xs text-center disabled:bg-gray-50 disabled:text-gray-400" />
