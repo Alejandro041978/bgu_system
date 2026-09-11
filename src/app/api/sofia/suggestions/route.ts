@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { applySuggestion, type Suggestion } from '@/lib/apply-suggestion'
-import { guardStaff } from '@/lib/api-guard'
+import { guardPagina } from '@/lib/page-guard'
 
 export const revalidate = 0
 export const maxDuration = 60
@@ -16,9 +16,35 @@ async function requireUser() {
   return user
 }
 
-// GET ?bot=&status= → sugerencias (por defecto pendientes)
+// ---------------------------------------------------------------------------
+// Mejora continua por campaña (10/09/2026): las sugerencias de Camila llevan
+// campaña, y cada campaña la gobierna su propia ejecutiva. El permiso es el de
+// la PÁGINA de esa campaña (campaign_titulacion, …): ver = leer propuestas,
+// editar = aprobar/rechazar/corregir. El permiso central (sofia_mejoras)
+// conserva potestad sobre todo — incluidas las transversales ('todas') y las
+// de Sofía, que afectan más de una campaña y no son de ninguna ejecutiva.
+// Antes bastaba con ser colaborador; ese hueco queda cerrado.
+// ---------------------------------------------------------------------------
+const CAMPANAS_VALIDAS = new Set(['titulacion', 'cobranza', 'cashpay', 'ausente', 'iw', 'loa'])
+
+async function guardMejoras(accion: 'view' | 'edit', campana?: string | null): Promise<NextResponse | null> {
+  const central = await guardPagina('sofia_mejoras', accion)
+  if (!central) return null
+  if (campana && CAMPANAS_VALIDAS.has(campana)) return guardPagina(`campaign_${campana}`, accion)
+  return central
+}
+
+// ¿Tiene el permiso CENTRAL? (para distinguir a la ejecutiva de campaña)
+async function esCentral(accion: 'view' | 'edit'): Promise<boolean> {
+  return (await guardPagina('sofia_mejoras', accion)) === null
+}
+
+// GET ?bot=&status=&campaign= → sugerencias (por defecto pendientes).
+// Con ?campaign= la vista es la de UNA campaña de Camila (permiso de esa
+// campaña); sin él, la vista central (permiso sofia_mejoras).
 export async function GET(req: NextRequest) {
-  const noAutorizado = await guardStaff()
+  const campaign = req.nextUrl.searchParams.get('campaign')
+  const noAutorizado = await guardMejoras('view', campaign)
   if (noAutorizado) return noAutorizado
 
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -27,7 +53,8 @@ export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get('status') ?? 'pending'
 
   let q = sb.from('supervisor_suggestions').select('*').order('created_at', { ascending: false })
-  if (bot) q = q.eq('bot_key', bot)
+  if (campaign) q = q.eq('bot_key', 'retencion').eq('campaign_key', campaign)
+  else if (bot) q = q.eq('bot_key', bot)
   if (status !== 'all') q = q.eq('status', status)
   const { data, error } = await q.limit(200)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -46,9 +73,6 @@ export async function GET(req: NextRequest) {
 // cual metería ese error al prompt o a la base de conocimientos, y el bot lo
 // diría como cierto. Editar antes de aprobar es la compuerta humana.
 export async function PUT(req: NextRequest) {
-  const noAutorizado = await guardStaff()
-  if (noAutorizado) return noAutorizado
-
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const b = await req.json().catch(() => null) as {
@@ -58,8 +82,23 @@ export async function PUT(req: NextRequest) {
   if (!b?.id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
   const sb = db()
 
-  const { data: s } = await sb.from('supervisor_suggestions').select('status').eq('id', b.id).maybeSingle()
+  const { data: s } = await sb.from('supervisor_suggestions').select('status, bot_key, campaign_key').eq('id', b.id).maybeSingle()
   if (!s) return NextResponse.json({ error: 'Sugerencia no encontrada' }, { status: 404 })
+
+  // Permiso: central, o el de la campaña de ESTA sugerencia (solo Camila con
+  // campaña concreta; las 'todas' son del central).
+  const campanaDeLaSugerencia = s.bot_key === 'retencion' && s.campaign_key && s.campaign_key !== 'todas' ? s.campaign_key : null
+  if (campanaDeLaSugerencia) {
+    const noAutorizado = await guardMejoras('edit', campanaDeLaSugerencia)
+    if (noAutorizado) return noAutorizado
+  } else if (!(await esCentral('edit'))) {
+    return NextResponse.json({ error: 'Esta mejora es transversal (todas las campañas) o de otro bot: la gobierna Mejora continua central.' }, { status: 403 })
+  }
+  // La ejecutiva de campaña no puede MOVER la sugerencia a otra campaña (sería
+  // decidir sobre una campaña ajena); el central sí.
+  if (b.campaign_key !== undefined && b.campaign_key !== s.campaign_key && !(await esCentral('edit'))) {
+    return NextResponse.json({ error: 'Cambiar la campaña de una mejora es del permiso central de Mejora continua.' }, { status: 403 })
+  }
   // Una vez aplicada, editarla aquí no cambiaría el prompt ni el artículo ya
   // creados: sería mentir sobre lo que está en producción.
   if (s.status !== 'pending') return NextResponse.json({ error: 'Solo se pueden editar las sugerencias pendientes' }, { status: 409 })
@@ -88,9 +127,6 @@ export async function PUT(req: NextRequest) {
 // PATCH { id, action: 'approve' | 'reject' }
 //   approve → aplica la mejora (prompt o base) y marca 'approved'.
 export async function PATCH(req: NextRequest) {
-  const noAutorizado = await guardStaff()
-  if (noAutorizado) return noAutorizado
-
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const body = await req.json().catch(() => null) as { id?: string; action?: string } | null
@@ -102,6 +138,17 @@ export async function PATCH(req: NextRequest) {
   const { data: s } = await sb.from('supervisor_suggestions').select('*').eq('id', body.id).maybeSingle()
   if (!s) return NextResponse.json({ error: 'Sugerencia no encontrada' }, { status: 404 })
   if (s.status !== 'pending') return NextResponse.json({ error: 'Esta sugerencia ya fue resuelta' }, { status: 400 })
+
+  // Aprobar/descartar exige el permiso central, o el de la campaña de ESTA
+  // sugerencia (Camila con campaña concreta). Las 'todas' y las de Sofía
+  // afectan a todos: solo el central decide sobre ellas.
+  const campanaDeLaSugerencia = s.bot_key === 'retencion' && s.campaign_key && s.campaign_key !== 'todas' ? s.campaign_key : null
+  if (campanaDeLaSugerencia) {
+    const noAutorizado = await guardMejoras('edit', campanaDeLaSugerencia)
+    if (noAutorizado) return noAutorizado
+  } else if (!(await esCentral('edit'))) {
+    return NextResponse.json({ error: 'Esta mejora es transversal (todas las campañas) o de otro bot: la aprueba Mejora continua central.' }, { status: 403 })
+  }
 
   if (body.action === 'reject') {
     await sb.from('supervisor_suggestions').update({ status: 'rejected', reviewed_by: user.id }).eq('id', body.id)

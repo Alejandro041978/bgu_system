@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Loader2, Check, X, AlertTriangle, CheckCircle2, Pencil, Save } from 'lucide-react'
+import { usePermissions } from '@/hooks/use-permissions'
 
 const CAMPANAS = ['todas', 'ausente', 'cobranza', 'cashpay', 'titulacion', 'iw', 'loa']
 
@@ -19,7 +20,14 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   rejected: { label: 'Descartada', cls: 'bg-gray-100 text-gray-500' },
 }
 
-export function SuggestionsView({ bots }: { bots: BotOpt[] }) {
+// Con `campaign`, la vista es la mejora continua de UNA campaña de Camila
+// (embebida en su página): solo sus sugerencias, sin filtro de bots, y los
+// botones de decisión aparecen solo con el permiso de EDITAR de esa campaña.
+// Sin `campaign`, es la vista central de Bots · Mejora continua (permiso
+// sofia_mejoras). El servidor exige lo mismo: la pantalla solo acompaña.
+export function SuggestionsView({ bots, campaign }: { bots: BotOpt[]; campaign?: string }) {
+  const { canEdit } = usePermissions()
+  const puedeDecidir = canEdit(campaign ? `campaign_${campaign}` : 'sofia_mejoras')
   const [bot, setBot] = useState<string>('')
   const [status, setStatus] = useState<'pending' | 'all'>('pending')
   const [rows, setRows] = useState<Suggestion[]>([])
@@ -34,10 +42,11 @@ export function SuggestionsView({ bots }: { bots: BotOpt[] }) {
   const load = useCallback(async () => {
     setLoading(true)
     const qs = new URLSearchParams({ status })
-    if (bot) qs.set('bot', bot)
+    if (campaign) qs.set('campaign', campaign)
+    else if (bot) qs.set('bot', bot)
     const d = await fetch(`/api/sofia/suggestions?${qs}`).then(r => r.json())
     setRows(d.rows ?? []); setCounts(d.counts ?? {}); setLoading(false)
-  }, [bot, status])
+  }, [bot, status, campaign])
   useEffect(() => { load() }, [load])
 
   async function act(id: string, action: 'approve' | 'reject') {
@@ -80,20 +89,25 @@ export function SuggestionsView({ bots }: { bots: BotOpt[] }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-500">
-        Cada mejora que apruebes se aplica al bot: el ajuste se agrega a su prompt, o el dato a su base de conocimientos. Así los bots mejoran con el uso.
+        {campaign
+          ? <>Propuestas del supervisor de Camila para <b>esta campaña</b>: cada mejora que se apruebe se agrega a su prompt o a su base de conocimientos, y aplica solo aquí. Las transversales (todas las campañas) se deciden en Bots · Mejora continua.</>
+          : <>Cada mejora que apruebes se aplica al bot: el ajuste se agrega a su prompt, o el dato a su base de conocimientos. Así los bots mejoran con el uso.</>}
       </p>
 
-      {/* Filtros por bot */}
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={() => setBot('')} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${bot === '' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
-          Todos {totalPend > 0 && <span className="opacity-70">({totalPend})</span>}
-        </button>
-        {bots.map(b => (
-          <button key={b.key} onClick={() => setBot(b.key)} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${bot === b.key ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
-            {b.name} {counts[b.key] ? <span className="opacity-70">({counts[b.key]})</span> : null}
-          </button>
-        ))}
-        <span className="w-px bg-gray-200 mx-1 self-stretch" />
+        {!campaign && (
+          <>
+            <button onClick={() => setBot('')} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${bot === '' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+              Todos {totalPend > 0 && <span className="opacity-70">({totalPend})</span>}
+            </button>
+            {bots.map(b => (
+              <button key={b.key} onClick={() => setBot(b.key)} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${bot === b.key ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                {b.name} {counts[b.key] ? <span className="opacity-70">({counts[b.key]})</span> : null}
+              </button>
+            ))}
+            <span className="w-px bg-gray-200 mx-1 self-stretch" />
+          </>
+        )}
         <button onClick={() => setStatus('pending')} className={`px-3 py-1 rounded-lg text-xs font-medium border ${status === 'pending' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200'}`}>Pendientes</button>
         <button onClick={() => setStatus('all')} className={`px-3 py-1 rounded-lg text-xs font-medium border ${status === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200'}`}>Historial</button>
       </div>
@@ -113,7 +127,7 @@ export function SuggestionsView({ bots }: { bots: BotOpt[] }) {
                   {s.type === 'prompt' ? 'Prompt' : 'Conocimiento'}
                 </span>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${STATUS[s.status].cls}`}>{STATUS[s.status].label}</span>
-                <span className="text-[11px] text-gray-400">{botName(s.bot_key)}</span>
+                {!campaign && <span className="text-[11px] text-gray-400">{botName(s.bot_key)}</span>}
                 {s.campaign_key && s.campaign_key !== 'todas' && (
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700" title="Esta mejora se aplicará SOLO en esta campaña">{s.campaign_key}</span>
                 )}
@@ -156,7 +170,7 @@ export function SuggestionsView({ bots }: { bots: BotOpt[] }) {
                           className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" /></label>
                     </div>
                   )}
-                  {s.bot_key === 'retencion' && (
+                  {s.bot_key === 'retencion' && !campaign && (
                     <label className="block">
                       <span className="text-[11px] font-medium text-gray-500">Campaña donde aplica</span>
                       <select value={draft.campaign_key} onChange={e => setDraft({ ...draft, campaign_key: e.target.value })}
@@ -201,7 +215,10 @@ export function SuggestionsView({ bots }: { bots: BotOpt[] }) {
                 </p>
               )}
 
-              {s.status === 'pending' && (
+              {s.status === 'pending' && !puedeDecidir && (
+                <p className="text-[11px] text-gray-400 mt-3">Pendiente de aprobación — decidir sobre las mejoras requiere el permiso de editar de {campaign ? 'esta campaña' : 'Mejora continua'}.</p>
+              )}
+              {s.status === 'pending' && puedeDecidir && (
                 <div className="flex gap-2 mt-3">
                   <button onClick={() => act(s.id, 'approve')} disabled={busy === s.id}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white">

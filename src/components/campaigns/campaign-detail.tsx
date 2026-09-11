@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Loader2, CheckCircle2, MessageCircle, AlertTriangle } from 'lucide-react'
+import { SuggestionsView } from '@/components/sofia/suggestions-view'
 
 interface Row {
   student_id: string; name: string; document: string | null; situation: string | null
@@ -112,6 +113,14 @@ export function CampaignDetail({ campaignKey }: { campaignKey: string }) {
         </table>
       </div>
       <p className="text-[11px] text-gray-400">Una fila por estudiante (su último toque manda). El resultado se verifica contra hechos posteriores al contacto: pago, conexión al aula, solicitud o reincorporación, según la campaña.</p>
+
+      {/* Mejora continua de la campaña (10/09/2026): las propuestas del
+          supervisor de Camila para ESTA campaña. Ver = leerlas; aprobar exige
+          el permiso de editar de la campaña (lo exige el servidor). */}
+      <div className="pt-4 border-t border-gray-200">
+        <h2 className="text-sm font-semibold text-gray-900 mb-2">Mejora continua de esta campaña</h2>
+        <SuggestionsView bots={[]} campaign={campaignKey} />
+      </div>
     </div>
   )
 }
