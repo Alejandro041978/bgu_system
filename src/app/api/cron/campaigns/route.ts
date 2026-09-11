@@ -72,6 +72,24 @@ async function run(dryRun: boolean) {
   const enviadosHoy = new Map<string, number>()
   for (const r of hoyRows ?? []) enviadosHoy.set(r.campaign_key, (enviadosHoy.get(r.campaign_key) ?? 0) + 1)
 
+  // Último contacto de cada persona por campaña — para ordenar la cola.
+  //
+  // Sin esto, la cola salía siempre en el mismo orden y, como el cooldown de 7
+  // días re-habilita a los ya contactados, el cupo se gastaba re-tocando a los
+  // mismos ~35 (cupo × cooldown) por los siglos de los siglos: Titulación
+  // envió 120 mensajes a solo 39 personas mientras 251 esperaban su PRIMER
+  // toque (detectado por el usuario, 10/09/2026). Regla nueva: primero los
+  // NUNCA contactados; los re-toques después, del más antiguo al más reciente.
+  const ultimoContacto = new Map<string, string>()
+  for (let f = 0; ; f += 1000) {
+    const { data } = await sb.from('campaign_contacts')
+      .select('student_id, campaign_key, sent_at').order('sent_at', { ascending: true }).range(f, f + 999)
+    for (const r of (data ?? []) as { student_id: string; campaign_key: string; sent_at: string }[]) {
+      ultimoContacto.set(`${r.student_id}|${r.campaign_key}`, String(r.sent_at))
+    }
+    if ((data ?? []).length < 1000) break
+  }
+
   // Datos de los candidatos
   const ids = [...new Set(assignments.map(a => a.student_id))]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,7 +107,16 @@ async function run(dryRun: boolean) {
   for (const camp of activas) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const def = camp as any
-    const cola = assignments.filter(a => a.campaign_key === camp.key)
+    // Nunca contactados primero (avanzar la cola es la prioridad); re-toques
+    // después, empezando por quien lleva más tiempo sin noticias.
+    const cola = assignments.filter(a => a.campaign_key === camp.key).sort((a, b) => {
+      const ua = ultimoContacto.get(`${a.student_id}|${camp.key}`)
+      const ub = ultimoContacto.get(`${b.student_id}|${camp.key}`)
+      if (!ua && !ub) return 0
+      if (!ua) return -1
+      if (!ub) return 1
+      return ua.localeCompare(ub)
+    })
     const cupo = Math.max(0, Number(def.daily_cap ?? 10) - (enviadosHoy.get(camp.key) ?? 0))
     resumen[camp.key] = { elegibles: cola.length, enviados: 0, saltados: 0 }
 

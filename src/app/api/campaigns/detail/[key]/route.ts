@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { guardStaff } from '@/lib/api-guard'
+import { guardPagina } from '@/lib/page-guard'
 import { resolveEligibility } from '@/lib/campaign-resolver'
 import { computeOutcomes, OUTCOME_LABEL, type ContactRow } from '@/lib/campaign-outcomes'
 
@@ -106,4 +107,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ key:
     rows: filas,
     periodo: { dias, desde },
   })
+}
+
+// PATCH { daily_cap } → cambia la INTENSIDAD de la campaña (contactos/día).
+// Lo gobierna el permiso de editar de ESA campaña — la misma persona que
+// aprueba sus mejoras decide su ritmo. El cupo rige desde la próxima corrida
+// del cron (respeta lo ya enviado hoy).
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ key: string }> }) {
+  const { key } = await params
+  if (!(CAMPAIGN_KEYS as readonly string[]).includes(key)) {
+    return NextResponse.json({ error: 'Campaña desconocida' }, { status: 404 })
+  }
+  const noAutorizado = await guardPagina(`campaign_${key}`)
+  if (noAutorizado) return noAutorizado
+
+  const b = await req.json().catch(() => null) as { daily_cap?: number } | null
+  const cap = Number(b?.daily_cap)
+  if (!Number.isInteger(cap) || cap < 1 || cap > 100) {
+    return NextResponse.json({ error: 'El cupo diario debe ser un entero entre 1 y 100.' }, { status: 400 })
+  }
+  const { error } = await db().from('campaigns').update({ daily_cap: cap }).eq('key', key)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true, daily_cap: cap })
 }

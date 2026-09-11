@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, CheckCircle2, MessageCircle, AlertTriangle } from 'lucide-react'
+import { Loader2, CheckCircle2, MessageCircle, AlertTriangle, Pencil } from 'lucide-react'
 import { SuggestionsView } from '@/components/sofia/suggestions-view'
+import { usePermissions } from '@/hooks/use-permissions'
 
 interface Row {
   student_id: string; name: string; document: string | null; situation: string | null
@@ -21,6 +22,26 @@ export function CampaignDetail({ campaignKey }: { campaignKey: string }) {
   const [dias, setDias] = useState(0)
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Intensidad (contactos/día): la edita quien tiene EDITAR en esta campaña.
+  const { canEdit } = usePermissions()
+  const puedeEditar = canEdit(`campaign_${campaignKey}`)
+  const [editandoCupo, setEditandoCupo] = useState(false)
+  const [cupoDraft, setCupoDraft] = useState('')
+  const [cupoBusy, setCupoBusy] = useState(false)
+  const [cupoMsg, setCupoMsg] = useState<string | null>(null)
+
+  async function guardarCupo() {
+    setCupoBusy(true); setCupoMsg(null)
+    const r = await fetch(`/api/campaigns/detail/${campaignKey}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ daily_cap: Number(cupoDraft) }),
+    })
+    const j = await r.json().catch(() => ({}))
+    setCupoBusy(false)
+    if (!r.ok) { setCupoMsg(j.error ?? 'No se pudo guardar'); return }
+    setEditandoCupo(false)
+    setData(d => d ? { ...d, campaign: { ...d.campaign, cupo_diario: Number(cupoDraft) } } : d)
+  }
 
   useEffect(() => {
     setData(null)
@@ -39,7 +60,26 @@ export function CampaignDetail({ campaignKey }: { campaignKey: string }) {
         <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${c.activa ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
           <span className={`w-2 h-2 rounded-full ${c.activa ? 'bg-green-500' : 'bg-gray-400'}`} /> {c.activa ? 'Campaña encendida' : 'Campaña apagada'}
         </span>
-        <span className="text-xs text-gray-400">{c.cupo_diario}/día · plantilla {c.plantilla}</span>
+        {editandoCupo ? (
+          <span className="inline-flex items-center gap-1.5 text-xs">
+            <input type="number" min={1} max={100} value={cupoDraft} onChange={e => setCupoDraft(e.target.value)} autoFocus
+              className="w-16 border border-blue-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <span className="text-gray-400">/día</span>
+            <button onClick={guardarCupo} disabled={cupoBusy} className="text-blue-600 hover:underline disabled:opacity-50">{cupoBusy ? '…' : 'guardar'}</button>
+            <button onClick={() => { setEditandoCupo(false); setCupoMsg(null) }} className="text-gray-400 hover:underline">cancelar</button>
+            {cupoMsg && <span className="text-red-600">{cupoMsg}</span>}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400 inline-flex items-center gap-1">
+            {c.cupo_diario}/día · plantilla {c.plantilla}
+            {puedeEditar && (
+              <button onClick={() => { setEditandoCupo(true); setCupoDraft(String(c.cupo_diario)) }}
+                title="Cambiar la intensidad (contactos por día)" className="p-0.5 text-gray-300 hover:text-blue-500">
+                <Pencil className="w-3 h-3" />
+              </button>
+            )}
+          </span>
+        )}
         <select value={dias} onChange={e => setDias(Number(e.target.value))}
           className="ml-auto border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white">
           <option value={0}>Todo el historial</option>
