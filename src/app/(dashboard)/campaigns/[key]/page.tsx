@@ -15,10 +15,11 @@ const TITULOS: Record<string, { title: string; subtitle: string }> = {
   iw: { title: 'Campaña · IW', subtitle: 'Retirados definitivos: regresa y termina tu programa' },
   loa: { title: 'Campaña · LOA', subtitle: 'Licencias por vencer: no pierdas lo logrado' },
   'graduate-survey': { title: 'Campaña · Survey Titulados', subtitle: 'Titulados de programas oficiales: encuesta anual de egresados' },
+  'employer-survey': { title: 'Campaña · Survey Empleadores', subtitle: 'Jefes de nuestros titulados: satisfacción del empleador (una respuesta cubre a todos sus titulados)' },
 }
 
 // URL en inglés (regla de la casa) → clave interna de la campaña
-const CLAVE_DE: Record<string, string> = { 'graduate-survey': 'survey_titulados' }
+const CLAVE_DE: Record<string, string> = { 'graduate-survey': 'survey_titulados', 'employer-survey': 'survey_empleadores' }
 
 export default async function CampaignPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params

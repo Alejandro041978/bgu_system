@@ -145,6 +145,7 @@ const navigation: NavGroup[] = [
               { name: 'IW', href: '/campaigns/iw', icon: Megaphone, pageKey: 'campaign_iw' },
               { name: 'LOA', href: '/campaigns/loa', icon: Megaphone, pageKey: 'campaign_loa' },
               { name: 'Survey Titulados', href: '/campaigns/graduate-survey', icon: Megaphone, pageKey: 'campaign_survey_titulados' },
+              { name: 'Survey Empleadores', href: '/campaigns/employer-survey', icon: Megaphone, pageKey: 'campaign_survey_empleadores' },
             ],
           },
           { name: 'Retiros', href: '/academic/retiros', icon: UserMinus, pageKey: 'academic_withdrawals' },

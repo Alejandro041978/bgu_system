@@ -26,6 +26,8 @@ export const OUTCOME_LABEL: Record<string, string> = {
   iw: 'Se reincorporó',
   loa: 'Se reincorporó',
   retencion: 'Volvió al aula',
+  survey_titulados: 'Completó la encuesta',
+  survey_empleadores: 'Empleador respondió',
 }
 
 /**
@@ -117,6 +119,44 @@ export async function computeOutcomes(sb: SB, contacts: ContactRow[]): Promise<S
       }
       for (const { student_id, since } of byCampaign.get('titulacion') ?? []) {
         if ((pedidos.get(student_id) ?? []).some(d => d >= since)) ok.add(student_id)
+      }
+    } catch { /* tabla ausente: sin evidencia, no se cuenta */ }
+  }
+
+  // ---- Completó la encuesta (survey_titulados) ------------------------------
+  if (byCampaign.has('survey_titulados')) {
+    try {
+      const { data } = await sb.from('graduate_surveys')
+        .select('student_id, completed_at').not('completed_at', 'is', null)
+        .in('student_id', (byCampaign.get('survey_titulados') ?? []).map(x => x.student_id))
+      const hechas = new Map<string, string[]>()
+      for (const r of (data ?? []) as { student_id: string; completed_at: string }[]) {
+        if (!hechas.has(String(r.student_id))) hechas.set(String(r.student_id), [])
+        hechas.get(String(r.student_id))!.push(String(r.completed_at))
+      }
+      for (const { student_id, since } of byCampaign.get('survey_titulados') ?? []) {
+        if ((hechas.get(student_id) ?? []).some(d => d >= since)) ok.add(student_id)
+      }
+    } catch { /* tabla ausente: sin evidencia, no se cuenta */ }
+  }
+
+  // ---- Empleador respondió (survey_empleadores) -----------------------------
+  // El contacto se registra a nombre del titulado primario; el hecho es que la
+  // encuesta del EMPLEADOR asociado a ese titulado se completó tras el contacto.
+  if (byCampaign.has('survey_empleadores')) {
+    try {
+      const sids = (byCampaign.get('survey_empleadores') ?? []).map(x => x.student_id)
+      const { data } = await sb.from('employer_survey_students')
+        .select('student_id, survey:employer_surveys(completed_at)').in('student_id', sids)
+      const hechas = new Map<string, string[]>()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const r of (data ?? []) as any[]) {
+        if (!r.survey?.completed_at) continue
+        if (!hechas.has(String(r.student_id))) hechas.set(String(r.student_id), [])
+        hechas.get(String(r.student_id))!.push(String(r.survey.completed_at))
+      }
+      for (const { student_id, since } of byCampaign.get('survey_empleadores') ?? []) {
+        if ((hechas.get(student_id) ?? []).some(d => d >= since)) ok.add(student_id)
       }
     } catch { /* tabla ausente: sin evidencia, no se cuenta */ }
   }

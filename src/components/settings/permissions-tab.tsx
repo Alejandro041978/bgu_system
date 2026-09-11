@@ -181,6 +181,7 @@ const PAGE_GROUPS = [
       { key: 'campaign_iw', label: 'Campaña · IW' },
       { key: 'campaign_loa', label: 'Campaña · LOA' },
       { key: 'campaign_survey_titulados', label: 'Campaña · Survey Titulados' },
+      { key: 'campaign_survey_empleadores', label: 'Campaña · Survey Empleadores' },
       { key: 'finance_books_operations', label: 'Finanzas · Operaciones Books' },
       // Cuentas (movidas de Académico)
       { key: 'academic_account', label: 'Estado de Cuenta' },

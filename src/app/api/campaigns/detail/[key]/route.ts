@@ -12,7 +12,7 @@ export const maxDuration = 120
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 const pct = (n: number, d: number) => d > 0 ? Math.round((n / d) * 1000) / 10 : 0
 
-const CAMPAIGN_KEYS = ['titulacion', 'cobranza', 'cashpay', 'ausente', 'iw', 'loa', 'survey_titulados'] as const
+const CAMPAIGN_KEYS = ['titulacion', 'cobranza', 'cashpay', 'ausente', 'iw', 'loa', 'survey_titulados', 'survey_empleadores'] as const
 
 // ---------------------------------------------------------------------------
 // Detalle de UNA campaña de Camila, en su propia ruta para poder darle su
@@ -62,7 +62,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ key:
     for (const s of (data ?? []) as any[]) nombre.set(String(s.id), s)
   }
 
-  const cola = assignments.filter(a => a.campaign_key === key)
+  // Survey Empleadores: el elegible es el EMPLEADOR, no un estudiante, así que
+  // el resolver no lo conoce — la cola sale de los jefes del año pendientes de
+  // responder (un empleador compartido cuenta una sola vez).
+  let cola = assignments.filter(a => a.campaign_key === key)
+  if (key === 'survey_empleadores') {
+    const { empleadoresDelAnio } = await import('@/lib/employer-eligibility')
+    const { empleadores } = await empleadoresDelAnio(sb)
+    cola = empleadores.filter(e => !e.survey?.completed_at)
+      .map(e => ({ student_id: e.primary_student_id, campaign_key: key, reason: `empleador ${e.name ?? e.phone}` }))
+  }
   const contactados = new Set(validos.map(c => String(c.student_id)))
   const respondieron = new Set(validos.filter(c => c.replied_at).map(c => String(c.student_id)))
   const exito = [...contactados].filter(id => exitosos.has(id)).length

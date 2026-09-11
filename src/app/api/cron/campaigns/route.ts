@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { resolveEligibility } from '@/lib/campaign-resolver'
 import { telefonoE164 } from '@/lib/telefono'
+import { empleadoresDelAnio } from '@/lib/employer-eligibility'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -32,6 +33,20 @@ function saludo(raw: string | null): string | null {
   if (!first) return null
   return first.charAt(0).toLocaleUpperCase('es') + first.slice(1).toLocaleLowerCase('es')
 }
+
+// Ficha puntual con caché (para el titulado primario de un empleador, que
+// puede no estar en la cola del resolver).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function stuDe(sb: any, cache: Map<string, any>, id: string) {
+  if (!cache.has(id)) {
+    const { data } = await sb.from('academic_students')
+      .select('id, first_name, last_name, phone_code, phone_number, country').eq('id', id).maybeSingle()
+    if (data) cache.set(id, data)
+  }
+  return cache.get(id) ?? null
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const stuNombre = (s: any): string | null => s?.first_name ?? null
 
 async function sendTemplate(to: string, contentSid: string, vars: Record<string, string>, creds: { sid: string; token: string; from: string }): Promise<string | null> {
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${creds.sid}/Messages.json`, {
@@ -177,6 +192,82 @@ async function run(dryRun: boolean) {
     if (cupo <= 0) { resumen[camp.key].motivo = 'cupo diario alcanzado'; continue }
 
     const creds = { sid: bot.twilio_account_sid!, token: bot.twilio_auth_token!, from: bot.twilio_number! }
+
+    // ── Encuesta a EMPLEADORES (11/09/2026): el elegible es el JEFE, no el
+    // estudiante — por eso NO pasa por el resolver (le robaría al titulado su
+    // cupo en sus propias campañas) y va como bloque propio. Reglas: un
+    // empleador (E.164) = una encuesta por año académico; completada, cubre a
+    // TODOS sus titulados asociados (si otro titulado lo nombra después, se
+    // asocia sin re-contactar); cooldown entre toques y tope anual de
+    // invitaciones POR EMPLEADOR (invited_count de su fila). La bitácora
+    // registra el contacto a nombre del titulado más reciente (la página de
+    // la campaña sigue siendo por persona).
+    if (def.config?.survey === 'employers') {
+      const { anio, empleadores } = await empleadoresDelAnio(sb)
+      if (!anio) { resumen[camp.key].motivo = 'sin año académico vigente'; continue }
+      const pendientes = empleadores.filter(e => !e.survey?.completed_at)
+      resumen[camp.key].elegibles = pendientes.length
+      const maxAnioEmp = Number(def.config?.max_attempts_year ?? 4)
+      const cdDias = Number(def.cooldown_days ?? 7)
+      const appUrlEmp = process.env.NEXT_PUBLIC_APP_URL ?? 'https://system.blackwell.university'
+      // Nunca invitados primero; re-toques después, del más antiguo al más reciente
+      pendientes.sort((a, b) => {
+        const ua = a.survey?.last_invited_at ?? ''
+        const ub = b.survey?.last_invited_at ?? ''
+        if (!ua && !ub) return 0
+        if (!ua) return -1
+        if (!ub) return 1
+        return ua.localeCompare(ub)
+      })
+      let usadosEmp = 0
+      for (const e of pendientes) {
+        if (usadosEmp >= cupo) break
+        if ((e.survey?.invited_count ?? 0) >= maxAnioEmp) { resumen[camp.key].saltados++; continue }
+        if (e.survey?.last_invited_at && Date.now() - new Date(e.survey.last_invited_at).getTime() < cdDias * DAY) continue
+        const jefe = saludo(e.name)
+        if (!jefe) { resumen[camp.key].saltados++; continue }
+        const graduado = saludo(stuNombre(await stuDe(sb, stu, e.primary_student_id)))
+        const lang = e.language === 'en' ? 'en' : 'es'
+        const tpl = tplOf.get(`${tplKey}|${lang}`) ?? tplOf.get(`${tplKey}|es`)
+        if (!tpl) { resumen[camp.key].saltados++; continue }
+        if (dryRun) { resumen[camp.key].enviados++; enviados++; usadosEmp++; continue }
+
+        // Fila del empleador para este año (token) + vínculos de titulados
+        let surveyId = e.survey?.id ?? null
+        if (!surveyId) {
+          const { data: nuevo, error: eIns } = await sb.from('employer_surveys')
+            .insert({ employer_phone: e.phone, employer_name: e.name, company: e.company, language: lang, academic_year_id: anio.id })
+            .select('id').single()
+          if (eIns) { resumen[camp.key].saltados++; errores.push(`${camp.key}/${e.phone}: ${eIns.message}`); continue }
+          surveyId = String(nuevo.id)
+        }
+        await sb.from('employer_survey_students').upsert(
+          e.titulados.map(ti => ({ survey_id: surveyId, student_id: ti.student_id, graduate_survey_id: ti.graduate_survey_id, position: ti.position })),
+          { onConflict: 'survey_id,student_id', ignoreDuplicates: true },
+        )
+
+        const vars: Record<string, string> = { '1': jefe, '2': graduado ?? 'nuestro graduado', '3': `${appUrlEmp}/form/employer-survey/${surveyId}` }
+        const bitacora = {
+          student_id: e.primary_student_id, campaign_key: camp.key, template_key: tplKey,
+          language: lang, reason: `invitación al empleador ${e.name ?? e.phone}${e.titulados.length > 1 ? ` (cubre ${e.titulados.length} titulados)` : ''}`,
+          sent_at: new Date().toISOString(),
+        }
+        try {
+          const sidMsg = await sendTemplate(`whatsapp:${e.phone}`, tpl.sid, vars, creds)
+          await sb.from('employer_surveys')
+            .update({ invited_count: (e.survey?.invited_count ?? 0) + 1, last_invited_at: new Date().toISOString() })
+            .eq('id', surveyId)
+          await sb.from('campaign_contacts').insert({ ...bitacora, twilio_sid: sidMsg, status: 'sent' })
+          resumen[camp.key].enviados++; enviados++; usadosEmp++
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          await sb.from('campaign_contacts').insert({ ...bitacora, status: 'failed', error: msg.slice(0, 300) })
+          errores.push(`${camp.key}/${e.phone}: ${msg.slice(0, 120)}`)
+          usadosEmp++
+        }
+      }
+      continue
+    }
 
     // ── Campaña CON SECUENCIA (fusión Retención→Ausente, 10/09/2026): cada
     // paso tiene su plantilla y su espera; el estado personal (compromisos,

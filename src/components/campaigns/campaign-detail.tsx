@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Loader2, CheckCircle2, MessageCircle, AlertTriangle, Pencil } from 'lucide-react'
 import { SuggestionsView } from '@/components/sofia/suggestions-view'
 import { SurveyResults } from '@/components/campaigns/survey-results'
+import { EmployerSurveyResults } from '@/components/campaigns/employer-survey-results'
 import { usePermissions } from '@/hooks/use-permissions'
 
 interface Row {
@@ -161,6 +162,12 @@ export function CampaignDetail({ campaignKey }: { campaignKey: string }) {
         <div className="pt-4 border-t border-gray-200">
           <h2 className="text-sm font-semibold text-gray-900 mb-2">Resultados de la encuesta</h2>
           <SurveyResults />
+        </div>
+      )}
+      {campaignKey === 'survey_empleadores' && (
+        <div className="pt-4 border-t border-gray-200">
+          <h2 className="text-sm font-semibold text-gray-900 mb-2">Resultados de la encuesta</h2>
+          <EmployerSurveyResults />
         </div>
       )}
 

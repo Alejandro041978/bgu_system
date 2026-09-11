@@ -32,6 +32,21 @@ export async function GET() {
     byCampaign[a.campaign_key].count++
     if (byCampaign[a.campaign_key].sample.length < 5) byCampaign[a.campaign_key].sample.push({ student_id: a.student_id, reason: a.reason })
   }
+  // Survey Empleadores: su elegible es el EMPLEADOR (no pasa por el resolver),
+  // así que su conteo sale de los jefes del año pendientes de responder; la
+  // muestra lista al titulado que los nombró.
+  if (r.campaigns.some(c => c.key === 'survey_empleadores')) {
+    try {
+      const { empleadoresDelAnio } = await import('@/lib/employer-eligibility')
+      const { empleadores } = await empleadoresDelAnio(sb)
+      const pendientes = empleadores.filter(e => !e.survey?.completed_at)
+      byCampaign['survey_empleadores'] = {
+        count: pendientes.length,
+        sample: pendientes.slice(0, 5).map(e => ({ student_id: e.primary_student_id, reason: `empleador ${e.name ?? e.phone}` })),
+      }
+    } catch { /* migración sin correr: 0 elegibles */ }
+  }
+
   // nombres de la muestra
   const sampleIds = [...new Set(Object.values(byCampaign).flatMap(c => c.sample.map(s => s.student_id)))]
   const names: Record<string, string> = {}
