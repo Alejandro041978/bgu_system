@@ -13,6 +13,7 @@ interface Data {
   por_categoria: { k: string; n: number }[]
   por_programa: { k: string; n: number }[]
   por_pais: { k: string; n: number }[]
+  por_sexo: { k: string; n: number }[]
   resultados: (ResLikert | ResOpciones)[]
 }
 
@@ -78,9 +79,10 @@ export function SurveyResults() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Chip titulo="Por categoría" items={d.por_categoria} />
         <Chip titulo="Por programa" items={d.por_programa} />
+        <Chip titulo="Por sexo" items={d.por_sexo ?? []} />
         <Chip titulo="Por país" items={d.por_pais} />
       </div>
 

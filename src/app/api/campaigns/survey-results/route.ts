@@ -47,7 +47,10 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fichaDe = new Map<string, any>()
   for (let i = 0; i < sids.length; i += 200) {
-    const { data } = await sb.from('academic_students').select('id, country').in('id', sids.slice(i, i + 200))
+    // La columna sex es reciente (student_sex.sql): si la migración no corrió
+    // todavía, se degrada al corte sin sexo en vez de romper toda la página.
+    let { data } = await sb.from('academic_students').select('id, country, sex').in('id', sids.slice(i, i + 200))
+    if (!data) ({ data } = await sb.from('academic_students').select('id, country').in('id', sids.slice(i, i + 200)))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const s of (data ?? []) as any[]) fichaDe.set(String(s.id), s)
   }
@@ -121,6 +124,7 @@ export async function GET(req: NextRequest) {
     por_categoria: conteo(sid => programaDe.get(sid)?.categoria ?? '—'),
     por_programa: conteo(sid => programaDe.get(sid)?.programa ?? '—'),
     por_pais: conteo(sid => fichaDe.get(sid)?.country ?? '—'),
+    por_sexo: conteo(sid => ({ M: 'Masculino', F: 'Femenino' } as Record<string, string>)[fichaDe.get(sid)?.sex] ?? 'Sin clasificar'),
     resultados,
   })
 }
