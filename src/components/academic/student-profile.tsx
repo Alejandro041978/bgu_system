@@ -115,7 +115,7 @@ export function StudentProfile() {
       phone_local: d.student.phone_local ?? '',
       date_of_birth: d.student.date_of_birth ? String(d.student.date_of_birth).slice(0, 10) : '',
       city: d.student.city ?? '', country: d.student.country ?? '', birth_country: d.student.birth_country ?? '',
-      situation: d.student.situation ?? '',
+      situation: d.student.situation ?? '', sex: d.student.sex ?? '',
     })
   }
 
@@ -252,6 +252,15 @@ export function StudentProfile() {
                   <option value="">—</option>
                   {PAISES.map(([code, nombre]) => <option key={code} value={code}>{nombre}</option>)}
                   {form.birth_country && !PAISES.some(([c]) => c === form.birth_country) && <option value={form.birth_country}>{form.birth_country}</option>}
+                </select>
+              </Field>
+              {/* El sexo se pobló deduciéndolo del nombre (11/09/2026); una
+                  corrección aquí queda como manual y nunca se re-infiere. */}
+              <Field label={`Sexo (${student.sex ? (student.sex_source === 'manual' ? 'manual' : 'inferido del nombre') : 'sin clasificar'})`}>
+                <select value={form.sex} onChange={e => set('sex', e.target.value)} className={inp}>
+                  <option value="">—</option>
+                  <option value="M">Masculino</option>
+                  <option value="F">Femenino</option>
                 </select>
               </Field>
               <Field label="Ciudad"><input value={form.city} onChange={e => set('city', e.target.value)} className={inp} /></Field>

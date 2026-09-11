@@ -53,7 +53,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 // Campos editables de la ficha; todo lo demás (external_id, source, moodle,
 // retiros) lo gobiernan el sync y los motores.
 const EDITABLE = ['first_name', 'last_name', 'second_last_name', 'document_type', 'document_number',
-  'email', 'email_alt', 'phone_code', 'phone_local', 'date_of_birth', 'city', 'country', 'birth_country', 'situation'] as const
+  'email', 'email_alt', 'phone_code', 'phone_local', 'date_of_birth', 'city', 'country', 'birth_country', 'situation', 'sex'] as const
 
 // PATCH → edita la ficha. Cambiar la situación la marca como manual (los
 // motores de egreso/retiro no la pisan); ?situacion_auto=1 la devuelve a auto.
@@ -138,6 +138,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // Situación editada a mano → deja de ser automática
   if ('situation' in patch && patch.situation !== curr.situation) {
     patch.situation_source = 'manual'
+  }
+  // Sexo corregido a mano → sex_source=manual y ninguna re-inferencia lo pisa
+  if ('sex' in patch) {
+    if (patch.sex !== null && !['M', 'F'].includes(String(patch.sex))) {
+      return NextResponse.json({ error: 'El sexo debe ser M, F o vacío' }, { status: 400 })
+    }
+    if (patch.sex !== curr.sex) patch.sex_source = 'manual'
   }
 
   // Quién lo hace. El disparador de la base guarda una fila por campo cambiado
