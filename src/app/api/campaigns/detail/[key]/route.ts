@@ -12,7 +12,7 @@ export const maxDuration = 120
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 const pct = (n: number, d: number) => d > 0 ? Math.round((n / d) * 1000) / 10 : 0
 
-const CAMPAIGN_KEYS = ['titulacion', 'cobranza', 'cashpay', 'ausente', 'iw', 'loa'] as const
+const CAMPAIGN_KEYS = ['titulacion', 'cobranza', 'cashpay', 'ausente', 'iw', 'loa', 'survey_titulados'] as const
 
 // ---------------------------------------------------------------------------
 // Detalle de UNA campaña de Camila, en su propia ruta para poder darle su

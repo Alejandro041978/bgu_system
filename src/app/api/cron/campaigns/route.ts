@@ -264,6 +264,18 @@ async function run(dryRun: boolean) {
     // pero un fallo de Twilio sí lo gasta: si la plantilla está rota, es
     // preferible que se note en cinco intentos y no que recorra la cola entera
     // generando cientos de errores.
+    // ── Survey Titulados: enlace único por estudiante y tope por año ────────
+    const esEncuesta = def.config?.survey === 'graduates'
+    let inicioAnio: string | null = null
+    if (esEncuesta) {
+      const hoyStr = new Date().toISOString().slice(0, 10)
+      const { data: anioAct } = await sb.from('academic_years')
+        .select('start_date').lte('start_date', hoyStr).gte('end_date', hoyStr).limit(1).maybeSingle()
+      inicioAnio = anioAct?.start_date ? String(anioAct.start_date) : null
+    }
+    const maxAnio = Number(def.config?.max_attempts_year ?? 4)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://system.blackwell.university'
+
     let usados = 0
     for (const a of cola) {
       if (usados >= cupo) break
@@ -276,13 +288,39 @@ async function run(dryRun: boolean) {
       const tpl = tplOf.get(`${tplKey}|${lang}`) ?? tplOf.get(`${tplKey}|es`)
       if (!tpl) { resumen[camp.key].saltados++; continue }
 
+      // Variables de la plantilla; la encuesta agrega el enlace único y
+      // respeta el tope de invitaciones POR AÑO ACADÉMICO (no hostigar).
+      const vars: Record<string, string> = { '1': nombre }
+      if (esEncuesta) {
+        if (inicioAnio) {
+          const { count: yaEsteAnio } = await sb.from('campaign_contacts')
+            .select('id', { count: 'exact', head: true })
+            .eq('campaign_key', camp.key).eq('student_id', a.student_id).eq('status', 'sent')
+            .gte('sent_at', inicioAnio + 'T00:00:00Z')
+          if ((yaEsteAnio ?? 0) >= maxAnio) { resumen[camp.key].saltados++; continue }
+        }
+        // Token vigente: la invitación pendiente se reutiliza (mismo enlace en
+        // cada re-toque); si no hay, se crea.
+        const { data: pend } = await sb.from('graduate_surveys')
+          .select('id').eq('student_id', a.student_id).is('completed_at', null)
+          .order('created_at', { ascending: false }).limit(1).maybeSingle()
+        let surveyId = pend?.id ?? null
+        if (!surveyId && !dryRun) {
+          const { data: nuevo, error: eIns } = await sb.from('graduate_surveys')
+            .insert({ student_id: a.student_id, language: lang }).select('id').single()
+          if (eIns) { resumen[camp.key].saltados++; errores.push(`${camp.key}/${a.student_id}: ${eIns.message}`); continue }
+          surveyId = nuevo.id
+        }
+        vars['2'] = `${appUrl}/form/graduate-survey/${surveyId ?? '(nuevo)'}`
+      }
+
       const bitacora = {
         student_id: a.student_id, campaign_key: camp.key, template_key: tplKey,
         language: lang, reason: a.reason, sent_at: new Date().toISOString(),
       }
       if (dryRun) { resumen[camp.key].enviados++; enviados++; usados++; continue }
       try {
-        const sid = await sendTemplate(`whatsapp:${tel}`, tpl.sid, { '1': nombre }, creds)
+        const sid = await sendTemplate(`whatsapp:${tel}`, tpl.sid, vars, creds)
         await sb.from('campaign_contacts').insert({ ...bitacora, twilio_sid: sid, status: 'sent' })
         resumen[camp.key].enviados++; enviados++; usados++
       } catch (e) {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2, CheckCircle2, MessageCircle, AlertTriangle, Pencil } from 'lucide-react'
 import { SuggestionsView } from '@/components/sofia/suggestions-view'
+import { SurveyResults } from '@/components/campaigns/survey-results'
 import { usePermissions } from '@/hooks/use-permissions'
 
 interface Row {
@@ -153,6 +154,15 @@ export function CampaignDetail({ campaignKey }: { campaignKey: string }) {
         </table>
       </div>
       <p className="text-[11px] text-gray-400">Una fila por estudiante (su último toque manda). El resultado se verifica contra hechos posteriores al contacto: pago, conexión al aula, solicitud o reincorporación, según la campaña.</p>
+
+      {/* Resultados de la Encuesta de Titulados en tiempo real, por año
+          académico (solo en la campaña de la encuesta). */}
+      {campaignKey === 'survey_titulados' && (
+        <div className="pt-4 border-t border-gray-200">
+          <h2 className="text-sm font-semibold text-gray-900 mb-2">Resultados de la encuesta</h2>
+          <SurveyResults />
+        </div>
+      )}
 
       {/* Mejora continua de la campaña (10/09/2026): las propuestas del
           supervisor de Camila para ESTA campaña. Ver = leerlas; aprobar exige

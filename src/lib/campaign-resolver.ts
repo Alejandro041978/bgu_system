@@ -44,6 +44,37 @@ export async function resolveEligibility(sb: any): Promise<{
     fetchAll(sb, 'account_payments', 'student_id, amount'),
     fetchAll(sb, 'campaign_contacts', 'student_id, sent_at'),
   ])
+
+  // ── Survey Titulados (10/09/2026): TITULADOS de programas oficiales
+  // (Bachelor/Master/Doctoral) con título ya EMITIDO (no la solicitud pagada:
+  // el degree file nace al pagar, así que se exige una huella de emisión).
+  // Completada la encuesta, descansan hasta el año académico siguiente.
+  const tituladoOficial = new Set<string>()
+  const respondioEsteAnio = new Set<string>()
+  try {
+    const [degrees, progs2, cats2] = await Promise.all([
+      fetchAll(sb, 'degree_files', 'student_id, program_id, simplecert_ok_at, printed_at, digital_sent_at, delivered_at'),
+      fetchAll(sb, 'academic_programs', 'id, category_id'),
+      fetchAll(sb, 'academic_programs_category', 'id, name'),
+    ])
+    const oficiales = new Set(cats2.filter(c => /bachelor|master|doctor/i.test(String(c.name ?? ''))).map(c => String(c.id)))
+    const catDeProg = new Map(progs2.map(p => [String(p.id), p.category_id ? String(p.category_id) : null]))
+    for (const d of degrees) {
+      if (!d.student_id) continue
+      const emitido = d.simplecert_ok_at || d.printed_at || d.digital_sent_at || d.delivered_at
+      if (!emitido) continue
+      const cat = d.program_id ? catDeProg.get(String(d.program_id)) : null
+      if (cat && oficiales.has(cat)) tituladoOficial.add(String(d.student_id))
+    }
+    const hoyStr = new Date().toISOString().slice(0, 10)
+    const { data: anioAct } = await sb.from('academic_years')
+      .select('id, start_date, end_date').lte('start_date', hoyStr).gte('end_date', hoyStr).limit(1).maybeSingle()
+    if (anioAct) {
+      const { data: hechas } = await sb.from('graduate_surveys')
+        .select('student_id').not('completed_at', 'is', null).eq('academic_year_id', anioAct.id)
+      for (const h of hechas ?? []) respondioEsteAnio.add(String(h.student_id))
+    }
+  } catch { /* tablas aún sin migrar: la campaña simplemente no asigna a nadie */ }
   // El cooldown debe mirar TAMBIÉN la bitácora del motor de retención: es un
   // sistema paralelo (retention_settings + su propio cron) que contacta a la
   // MISMA gente que la campaña "ausente". Sin esto, encender "ausente" con
@@ -119,6 +150,7 @@ export async function resolveEligibility(sb: any): Promise<{
     const candidatos: { key: string; reason: string }[] = []
     if (/retiro_temporal|loa|licencia/i.test(situ)) candidatos.push({ key: 'loa', reason: 'en licencia (LOA)' })
     else if (/retiro_permanente|iw/i.test(situ)) candidatos.push({ key: 'iw', reason: 'retirado (IW)' })
+    if (tituladoOficial.has(sid) && !respondioEsteAnio.has(sid)) candidatos.push({ key: 'survey_titulados', reason: 'titulado — encuesta anual pendiente' })
     if (pendienteTitulo.has(sid)) candidatos.push({ key: 'titulacion', reason: 'egresado sin título' })
     // Ausente (fusión con Retención, 10/09/2026): SOLO activos (un egresado no
     // "falta a clases") y SIN deuda vencida — el deudor ausente va a Cobranza

@@ -14,7 +14,11 @@ const TITULOS: Record<string, { title: string; subtitle: string }> = {
   ausente: { title: 'Campaña · Ausentes', subtitle: 'Activos que dejaron de entrar al aula' },
   iw: { title: 'Campaña · IW', subtitle: 'Retirados definitivos: regresa y termina tu programa' },
   loa: { title: 'Campaña · LOA', subtitle: 'Licencias por vencer: no pierdas lo logrado' },
+  'graduate-survey': { title: 'Campaña · Survey Titulados', subtitle: 'Titulados de programas oficiales: encuesta anual de egresados' },
 }
+
+// URL en inglés (regla de la casa) → clave interna de la campaña
+const CLAVE_DE: Record<string, string> = { 'graduate-survey': 'survey_titulados' }
 
 export default async function CampaignPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params
@@ -25,7 +29,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ key: 
       <Topbar title={t.title} subtitle={t.subtitle} />
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-6xl mx-auto">
-          <CampaignDetail campaignKey={key} />
+          <CampaignDetail campaignKey={CLAVE_DE[key] ?? key} />
         </div>
       </div>
     </>
