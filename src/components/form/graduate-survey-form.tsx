@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Loader2, CheckCircle2, GraduationCap } from 'lucide-react'
+import { CODIGOS_TEL } from '@/lib/graduate-survey'
 
 // ---------------------------------------------------------------------------
 // Encuesta pública de titulados (es/en). Fiel al cuestionario de Dirección;
@@ -9,7 +10,7 @@ import { Loader2, CheckCircle2, GraduationCap } from 'lucide-react'
 // ---------------------------------------------------------------------------
 interface Opcion { id: string; es: string; en: string }
 interface Pregunta {
-  id: string; tipo: 'choice' | 'multi' | 'likert' | 'texto'; seccion: string
+  id: string; tipo: 'choice' | 'multi' | 'likert' | 'texto' | 'telefono'; seccion: string
   es: string; en: string; opciones?: Opcion[]; soloEmpleado?: boolean; requerida: boolean
 }
 interface Data {
@@ -50,6 +51,16 @@ export function GraduateSurveyForm({ token }: { token: string }) {
   const [estado, setEstado] = useState<'cargando' | 'lista' | 'enviada' | 'ya_enviada' | 'no_encontrada'>('cargando')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [answers, setAnswers] = useState<Record<string, any>>({})
+  // Partes de las preguntas de teléfono (código + número). En answers solo
+  // entra el valor canónico E.164 ya unido; las partes son estado local.
+  const [tel, setTel] = useState<Record<string, { code: string; local: string }>>({})
+  const setTelParte = (id: string, parte: 'code' | 'local', valor: string) => {
+    setTel(prev => {
+      const p = { ...(prev[id] ?? { code: '', local: '' }), [parte]: valor }
+      setAnswers(a => ({ ...a, [id]: p.code && p.local ? `${p.code}${p.local}` : '' }))
+      return { ...prev, [id]: p }
+    })
+  }
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -169,6 +180,19 @@ export function GraduateSurveyForm({ token }: { token: string }) {
               {p.tipo === 'texto' && (
                 <input value={v ?? ''} onChange={e => setAnswers(a => ({ ...a, [p.id]: e.target.value }))} maxLength={300}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              )}
+              {p.tipo === 'telefono' && (
+                <div className="flex gap-1.5">
+                  <select value={tel[p.id]?.code ?? ''} onChange={e => setTelParte(p.id, 'code', e.target.value)}
+                    className="w-40 shrink-0 border border-gray-200 rounded-lg px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">{lang === 'es' ? 'Código…' : 'Code…'}</option>
+                    {CODIGOS_TEL.map(([code, nombre]) => <option key={code} value={code}>{code} {nombre}</option>)}
+                  </select>
+                  <input inputMode="numeric" value={tel[p.id]?.local ?? ''}
+                    onChange={e => setTelParte(p.id, 'local', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                    placeholder={lang === 'es' ? 'Número' : 'Number'}
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
               )}
             </div>
           )

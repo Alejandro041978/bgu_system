@@ -10,7 +10,19 @@
 // así que NO se renombran; si una pregunta cambia de fondo, se crea otra.
 // ---------------------------------------------------------------------------
 
-export type PreguntaTipo = 'choice' | 'multi' | 'likert' | 'texto'
+export type PreguntaTipo = 'choice' | 'multi' | 'likert' | 'texto' | 'telefono'
+
+// Códigos telefónicos para las preguntas tipo 'telefono'. El valor guardado es
+// SIEMPRE E.164 (+código y número juntos): el número del jefe inmediato será la
+// base de elegibles de la futura encuesta a empleadores por WhatsApp
+// (pedido del usuario, 11/09/2026), así que tiene que nacer marcable.
+export const CODIGOS_TEL: [string, string][] = [
+  ['+51', 'Perú'], ['+52', 'México'], ['+593', 'Ecuador'], ['+57', 'Colombia'], ['+56', 'Chile'],
+  ['+1', 'USA/Can/Dom/PR'], ['+504', 'Honduras'], ['+503', 'El Salvador'], ['+506', 'Costa Rica'],
+  ['+502', 'Guatemala'], ['+507', 'Panamá'], ['+505', 'Nicaragua'], ['+34', 'España'], ['+598', 'Uruguay'],
+  ['+595', 'Paraguay'], ['+54', 'Argentina'], ['+58', 'Venezuela'], ['+591', 'Bolivia'], ['+55', 'Brasil'],
+  ['+53', 'Cuba'], ['+509', 'Haití'], ['+39', 'Italia'], ['+33', 'Francia'], ['+49', 'Alemania'], ['+44', 'Reino Unido'],
+]
 
 export interface Pregunta {
   id: string
@@ -52,7 +64,7 @@ export const PREGUNTAS: Pregunta[] = [
   { id: 'empresa', tipo: 'texto', seccion: 's1', requerida: true, soloEmpleado: true, es: 'Nombre de la empresa', en: 'Company name' },
   { id: 'puesto', tipo: 'texto', seccion: 's1', requerida: true, soloEmpleado: true, es: 'Puesto / cargo', en: 'Position / role' },
   { id: 'jefe_nombre', tipo: 'texto', seccion: 's1', requerida: true, soloEmpleado: true, es: 'Nombre del jefe inmediato', en: 'Immediate supervisor name' },
-  { id: 'jefe_numero', tipo: 'texto', seccion: 's1', requerida: true, soloEmpleado: true, es: 'Número del jefe inmediato', en: 'Immediate supervisor phone number' },
+  { id: 'jefe_numero', tipo: 'telefono', seccion: 's1', requerida: true, soloEmpleado: true, es: 'Número del jefe inmediato (WhatsApp)', en: 'Immediate supervisor phone number (WhatsApp)' },
 
   likert('cargo_esperado', 's1', 'Mi cargo actual refleja el nivel de responsabilidad que esperaba después de graduarme.', 'My current position reflects the level of responsibility I expected after graduating.'),
   likert('industria_alineada', 's1', 'Estoy empleado/a en una industria que se alinea con mis metas profesionales.', 'I am employed in an industry that aligns with my professional goals.'),
@@ -149,6 +161,11 @@ export function validarRespuestas(answers: Record<string, any>): string | null {
       if (p.opciones && v.some(x => !p.opciones!.some(o => o.id === x))) return `Opción inválida en: ${p.es}`
     }
     if (p.tipo === 'texto' && String(v).length > 300) return `Respuesta demasiado larga en: ${p.es}`
+    // Teléfonos canónicos E.164 (código + número): la base de la futura
+    // encuesta a empleadores no puede nacer con números inmarcables.
+    if (p.tipo === 'telefono' && String(v).trim() !== '' && !/^\+\d{7,15}$/.test(String(v))) {
+      return `Teléfono inválido en: ${p.es}`
+    }
   }
   return null
 }
