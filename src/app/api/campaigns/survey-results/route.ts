@@ -51,17 +51,32 @@ export async function GET(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const s of (data ?? []) as any[]) fichaDe.set(String(s.id), s)
   }
+  // degree_files no tiene FK declarada hacia academic_programs: el join es manual
+  // (igual que en el resolver de campañas).
   const { data: degrees } = sids.length
-    ? await sb.from('degree_files').select('student_id, program:academic_programs(name, category:academic_programs_category(name))').in('student_id', sids)
+    ? await sb.from('degree_files').select('student_id, program_id').in('student_id', sids)
     : { data: [] }
+  const progIds = [...new Set(((degrees ?? []) as { program_id: string | null }[]).map(d => d.program_id).filter(Boolean).map(String))]
+  const { data: progs } = progIds.length
+    ? await sb.from('academic_programs').select('id, name, category_id').in('id', progIds)
+    : { data: [] }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const catIds = [...new Set(((progs ?? []) as any[]).map(p => p.category_id).filter(Boolean).map(String))]
+  const { data: cats } = catIds.length
+    ? await sb.from('academic_programs_category').select('id, name').in('id', catIds)
+    : { data: [] }
+  const catDe = new Map(((cats ?? []) as { id: string; name: string }[]).map(c => [String(c.id), c.name]))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const progDe = new Map(((progs ?? []) as any[]).map(p => [String(p.id), p]))
   const programaDe = new Map<string, { programa: string; categoria: string }>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const d of (degrees ?? []) as any[]) {
-    if (!programaDe.has(String(d.student_id))) {
-      programaDe.set(String(d.student_id), {
-        programa: d.program?.name ?? '—', categoria: d.program?.category?.name ?? '—',
-      })
-    }
+    if (programaDe.has(String(d.student_id))) continue
+    const p = d.program_id ? progDe.get(String(d.program_id)) : null
+    programaDe.set(String(d.student_id), {
+      programa: p?.name ?? '—',
+      categoria: (p?.category_id ? catDe.get(String(p.category_id)) : null) ?? '—',
+    })
   }
   const conteo = (fn: (sid: string) => string) => {
     const m = new Map<string, number>()
