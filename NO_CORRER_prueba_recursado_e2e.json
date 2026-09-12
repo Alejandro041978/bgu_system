@@ -1,0 +1,59 @@
+{
+  "proposito": "PRUEBA punta a punta de Recursados declarados (12/09/2026) - todo lo creado fue RETIRADO al final",
+  "candidato": {
+    "alumno": {
+      "id": "506faa8b-32c1-4b76-8e0e-e3d1d52039b3",
+      "first_name": "Jeimmy Paola",
+      "last_name": "Jimenez",
+      "document_number": "1016004907"
+    },
+    "curso": {
+      "code": "MBA 504",
+      "name": "Leadership and Organizational Behavior"
+    },
+    "amount": 780
+  },
+  "paso1": {
+    "request_id": "bf7f4ea3-4fcf-4022-90d6-239f1778efe4",
+    "charge": {
+      "external_id": "bf3bdecf-ba38-46a0-a40f-e5016944cafc",
+      "amount": 780,
+      "due_date": "2026-09-19",
+      "reference": "Recursado MBA 504 Leadership and Organizational Behavior"
+    }
+  },
+  "paso2": {
+    "payment_external_id": "0a2add70-3c38-4659-a666-c72740b4a504"
+  },
+  "paso3": {
+    "solicitud": {
+      "status": "aceptada",
+      "accepted_at": "2026-09-12T12:49:52.207+00:00"
+    },
+    "intentos": [
+      {
+        "attempt": 1,
+        "status": "reprobada",
+        "source": "moodle",
+        "opened_by": "importacion-moodle"
+      },
+      {
+        "attempt": 2,
+        "status": "no_iniciada",
+        "source": "recursado",
+        "opened_by": "recursado:prueba-e2e@erp"
+      }
+    ],
+    "declared": [
+      2
+    ]
+  },
+  "limpieza": {
+    "restos": [
+      0,
+      0,
+      0,
+      0
+    ]
+  }
+}
