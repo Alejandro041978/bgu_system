@@ -15,12 +15,13 @@ interface Found { id: string; name: string; document: string | null }
 interface Elegible {
   course_id: string; course: string; attempt: number
   credits: number | null; rate: number | null; amount: number | null
+  beca_pct: number | null
 }
 interface Solicitud {
   id: string; course: string; prev_attempt: number; new_attempt: number
   credits: number | null; amount: number | null; pagado: number
   status: string; created_at: string; created_by: string | null
-  accepted_at: string | null; lms_opened_at: string | null
+  accepted_at: string | null; lms_opened_at: string | null; note: string | null
 }
 interface Data {
   student: { id: string; name: string; document: string | null; external_id: string | null }
@@ -66,7 +67,8 @@ export function RetakesManager() {
 
   async function declarar(e: Elegible) {
     if (!data) return
-    if (!confirm(`¿Declarar el recursado de "${e.course}"?\n\nSe creará una cuota de ${money(e.amount)} (${e.credits} créditos × ${money(e.rate)}) asociada a la solicitud. El intento se abrirá en el registro cuando la cuota esté pagada por completo.`)) return
+    const formula = `${e.credits} créditos × ${money(e.rate)}${e.beca_pct != null ? ` − beca ${e.beca_pct}%` : ''}`
+    if (!confirm(`¿Declarar el recursado de "${e.course}"?\n\nSe creará una cuota de ${money(e.amount)} (${formula}) asociada a la solicitud. El intento se abrirá en el registro cuando la cuota esté pagada por completo.`)) return
     setBusy(e.course_id); setNotice(null)
     const r = await fetch('/api/academic/retakes', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -165,7 +167,10 @@ export function RetakesManager() {
                   <div key={e.course_id} className="flex items-center justify-between gap-3 border border-gray-100 rounded-lg px-3 py-2">
                     <div className="min-w-0">
                       <p className="text-sm text-gray-800 truncate">{e.course}</p>
-                      <p className="text-[11px] text-gray-400">intento {e.attempt} reprobado · {e.credits ?? '—'} créditos × {money(e.rate)} = <b className="text-gray-600">{money(e.amount)}</b></p>
+                      <p className="text-[11px] text-gray-400">
+                        intento {e.attempt} reprobado · {e.credits ?? '—'} créditos × {money(e.rate)}
+                        {e.beca_pct != null && <> − beca {e.beca_pct}%</>} = <b className="text-gray-600">{money(e.amount)}</b>
+                      </p>
                     </div>
                     {puedeEditar && (
                       <button onClick={() => declarar(e)} disabled={busy === e.course_id || e.amount == null}
@@ -193,7 +198,7 @@ export function RetakesManager() {
                       <Chip s={s} />
                     </div>
                     <p className="text-[11px] text-gray-400 mt-0.5">
-                      {fdate(s.created_at)}{s.created_by ? ` · ${s.created_by}` : ''} · cuota {money(s.amount)} · pagado {money(s.pagado)}
+                      {fdate(s.created_at)}{s.created_by ? ` · ${s.created_by}` : ''} · cuota {money(s.amount)}{s.note ? ` (${s.note})` : ''} · pagado {money(s.pagado)}
                     </p>
                     {s.status === 'pendiente_pago' && (
                       <div className="flex items-center gap-3 mt-1">

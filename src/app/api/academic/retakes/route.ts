@@ -37,6 +37,30 @@ async function requireAuth() {
 //      declarados (grades-write.resolveImportTarget).
 // ---------------------------------------------------------------------------
 
+// Beca activa por matrícula (misma fuente que el estado de cuenta: % sobre la
+// lista, revoked_at NULL = vigente). La beca del estudiante aplica TAMBIÉN al
+// recursado (regla del usuario, 12/09/2026): la cuota se cotiza ya descontada,
+// igual que el oficial — que calcula la beca sobre la lista completa, intentos
+// extra incluidos.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function becasDe(sb: any, studentId: string): Promise<Map<string, number>> {
+  const m = new Map<string, number>()
+  try {
+    const { data } = await sb.from('scholarships')
+      .select('enrollment_id, percentage').eq('student_id', studentId).is('revoked_at', null)
+    for (const s of (data ?? []) as { enrollment_id: string; percentage: number }[]) {
+      if (s.enrollment_id != null && s.percentage != null) m.set(String(s.enrollment_id), Number(s.percentage))
+    }
+  } catch { /* tabla ausente: sin becas */ }
+  return m
+}
+
+function cotizar(rate: number, credits: number, becaPct: number | null): number {
+  const lista = rate * credits
+  const beca = becaPct != null ? lista * (Number(becaPct) / 100) : 0
+  return Math.round((lista - beca) * 100) / 100
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function pagadoDeCargo(sb: any, chargeExternalId: string): Promise<number> {
   const { data } = await sb.from('account_payments')
@@ -110,6 +134,7 @@ export async function GET(req: NextRequest) {
   const enrDePrograma = new Map<string, any>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const e of (enrs ?? []) as any[]) if (e.program_id) enrDePrograma.set(String(e.program_id), e)
+  const becaDe = await becasDe(sb, studentId)
 
   const { data: reqs } = await sb.from('course_retake_requests')
     .select('*').eq('student_id', studentId).order('created_at', { ascending: false })
@@ -134,7 +159,7 @@ export async function GET(req: NextRequest) {
       prev_attempt: r.prev_attempt, new_attempt: r.new_attempt,
       credits: r.credits, amount: r.amount, pagado: Math.round(pagado * 100) / 100,
       status: estado, created_at: r.created_at, created_by: r.created_by,
-      accepted_at: r.accepted_at, lms_opened_at: r.lms_opened_at,
+      accepted_at: r.accepted_at, lms_opened_at: r.lms_opened_at, note: r.note ?? null,
     })
   }
 
@@ -152,13 +177,15 @@ export async function GET(req: NextRequest) {
       : (m.program_id ? enrDePrograma.get(String(m.program_id)) : null)
     const rate = enr?.credit_rate != null ? Number(enr.credit_rate) : null
     const credits = c?.credits != null ? Number(c.credits) : null
+    const becaPct = enr?.id != null ? (becaDe.get(String(enr.id)) ?? null) : null
     elegibles.push({
       course_id: cid,
       course: c ? [c.code, c.name].filter(Boolean).join(' · ') : cid,
       attempt: Number(m.attempt ?? 1),
       credits,
       rate,
-      amount: rate != null && credits != null ? Math.round(rate * credits * 100) / 100 : null,
+      beca_pct: becaPct,
+      amount: rate != null && credits != null ? cotizar(rate, credits, becaPct) : null,
       program_enrollment_id: m.program_enrollment_id ?? enr?.id ?? null,
       program_id: m.program_id ?? c?.program_id ?? null,
     })
@@ -221,13 +248,17 @@ export async function POST(req: NextRequest) {
   if (rate == null || credits == null) {
     return NextResponse.json({ error: 'Sin tarifa congelada o sin créditos: no se puede cotizar la cuota. Revisa la matrícula del programa.' }, { status: 409 })
   }
-  const amount = Math.round(rate * credits * 100) / 100
+  // La beca vigente de SU matrícula descuenta la cuota del recursado también
+  const becas = await becasDe(sb, b.student_id)
+  const becaPct = enrId ? (becas.get(String(enrId)) ?? null) : null
+  const amount = cotizar(rate, credits, becaPct)
 
   const { data: nueva, error: eIns } = await sb.from('course_retake_requests').insert({
     student_id: b.student_id, course_id: b.course_id, program_id: programId,
     program_enrollment_id: enrId,
     prev_attempt: Number(ult.attempt ?? 1), new_attempt: Number(ult.attempt ?? 1) + 1,
     credits, amount, created_by: usuario?.email ?? null,
+    note: becaPct != null ? `${credits} cr × $${rate} − beca ${becaPct}%` : `${credits} cr × $${rate}`,
   }).select('id').single()
   if (eIns) return NextResponse.json({ error: eIns.message }, { status: 500 })
 
