@@ -218,6 +218,18 @@ export async function GET(req: NextRequest) {
 
   const politica = await aulaPolicy(sb, courseid, report)
 
+  // Recursados DECLARADOS: la vista previa anuncia EXACTAMENTE lo que hará el
+  // importador, que desde el 12/09/2026 solo abre intentos declarados.
+  const declaradoDe = new Map<string, number>()
+  if (linkedCourse?.id) {
+    const { data: decl } = await sb.from('academic_course_enrollments')
+      .select('student_id, attempt').eq('course_id', String(linkedCourse.id)).gt('attempt', 1).neq('status', 'retirada')
+    for (const d of (decl ?? []) as { student_id: string; attempt: number }[]) {
+      const k = String(d.student_id)
+      declaradoDe.set(k, Math.max(declaradoDe.get(k) ?? 0, Number(d.attempt)))
+    }
+  }
+
   const matched: { document: string; name: string; total: number | null; destino: string }[] = []
   const unmatched: { fullname: string; idnumber: string }[] = []
   let yaRegistradas = 0, rellenan = 0, nuevas = 0, actualizan = 0, sinCambio = 0, recursados = 0
@@ -246,8 +258,10 @@ export async function GET(req: NextRequest) {
       const r = resolveImportTarget(
         gradesByDoc.get(doc) ?? [], linkedCourse, stableUuid(`moodle:${courseid}:${ug.userid}`), passing,
         { rendido_pct: rendidoPct(proc as ItemProceso[]), term_year: termYearAula, semester_start: semesterStartAula, semester_id: semsAula[0]?.id ? String(semsAula[0].id) : null, valor: total },
+        declaradoDe.get(String(stu.id)) ?? null,
       )
-      if (r.action === 'skip') { destino = 'ya registrada (histórico)'; yaRegistradas++ }
+      if (r.action === 'skip' && r.sin_declarar) { destino = 'recursado SIN DECLARAR — no se abre (declararlo en Recursados)'; yaRegistradas++ }
+      else if (r.action === 'skip') { destino = 'ya registrada (histórico)'; yaRegistradas++ }
       else if (r.action === 'retake') {
         destino = `recursado ${(r.intento ?? 2) - 1} (anterior: ${r.prev_value ?? '—'})`
         recursados++

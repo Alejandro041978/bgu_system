@@ -262,7 +262,15 @@ export function resolveImportTarget(
     // acumulación que continúa: ver la guarda de abajo.
     valor?: number | null
   },
-): { action: 'skip' | 'fill' | 'new' | 'update' | 'retake'; external_id: string; shield: boolean; prev_value: number | null; intento?: number } {
+  // Recursado DECLARADO en el ERP (12/09/2026): el número de intento abierto a
+  // mano (solicitud pagada y aceptada) para este estudiante+asignatura, si
+  // existe. Desde esta fecha el recursado NO se deduce: sin declaración, la
+  // rama de recursado no abre nada (devuelve sin_declarar para que el
+  // importador lo reporte); con declaración, la nota nueva se enruta al
+  // intento declarado — también dentro de la MISMA aula (recompletion), donde
+  // la identidad aula+usuario ya no distingue los intentos.
+  declaredAttempt: number | null = null,
+): { action: 'skip' | 'fill' | 'new' | 'update' | 'retake'; external_id: string; shield: boolean; prev_value: number | null; intento?: number; sin_declarar?: boolean } {
   // Qué filas del estudiante son de ESTA asignatura. Por course_id, y por
   // nombre solo cuando la fila no lo trae.
   //
@@ -294,8 +302,15 @@ export function resolveImportTarget(
   const historicOk = matches.find(aprobada)
   if (historicOk) return { action: 'skip', external_id: String(historicOk.external_id), shield: false, prev_value: val(historicOk) }
 
-  const own = matches.find(m => String(m.external_id) === fallbackExternalId)
-    ?? matches.find(m => m.source === 'moodle' || m.source === 'csv')
+  // De las filas propias, manda la del intento MÁS ALTO: con recompletion los
+  // dos intentos comparten aula (mismo external_id base), y quedarse con el
+  // primero que aparezca refrescaría el intento 1 — que tras la declaración es
+  // un hecho congelado.
+  const esExacta = (m: { external_id: unknown }) => String(m.external_id) === fallbackExternalId
+  const propias = matches.filter(m => esExacta(m) || m.source === 'moodle' || m.source === 'csv')
+    .sort((a, b) => (Number(b.intento ?? 1) - Number(a.intento ?? 1))
+      || ((esExacta(b) ? 1 : 0) - (esExacta(a) ? 1 : 0)))
+  const own = propias[0]
   if (own) {
     // Una fila con nota REAL jamás retrocede a vacío. Las aulas se
     // reestructuran entre cohortes (los pesos migran a una generación nueva de
@@ -310,6 +325,25 @@ export function resolveImportTarget(
       const existente = val(own)
       if (nuevoVacio && existente != null && Number(existente) > 0) {
         return { action: 'skip', external_id: String(own.external_id), shield: false, prev_value: existente }
+      }
+    }
+    // ── Recursado declarado en la MISMA aula (recompletion) ────────────────
+    // Hay un intento declarado por encima del de esta fila: la fila vieja es
+    // un hecho congelado y no se toca más. Lo que llega se enruta al intento
+    // declarado SOLO cuando es una acumulación nueva (tras el reset del
+    // recompletion): si el aula aún reporta la acumulación vieja (±2 puntos de
+    // la nota congelada), no se escribe nada — el LMS todavía no se reinició.
+    if (declaredAttempt != null && declaredAttempt > Number(own.intento ?? 1)) {
+      const anterior = val(own)
+      const nuevo = intentoNuevo?.valor
+      const mismaVieja = nuevo != null && anterior != null && Math.abs(Number(nuevo) - Number(anterior)) <= 2
+      const rindioAlgo = Number(intentoNuevo?.rendido_pct ?? 0) > 0
+      if (mismaVieja || !rindioAlgo) {
+        return { action: 'skip', external_id: String(own.external_id), shield: false, prev_value: anterior }
+      }
+      return {
+        action: 'retake', external_id: retakeExternalId(fallbackExternalId, declaredAttempt),
+        shield: false, prev_value: anterior, intento: declaredAttempt,
       }
     }
     // shield: la fila rellenada sobre un external_id de Activa necesita seguir
@@ -407,6 +441,22 @@ export function resolveImportTarget(
       return { action: 'fill', external_id: String(previa.external_id), shield: true, prev_value: val(previa), intento: Number(previa.intento ?? 1) }
     }
     const rindio = Number(intentoNuevo?.rendido_pct ?? 0) > 0
+    // ── Recursado DECLARADO (12/09/2026): la deducción se apaga ─────────────
+    // Desde esta fecha un intento nuevo solo se abre si el ERP lo tiene
+    // declarado (solicitud pagada y aceptada → fila attempt N+1 en el
+    // registro). La declaración es la autoridad; la evidencia de actividad
+    // sigue siendo requisito para escribir (un aula sin nada rendido no dice
+    // nada).
+    if (declaredAttempt != null && declaredAttempt > Number(previa.intento ?? 1)) {
+      if (rindio) {
+        return {
+          action: 'retake', external_id: retakeExternalId(fallbackExternalId, declaredAttempt),
+          shield: false, prev_value: val(previa), intento: declaredAttempt,
+        }
+      }
+      // Declarado pero sin actividad todavía: no hay nada que escribir.
+      return { action: 'skip', external_id: String(previa.external_id), shield: false, prev_value: val(previa) }
+    }
     // El "después" se mide con el SEMESTRE cuando se conoce. El año suelto
     // mentía: el aula 155 tiene oferta en dos años y term_year de las notas de
     // Activa contradice al bloque en 6.747 filas, así que "posterior" nunca se
@@ -415,11 +465,11 @@ export function resolveImportTarget(
     const nuevoOrden = intentoNuevo?.semester_start ?? (intentoNuevo?.term_year != null ? String(intentoNuevo.term_year) : null)
     const posterior = previoOrden != null && nuevoOrden != null && String(nuevoOrden) > String(previoOrden)
     if (rindio && posterior) {
-      const intento = Math.max(...matches.map(m => Number(m.intento ?? 1)), 1) + 1
-      return {
-        action: 'retake', external_id: retakeExternalId(fallbackExternalId, intento),
-        shield: false, prev_value: val(previa), intento,
-      }
+      // Aquí es donde ANTES se abría el intento deducido (las guardas de
+      // evidencia y periodo siguen filtrando el ruido). Ahora se reporta como
+      // recursado SIN DECLARAR: una persona lo declara en Recursados y en la
+      // siguiente corrida la nota entra al intento declarado.
+      return { action: 'skip', external_id: String(previa.external_id), shield: false, prev_value: val(previa), sin_declarar: true }
     }
   }
 

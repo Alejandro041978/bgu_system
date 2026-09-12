@@ -114,6 +114,7 @@ const PAGE_GROUPS = [
       { key: 'academic_offer', label: 'Oferta académica' },
       { key: 'academic_groups', label: 'Cadenas' },
       { key: 'academic_carousels', label: 'Carruseles' },
+      { key: 'academic_retakes', label: 'Recursados' },
       { key: 'academic_schedules', label: 'Cronogramas' },
     ],
   },

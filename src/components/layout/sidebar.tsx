@@ -7,7 +7,7 @@ import {
   Share2, UserCog, Settings, LogOut, ChevronDown, ChevronRight,
   Bot, Shield, FileSignature, List, Plus, FileText,
   GraduationCap, CalendarDays, BookOpen, ClipboardList, Target, Gift, ShieldCheck, ShieldOff, PiggyBank,
-  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone, CreditCard, RefreshCw, ListChecks, LayoutGrid, Globe, History, Scale,
+  TrendingUp, Gauge, Handshake, Award, MessageSquare, KeyRound, Calculator, FileCheck, Layers, Wallet, Tag, Receipt, UserCheck, Filter, Activity, UserMinus, HeartHandshake, Download, Upload, UserPlus, Banknote, Link2, LogIn, Package, FileWarning, BadgeDollarSign, Megaphone, CreditCard, RefreshCw, ListChecks, LayoutGrid, Globe, History, Scale, RotateCcw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -210,6 +210,7 @@ const navigation: NavGroup[] = [
           // histórico de las tablas. URL y pageKey no cambian.
           { name: 'Cadenas', href: '/academic/groups', icon: Users, pageKey: 'academic_groups' },
           { name: 'Carruseles', href: '/academic/carruseles', icon: Layers, pageKey: 'academic_carousels' },
+          { name: 'Recursados', href: '/academic/retakes', icon: RotateCcw, pageKey: 'academic_retakes' },
           { name: 'Cronogramas', href: '/academic/schedules', icon: CalendarDays, pageKey: 'academic_schedules' },
         ],
       },

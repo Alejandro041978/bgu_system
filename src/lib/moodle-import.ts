@@ -346,7 +346,22 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   // desde el aula — su única vía es Notas de campus externo, como el candado de
   // capstone pero acotado a estudiantes concretos.
   const externos = await externosDeCurso(sb, String(destCourse.id)).catch(() => new Set<string>())
+  // Recursados DECLARADOS (12/09/2026): el intento abierto a mano en el ERP
+  // (solicitud de recursado pagada y aceptada, o gestor IW). Es la ÚNICA
+  // autoridad para abrir un intento nuevo: la deducción quedó apagada, y lo
+  // que la habría disparado se reporta como recursado sin declarar.
+  const declaradoDe = new Map<string, number>()
+  try {
+    const { data: decl } = await sb.from('academic_course_enrollments')
+      .select('student_id, attempt').eq('course_id', String(destCourse.id)).gt('attempt', 1).neq('status', 'retirada')
+    for (const d of (decl ?? []) as { student_id: string; attempt: number }[]) {
+      const k = String(d.student_id)
+      declaradoDe.set(k, Math.max(declaradoDe.get(k) ?? 0, Number(d.attempt)))
+    }
+  } catch { /* sin filas: sin declarados */ }
   let sinPuente = 0, sinTotal = 0, yaRegistradas = 0, rellenadas = 0, recursados = 0, saltadosExternos = 0
+  let sinDeclarar = 0
+  const sinDeclararLista: string[] = []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const ug of ((report?.usergrades ?? []) as any[])) {
     const u = users.get(Number(ug.userid))
@@ -405,8 +420,17 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       stableUuid(`moodle:${courseid}:${ug.userid}`),
       passing,
       { rendido_pct: rendido, term_year: termYear, semester_start: semesterStart, semester_id: semesterId, valor: total },
+      declaradoDe.get(String(stu.id)) ?? null,
     )
-    if (target.action === 'skip') { yaRegistradas++; continue }
+    if (target.action === 'skip') {
+      if (target.sin_declarar) {
+        sinDeclarar++
+        if (sinDeclararLista.length < 20) {
+          sinDeclararLista.push(`${[stu.first_name, stu.last_name].filter(Boolean).join(' ')} (${stu.document_number ?? stu.id})`)
+        }
+      }
+      yaRegistradas++; continue
+    }
     if (target.action === 'fill') rellenadas++
     // Recursado: el intento anterior quedó desaprobado y éste entra como fila
     // aparte, numerada. No se pisa la nota anterior —desaprobar es un hecho—
@@ -662,6 +686,8 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     summary: {
       ...result, sin_puente: sinPuente, sin_total: sinTotal, importables: rows.length,
       ya_registradas_activa: yaRegistradas, rellenadas_pendientes: rellenadas, recursados,
+      recursados_sin_declarar: sinDeclarar,
+      recursados_sin_declarar_lista: sinDeclararLista,
       saltados_campus_externo: saltadosExternos,
       detalles_escritos: detallesEscritos,
     },
