@@ -42,6 +42,20 @@ const FORMULA_TYPES = [
   { value: 'student_geographic_diversity', label: 'Diversidad geográfica del alumnado (países únicos)' },
 ]
 
+// El prefijo del código del KPI (E1-I01 → E1) ES la dimensión del plan
+// estratégico. Los nombres reflejan strategic_dimensions; un prefijo nuevo que
+// no esté aquí se muestra igual, solo sin nombre.
+const DIMENSION_NAMES: Record<string, string> = {
+  E1: 'Academic Portfolio',
+  E2: 'Academic Staff',
+  E3: 'Human Capital',
+  E4: 'Technological Platforms',
+  E5: 'Global Positioning',
+  E6: 'University Culture',
+  E7: 'Financial Support',
+}
+const dimensionDe = (code: string): string => String(code).split('-')[0]?.trim().toUpperCase() ?? ''
+
 const LEVEL_COLORS: Record<string, string> = {
   institucional: 'bg-purple-100 text-purple-700',
   estrategico: 'bg-blue-100 text-blue-700',
@@ -62,6 +76,7 @@ export function EffectivenessKPICatalog() {
   const [error, setError] = useState<string | null>(null)
   const [editingFormulaId, setEditingFormulaId] = useState<string | null>(null)
   const [editingFormulaValue, setEditingFormulaValue] = useState<string>('')
+  const [filtroDim, setFiltroDim] = useState('')
 
   useEffect(() => {
     fetch('/api/planning/effectiveness/kpis')
@@ -199,6 +214,26 @@ export function EffectivenessKPICatalog() {
         </form>
       )}
 
+      {/* Filtro por dimensión (prefijo del código E1..E7) */}
+      {!loading && kpis.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <select value={filtroDim} onChange={e => setFiltroDim(e.target.value)}
+            className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todas las dimensiones</option>
+            {[...new Set(kpis.map(k => dimensionDe(k.code)))].sort().map(d => (
+              <option key={d} value={d}>
+                {d}{DIMENSION_NAMES[d] ? ` · ${DIMENSION_NAMES[d]}` : ''} ({kpis.filter(k => dimensionDe(k.code) === d).length})
+              </option>
+            ))}
+          </select>
+          {filtroDim && (
+            <span className="text-xs text-gray-400">
+              {kpis.filter(k => dimensionDe(k.code) === filtroDim).length} KPI(s) de {DIMENSION_NAMES[filtroDim] ?? filtroDim}
+            </span>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
       ) : kpis.length === 0 ? (
@@ -219,7 +254,7 @@ export function EffectivenessKPICatalog() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {kpis.map(kpi => (
+              {kpis.filter(k => !filtroDim || dimensionDe(k.code) === filtroDim).map(kpi => (
                 <tr key={kpi.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-xs font-medium text-gray-700">{kpi.code}</td>
                   <td className="px-4 py-3">
