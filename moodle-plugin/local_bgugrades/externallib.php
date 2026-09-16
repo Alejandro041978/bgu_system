@@ -24,7 +24,16 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->libdir . '/externallib.php');
+// API externo moderno (Moodle 4.2+): las clases viven en el espacio de nombres
+// core_external y se autocargan. Las globales antiguas (external_api & co. de
+// lib/externallib.php) quedaron obsoletas desde 4.2 y en 4.5 solo sobreviven
+// como alias con aviso de deprecación — actualizado el 16/09/2026 tras el
+// upgrade del campus a 4.5.
+use core_external\external_api;
+use core_external\external_function_parameters;
+use core_external\external_multiple_structure;
+use core_external\external_single_structure;
+use core_external\external_value;
 
 class local_bgugrades_external extends external_api {
 

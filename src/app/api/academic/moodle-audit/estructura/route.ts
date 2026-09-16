@@ -19,8 +19,13 @@ export const maxDuration = 120
 // herramienta de diagnóstico: sirve para mirar un aula concreta sin barrer nada.
 // ---------------------------------------------------------------------------
 export async function GET(req: NextRequest) {
-  const noAutorizado = await guardStaff()
-  if (noAutorizado) return noAutorizado
+  // Sesión de personal, o Bearer CRON_SECRET para diagnosticar desde fuera
+  // (solo lectura; las credenciales de Moodle viven únicamente en Vercel).
+  const esCron = req.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`
+  if (!esCron) {
+    const noAutorizado = await guardStaff()
+    if (noAutorizado) return noAutorizado
+  }
 
   if (!moodleConfigured()) {
     return NextResponse.json({ error: 'Faltan MOODLE_URL / MOODLE_WS_TOKEN en Vercel' }, { status: 400 })
