@@ -233,14 +233,14 @@ export function RetakesManager() {
                         )}
                         {/* Paso 2: limpieza del estudiante en el aula (solo con sello) */}
                         {s.lms_cleaned_at ? (
-                          <p className="text-green-700">Aula limpiada el {fdate(s.lms_cleaned_at)} — lista para el intento {s.new_attempt}; el importador enrutará las notas nuevas al intento {s.new_attempt}.</p>
+                          <p className="text-green-700">Estudiante limpiado en el aula el {fdate(s.lms_cleaned_at)} (solo sus notas, intentos y entregas — el resto del aula intacto) — listo para rendir el intento {s.new_attempt}; el importador enrutará sus notas nuevas ahí.</p>
                         ) : s.sealed_at ? (
                           <p className="inline-flex items-center gap-2 text-blue-700">
                             <ExternalLink className="w-3 h-3" />
-                            Falta limpiar a {data.student.name}{data.student.external_id ? ` (idnumber ${data.student.external_id})` : ''} en el aula (notas, intentos de quiz y entregas) — plantilla vía N8N.
+                            Falta limpiar a {data.student.name}{data.student.external_id ? ` (idnumber ${data.student.external_id})` : ''} en el aula — solo SUS notas, intentos de quiz y entregas (plantilla vía N8N; el resto del aula no se toca).
                             {puedeEditar && (
-                              <button onClick={() => patchSolicitud(s, { lms_cleaned: true }, '¿Confirmas que el estudiante ya fue limpiado en el aula del LMS? Esta constancia habilita el intento nuevo.')}
-                                disabled={busy === s.id} className="underline hover:text-blue-900">marcar aula limpiada</button>
+                              <button onClick={() => patchSolicitud(s, { lms_cleaned: true }, `¿Confirmas que ${data.student.name} ya fue limpiado en el aula del LMS (solo sus datos)? Esta constancia habilita el intento nuevo.`)}
+                                disabled={busy === s.id} className="underline hover:text-blue-900">marcar estudiante limpiado</button>
                             )}
                           </p>
                         ) : null}
