@@ -30,9 +30,27 @@ export const BACHELORS = {
 // interpretaba distinto en la compilación de Vercel (las tildes no se quitaban
 // y "Enfermería" no encontraba su clave).
 const DIACRITICOS = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g')
+// Tabla explícita de acentos (por código de carácter) como primera línea: no
+// depende de que el runtime tenga ICU para normalizar. Cubre el español y el
+// portugués que aparecen en los nombres de carreras.
+const ACENTOS: [number, string][] = [
+  [0xe1, 'a'], [0xe9, 'e'], [0xed, 'i'], [0xf3, 'o'], [0xfa, 'u'], [0xfc, 'u'], [0xf1, 'n'],
+  [0xc1, 'A'], [0xc9, 'E'], [0xcd, 'I'], [0xd3, 'O'], [0xda, 'U'], [0xdc, 'U'], [0xd1, 'N'],
+  [0xe0, 'a'], [0xe8, 'e'], [0xec, 'i'], [0xf2, 'o'], [0xf9, 'u'], [0xe2, 'a'], [0xea, 'e'], [0xee, 'i'], [0xf4, 'o'], [0xfb, 'u'],
+  [0xe3, 'a'], [0xf5, 'o'], [0xe7, 'c'], [0xc7, 'C'], [0xc3, 'A'], [0xd5, 'O'],
+]
+const sinAcentos = (s: string): string => {
+  let out = ''
+  for (const ch of s) {
+    const code = ch.charCodeAt(0)
+    const m = code > 127 ? ACENTOS.find(a => a[0] === code) : undefined
+    out += m ? m[1] : ch
+  }
+  return out
+}
 
 export function carreraKey(nombre: string): string {
-  return String(nombre ?? '')
+  return sinAcentos(String(nombre ?? ''))
     .normalize('NFD').replace(DIACRITICOS, '')
     .toUpperCase()
     .replace(/[^A-Z0-9 ]+/g, ' ')

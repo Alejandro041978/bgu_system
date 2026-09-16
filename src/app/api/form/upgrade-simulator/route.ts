@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { departamentos, buscarInstitutos, institutoConCarreras, simular } from '@/lib/upgrade-simulator-server'
+import { carreraKey } from '@/lib/upgrade-simulator'
 
 export const revalidate = 0
 
@@ -18,6 +19,9 @@ export async function GET(req: NextRequest) {
   const sb = db()
   const p = req.nextUrl.searchParams
   if (p.get('departamentos') === '1') return NextResponse.json({ departamentos: await departamentos(sb) })
+  // Diagnóstico inocuo: cómo normaliza ESTE runtime un nombre de carrera
+  const normaliza = p.get('normaliza')
+  if (normaliza != null) return NextResponse.json({ entrada: normaliza.slice(0, 120), clave: carreraKey(normaliza.slice(0, 120)) })
   const codigo = p.get('codigo')
   if (codigo) {
     const r = await institutoConCarreras(sb, codigo.slice(0, 20))
