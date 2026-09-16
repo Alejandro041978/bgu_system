@@ -4,7 +4,9 @@ import { guardPagina } from '@/lib/page-guard'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { stableUuid } from '@/lib/grades-write'
 import { moodleCall, getUserByIdnumber, getUserByEmail } from '@/lib/moodle'
-import { esItemBono } from '@/lib/grade-status'
+import { esItemBono, estadoAcademico, irrecuperable } from '@/lib/grade-status'
+import { passingByCourse, passingFor } from '@/lib/passing-score'
+import { sincronizarEstadoDeMatricula } from '@/lib/course-enrollments'
 
 export const revalidate = 0
 export const maxDuration = 120
@@ -276,13 +278,51 @@ export async function GET(req: NextRequest) {
   }
   elegibles.sort((a, b) => String(a.course).localeCompare(String(b.course)))
 
+  // ── En proceso (16/09/2026, decisión del usuario: se puede cerrar un
+  // registro POR ESTUDIANTE, no solo cuando es irrecuperable). Para cada
+  // asignatura cuyo último intento está en curso: acumulado, % rendido, techo
+  // matemático (acumulado + lo que falta rendir, perfecto) y si ya es
+  // irrecuperable. Cerrar = lo en blanco vale 0 → estado reprobado → elegible.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const enProceso: any[] = []
+  const enCurso = [...ultimo.entries()].filter(([, m]) => String(m.status) === 'en_curso')
+  if (enCurso.length) {
+    const porCurso = await passingByCourse(sb)
+    const { data: notas } = await sb.from('academic_grades')
+      .select('external_id, course_id, intento, final_grade, retake_grade, rendido_pct, last_evaluated_at, locked_at, passing_score')
+      .eq('student_id', studentId).in('course_id', enCurso.map(([cid]) => cid))
+    for (const [cid, m] of enCurso) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const n = ((notas ?? []) as any[]).find(x => String(x.course_id) === cid && Number(x.intento ?? 1) === Number(m.attempt ?? 1))
+      const c = cursoDe.get(cid)
+      const acumulado = n ? (n.retake_grade ?? n.final_grade ?? null) : null
+      const rendido = n?.rendido_pct != null ? Number(n.rendido_pct) : null
+      const minimo = n ? passingFor(n, porCurso) : (porCurso.get(cid) ?? null)
+      const techo = acumulado != null && rendido != null ? Math.round((Number(acumulado) + Math.max(0, 100 - rendido)) * 100) / 100 : null
+      enProceso.push({
+        course_id: cid,
+        course: c ? [c.code, c.name].filter(Boolean).join(' · ') : cid,
+        attempt: Number(m.attempt ?? 1),
+        external_id: n?.external_id ?? null,
+        acumulado: acumulado != null ? Number(acumulado) : null,
+        rendido_pct: rendido,
+        minimo,
+        techo,
+        irrecuperable: n ? irrecuperable({ valor: acumulado != null ? Number(acumulado) : null, passing_score: minimo, rendido_pct: rendido }) : false,
+        ultima_evaluacion: n?.last_evaluated_at ?? null,
+        cerrable: !!n && !n.locked_at,
+      })
+    }
+    enProceso.sort((a, b) => Number(b.irrecuperable) - Number(a.irrecuperable) || String(a.course).localeCompare(String(b.course)))
+  }
+
   return NextResponse.json({
     student: {
       id: student.id,
       name: [student.first_name, student.last_name, student.second_last_name].filter(Boolean).join(' '),
       document: student.document_number, external_id: student.external_id,
     },
-    elegibles, solicitudes,
+    elegibles, en_proceso: enProceso, solicitudes,
   })
 }
 
@@ -363,6 +403,11 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, id: nueva.id, amount, due_date: due })
 }
 
+// PATCH { cerrar: true, external_id } → CIERRA el registro de una asignatura
+// en curso para ESE estudiante (no el aula): lo en blanco vale 0, el estado
+// pasa a reprobado (o aprobado, si ya había acumulado el mínimo) y la
+// asignatura queda elegible para declarar el recursado. Decisión
+// administrativa con autor; no exige que sea irrecuperable.
 // PATCH { id, seal: true } → sella (o reintenta sellar) el intento 1.
 // PATCH { id, lms_cleaned: true } → constancia de que el estudiante fue
 // limpiado en el aula; EXIGE el sello puesto — nunca se limpia sin respaldo.
@@ -370,9 +415,42 @@ export async function PATCH(req: NextRequest) {
   const noAutorizado = await guardPagina('academic_retakes')
   if (noAutorizado) return noAutorizado
   const usuario = await requireAuth()
-  const b = await req.json().catch(() => null) as { id?: string; seal?: boolean; lms_cleaned?: boolean } | null
-  if (!b?.id || (!b.seal && !b.lms_cleaned)) return NextResponse.json({ error: 'Solicitud inválida' }, { status: 400 })
+  const b = await req.json().catch(() => null) as { id?: string; seal?: boolean; lms_cleaned?: boolean; cerrar?: boolean; external_id?: string } | null
+  if (!b) return NextResponse.json({ error: 'Solicitud inválida' }, { status: 400 })
   const sb = db()
+
+  if (b.cerrar) {
+    if (!b.external_id) return NextResponse.json({ error: 'Falta external_id' }, { status: 400 })
+    const { data: n } = await sb.from('academic_grades')
+      .select('external_id, student_id, course_id, intento, final_grade, retake_grade, rendido_pct, passing_score, locked_at, withdrawn_at')
+      .eq('external_id', b.external_id).maybeSingle()
+    if (!n) return NextResponse.json({ error: 'Acta no encontrada' }, { status: 404 })
+    if (n.locked_at) return NextResponse.json({ error: 'Ese registro ya está cerrado' }, { status: 409 })
+    if (n.withdrawn_at) return NextResponse.json({ error: 'Ese registro está retirado' }, { status: 409 })
+    // Solo el ÚLTIMO intento en curso de la asignatura
+    const { data: mats } = await sb.from('academic_course_enrollments')
+      .select('id, attempt, status').eq('student_id', n.student_id).eq('course_id', n.course_id).order('attempt', { ascending: false })
+    const ult = (mats ?? [])[0]
+    if (!ult || Number(ult.attempt ?? 1) !== Number(n.intento ?? 1)) return NextResponse.json({ error: 'Solo se cierra el último intento de la asignatura' }, { status: 409 })
+    if (String(ult.status) !== 'en_curso') return NextResponse.json({ error: `El intento no está en curso (está: ${ult.status})` }, { status: 409 })
+
+    const porCurso = await passingByCourse(sb)
+    const minimo = passingFor(n, porCurso)
+    const valor = n.retake_grade ?? n.final_grade ?? null
+    const estado = estadoAcademico({ valor: valor != null ? Number(valor) : null, passing_score: minimo, rendido_pct: n.rendido_pct != null ? Number(n.rendido_pct) : null, cerrado: true })
+    const ahora = new Date().toISOString()
+    const { error: eN } = await sb.from('academic_grades')
+      .update({ locked_at: ahora, locked_by: `recursados:${usuario?.email ?? 'erp'}`, estado_academico: estado })
+      .eq('external_id', b.external_id)
+    if (eN) return NextResponse.json({ error: eN.message }, { status: 500 })
+    // La matrícula por asignatura refleja el cierre en el acto (y el cron converge igual)
+    await sincronizarEstadoDeMatricula(sb, String(b.external_id))
+    const statusMat = estado === 'aprobado' ? 'aprobada' : estado === 'reprobado' ? 'reprobada' : 'en_curso'
+    await sb.from('academic_course_enrollments').update({ status: statusMat }).eq('id', ult.id)
+    return NextResponse.json({ ok: true, estado, status: statusMat })
+  }
+
+  if (!b.id || (!b.seal && !b.lms_cleaned)) return NextResponse.json({ error: 'Solicitud inválida' }, { status: 400 })
   const { data: r } = await sb.from('course_retake_requests').select('*').eq('id', b.id).maybeSingle()
   if (!r) return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 })
   if (r.status !== 'aceptada') return NextResponse.json({ error: 'Solo sobre solicitudes aceptadas' }, { status: 409 })
