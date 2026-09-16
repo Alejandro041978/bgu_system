@@ -83,7 +83,16 @@ export function UpgradeSimulatorCore({ apiBase, captura }: { apiBase: string; ca
   const colorV = veredicto?.tipo === 'califica' ? 'bg-green-50 border-green-200 text-green-800'
     : veredicto?.tipo === 'evaluacion' ? 'bg-amber-50 border-amber-200 text-amber-800'
     : 'bg-red-50 border-red-200 text-red-800'
-  const pideContacto = captura && veredicto && (veredicto.tipo === 'califica' || veredicto.tipo === 'evaluacion') && !enviado
+  // El contacto se ofrece tras CUALQUIER veredicto: el negativo también invita
+  // a escribir (posible error en el registro, o postular por la vía regular).
+  const pideContacto = captura && veredicto && !enviado
+  const textoContacto: Record<string, { titulo: string; boton: string }> = {
+    califica: { titulo: '¿Quieres que Admisión te contacte para iniciar tu convalidación?', boton: 'Quiero que me contacten' },
+    evaluacion: { titulo: 'Déjanos tus datos y Admisión evaluará tu caso con tu certificado de estudios', boton: 'Solicitar evaluación' },
+    no_licenciado: { titulo: '¿Crees que hay un error en el registro de tu instituto? Déjanos tus datos y lo revisamos contigo', boton: 'Escribirles a Admisión' },
+    no_califica_carrera: { titulo: '¿Quieres conocer la vía regular de admisión a nuestros Bachelors? Déjanos tus datos', boton: 'Quiero más información' },
+  }
+  const tc = veredicto ? (textoContacto[veredicto.tipo] ?? textoContacto.califica) : textoContacto.califica
 
   return (
     <div className="space-y-4">
@@ -179,7 +188,7 @@ export function UpgradeSimulatorCore({ apiBase, captura }: { apiBase: string; ca
       {/* Contacto (solo versión pública, tras veredicto positivo o de evaluación) */}
       {pideContacto && (
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <p className="text-sm font-semibold text-gray-800">¿Quieres que Admisión te contacte?</p>
+          <p className="text-sm font-semibold text-gray-800">{tc.titulo}</p>
           <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Tu nombre completo" className={inp} />
           <div className="flex gap-1.5">
             <select value={telCode} onChange={e => setTelCode(e.target.value)} className={`${inp} !w-40 shrink-0`}>
@@ -190,7 +199,7 @@ export function UpgradeSimulatorCore({ apiBase, captura }: { apiBase: string; ca
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Correo (opcional)" className={inp} />
           <button onClick={() => simular(true)} disabled={busy || !nombre.trim() || telLocal.length < 6}
             className="w-full py-2.5 rounded-xl bg-[#1a34a8] hover:bg-blue-900 disabled:opacity-50 text-white text-sm font-semibold">
-            {busy ? 'Enviando…' : 'Quiero que me contacten'}
+            {busy ? 'Enviando…' : tc.boton}
           </button>
         </div>
       )}
