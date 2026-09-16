@@ -25,9 +25,15 @@ export const BACHELORS = {
 // Nombre → clave estable: mayúsculas, sin tildes, sin puntuación, espacios
 // simples. "ADMINISTRACION DE EMPRESAS" y "ADMINISTRACIÓN DE EMPRESAS" caen
 // en la misma clave.
+// Marcas diacríticas (U+0300–U+036F) construidas por código de carácter: un
+// rango escrito con los caracteres combinantes literales en el fuente se
+// interpretaba distinto en la compilación de Vercel (las tildes no se quitaban
+// y "Enfermería" no encontraba su clave).
+const DIACRITICOS = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g')
+
 export function carreraKey(nombre: string): string {
   return String(nombre ?? '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .normalize('NFD').replace(DIACRITICOS, '')
     .toUpperCase()
     .replace(/[^A-Z0-9 ]+/g, ' ')
     .replace(/\s+/g, ' ')
