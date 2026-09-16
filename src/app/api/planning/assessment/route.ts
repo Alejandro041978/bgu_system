@@ -96,6 +96,40 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const catPorId = new Map<string, any>((cat ?? []).map((k: { id: string }) => [k.id, k]))
 
+  // ── Cruces NAVEGABLES medida→KPI (16/09/2026): la tabla iap_measure_kpis
+  // reemplaza a los códigos en texto como fuente de la navegación (el texto
+  // queda como constancia del documento). La pertenencia estratégica y su
+  // alias (E1-K1) se DERIVAN del enlace del propio KPI al plan estratégico —
+  // sin nomenclatura paralela que mantener. Si la migración no corrió, las
+  // vistas caen a los textos como siempre.
+  const kpisDeMedida = new Map<string, { code: string; name: string; estrategico: boolean; alias: string | null }[]>()
+  try {
+    const { data: links } = await sb.from('iap_measure_kpis').select('measure_id, kpi_id')
+    if (links?.length) {
+      const kpiIds = [...new Set(links.map((l: { kpi_id: string }) => String(l.kpi_id)))]
+      const { data: kcat } = await sb.from('effectiveness_kpis').select('id, code, name').in('id', kpiIds)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const kPorId = new Map<string, any>((kcat ?? []).map((k: { id: string }) => [String(k.id), k]))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let { data: spk } = await sb.from('strategic_plan_kpis').select('kpi_id, strategic_code') as any
+      if (!spk) ({ data: spk } = await sb.from('strategic_plan_kpis').select('kpi_id'))
+      const aliasDe = new Map<string, string | null>()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const s of (spk ?? []) as any[]) aliasDe.set(String(s.kpi_id), s.strategic_code ?? null)
+      for (const l of links as { measure_id: string; kpi_id: string }[]) {
+        const k = kPorId.get(String(l.kpi_id))
+        if (!k) continue
+        if (!kpisDeMedida.has(String(l.measure_id))) kpisDeMedida.set(String(l.measure_id), [])
+        kpisDeMedida.get(String(l.measure_id))!.push({
+          code: String(k.code ?? '').trim(), name: k.name,
+          estrategico: aliasDe.has(String(l.kpi_id)),
+          alias: aliasDe.get(String(l.kpi_id)) ?? null,
+        })
+      }
+      for (const v of kpisDeMedida.values()) v.sort((a, b) => a.code.localeCompare(b.code))
+    }
+  } catch { /* migración sin correr: navegación por textos */ }
+
   const resultados = new Map<string, number>()
   if (anio && indIds.length) {
     const { data: rs } = await sb.from('indicator_results')
@@ -137,6 +171,7 @@ export async function GET(req: NextRequest) {
       proposito: m.purpose, dato_minimo: m.minimum_data, evidencia_esperada: m.expected_evidence,
       tipo_cruce: m.cross_type, sin_cruce: m.no_cross_note, uso_esperado: m.expected_use,
       kpis_efectividad: m.effectiveness_kpi_codes ?? [], kpis_estrategicos: m.strategic_kpi_codes ?? [],
+      kpis: kpisDeMedida.get(String(m.id)) ?? [],
       objetivos: (objsDeMedida.get(m.id) ?? []).sort(),
       benchmarks: bs,
       binding: m.source_binding ?? 'pendiente',

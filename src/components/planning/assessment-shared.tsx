@@ -13,6 +13,8 @@ export interface Medida {
   proposito: string | null; dato_minimo: string | null; evidencia_esperada: string | null
   tipo_cruce: string | null; sin_cruce: string | null; uso_esperado: string | null
   kpis_efectividad: string[]; kpis_estrategicos: string[]
+  // Cruces resueltos por enlace (iap_measure_kpis); vacío = usar los textos
+  kpis: { code: string; name: string; estrategico: boolean; alias: string | null }[]
   objetivos: string[]; benchmarks: Benchmark[]
   binding: 'erp_formula' | 'externo' | 'encuesta' | 'rubrica' | 'manual' | 'pendiente'
   meta_texto: string | null; meta_valor: number | null; meta_operador: string

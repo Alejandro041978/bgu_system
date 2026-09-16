@@ -186,8 +186,34 @@ function FilaMedida({ m, abierta, toggle }: { m: Medida; abierta: boolean; toggl
               <Campo t="Si no existe cruce directo" v={m.sin_cruce} />
               <Campo t="Unidad responsable" v={m.unidad} />
               <Campo t="Fuente de datos" v={m.fuente_dato} />
-              <Campo t="KPI del Plan de Efectividad" v={m.kpis_efectividad.join(', ')} />
-              <Campo t="KPI del Plan Estratégico" v={m.kpis_estrategicos.join(', ')} />
+              {/* Cruces resueltos por ENLACE (16/09/2026): nombre del KPI y su
+                  alias estratégico derivado del propio enlace del KPI al plan;
+                  los textos del documento quedan de respaldo si no hay enlaces. */}
+              {m.kpis.length > 0 ? (
+                <div className="sm:col-span-2">
+                  <p className="text-[11px] font-semibold uppercase text-gray-400">KPIs que triangula</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {m.kpis.map(k => (
+                      <span key={k.code} title={k.name}
+                        className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700">
+                        <span className="tabular-nums font-medium">{k.code}</span>
+                        <span className="max-w-[220px] truncate text-blue-600/70">{k.name}</span>
+                        {k.estrategico && (
+                          <span className="rounded bg-purple-100 px-1 text-[10px] text-purple-700 tabular-nums"
+                            title="También está en el plan estratégico">
+                            {k.alias && k.alias !== k.code ? k.alias : 'Estratégico'}
+                          </span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Campo t="KPI del Plan de Efectividad" v={m.kpis_efectividad.join(', ')} />
+                  <Campo t="KPI del Plan Estratégico" v={m.kpis_estrategicos.join(', ')} />
+                </>
+              )}
             </div>
             {!!m.evidencias.length && (
               <div className="mt-3">

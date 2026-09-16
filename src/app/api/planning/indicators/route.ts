@@ -35,6 +35,10 @@ interface Indicador {
   // toda la vigencia del ciclo por ese lado). El año final es INCLUSIVE.
   vigencia_desde: { id: string; etiqueta: string } | null
   vigencia_hasta: { id: string; etiqueta: string } | null
+  // Código del KPI en la nomenclatura del plan estratégico (E1-K1...), cuando
+  // el KPI está enlazado a ese plan (16/09/2026). null = no está en el
+  // estratégico o el alias no se cargó.
+  codigo_estrategico: string | null
 }
 
 export async function GET(req: NextRequest) {
@@ -91,8 +95,17 @@ export async function GET(req: NextRequest) {
   // final: hasta ese año INCLUSIVE. Se compara por la fecha de inicio del año
   // académico. Un KPI fuera de vigencia en el año seleccionado no aparece en
   // ese año (sí en los años en que regía).
-  const { data: spkRows } = await sb.from('strategic_plan_kpis')
-    .select('kpi_id, valid_from_year_id, valid_to_year_id').eq('cycle_id', ciclo.id)
+  // strategic_code puede no existir aún (migración kpi_alias_enlaces.sql): se
+  // degrada al select sin la columna en vez de romper el tablero.
+  let { data: spkRows } = await sb.from('strategic_plan_kpis')
+    .select('kpi_id, valid_from_year_id, valid_to_year_id, strategic_code').eq('cycle_id', ciclo.id)
+  if (!spkRows) ({ data: spkRows } = await sb.from('strategic_plan_kpis')
+    .select('kpi_id, valid_from_year_id, valid_to_year_id').eq('cycle_id', ciclo.id))
+  const aliasDeKpi = new Map<string, string>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const r of (spkRows ?? []) as any[]) {
+    if (r.strategic_code) aliasDeKpi.set(String(r.kpi_id), String(r.strategic_code))
+  }
   const inicioDeAnio = new Map<string, string>(lista.map(y => [String(y.id), String(y.start_date)]))
   const etiquetaDeAnio = new Map<string, string>(lista.map(y => [String(y.id), etiquetaDe(y)]))
   const vigenciaDeKpi = new Map<string, { desde: string | null; hasta: string | null }>()
@@ -182,6 +195,7 @@ export async function GET(req: NextRequest) {
         const v = vigenciaDeKpi.get(String(e.kpi_id))
         return v?.hasta ? { id: v.hasta, etiqueta: etiquetaDeAnio.get(v.hasta) ?? '?' } : null
       })(),
+      codigo_estrategico: aliasDeKpi.get(String(e.kpi_id)) ?? null,
     }
     if (!porObjetivo.has(objetivoId)) porObjetivo.set(objetivoId, [])
     porObjetivo.get(objetivoId)!.push(ind)
