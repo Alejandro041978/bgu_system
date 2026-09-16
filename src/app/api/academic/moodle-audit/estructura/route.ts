@@ -38,10 +38,26 @@ export async function GET(req: NextRequest) {
     const r = await moodleCall('local_bgugrades_get_grade_structure', { courseids: ids })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const aulas: any[] = r?.aulas ?? []
+    // ?enrol=1 → además, los métodos de matrícula de esas aulas
+    // (core_enrol_get_course_enrolment_methods, la otra función del auditor):
+    // sirve para comprobar que el token la tiene habilitada.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let metodos: any = undefined
+    if (req.nextUrl.searchParams.get('enrol') === '1' && ids.length) {
+      metodos = {}
+      for (const id of ids.slice(0, 5)) {
+        try {
+          const ms = await moodleCall('core_enrol_get_course_enrolment_methods', { courseid: id })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          metodos[id] = (ms ?? []).map((m: any) => ({ type: m.type, name: m.name, status: m.status }))
+        } catch (e) { metodos[id] = { error: e instanceof Error ? e.message : 'error' } }
+      }
+    }
     return NextResponse.json({
       ok: true,
       pedidas: ids.length ? ids : 'todas',
       aulas_devueltas: aulas.length,
+      metodos_matricula: metodos,
       // Un resumen legible por aula, y la primera entera para ver la forma real.
       resumen: aulas.map(a => ({
         courseid: a.courseid,
