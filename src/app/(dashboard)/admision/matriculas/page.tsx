@@ -1,8 +1,8 @@
-import { Fragment } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { Topbar } from '@/components/layout/topbar'
 import { GraduationCap, Users } from 'lucide-react'
 import { MatriculasFilters } from '@/components/admision/matriculas-filters'
+import { MatriculasTable } from '@/components/admision/matriculas-table'
 
 export const revalidate = 0
 
@@ -160,60 +160,8 @@ export default async function MatriculasPage({
             </div>
           </div>
 
-          {/* Tabla */}
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Programa / Convocatoria</th>
-                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Código</th>
-                  <th className="text-right px-5 py-3 font-semibold text-gray-600">Matriculados</th>
-                  <th className="text-right px-5 py-3 font-semibold text-gray-600">% del total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((program) => {
-                  const pct = total > 0 ? ((program.count / total) * 100).toFixed(1) : '0.0'
-                  return (
-                    <Fragment key={program.id}>
-                      {/* Fila del programa */}
-                      <tr className="border-t border-gray-100 bg-gray-50/60">
-                        <td className="px-5 py-3 font-semibold text-gray-800">{program.name}</td>
-                        <td className="px-5 py-3 text-gray-500 font-mono text-xs">{program.code ?? '—'}</td>
-                        <td className="px-5 py-3 text-right">
-                          <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold text-xs">
-                            {program.count}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 text-right font-medium text-gray-600">{pct}%</td>
-                      </tr>
-                      {/* Sub-filas por convocatoria */}
-                      {program.convs.map((cv, j) => {
-                        const cpct = total > 0 ? ((cv.count / total) * 100).toFixed(1) : '0.0'
-                        return (
-                          <tr key={program.id + '-' + j} className="border-t border-gray-50">
-                            <td className="pl-10 pr-5 py-2 text-gray-600 text-[13px]">
-                              ↳ {cv.sem && <span className="text-indigo-500 font-medium">{cv.sem} · </span>}{cv.label}
-                            </td>
-                            <td className="px-5 py-2"></td>
-                            <td className="px-5 py-2 text-right">
-                              <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium text-xs">
-                                {cv.count}
-                              </span>
-                            </td>
-                            <td className="px-5 py-2 text-right text-gray-400 text-xs">{cpct}%</td>
-                          </tr>
-                        )
-                      })}
-                    </Fragment>
-                  )
-                })}
-              </tbody>
-            </table>
-            {rows.length === 0 && (
-              <p className="text-center text-gray-400 py-10">Sin matrículas para el período seleccionado</p>
-            )}
-          </div>
+          {/* Tabla (con el detalle por semestre ocultable) */}
+          <MatriculasTable rows={rows} total={total} />
 
         </div>
       </div>
