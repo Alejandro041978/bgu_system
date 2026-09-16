@@ -75,6 +75,7 @@ const navigation: NavGroup[] = [
           // vista de un llamado concreto.
           { name: 'Comisiones', href: '/admissions/commissions', icon: BadgeDollarSign, pageKey: 'admissions_commissions' },
           { name: 'Free Degree · Referidos', href: '/admissions/referrals', icon: Gift, pageKey: 'admissions_referrals' },
+          { name: 'Simulador Upgrade', href: '/admissions/upgrade-simulator', icon: GraduationCap, pageKey: 'admissions_upgrade_simulator' },
         ],
       },
       {

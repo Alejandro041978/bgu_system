@@ -115,6 +115,7 @@ const PAGE_GROUPS = [
       { key: 'academic_groups', label: 'Cadenas' },
       { key: 'academic_carousels', label: 'Carruseles' },
       { key: 'academic_retakes', label: 'Recursados' },
+      { key: 'admissions_upgrade_simulator', label: 'Simulador Upgrade' },
       { key: 'academic_schedules', label: 'Cronogramas' },
     ],
   },
