@@ -51,7 +51,7 @@ export function clasificarCarrera(key: string): Clasificacion {
   if (!key || key === 'OTROS') return { familia: 'sin_clasificar', califica_admin: false, califica_conta: false, revisado: false, nota: 'Nombre genérico: requiere evaluación' }
 
   // Contabilidad → ambos bachelors (regla del usuario)
-  if (tiene('CONTABILIDAD')) {
+  if (tiene('CONTABILIDAD', 'CONTABLE')) {
     return { familia: 'contabilidad', califica_admin: true, califica_conta: true, revisado: true, nota: null }
   }
   // Exclusiones explícitas antes de mirar "administración"
@@ -61,17 +61,22 @@ export function clasificarCarrera(key: string): Clasificacion {
   const esAgroForestal = tiene('FORESTAL', 'AGROPECUARI', 'PESQUER', 'ACUICOL')
   const esPolicialNaval = tiene('POLICIAL', 'NAVAL', 'MARINA', 'MILITAR')
 
-  // Administración propiamente dicha
-  if (tiene('ADMINISTRACION DE EMPRESAS', 'ADMINISTRACION Y DIRECCION DE NEGOCIOS', 'GESTION ADMINISTRATIVA', 'ADMINISTRACION DE NEGOCIOS')) {
+  // Administración propiamente dicha (incluye "ADMINISTRACIÓN" a secas y
+  // negocios internacionales/digitales)
+  if (key === 'ADMINISTRACION' || tiene('ADMINISTRACION DE EMPRESAS', 'ADMINISTRACION Y DIRECCION DE NEGOCIOS', 'GESTION ADMINISTRATIVA',
+      'ADMINISTRACION DE NEGOCIOS', 'NEGOCIOS INTERNACIONALES', 'NEGOCIOS DIGITALES', 'ADMINISTRACION Y NEGOCIOS')) {
     if (esAgroForestal || esPolicialNaval) return { familia: 'afin', califica_admin: true, califica_conta: false, revisado: false, nota: 'Administración con mención sectorial: confirmar' }
     return { familia: 'administracion', califica_admin: true, califica_conta: false, revisado: true, nota: null }
   }
   // Afines aprobadas por el usuario
   if (tiene('BANCARI', 'FINANCIER', 'MARKETING', 'PUBLICIDAD', 'PUBLICITARI', 'RECURSOS HUMANOS', 'LOGISTIC', 'COMERCIAL', 'COMERCIO',
-            'HOTELER', 'HOSTELER', 'TURISTIC', 'TURISMO', 'GESTION PUBLICA', 'ASISTENCIA ADMINISTRATIVA', 'ASISTENCIA DE DIRECCION',
-            'GESTION DE LA PRODUCCION', 'GESTION DE PRODUCCION', 'PRODUCCION Y GESTION INDUSTRIAL', 'ADMINISTRACION TURISTICA', 'ADMINISTRACION HOTELERA')) {
+            'HOTELER', 'HOSTELER', 'HOTELES', 'RESTAURANTES', 'TURISTIC', 'TURISMO', 'GESTION PUBLICA', 'ASISTENCIA ADMINISTRATIVA', 'ASISTENCIA DE DIRECCION',
+            'GESTION DE LA PRODUCCION', 'GESTION DE PRODUCCION', 'PRODUCCION Y GESTION INDUSTRIAL', 'ADMINISTRACION TURISTICA', 'ADMINISTRACION HOTELERA',
+            'ADMINISTRACION INDUSTRIAL', 'CADENA DE SUMINISTRO', 'TRANSPORTE Y DISTRIBUCION')) {
     // "Guía oficial de turismo" no es gestión: se marca para revisar
     if (tiene('GUIA')) return { familia: 'no_afin', califica_admin: false, califica_conta: false, revisado: false, nota: 'Turismo operativo, no gestión: confirmar' }
+    // "Diseño publicitario" es diseño antes que publicidad: califica, pero se confirma
+    if (tiene('DISENO')) return { familia: 'afin', califica_admin: true, califica_conta: false, revisado: false, nota: 'Diseño con giro publicitario: confirmar' }
     return { familia: 'afin', califica_admin: true, califica_conta: false, revisado: true, nota: null }
   }
   // Otras "administración de …" (recursos forestales, centro de cómputo ya
