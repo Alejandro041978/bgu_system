@@ -1,0 +1,131 @@
+{
+  "fecha": "2026-09-16T16:21:38.177Z",
+  "alias": [
+    {
+      "kpi": "E7-I01",
+      "alias": "E7-K3"
+    },
+    {
+      "kpi": "E6-K2",
+      "alias": "E6-K2"
+    },
+    {
+      "kpi": "E6-K3",
+      "alias": "E6-K3"
+    },
+    {
+      "kpi": "E6-K4",
+      "alias": "E6-K4"
+    },
+    {
+      "kpi": "E7-K2",
+      "alias": "E7-K2"
+    },
+    {
+      "kpi": "E5-I01",
+      "alias": "E5-K3"
+    },
+    {
+      "kpi": "E1-S02",
+      "alias": "E1-K3"
+    },
+    {
+      "kpi": "E2-S01",
+      "alias": "E2-K2"
+    },
+    {
+      "kpi": "E2-K4",
+      "alias": "E2-K4"
+    },
+    {
+      "kpi": "E5-K1",
+      "alias": "E5-K1"
+    },
+    {
+      "kpi": "E2-S02",
+      "alias": "E2-K3"
+    },
+    {
+      "kpi": "E4-K2",
+      "alias": "E4-K2"
+    },
+    {
+      "kpi": "E5-K2",
+      "alias": "E5-K2"
+    },
+    {
+      "kpi": "E5-K4",
+      "alias": "E5-K4"
+    },
+    {
+      "kpi": "E1-I01",
+      "alias": "E1-K2"
+    },
+    {
+      "kpi": "E1-S01",
+      "alias": "E1-K4"
+    },
+    {
+      "kpi": "E2-I01",
+      "alias": "E2-K1"
+    },
+    {
+      "kpi": "E3-O01",
+      "alias": "E3-K3"
+    },
+    {
+      "kpi": "E3-O02",
+      "alias": "E3-K4"
+    },
+    {
+      "kpi": "E4-S01",
+      "alias": "E4-K1"
+    },
+    {
+      "kpi": "E3-I01",
+      "alias": "E3-K1"
+    },
+    {
+      "kpi": "E3-S02",
+      "alias": "E3-K2"
+    },
+    {
+      "kpi": "E4-O01",
+      "alias": "E4-K3"
+    },
+    {
+      "kpi": "E4-I01",
+      "alias": "E4-K4"
+    },
+    {
+      "kpi": "E6-I01",
+      "alias": "E6-K1"
+    },
+    {
+      "kpi": "E7-O01",
+      "alias": "E7-K1"
+    },
+    {
+      "kpi": "E1-O01",
+      "alias": "E1-K1"
+    },
+    {
+      "kpi": "E7-O02",
+      "alias": "E7-K4"
+    }
+  ],
+  "enlaces": 49,
+  "sin_resolver": [
+    "medida D-07 (texto estratégico E6-K1 E6-K2  E5-K4): código E6-K1 E6-K2  E5-K4 no está en el catálogo",
+    "medida I-04 (texto estratégico E3-K1 : E4-K4): código E3-K1 : E4-K4 no está en el catálogo",
+    "medida I-05 (texto efectividad): código E6-I01E3-S01 no está en el catálogo",
+    "medida I-10 (texto efectividad): código E1 A E7 no está en el catálogo",
+    "medida I-10 (texto estratégico E1-K1 A E7-K4): código E1-K1 A E7-K4 no está en el catálogo",
+    "medida D-05 (texto estratégico E1-K4 E4-K4): código E1-K4 E4-K4 no está en el catálogo"
+  ],
+  "verificacion": {
+    "alias": 28,
+    "total_enlaces_estrategicos": 28,
+    "iap_measure_kpis": 49
+  }
+}
