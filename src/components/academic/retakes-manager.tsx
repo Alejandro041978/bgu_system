@@ -21,7 +21,10 @@ interface Solicitud {
   id: string; course: string; prev_attempt: number; new_attempt: number
   credits: number | null; amount: number | null; pagado: number
   status: string; created_at: string; created_by: string | null
-  accepted_at: string | null; lms_opened_at: string | null; note: string | null
+  accepted_at: string | null; note: string | null
+  sealed_at: string | null; sello_fuente: string | null
+  sello_evaluaciones: number | null; sello_nota: number | null
+  lms_cleaned_at: string | null
 }
 interface Data {
   student: { id: string; name: string; document: string | null; external_id: string | null }
@@ -92,15 +95,16 @@ export function RetakesManager() {
     open(data.student.id)
   }
 
-  async function marcarLms(s: Solicitud) {
+  async function patchSolicitud(s: Solicitud, body: object, confirmar?: string) {
     if (!data) return
+    if (confirmar && !confirm(confirmar)) return
     setBusy(s.id)
     const r = await fetch('/api/academic/retakes', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: s.id, lms_opened: true }),
+      body: JSON.stringify({ id: s.id, ...body }),
     })
     setBusy(null)
-    if (!r.ok) { const d = await r.json().catch(() => ({})); setNotice({ kind: 'error', text: d.error ?? 'No se pudo marcar' }); return }
+    if (!r.ok) { const d = await r.json().catch(() => ({})); setNotice({ kind: 'error', text: d.error ?? 'No se pudo aplicar' }); return }
     open(data.student.id)
   }
 
@@ -209,18 +213,37 @@ export function RetakesManager() {
                       </div>
                     )}
                     {s.status === 'aceptada' && (
-                      <div className="mt-1 text-[11px]">
-                        {s.lms_opened_at ? (
-                          <span className="text-green-700">Recompletion abierto en el LMS el {fdate(s.lms_opened_at)}. Las notas del nuevo intento entrarán al intento {s.new_attempt}.</span>
+                      <div className="mt-1 space-y-0.5 text-[11px]">
+                        {/* Paso 1: sello del intento 1 en el ERP (respaldo inmutable) */}
+                        {s.sealed_at ? (
+                          <p className="text-green-700">
+                            Intento {s.prev_attempt} sellado el {fdate(s.sealed_at)}
+                            {s.sello_evaluaciones != null && <> · {s.sello_evaluaciones} evaluaciones con fecha</>}
+                            {s.sello_nota != null && <> · acumulado {s.sello_nota}</>}
+                            {s.sello_fuente === 'erp_acta' && <> · fuente: acta del ERP (aula no leída)</>}
+                          </p>
                         ) : (
-                          <span className="inline-flex items-center gap-2 text-blue-700">
-                            <ExternalLink className="w-3 h-3" />
-                            Falta abrir el recompletion en el aula de esta asignatura para {data.student.name}{data.student.external_id ? ` (idnumber ${data.student.external_id})` : ''}.
+                          <p className="inline-flex items-center gap-2 text-amber-700">
+                            Intento {s.prev_attempt} SIN sellar — el respaldo en el ERP es requisito antes de limpiar el aula.
                             {puedeEditar && (
-                              <button onClick={() => marcarLms(s)} disabled={busy === s.id} className="underline hover:text-blue-900">marcar como abierto</button>
+                              <button onClick={() => patchSolicitud(s, { seal: true })} disabled={busy === s.id}
+                                className="underline hover:text-amber-900">{busy === s.id ? '…' : 'sellar ahora (lee el aula en vivo)'}</button>
                             )}
-                          </span>
+                          </p>
                         )}
+                        {/* Paso 2: limpieza del estudiante en el aula (solo con sello) */}
+                        {s.lms_cleaned_at ? (
+                          <p className="text-green-700">Aula limpiada el {fdate(s.lms_cleaned_at)} — lista para el intento {s.new_attempt}; el importador enrutará las notas nuevas al intento {s.new_attempt}.</p>
+                        ) : s.sealed_at ? (
+                          <p className="inline-flex items-center gap-2 text-blue-700">
+                            <ExternalLink className="w-3 h-3" />
+                            Falta limpiar a {data.student.name}{data.student.external_id ? ` (idnumber ${data.student.external_id})` : ''} en el aula (notas, intentos de quiz y entregas) — plantilla vía N8N.
+                            {puedeEditar && (
+                              <button onClick={() => patchSolicitud(s, { lms_cleaned: true }, '¿Confirmas que el estudiante ya fue limpiado en el aula del LMS? Esta constancia habilita el intento nuevo.')}
+                                disabled={busy === s.id} className="underline hover:text-blue-900">marcar aula limpiada</button>
+                            )}
+                          </p>
+                        ) : null}
                       </div>
                     )}
                   </div>

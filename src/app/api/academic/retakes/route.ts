@@ -3,9 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 import { guardPagina } from '@/lib/page-guard'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { stableUuid } from '@/lib/grades-write'
+import { moodleCall, getUserByIdnumber, getUserByEmail } from '@/lib/moodle'
+import { esItemBono } from '@/lib/grade-status'
 
 export const revalidate = 0
-export const maxDuration = 60
+export const maxDuration = 120
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -67,6 +69,75 @@ async function pagadoDeCargo(sb: any, chargeExternalId: string): Promise<number>
     .select('amount').eq('charge_external_id', chargeExternalId)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return ((data ?? []) as any[]).reduce((a, p) => a + Number(p.amount ?? 0), 0)
+}
+
+// ── Sello del intento 1 (16/09/2026, decisión del usuario: sin plugin de
+// recompletion — el respaldo vive en el ERP). Captura el intento anterior
+// COMPLETO en la solicitud: cada evaluación con nombre, ponderación,
+// calificación y FECHA (leídas del aula en vivo, que reporta por usuario
+// aunque esté suspendido), los bonos, el acumulado, el mínimo y el estado.
+// Si el aula no es alcanzable (intentos heredados de Activa sin aula, o
+// Moodle caído), sella desde el acta del ERP (fuente 'erp_acta') — el sello
+// nunca bloquea la aceptación, pero SÍ es requisito para la limpieza.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sellarIntento1(sb: any, r: any, quien: string): Promise<{ ok: boolean; error?: string }> {
+  const { data: nota } = await sb.from('academic_grades')
+    .select('external_id, final_grade, retake_grade, passing_score, estado_academico, rendido_pct, moodle_course_id, term_year, semester_id, last_evaluated_at')
+    .eq('student_id', r.student_id).eq('course_id', r.course_id).eq('intento', Number(r.prev_attempt)).maybeSingle()
+  if (!nota) return { ok: false, error: 'No se encontró el acta del intento anterior' }
+  const { data: det } = await sb.from('academic_grade_details')
+    .select('process_grades').eq('external_id', nota.external_id).maybeSingle()
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const snapshot: any = {
+    sellado_en: new Date().toISOString(), sellado_por: quien,
+    fuente: 'erp_acta',
+    external_id: nota.external_id,
+    aula: nota.moodle_course_id ?? null,
+    nota_final: nota.retake_grade ?? nota.final_grade ?? null,
+    minimo: nota.passing_score ?? null,
+    estado: nota.estado_academico ?? 'reprobado',
+    rendido_pct: nota.rendido_pct ?? null,
+    ultima_evaluacion: nota.last_evaluated_at ?? null,
+    detalle_erp: det?.process_grades ?? null,
+    evaluaciones: null,
+  }
+
+  // Lectura VIVA del aula: valores y fechas de cada evaluación
+  if (nota.moodle_course_id) {
+    try {
+      const { data: stu } = await sb.from('academic_students')
+        .select('id, external_id, email, email_alt').eq('id', r.student_id).maybeSingle()
+      let mu = stu ? await getUserByIdnumber(String(stu.id)) : null
+      if (!mu && stu?.external_id) mu = await getUserByIdnumber(String(stu.external_id))
+      if (!mu && stu?.email) mu = await getUserByEmail(String(stu.email))
+      if (!mu && stu?.email_alt) mu = await getUserByEmail(String(stu.email_alt))
+      if (mu) {
+        const rep = await moodleCall('gradereport_user_get_grade_items',
+          { courseid: Number(nota.moodle_course_id), userid: mu.id }, { timeoutMs: 30_000 })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const items = ((rep?.usergrades?.[0]?.gradeitems ?? []) as any[]).filter(i => i.itemtype === 'mod')
+        if (items.length) {
+          snapshot.fuente = 'moodle_vivo'
+          snapshot.moodle_userid = mu.id
+          snapshot.evaluaciones = items.map(i => ({
+            desc: i.itemname ?? '',
+            ponderacion_pct: i.weightraw != null ? Math.round(Number(i.weightraw) * 10000) / 100 : null,
+            calificacion: i.graderaw == null ? null : Math.round(Number(i.graderaw) * 100) / 100,
+            sobre: i.grademax != null ? Number(i.grademax) : null,
+            fecha: i.gradedategraded ? new Date(Number(i.gradedategraded) * 1000).toISOString() : null,
+            bono: esItemBono(i.itemname) || undefined,
+          }))
+        }
+      }
+    } catch { /* aula inalcanzable: queda el sello desde el acta */ }
+  }
+
+  const { error } = await sb.from('course_retake_requests')
+    .update({ first_attempt_snapshot: snapshot, sealed_at: new Date().toISOString(), sealed_by: quien })
+    .eq('id', r.id).is('sealed_at', null)   // el sello es inmutable: solo una vez
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
 }
 
 // Acepta una solicitud pagada: crea el intento declarado en el registro. El
@@ -146,10 +217,18 @@ export async function GET(req: NextRequest) {
     let pagado = 0
     if (r.charge_external_id) pagado = await pagadoDeCargo(sb, r.charge_external_id)
     let estado = String(r.status)
-    // Pagada por completo → se acepta aquí mismo (regla: el pago habilita)
+    // Pagada por completo → se acepta aquí mismo (regla: el pago habilita) y
+    // se intenta el sello del intento 1 en el acto (si falla, queda pendiente
+    // con su botón de reintento; la limpieza del aula exige el sello).
     if (estado === 'pendiente_pago' && r.amount != null && pagado >= Number(r.amount) - 0.005) {
       const err = await aceptar(sb, r)
-      if (!err) { estado = 'aceptada'; r.status = 'aceptada'; r.accepted_at = new Date().toISOString() }
+      if (!err) {
+        estado = 'aceptada'; r.status = 'aceptada'; r.accepted_at = new Date().toISOString()
+        if (!r.sealed_at) {
+          const s = await sellarIntento1(sb, r, 'aceptacion-automatica')
+          if (s.ok) { r.sealed_at = new Date().toISOString() }
+        }
+      }
     }
     if (estado !== 'anulada') abiertas.add(String(r.course_id))
     const c = cursoDe.get(String(r.course_id))
@@ -159,7 +238,12 @@ export async function GET(req: NextRequest) {
       prev_attempt: r.prev_attempt, new_attempt: r.new_attempt,
       credits: r.credits, amount: r.amount, pagado: Math.round(pagado * 100) / 100,
       status: estado, created_at: r.created_at, created_by: r.created_by,
-      accepted_at: r.accepted_at, lms_opened_at: r.lms_opened_at, note: r.note ?? null,
+      accepted_at: r.accepted_at, note: r.note ?? null,
+      sealed_at: r.sealed_at ?? null,
+      sello_fuente: r.first_attempt_snapshot?.fuente ?? null,
+      sello_evaluaciones: Array.isArray(r.first_attempt_snapshot?.evaluaciones) ? r.first_attempt_snapshot.evaluaciones.length : null,
+      sello_nota: r.first_attempt_snapshot?.nota_final ?? null,
+      lms_cleaned_at: r.lms_cleaned_at ?? null,
     })
   }
 
@@ -279,18 +363,33 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, id: nueva.id, amount, due_date: due })
 }
 
-// PATCH { id, lms_opened: true } → deja constancia de que el recompletion ya
-// se abrió en el aula (trazabilidad ERP↔LMS mientras el plugin no sea remoto).
+// PATCH { id, seal: true } → sella (o reintenta sellar) el intento 1.
+// PATCH { id, lms_cleaned: true } → constancia de que el estudiante fue
+// limpiado en el aula; EXIGE el sello puesto — nunca se limpia sin respaldo.
 export async function PATCH(req: NextRequest) {
   const noAutorizado = await guardPagina('academic_retakes')
   if (noAutorizado) return noAutorizado
   const usuario = await requireAuth()
-  const b = await req.json().catch(() => null) as { id?: string; lms_opened?: boolean } | null
-  if (!b?.id || !b?.lms_opened) return NextResponse.json({ error: 'Solicitud inválida' }, { status: 400 })
+  const b = await req.json().catch(() => null) as { id?: string; seal?: boolean; lms_cleaned?: boolean } | null
+  if (!b?.id || (!b.seal && !b.lms_cleaned)) return NextResponse.json({ error: 'Solicitud inválida' }, { status: 400 })
   const sb = db()
+  const { data: r } = await sb.from('course_retake_requests').select('*').eq('id', b.id).maybeSingle()
+  if (!r) return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 })
+  if (r.status !== 'aceptada') return NextResponse.json({ error: 'Solo sobre solicitudes aceptadas' }, { status: 409 })
+
+  if (b.seal) {
+    if (r.sealed_at) return NextResponse.json({ error: 'El intento 1 ya está sellado (el sello es inmutable)' }, { status: 409 })
+    const s = await sellarIntento1(sb, r, usuario?.email ?? 'erp')
+    if (!s.ok) return NextResponse.json({ error: s.error ?? 'No se pudo sellar' }, { status: 500 })
+    return NextResponse.json({ ok: true, sealed: true })
+  }
+
+  if (!r.sealed_at) {
+    return NextResponse.json({ error: 'El aula no se limpia sin el sello del intento 1: sella primero.' }, { status: 409 })
+  }
   const { error } = await sb.from('course_retake_requests')
-    .update({ lms_opened_at: new Date().toISOString(), lms_opened_by: usuario?.email ?? null })
-    .eq('id', b.id).eq('status', 'aceptada')
+    .update({ lms_cleaned_at: new Date().toISOString(), lms_cleaned_by: usuario?.email ?? null })
+    .eq('id', b.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
