@@ -30,7 +30,8 @@ export async function GET(req: NextRequest) {
   }
   const q = String(p.get('q') ?? '').slice(0, 80)
   const dep = p.get('departamento')
-  return NextResponse.json({ institutos: await buscarInstitutos(sb, q, dep && dep !== '' ? dep : null) })
+  const page = Number(p.get('page') ?? 1)
+  return NextResponse.json(await buscarInstitutos(sb, q, dep && dep !== '' ? dep : null, Number.isFinite(page) ? page : 1))
 }
 
 export async function POST(req: NextRequest) {

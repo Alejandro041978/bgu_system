@@ -25,6 +25,9 @@ export function UpgradeSimulatorCore({ apiBase, captura }: { apiBase: string; ca
   const [q, setQ] = useState('')
   const [buscando, setBuscando] = useState(false)
   const [institutos, setInstitutos] = useState<Instituto[] | null>(null)
+  // Paginación de 10 en 10 (licenciados primero, luego alfabético). Modo
+  // 'todos' = navegar el departamento sin escribir el nombre.
+  const [pag, setPag] = useState<{ page: number; pages: number; total: number; modo: 'nombre' | 'todos' }>({ page: 1, pages: 0, total: 0, modo: 'nombre' })
   const [inst, setInst] = useState<Instituto | null>(null)
   const [carreras, setCarreras] = useState<Carrera[]>([])
   const [carreraKey, setCarreraKey] = useState('')
@@ -43,11 +46,17 @@ export function UpgradeSimulatorCore({ apiBase, captura }: { apiBase: string; ca
     fetch(`${apiBase}?departamentos=1`).then(r => r.json()).then(d => setDeps(d.departamentos ?? [])).catch(() => {})
   }, [apiBase])
 
-  async function buscar() {
-    if (q.trim().length < 2) return
+  async function buscar(modo: 'nombre' | 'todos' = 'nombre', page = 1) {
+    if (modo === 'nombre' && q.trim().length < 2) return
+    if (modo === 'todos' && !dep) return
     setBuscando(true); setInstitutos(null); setInst(null); setVeredicto(null); setError(null)
-    const d = await fetch(`${apiBase}?q=${encodeURIComponent(q.trim())}${dep ? `&departamento=${encodeURIComponent(dep)}` : ''}`).then(r => r.json()).catch(() => ({}))
+    const params = new URLSearchParams()
+    if (modo === 'nombre') params.set('q', q.trim())
+    if (dep) params.set('departamento', dep)
+    params.set('page', String(page))
+    const d = await fetch(`${apiBase}?${params.toString()}`).then(r => r.json()).catch(() => ({}))
     setInstitutos(d.institutos ?? [])
+    setPag({ page: d.page ?? 1, pages: d.pages ?? 0, total: d.total ?? 0, modo })
     setBuscando(false)
   }
 
@@ -104,15 +113,26 @@ export function UpgradeSimulatorCore({ apiBase, captura }: { apiBase: string; ca
             <option value="">Todos los departamentos</option>
             {deps.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
-          <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') buscar() }}
+          <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') buscar('nombre') }}
             placeholder="Nombre del instituto (ej. SENATI, Cibertec, Idat…)" className={`${inp} flex-1`} />
-          <button onClick={buscar} disabled={buscando || q.trim().length < 2}
+          <button onClick={() => buscar('nombre')} disabled={buscando || q.trim().length < 2}
             className="inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm px-4 py-2 rounded-lg">
             {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />} Buscar
           </button>
         </div>
+        {/* Sin escribir el nombre: recorrer la lista del departamento */}
+        <button onClick={() => buscar('todos')} disabled={buscando || !dep}
+          title={dep ? `Lista completa de institutos de ${dep}` : 'Elige primero un departamento'}
+          className="text-xs text-blue-700 hover:underline disabled:text-gray-300 disabled:no-underline">
+          {dep ? `Ver todos los institutos de ${dep} (sin escribir el nombre)` : 'Elige un departamento para ver la lista completa de sus institutos'}
+        </button>
         {institutos !== null && (
-          <div className="space-y-1 max-h-64 overflow-y-auto">
+          <div className="space-y-1">
+            {pag.total > 0 && (
+              <p className="text-[11px] text-gray-400">
+                {pag.total} instituto{pag.total === 1 ? '' : 's'}{pag.modo === 'todos' && dep ? ` en ${dep}` : ''} · página {pag.page} de {pag.pages}
+              </p>
+            )}
             {institutos.length === 0 ? (
               <p className="text-sm text-gray-400 py-2">No encontramos ese instituto. Prueba con otra parte del nombre o sin filtro de departamento.</p>
             ) : institutos.map(i => (
@@ -127,6 +147,15 @@ export function UpgradeSimulatorCore({ apiBase, captura }: { apiBase: string; ca
                 </span>
               </button>
             ))}
+            {pag.pages > 1 && (
+              <div className="flex items-center justify-between pt-1">
+                <button onClick={() => buscar(pag.modo, pag.page - 1)} disabled={buscando || pag.page <= 1}
+                  className="text-xs text-blue-700 hover:underline disabled:text-gray-300 disabled:no-underline">← Anteriores</button>
+                <span className="text-[11px] text-gray-400 tabular-nums">{(pag.page - 1) * 10 + 1}–{Math.min(pag.page * 10, pag.total)} de {pag.total}</span>
+                <button onClick={() => buscar(pag.modo, pag.page + 1)} disabled={buscando || pag.page >= pag.pages}
+                  className="text-xs text-blue-700 hover:underline disabled:text-gray-300 disabled:no-underline">Siguientes 10 →</button>
+              </div>
+            )}
           </div>
         )}
         {inst && (

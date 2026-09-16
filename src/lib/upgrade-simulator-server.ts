@@ -21,16 +21,23 @@ export async function departamentos(sb: SB): Promise<string[]> {
   return [...new Set((data ?? []).map((r: { departamento: string }) => String(r.departamento).trim()).filter(Boolean))].sort() as string[]
 }
 
-export async function buscarInstitutos(sb: SB, q: string, departamento: string | null): Promise<InstitutoPublico[]> {
+// Búsqueda paginada (10 por página): por nombre (con o sin departamento) o
+// TODOS los institutos de un departamento sin escribir nada (pedido del
+// usuario, 16/09/2026). Licenciados primero, luego alfabético.
+export const PAGINA = 10
+export async function buscarInstitutos(sb: SB, q: string, departamento: string | null, page = 1): Promise<{ institutos: InstitutoPublico[]; total: number; page: number; pages: number }> {
   const texto = String(q ?? '').trim()
-  if (texto.length < 2) return []
+  if (texto.length < 2 && !departamento) return { institutos: [], total: 0, page: 1, pages: 0 }
+  const p = Math.max(1, Math.floor(page))
   let query = sb.from('upgrade_institutes')
-    .select('codigo_modular, nombre, licenciado, tipo, gestion, departamento, provincia, distrito, fuente')
-    .ilike('nombre', `%${texto.replace(/[%_]/g, '')}%`)
-    .order('licenciado', { ascending: false }).order('nombre').limit(25)
+    .select('codigo_modular, nombre, licenciado, tipo, gestion, departamento, provincia, distrito, fuente', { count: 'exact' })
+    .order('licenciado', { ascending: false }).order('nombre')
+    .range((p - 1) * PAGINA, p * PAGINA - 1)
+  if (texto.length >= 2) query = query.ilike('nombre', `%${texto.replace(/[%_]/g, '')}%`)
   if (departamento) query = query.eq('departamento', departamento)
-  const { data } = await query
-  return (data ?? []) as InstitutoPublico[]
+  const { data, count } = await query
+  const total = count ?? 0
+  return { institutos: (data ?? []) as InstitutoPublico[], total, page: p, pages: Math.ceil(total / PAGINA) }
 }
 
 export interface CarreraDeInstituto {
