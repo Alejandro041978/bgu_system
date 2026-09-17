@@ -233,7 +233,9 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   // recogido, así que ni el cron ni el botón lograban importarla. Ahora:
   //   1. nunca se descarta: si el tiempo se acaba, se importa lo obtenido
   //      (seguro: el importador solo escribe sobre los estudiantes que recibe);
-  //   2. primero quienes tienen la asignatura ABIERTA en su registro curricular;
+  //   2. primero quienes tienen la asignatura ABIERTA en su registro curricular
+  //      (status en_curso/no_iniciada — NO closed_at: 12.160 aprobadas lo tienen
+  //      vacío, y con ese criterio casi todos eran "prioridad" y el cursor no avanzaba);
   //   3. el resto rota con un cursor por aula (moodle_aula_audit.import_cursor)
   //      y se cubre entero en pocas corridas, sin repetir.
   // Con onlyStudentIds (sincronización manual de un alumno) se consulta solo a
@@ -256,7 +258,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       try {
         for (let from = 0; ; from += 1000) {
           const { data } = await sb.from('academic_course_enrollments')
-            .select('student_id').eq('course_id', destCourse.id).is('closed_at', null).range(from, from + 999)
+            .select('student_id').eq('course_id', destCourse.id).in('status', ['en_curso', 'no_iniciada']).range(from, from + 999)
           for (const r of data ?? []) abiertos.add(String(r.student_id))
           if ((data ?? []).length < 1000) break
         }
