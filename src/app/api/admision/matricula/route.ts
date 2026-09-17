@@ -81,7 +81,11 @@ export async function POST(req: NextRequest) {
   if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const body = await req.json().catch(() => null)
-  const { student_id, new_student, program_id, convocatoria_id, enrollment_date, collection_id, entry_group_id } = (body ?? {}) as {
+  const { student_id, new_student, program_id, convocatoria_id, enrollment_date, collection_id, entry_group_id, academic_comments, financial_comments } = (body ?? {}) as {
+    // Notas internas que carga la vendedora (17/09/2026): las leen Registros
+    // y Finanzas; nunca se muestran al estudiante.
+    academic_comments?: string | null
+    financial_comments?: string | null
     student_id?: string
     new_student?: { first_name?: string; last_name?: string; second_last_name?: string; document_number?: string; email?: string; phone_code?: string; phone_local?: string; city?: string; country?: string; birth_country?: string }
     program_id?: string
@@ -242,6 +246,21 @@ export async function POST(req: NextRequest) {
   await sb.from('academic_student_enrollments')
     .update({ status: 'pendiente_pago' }).eq('id', enrollmentId).is('activated_at', null)
 
+  // Comentarios de la vendedora. Van en un update APARTE y tolerante: si la
+  // migración (enrollment_comments.sql) aún no corrió, la matrícula no se cae
+  // — se avisa que las notas no se guardaron.
+  let comentariosNoGuardados = false
+  const ac = typeof academic_comments === 'string' ? academic_comments.trim().slice(0, 1000) : ''
+  const fc = typeof financial_comments === 'string' ? financial_comments.trim().slice(0, 1000) : ''
+  if (ac || fc) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const patch: any = {}
+    if (ac) patch.academic_comments = ac
+    if (fc) patch.financial_comments = fc
+    const { error: eCom } = await sb.from('academic_student_enrollments').update(patch).eq('id', enrollmentId)
+    if (eCom) comentariosNoGuardados = true
+  }
+
   // Snapshot del tarifario oficial: la tarifa por crédito vigente HOY se
   // congela con la matrícula (precios regulados: los futuros no lo alcanzan).
   await snapshotCreditRate(sb, enrollmentId, program_id)
@@ -263,6 +282,7 @@ export async function POST(req: NextRequest) {
     program: prog.name,
     convocatoria: conv.name,
     status: 'pendiente_pago',
+    comentarios_no_guardados: comentariosNoGuardados || undefined,
     estado_cuenta: charges.ok
       ? { ok: true, cargos: charges.created }
       : { ok: false, note: charges.error },

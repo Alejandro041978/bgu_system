@@ -40,7 +40,14 @@ export async function GET(req: NextRequest) {
   const activa = ((mem ?? []) as { group_id: string; status: string }[]).find(m => m.status === 'activo') ?? (mem ?? [])[0] ?? null
   const gEfectivo = activa ? gs.find(g => g.id === activa.group_id) : null
 
+  // Comentarios internos de la vendedora (consulta aparte y tolerante: si la
+  // migración enrollment_comments.sql no corrió, simplemente no hay notas).
+  const { data: com } = await sb.from('academic_student_enrollments')
+    .select('academic_comments, financial_comments').eq('id', id).maybeSingle()
+
   return NextResponse.json({
+    academic_comments: com?.academic_comments ?? null,
+    financial_comments: com?.financial_comments ?? null,
     enrollment_id: enr.id,
     status: enr.status ?? null,
     activada: !!enr.activated_at,
@@ -56,9 +63,23 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const noAutorizado = await guardStaff()
   if (noAutorizado) return noAutorizado
-  const b = await req.json().catch(() => null) as { enrollment_id?: string; collection_id?: string | null; entry_group_id?: string | null } | null
+  const b = await req.json().catch(() => null) as {
+    enrollment_id?: string; collection_id?: string | null; entry_group_id?: string | null
+    academic_comments?: string | null; financial_comments?: string | null
+  } | null
   if (!b?.enrollment_id) return NextResponse.json({ error: 'Falta enrollment_id' }, { status: 400 })
   const sb = db()
+
+  // Solo comentarios: update directo (no toca colección ni carrusel)
+  if ((b.academic_comments !== undefined || b.financial_comments !== undefined) && b.collection_id === undefined && b.entry_group_id === undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const patch: any = {}
+    if (b.academic_comments !== undefined) patch.academic_comments = b.academic_comments ? String(b.academic_comments).trim().slice(0, 1000) || null : null
+    if (b.financial_comments !== undefined) patch.financial_comments = b.financial_comments ? String(b.financial_comments).trim().slice(0, 1000) || null : null
+    const { error } = await sb.from('academic_student_enrollments').update(patch).eq('id', b.enrollment_id)
+    if (error) return NextResponse.json({ error: `No se pudieron guardar los comentarios (¿falta correr enrollment_comments.sql?): ${error.message}` }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  }
   const { data: enr } = await sb.from('academic_student_enrollments')
     .select('id, program_id, collection_id, entry_group_id').eq('id', b.enrollment_id).maybeSingle()
   if (!enr) return NextResponse.json({ error: 'Matrícula no encontrada' }, { status: 404 })

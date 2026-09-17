@@ -82,11 +82,37 @@ export function AccountStatementView(
         </p>
       )}
 
+      {/* Nota económica interna de la vendedora: SOLO personal (canGenerate).
+          No viaja en el estado de cuenta —que también ve el estudiante en su
+          portal—: se pide aparte a un endpoint protegido. */}
+      {canGenerate && account.enrollment_id && <FinancialNote key={account.enrollment_id} enrollmentId={account.enrollment_id} />}
+
       <ProgramAccountView account={account} canGenerate={canGenerate} canDiscount={canDiscount} onChanged={onChanged} student={student} />
 
       {/* Las reglas de acceso, al pie: es donde el estudiante mira cuando le
           importa, y el mismo texto lo ve quien atiende desde el ERP. */}
       <CampusAccessNotice />
+    </div>
+  )
+}
+
+// Comentario económico cargado por la vendedora al matricular (17/09/2026):
+// beneficios extra del plan de pagos y similares. Nota interna para Finanzas.
+function FinancialNote({ enrollmentId }: { enrollmentId: string }) {
+  const [nota, setNota] = useState<string | null>(null)
+  useEffect(() => {
+    let vivo = true
+    fetch(`/api/admision/matricula/setup?enrollment_id=${enrollmentId}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (vivo) setNota(d?.financial_comments ?? null) })
+      .catch(() => {})
+    return () => { vivo = false }
+  }, [enrollmentId])
+  if (!nota) return null
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Comentario económico de la matrícula (interno)</p>
+      <p className="text-sm text-amber-900 whitespace-pre-wrap mt-0.5">{nota}</p>
     </div>
   )
 }

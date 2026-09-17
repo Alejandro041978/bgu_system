@@ -16,6 +16,9 @@ interface Setup {
   efectivo: { group_id: string; label: string; status: string } | null
   colecciones: { id: string; name: string; active: boolean }[]
   carruseles: { id: string; label: string }[]
+  // Notas internas cargadas por la vendedora al matricular
+  academic_comments: string | null
+  financial_comments: string | null
 }
 
 const sel = 'border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -27,10 +30,13 @@ export function EnrollmentSetup({ enrollmentId, onChanged }: { enrollmentId: str
   const [car, setCar] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  const [ac, setAc] = useState('')
+  const [fc, setFc] = useState('')
 
   const cargar = () => fetch(`/api/admision/matricula/setup?enrollment_id=${enrollmentId}`).then(r => r.json()).then(d => {
     if (d.error) return
     setS(d); setCol(d.collection_id ?? ''); setCar(d.entry_group_id ?? '')
+    setAc(d.academic_comments ?? ''); setFc(d.financial_comments ?? '')
   }).catch(() => {})
   useEffect(() => { cargar() }, [enrollmentId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -41,8 +47,16 @@ export function EnrollmentSetup({ enrollmentId, onChanged }: { enrollmentId: str
       body: JSON.stringify({ enrollment_id: enrollmentId, collection_id: col || null, entry_group_id: car || null }),
     })
     const d = await r.json().catch(() => ({}))
+    if (!r.ok) { setBusy(false); setMsg({ kind: 'error', text: d.error ?? 'No se pudo guardar' }); return }
+    // Los comentarios van en su propio guardado (solo si cambiaron)
+    if (s && (ac.trim() !== (s.academic_comments ?? '') || fc.trim() !== (s.financial_comments ?? ''))) {
+      const r2 = await fetch('/api/admision/matricula/setup', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enrollment_id: enrollmentId, academic_comments: ac.trim() || null, financial_comments: fc.trim() || null }),
+      })
+      if (!r2.ok) { const d2 = await r2.json().catch(() => ({})); setBusy(false); setMsg({ kind: 'error', text: d2.error ?? 'No se pudieron guardar los comentarios' }); return }
+    }
     setBusy(false)
-    if (!r.ok) { setMsg({ kind: 'error', text: d.error ?? 'No se pudo guardar' }); return }
     setEditando(false)
     setMsg({ kind: 'ok', text: 'Carga corregida. Se ejecuta al activarse la matrícula.' })
     cargar(); onChanged?.()
@@ -106,6 +120,30 @@ export function EnrollmentSetup({ enrollmentId, onChanged }: { enrollmentId: str
           {s.activada ? 're-ejecutar activación' : 'activar (excepción)'}
         </button>
       </div>
+      {/* Comentarios internos de la vendedora: se leen aquí; se editan en modo corregir */}
+      {editando ? (
+        <div className="grid sm:grid-cols-2 gap-2 pt-1">
+          <label>
+            <span className="block text-[11px] text-gray-500 mb-0.5">Comentarios académicos</span>
+            <textarea value={ac} onChange={e => setAc(e.target.value)} rows={2} maxLength={1000}
+              className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </label>
+          <label>
+            <span className="block text-[11px] text-gray-500 mb-0.5">Comentarios económicos</span>
+            <textarea value={fc} onChange={e => setFc(e.target.value)} rows={2} maxLength={1000}
+              className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </label>
+        </div>
+      ) : (
+        <>
+          {s.academic_comments && (
+            <p className="text-gray-600 whitespace-pre-wrap"><span className="text-[11px] font-semibold uppercase text-blue-700">Académico:</span> {s.academic_comments}</p>
+          )}
+          {s.financial_comments && (
+            <p className="text-gray-600 whitespace-pre-wrap"><span className="text-[11px] font-semibold uppercase text-amber-700">Económico:</span> {s.financial_comments}</p>
+          )}
+        </>
+      )}
       {difiere && (
         <p className="text-amber-700">⚠ Lo cargado ({carLabel}) difiere de la colocación efectiva ({s.efectivo!.label}): el estudiante ya avanzó o fue colocado antes de la carga.</p>
       )}

@@ -57,6 +57,8 @@ export function NuevaMatricula() {
   const [convId, setConvId] = useState('')
   const [programId, setProgramId] = useState('')
   const [enrollDate, setEnrollDate] = useState(new Date().toISOString().slice(0, 10))
+  const [academicComments, setAcademicComments] = useState('')
+  const [financialComments, setFinancialComments] = useState('')
 
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; lines: string[] } | null>(null)
@@ -171,6 +173,8 @@ export function NuevaMatricula() {
         enrollment_date: enrollDate,
         collection_id: collectionId || null,
         entry_group_id: entryGroupId || null,
+        academic_comments: academicComments.trim() || null,
+        financial_comments: financialComments.trim() || null,
       }),
     })
     const d = await res.json()
@@ -186,11 +190,13 @@ export function NuevaMatricula() {
       d.estado_cuenta?.ok
         ? `Estado de cuenta creado: ${d.estado_cuenta.cargos} cargos según la plantilla del programa.`
         : `⚠ Estado de cuenta: ${d.estado_cuenta?.note ?? 'no se pudo generar'} — revisa la plantilla en Planes de Pago.`,
-      'Matrícula PENDIENTE DE PAGO: al verificarse el pago de los conceptos iniciales se activa sola (acta, correo institucional, carrusel y Moodle). Para excepciones, botón Activar en Estudiantes por Convocatoria.',
+      'Matrícula PENDIENTE DE PAGO: al verificarse el pago de los conceptos iniciales se activa sola (registro curricular, correo institucional, carrusel y Moodle). Para excepciones, "activar (excepción)" en la ficha del estudiante.',
+      ...(d.comentarios_no_guardados ? ['⚠ Los comentarios NO se guardaron (falta correr la migración enrollment_comments.sql): anótalos en la ficha del estudiante cuando esté lista.'] : []),
     ]
     setNotice({ kind: 'ok', lines })
     // Listo para la siguiente matrícula
     setSelected(null); setCreating(false); setNewStudent(EMPTY_NEW)
+    setAcademicComments(''); setFinancialComments('')
     setResults(null); setQuery(''); setProgramId('')
   }
 
@@ -366,6 +372,20 @@ export function NuevaMatricula() {
           <label>
             <span className="block text-xs text-gray-500 mb-1">Fecha de matrícula</span>
             <input type="date" value={enrollDate} onChange={e => setEnrollDate(e.target.value)} className={inp} />
+          </label>
+          {/* Notas internas que la vendedora CARGA y las áreas leen después
+              (17/09/2026). Nunca se muestran al estudiante. */}
+          <label className="sm:col-span-2">
+            <span className="block text-xs text-gray-500 mb-1">Comentarios académicos <span className="text-gray-400">(opcional · los lee Registros — ej. el estudiante pidió convalidar)</span></span>
+            <textarea value={academicComments} onChange={e => setAcademicComments(e.target.value)} rows={2} maxLength={1000}
+              placeholder="Ej. Solicita convalidación de sus estudios en el instituto X; entregará certificado el lunes."
+              className={`${inp} resize-y`} />
+          </label>
+          <label className="sm:col-span-2">
+            <span className="block text-xs text-gray-500 mb-1">Comentarios económicos <span className="text-gray-400">(opcional · los lee Finanzas — ej. beneficio extra en su plan de pagos)</span></span>
+            <textarea value={financialComments} onChange={e => setFinancialComments(e.target.value)} rows={2} maxLength={1000}
+              placeholder="Ej. Se le ofreció fraccionar la matrícula en dos partes; descuento adicional aprobado por Dirección."
+              className={`${inp} resize-y`} />
           </label>
         </div>
       </div>
