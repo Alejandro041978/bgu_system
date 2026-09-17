@@ -117,7 +117,11 @@ export async function GET() {
   })
 
   // ── 4. Objetivos que nadie mide ──────────────────────────────────────────
-  const objConMedida = new Set((alin ?? []).map((a: { objective_id: string }) => a.objective_id))
+  // Los KPIs del plan de evaluación NO se relacionan con los objetivos
+  // estratégicos (decisión del usuario, 17/09/2026): iap_measure_objectives queda
+  // como dato histórico sin efecto y ya no cuenta como medición del objetivo.
+  void alin
+  const objConMedida = new Set<string>()
   // Un objetivo está medido si lo mide CUALQUIERA de los tres planes.
   const objConKpi = new Set([
     ...(enlaces ?? []).filter((e: { link_type: string }) => e.link_type === 'objetivo').map((e: { link_id: string }) => e.link_id),
@@ -126,7 +130,7 @@ export async function GET() {
   add({
     id: 'objetivo-sin-medicion', sev: 'alta', grupo: 'Cobertura',
     titulo: 'Objetivos del plan estratégico que ningún plan mide',
-    detalle: 'El plan los declara y ni el IAP ni el Plan de Efectividad les asignan indicadores. Se avanza sin poder demostrarlo.',
+    detalle: 'El plan los declara y ni el Plan Estratégico ni el Plan de Efectividad les asignan indicadores. Se avanza sin poder demostrarlo.',
     sugerencia: 'Asignarles indicadores, o retirarlos del plan si son estructura interna que no se reporta.',
     afectados: (objs ?? [])
       .filter((o: { status: string; id: string }) => o.status === 'active' && !objConMedida.has(o.id) && !objConKpi.has(o.id))

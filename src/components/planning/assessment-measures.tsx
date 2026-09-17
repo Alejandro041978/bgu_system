@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { FileText, AlertTriangle } from 'lucide-react'
-import { useIAP, SelectorAnio, Tarjeta, ESTADO, BINDING, type Medida } from './assessment-shared'
+import { useIAP, SelectorPlan, Tarjeta, ESTADO, BINDING, type Medida } from './assessment-shared'
 
 // ---------------------------------------------------------------------------
 // EL TABLERO DE MEDIDAS — el reporte anual completo.
@@ -13,13 +13,14 @@ import { useIAP, SelectorAnio, Tarjeta, ESTADO, BINDING, type Medida } from './a
 // segunda es la que se defiende ante un acreditador.
 // ---------------------------------------------------------------------------
 export function AssessmentMeasures() {
-  const { d, anioId, cargando, error, traer } = useIAP()
+  const { d, planId, cargando, error, traer } = useIAP()
   const [filtro, setFiltro] = useState<string>('todas')
   const [abierta, setAbierta] = useState<string | null>(null)
 
   if (cargando && !d) return <p className="text-sm text-gray-500">Cargando el inventario…</p>
   if (error && !d) return <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</div>
   if (!d) return null
+  if (d.sin_planes) return <p className="text-sm text-gray-500">Todavía no hay ningún plan de evaluación: créalo en Plan de Evaluación de Resultados.</p>
 
   const c = d.cobertura
   const filas = d.medidas.filter(m =>
@@ -43,7 +44,7 @@ export function AssessmentMeasures() {
 
   return (
     <div className="space-y-5">
-      <SelectorAnio d={d} anioId={anioId} cargando={cargando} traer={traer} />
+      <SelectorPlan d={d} planId={planId} cargando={cargando} traer={traer} />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Tarjeta titulo="Automatización del año" valor={`${pctErp}%`} detalle={`${c.del_erp} de ${c.medidas} salen del ERP`} />
@@ -76,7 +77,6 @@ export function AssessmentMeasures() {
           <thead className="bg-gray-50 text-left text-[11px] uppercase text-gray-400">
             <tr>
               <th className="px-3 py-2 font-medium">Medida</th>
-              <th className="px-3 py-2 font-medium">IO</th>
               <th className="px-3 py-2 font-medium">Origen</th>
               <th className="px-3 py-2 font-medium">Meta</th>
               <th className="px-3 py-2 font-medium text-right">Resultado</th>
@@ -127,11 +127,6 @@ function FilaMedida({ m, abierta, toggle }: { m: Medida; abierta: boolean; toggl
           </p>
         </td>
         <td className="px-3 py-2">
-          <div className="flex flex-wrap gap-0.5">
-            {m.objetivos.map(o => <span key={o} className="rounded bg-gray-100 px-1 py-0.5 text-[10.5px] text-gray-600">{o}</span>)}
-          </div>
-        </td>
-        <td className="px-3 py-2">
           <span className={`rounded border px-1.5 py-0.5 text-[10.5px] ${bind.cls}`}>{bind.txt}</span>
         </td>
         <td className="px-3 py-2 max-w-[14rem] text-[12px] text-gray-600">{m.meta_texto ?? '—'}</td>
@@ -157,7 +152,7 @@ function FilaMedida({ m, abierta, toggle }: { m: Medida; abierta: boolean; toggl
 
       {abierta && (
         <tr className="border-t border-gray-100 bg-gray-50/60">
-          <td colSpan={8} className="px-4 py-3">
+          <td colSpan={7} className="px-4 py-3">
             {m.discrepa && (
               <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
                 <p className="text-[12.5px] font-medium text-amber-900">Dos valores para el mismo indicador</p>

@@ -56,9 +56,12 @@ async function contexto(sb: any) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const planEfec = ((planes ?? []) as any[]).find(p => anio && p.academic_year_id === anio.id) ?? (planes ?? [])[0] ?? null
 
-  const { data: iaps } = await sb.from('iap_plans').select('id, name, status, created_at').order('created_at', { ascending: false })
+  // Mismo criterio que efectividad: el plan del año académico en curso; si
+  // no existe, el más reciente. (Antes: 'el activo', que con varios planes
+  // anuales no distingue nada.)
+  const { data: iaps } = await sb.from('iap_plans').select('id, name, status, start_academic_year_id, created_at').order('created_at', { ascending: false })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const iap = ((iaps ?? []) as any[]).find(p => p.status === 'active') ?? (iaps ?? [])[0] ?? null
+  const iap = ((iaps ?? []) as any[]).find(p => anio && p.start_academic_year_id === anio.id) ?? (iaps ?? [])[0] ?? null
   const { data: medidas } = iap
     ? await sb.from('iap_measures').select('id, code, name, indicator_id, result_value').eq('plan_id', iap.id).order('code')
     : { data: [] }

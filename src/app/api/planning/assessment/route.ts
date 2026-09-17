@@ -47,29 +47,36 @@ export async function GET(req: NextRequest) {
   const { data: anios } = await sb.from('academic_years')
     .select('id, name, start_date, end_date, status').order('start_date')
   const lista = (anios ?? []) as AcademicYear[]
-  const pedido = req.nextUrl.searchParams.get('academic_year_id')
-  const anio = (pedido ? lista.find(y => y.id === pedido) : null) ?? anioVigente(lista) ?? lista[lista.length - 1] ?? null
-
-  // El IAP es ANUAL: hay un plan por año académico. Se elige el que cubre el
-  // año consultado, no "el activo" — si no, al mirar 2026-2027 se verían las
-  // medidas del plan de 2025-2026 con los resultados del año siguiente, que es
-  // la peor mezcla posible: parece correcta.
-  const { data: planes } = await sb.from('iap_plans')
-    .select('id, name, version, doc_owner, status, start_academic_year_id, end_academic_year_id')
+  // Se elige un PLAN, no un año (corrección del usuario, 17/09/2026). Antes se
+  // elegía cualquier año académico y, si no tenía plan, se mostraba "prestada"
+  // la estructura de otro: parecía un plan y no lo era. Ahora solo existen los
+  // planes creados; el año es el del plan elegido.
+  const { data: planesRaw } = await sb.from('iap_plans')
+    .select('id, name, version, doc_owner, status, start_academic_year_id, end_academic_year_id, created_at')
     .order('created_at')
-  const fechaDe = (id: string | null) => lista.find(y => y.id === id)?.start_date ?? null
-  const cubre = (p: { start_academic_year_id: string | null; end_academic_year_id: string | null }) => {
-    if (!anio) return false
-    const d = fechaDe(p.start_academic_year_id), h = fechaDe(p.end_academic_year_id) ?? fechaDe(p.start_academic_year_id)
-    return !!d && !!h && d <= anio.start_date && anio.start_date <= h
-  }
-  const plan = (planes ?? []).find(cubre)
-    ?? (planes ?? []).find((p: { status: string }) => p.status === 'active')
-    ?? null
-  if (!plan) return NextResponse.json({ error: 'No hay un Institutional Assessment Plan activo' }, { status: 409 })
-
-  // Si el año que se mira no es el que cubre el plan, hay que decirlo.
-  const planCubreElAnio = cubre(plan)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const planes = ((planesRaw ?? []) as any[])
+    .map(p => ({ ...p, _inicio: lista.find(y => y.id === p.start_academic_year_id)?.start_date ?? '' }))
+    .sort((x, y) => String(y._inicio).localeCompare(String(x._inicio)))
+  const vigente = anioVigente(lista)
+  const pedido = req.nextUrl.searchParams.get('plan_id')
+  const plan = (pedido ? planes.find(p => p.id === pedido) : null)
+    ?? planes.find(p => vigente && p.start_academic_year_id === vigente.id)
+    ?? planes[0] ?? null
+  const { data: cuentaMed } = await sb.from('iap_measures').select('plan_id')
+  const nMedidas = new Map<string, number>()
+  for (const m of cuentaMed ?? []) nMedidas.set(String(m.plan_id), (nMedidas.get(String(m.plan_id)) ?? 0) + 1)
+  const planesOut = planes.map(p => ({
+    id: p.id, name: p.name,
+    anio: (() => { const y = lista.find(x => x.id === p.start_academic_year_id); return y ? etiquetaDe(y) : null })(),
+    medidas: nMedidas.get(String(p.id)) ?? 0,
+  }))
+  const aniosSinPlan = lista
+    .filter(y => !planes.some(p => p.start_academic_year_id === y.id))
+    .map(y => ({ id: y.id, etiqueta: etiquetaDe(y) }))
+  if (!plan) return NextResponse.json({ sin_planes: true, planes: [], anios_sin_plan: aniosSinPlan })
+  const anio = lista.find(y => y.id === plan.start_academic_year_id) ?? null
+  const planCubreElAnio = true
 
   const [{ data: medidas }, { data: alin }, { data: bench }, { data: cal }, { data: objs }, { data: evid }, { data: escala }, { data: emps }] = await Promise.all([
     sb.from('iap_measures').select('*').eq('plan_id', plan.id).order('code'),
@@ -209,10 +216,28 @@ export async function GET(req: NextRequest) {
       .map((m) => (m as { code: string }).code).sort(),
   }))
 
+  // Vincular KPI: solo los que el Catálogo de KPIs declara del plan de
+  // evaluación (ya tienen su código D-/I- en algún plan) y que aún no están en
+  // ESTE plan. Un KPI entra una sola vez por plan.
+  const { data: todas } = await sb.from('iap_measures')
+    .select('indicator_id, code, name, measure_type, created_at').not('indicator_id', 'is', null).order('created_at')
+  const enEste = new Set<string>((medidas ?? []).map((m: { indicator_id: string | null }) => String(m.indicator_id)))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ultimaDe = new Map<string, any>()
+  for (const m of todas ?? []) ultimaDe.set(String(m.indicator_id), m)
+  const disponibles = [...ultimaDe.values()]
+    .filter(m => !enEste.has(String(m.indicator_id)))
+    .map(m => ({ indicator_id: m.indicator_id, code: m.code, name: m.name, tipo: m.measure_type }))
+    .sort((x, y) => String(x.code).localeCompare(String(y.code)))
+
   const cuenta = (e: string) => salida.filter((m: { estado: string | null }) => m.estado === e).length
   return NextResponse.json({
     escala: escala ?? [],
+    planes: planesOut,
+    anios_sin_plan: aniosSinPlan,
+    disponibles,
     plan: {
+      id: plan.id,
       name: plan.name, version: plan.version, doc_owner: plan.doc_owner,
       desde: lista.find(y => y.id === plan.start_academic_year_id)?.name ?? null,
       hasta: lista.find(y => y.id === plan.end_academic_year_id)?.name ?? null,
@@ -240,4 +265,71 @@ export async function GET(req: NextRequest) {
     medidas: salida,
     calendario,
   })
+}
+
+// POST — gestión del plan, igual que Cargar Plan · Efectividad:
+//   { action: 'crear_plan', academic_year_id }
+//   { action: 'vincular', plan_id, indicator_id }
+//   { action: 'desvincular', measure_id }
+export async function POST(req: NextRequest) {
+  const noAutorizado = await guardPlanning()
+  if (noAutorizado) return noAutorizado
+  const sb = db()
+  const b = await req.json().catch(() => null) as
+    { action?: string; academic_year_id?: string; plan_id?: string; indicator_id?: string; measure_id?: string } | null
+
+  if (b?.action === 'crear_plan') {
+    if (!b.academic_year_id) return NextResponse.json({ error: 'Falta el año académico' }, { status: 400 })
+    const { data: y } = await sb.from('academic_years').select('id, name, start_date, end_date, status').eq('id', b.academic_year_id).maybeSingle()
+    if (!y) return NextResponse.json({ error: 'Año académico no encontrado' }, { status: 400 })
+    const { data: ya } = await sb.from('iap_plans').select('id').eq('start_academic_year_id', y.id).limit(1)
+    if ((ya ?? []).length) return NextResponse.json({ error: 'Ese año académico ya tiene su plan de evaluación.' }, { status: 409 })
+    const { data: prev } = await sb.from('iap_plans').select('doc_owner').order('created_at', { ascending: false }).limit(1)
+    const { data: nuevo, error } = await sb.from('iap_plans').insert({
+      name: 'Institutional Assessment Plan ' + etiquetaDe(y as AcademicYear), version: '1.0',
+      start_academic_year_id: y.id, end_academic_year_id: y.id,
+      doc_owner: prev?.[0]?.doc_owner ?? null, status: 'active',
+    }).select('id').single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, plan_id: nuevo.id })
+  }
+
+  if (b?.action === 'vincular') {
+    if (!b.plan_id || !b.indicator_id) return NextResponse.json({ error: 'Faltan plan_id e indicator_id' }, { status: 400 })
+    const { data: ya } = await sb.from('iap_measures').select('id').eq('plan_id', b.plan_id).eq('indicator_id', b.indicator_id).limit(1)
+    if ((ya ?? []).length) return NextResponse.json({ error: 'Este KPI ya está vinculado a este plan.' }, { status: 409 })
+    // La ficha nace copiando la DEFINICIÓN de la más reciente (decisión del
+    // usuario): código, propósito, meta, responsable, origen. El resultado, el
+    // estado, la decisión y la evidencia son del año y NO viajan.
+    const { data: prevs } = await sb.from('iap_measures').select('*').eq('indicator_id', b.indicator_id).order('created_at', { ascending: false }).limit(1)
+    const o = prevs?.[0]
+    if (!o) return NextResponse.json({ error: 'Este KPI no está declarado del plan de evaluación. Márcalo primero en el Catálogo de KPIs, donde recibe su código (D-## / I-##).' }, { status: 409 })
+    const definicion: Record<string, unknown> = { ...o }
+    for (const k of ['id', 'created_at', 'plan_id', 'result_value', 'result_text', 'result_status', 'decision', 'result_note', 'result_recorded_at', 'result_recorded_by']) delete definicion[k]
+    const { data: nueva, error } = await sb.from('iap_measures').insert({ ...definicion, plan_id: b.plan_id }).select('id').single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    const { data: bs } = await sb.from('iap_benchmarks').select('scope, value, operator, note').eq('measure_id', o.id)
+    if ((bs ?? []).length) {
+      await sb.from('iap_benchmarks').insert((bs ?? []).map((x: Record<string, unknown>) => ({ ...x, measure_id: nueva.id })))
+    }
+    return NextResponse.json({ ok: true, measure_id: nueva.id })
+  }
+
+  if (b?.action === 'desvincular') {
+    if (!b.measure_id) return NextResponse.json({ error: 'Falta measure_id' }, { status: 400 })
+    const { data: m } = await sb.from('iap_measures').select('id, code, result_value, result_status').eq('id', b.measure_id).maybeSingle()
+    if (!m) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+    if (m.result_value !== null || m.result_status !== null) {
+      return NextResponse.json({ error: m.code + ' ya tiene un resultado registrado en este plan: no se puede quitar.' }, { status: 409 })
+    }
+    const { data: ev } = await sb.from('iap_measure_evidence').select('id').eq('measure_id', m.id).limit(1)
+    if ((ev ?? []).length) return NextResponse.json({ error: m.code + ' tiene evidencia cargada en este plan: no se puede quitar.' }, { status: 409 })
+    await sb.from('iap_benchmarks').delete().eq('measure_id', m.id)
+    await sb.from('iap_measure_objectives').delete().eq('measure_id', m.id)
+    const { error } = await sb.from('iap_measures').delete().eq('id', m.id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  }
+
+  return NextResponse.json({ error: 'Acción no reconocida' }, { status: 400 })
 }

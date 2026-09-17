@@ -32,9 +32,15 @@ export interface FilaCalendario {
   seq: number; periodo: string; actividad: string
   medidas: string[]; responsable: string | null; desconocidas: string[]
 }
+export interface PlanResumen { id: string; name: string; anio: string | null; medidas: number }
+export interface Disponible { indicator_id: string; code: string; name: string; tipo: 'directa' | 'indirecta' }
 export interface IAP {
+  sin_planes?: boolean
+  planes: PlanResumen[]
+  anios_sin_plan: { id: string; etiqueta: string }[]
+  disponibles: Disponible[]
   plan: {
-    name: string; version: string; doc_owner: string | null
+    id: string; name: string; version: string; doc_owner: string | null
     desde: string | null; hasta: string | null; cubre_el_anio: boolean
   }
   anio: { id: string; etiqueta: string; start_date: string; end_date: string } | null
@@ -73,24 +79,25 @@ export const BINDING: Record<string, { txt: string; cls: string }> = {
   pendiente:   { txt: 'pendiente', cls: 'border-dashed border-gray-300 bg-white text-gray-400' },
 }
 
+// Se elige un PLAN (no un año): el IAP es anual y solo existen los creados.
 export function useIAP() {
   const [d, setD] = useState<IAP | null>(null)
-  const [anioId, setAnioId] = useState('')
+  const [planId, setPlanId] = useState('')
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const traer = async (id?: string) => {
     setCargando(true); setError(null)
     try {
-      const r = await fetch(`/api/planning/assessment${id ? `?academic_year_id=${id}` : ''}`, { cache: 'no-store' })
+      const r = await fetch(`/api/planning/assessment${id ? `?plan_id=${id}` : ''}`, { cache: 'no-store' })
       const j = await r.json()
       if (!r.ok) throw new Error(j.error ?? 'No se pudo cargar')
-      setD(j); setAnioId(j.anio?.id ?? '')
+      setD(j); setPlanId(j.plan?.id ?? '')
     } catch (e) { setError(String(e instanceof Error ? e.message : e)) }
     setCargando(false)
   }
   useEffect(() => { traer() }, [])
-  return { d, anioId, cargando, error, traer }
+  return { d, planId, cargando, error, traer }
 }
 
 export const FUENTE: Record<string, string> = {
@@ -100,35 +107,24 @@ export const FUENTE: Record<string, string> = {
   manual: 'bg-gray-50 text-gray-600 border-gray-200',
 }
 
-export function SelectorAnio(
-  { d, anioId, cargando, traer }:
-  { d: IAP; anioId: string; cargando: boolean; traer: (id?: string) => void },
+export function SelectorPlan(
+  { d, planId, cargando, traer }:
+  { d: IAP; planId: string; cargando: boolean; traer: (id?: string) => void },
 ) {
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-3">
-        <div>
-          <p className="text-sm font-semibold text-gray-900">{d.plan.name}</p>
-          <p className="text-xs text-gray-500">
-            Versión {d.plan.version}{d.plan.doc_owner ? ` · ${d.plan.doc_owner}` : ''}
-          </p>
-        </div>
-        <select value={anioId} onChange={e => traer(e.target.value)} disabled={cargando}
-          className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm">
-          {d.anios.map(y => <option key={y.id} value={y.id}>Año académico {y.etiqueta}</option>)}
-        </select>
-      </div>
-
-      {/* El IAP es anual: mirar otro año sin su plan propio no es un error,
-          pero tampoco es un dato — hay que decirlo antes de que alguien lo lea
-          como si lo fuera. */}
-      {!d.plan.cubre_el_anio && (
-        <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-900">
-          El año académico seleccionado <b>no tiene su propio plan de evaluación</b>. Se está mostrando la
-          estructura de <b>{d.plan.name}</b>. Cada año necesita su IAP: las medidas y los estándares pueden
-          cambiar de un ciclo al siguiente.
+    <div className="flex flex-wrap items-center gap-3">
+      <div>
+        <p className="text-sm font-semibold text-gray-900">{d.plan.name}</p>
+        <p className="text-xs text-gray-500">
+          Versión {d.plan.version}{d.plan.doc_owner ? ` · ${d.plan.doc_owner}` : ''}
+          {d.anio ? ` · año académico ${d.anio.etiqueta}` : ''}
         </p>
-      )}
+      </div>
+      {/* Solo los planes que existen: sin años "prestados" */}
+      <select value={planId} onChange={e => traer(e.target.value)} disabled={cargando}
+        className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm">
+        {d.planes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+      </select>
     </div>
   )
 }
