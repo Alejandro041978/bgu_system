@@ -99,6 +99,12 @@ export async function POST(req: NextRequest) {
   if (!body.plan_id || !body.kpi_id) {
     return NextResponse.json({ error: 'plan_id y kpi_id requeridos' }, { status: 400 })
   }
+  // Un KPI entra UNA sola vez en un mismo plan.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: yaEsta } = await (db() as any).from('effectiveness_plan_kpis')
+    .select('id').eq('plan_id', body.plan_id).eq('kpi_id', body.kpi_id).limit(1)
+  if ((yaEsta ?? []).length) return NextResponse.json({ error: 'Este KPI ya está vinculado a este plan.' }, { status: 409 })
+
   // Solo se vinculan KPIs que el catálogo declara del plan de efectividad: los
   // que ya tienen SU código de efectividad. El código viaja al nuevo enlace
   // (así un plan 2026-2027 hereda E1-S01 sin volver a teclearlo).

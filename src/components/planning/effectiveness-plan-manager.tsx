@@ -282,10 +282,14 @@ export function EffectivenessPlanManager({
                       onChange={e => setAddForm(p => ({ ...p, kpi_id: e.target.value }))}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                       <option value="">— Seleccionar KPI —</option>
-                      {kpiCatalog.map(k => (
-                        <option key={k.id} value={k.id}>{k.code} · {k.name}{planKPIs.some(p => p.kpi_id === k.id) ? '  (ya vinculado a este plan)' : ''}</option>
+                      {/* Un KPI entra UNA sola vez en un plan: los ya vinculados no se ofrecen */}
+                      {kpiCatalog.filter(k => !planKPIs.some(p => p.kpi_id === k.id)).map(k => (
+                        <option key={k.id} value={k.id}>{k.code} · {k.name}</option>
                       ))}
                     </select>
+                    {kpiCatalog.every(k => planKPIs.some(p => p.kpi_id === k.id)) && (
+                      <p className="text-[11px] text-amber-700 mt-1">Todos los KPIs del plan de efectividad ya están vinculados a este plan.</p>
+                    )}
                     <p className="text-[11px] text-gray-400 mt-1">
                       Solo aparecen los KPIs que el Catálogo de KPIs declara del plan de efectividad. Para sumar otro, márcalo allí con su código (E#-I/O/S##).
                     </p>
