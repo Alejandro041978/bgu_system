@@ -497,10 +497,19 @@ export async function POST(req: NextRequest) {
       const ms = await moodleCall('core_enrol_get_course_enrolment_methods', { courseid: c.id })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const arr = (Array.isArray(ms) ? ms : []) as any[]
-      enrolMethods = arr.map(m => `${m.type}:${m.status ? 'activo' : 'inactivo'}`).join(', ') || 'ninguno'
-      // Moodle marca `status` true cuando el método está habilitado.
-      manualEnrol = arr.some(m => m.type === 'manual' && m.status)
-    } catch { /* función no habilitada en el servicio: queda null, no false */ }
+      // OJO (17/09/2026): esta función de Moodle NO es un inventario. Solo
+      // devuelve los métodos con los que quien llama podría AUTO-matricularse
+      // (self, guest, pago); la matrícula MANUAL —la que usa el ERP— no
+      // aparece nunca, por diseño. Una lista vacía significa "sin
+      // auto-matrícula", no "sin métodos". Inferir de aquí la matrícula manual
+      // marcaba TODAS las aulas como "el ERP no puede matricular" en cuanto la
+      // función se habilitó en el servicio (tras el upgrade a 4.5). La señal
+      // de matrícula manual sale de un hecho: si la cuenta de servicio logra
+      // matricularse (más abajo). Sin ese hecho, queda null = sin dato.
+      enrolMethods = arr.length
+        ? arr.map(m => `${m.type}:${m.status ? 'activo' : 'inactivo'}`).join(', ')
+        : 'sin auto-matrícula'
+    } catch { /* función no habilitada en el servicio: queda null */ }
 
     // Cuántos estudiantes hay realmente. Un aula con 0 y estudiantes esperando
     // es el síntoma que hasta ahora pasaba desapercibido.
@@ -566,7 +575,16 @@ export async function POST(req: NextRequest) {
       let desmatricular = false
       if (!readerId) {
         if (!auditorId) return { ...base, ...vacio, enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, sin_idnumber: sinIdnumber, recursos, recursos_activos: recursosActivos, metodo: null, error: manualEnrol === false ? "el aula no tiene matriculación manual habilitada: el ERP no puede matricular" : "aula vacía y sin cuenta de servicio" }
-        await moodleCall('enrol_manual_enrol_users', { enrolments: [{ roleid: MOODLE_STUDENT_ROLEID, userid: auditorId, courseid: c.id }] })
+        // La prueba REAL de la matrícula manual: o la cuenta de servicio entra,
+        // o Moodle dice por qué no. De aquí sale manual_enrol, no de la lista
+        // de métodos.
+        try {
+          await moodleCall('enrol_manual_enrol_users', { enrolments: [{ roleid: MOODLE_STUDENT_ROLEID, userid: auditorId, courseid: c.id }] })
+          manualEnrol = true
+        } catch (e) {
+          manualEnrol = false
+          throw e
+        }
         readerId = auditorId
         metodo = 'auditor'
         desmatricular = true

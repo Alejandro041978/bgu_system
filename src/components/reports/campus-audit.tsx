@@ -422,6 +422,13 @@ export function CampusAudit() {
                         <span className={a.matriculados === 0 ? 'text-amber-600' : 'text-gray-500'} title={a.enrol_methods ?? undefined}>
                           {a.matriculados != null ? `${a.matriculados} matric.` : 'manual'}
                         </span>
+                      ) : a.matriculados != null ? (
+                        // Sin dato de matrícula manual (solo se mide cuando el
+                        // auditor tuvo que matricular su cuenta de servicio):
+                        // se muestra igual cuántos hay.
+                        <span className={a.matriculados === 0 ? 'text-amber-600' : 'text-gray-500'} title={a.enrol_methods ?? undefined}>
+                          {a.matriculados} matric.
+                        </span>
                       ) : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
