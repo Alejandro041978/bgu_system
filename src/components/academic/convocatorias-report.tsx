@@ -19,6 +19,17 @@ export function ConvocatoriasReport() {
   const [years, setYears] = useState<Ref[]>([])
   const [programId, setProgramId] = useState('')
   const [yearId, setYearId] = useState('')
+  // Filtro por categoría de programas (17/09/2026): acota la lista de
+  // programas; vacío = todas.
+  const [categoria, setCategoria] = useState('')
+  const categorias = [...new Set(programs.map(p => p.category).filter(Boolean))].sort()
+  const programasVisibles = programs.filter(p => !categoria || p.category === categoria)
+  const cambiarCategoria = (c: string) => {
+    setCategoria(c)
+    // Si el programa elegido no pertenece a la categoría nueva, se suelta
+    const actual = programs.find(p => p.id === programId)
+    if (c && actual && actual.category !== c) setProgramId('')
+  }
   const [data, setData] = useState<Data | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -40,11 +51,18 @@ export function ConvocatoriasReport() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3">
+        <label className="min-w-[200px]">
+          <span className="block text-xs text-gray-500 mb-1">Categoría</span>
+          <select value={categoria} onChange={e => cambiarCategoria(e.target.value)} className={inp}>
+            <option value="">Todas las categorías</option>
+            {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
         <label className="flex-1 min-w-[240px]">
-          <span className="block text-xs text-gray-500 mb-1">Programa</span>
+          <span className="block text-xs text-gray-500 mb-1">Programa{categoria ? ` (${programasVisibles.length})` : ''}</span>
           <select value={programId} onChange={e => setProgramId(e.target.value)} className={inp}>
             <option value="">Seleccionar…</option>
-            {programs.map(p => <option key={p.id} value={p.id}>{p.name}{p.category ? ` — ${p.category}` : ''}</option>)}
+            {programasVisibles.map(p => <option key={p.id} value={p.id}>{p.name}{!categoria && p.category ? ` — ${p.category}` : ''}</option>)}
           </select>
         </label>
         <label className="min-w-[200px]">
