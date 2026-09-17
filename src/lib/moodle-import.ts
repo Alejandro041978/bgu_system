@@ -121,7 +121,7 @@ export async function loadStudentsByExternal(sb: any): Promise<Map<string, any>>
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function importAula(sb: any, courseid: number, userId: string, pre?: { byExternal?: Map<string, any>; deadlineMs?: number }): Promise<ImportAulaResult> {
+export async function importAula(sb: any, courseid: number, userId: string, pre?: { byExternal?: Map<string, any>; deadlineMs?: number; onlyStudentIds?: string[] }): Promise<ImportAulaResult> {
   // El periodo de la nota sale de la OFERTA del aula —semester_offerings dice
   // en qué semestre se dictó— y de ahí a su año académico.
   //
@@ -226,18 +226,59 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   // revienta cualquier timeout. Para esas, se pide estudiante por estudiante
   // en paralelo (solo los que cruzan el puente idnumber→estudiante: los demás
   // terminarían en sin_puente igual) — llamadas chicas que escalan.
+  //
+  // Aulas grandes (17/09/2026). El costo lo pone el HISTÓRICO de matriculados,
+  // no quien cursa: el aula 138 gastaba 90 s en 285 consultas para 4 notas, y la
+  // 126 (417) no terminaba NUNCA — al agotarse el tiempo se tiraba todo lo
+  // recogido, así que ni el cron ni el botón lograban importarla. Ahora:
+  //   1. nunca se descarta: si el tiempo se acaba, se importa lo obtenido
+  //      (seguro: el importador solo escribe sobre los estudiantes que recibe);
+  //   2. primero quienes tienen la asignatura ABIERTA en su registro curricular;
+  //   3. el resto rota con un cursor por aula (moodle_aula_audit.import_cursor)
+  //      y se cubre entero en pocas corridas, sin repetir.
+  // Con onlyStudentIds (sincronización manual de un alumno) se consulta solo a
+  // esos, sea cual sea el tamaño del aula, y el cursor no se toca.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let report: any
-  if (users.size > 150) {
-    const targets = [...users.entries()]
+  let parcial: { consultados: number; total: number; pendientes: number } | null = null
+  const solo = pre?.onlyStudentIds?.length ? new Set(pre.onlyStudentIds.map(String)) : null
+  if (solo || users.size > 150) {
+    const conPuente = [...users.entries()]
       .filter(([, u]) => u.idnumber && byExternal.has(u.idnumber))
-      .map(([uid]) => uid)
+      .map(([uid, u]) => ({ uid, sid: String(byExternal.get(u.idnumber).id) }))
+    let targets: number[]
+    let nPrioridad = 0
+    if (solo) {
+      targets = conPuente.filter(t => solo.has(t.sid)).map(t => t.uid)
+      nPrioridad = targets.length
+    } else {
+      const abiertos = new Set<string>()
+      try {
+        for (let from = 0; ; from += 1000) {
+          const { data } = await sb.from('academic_course_enrollments')
+            .select('student_id').eq('course_id', destCourse.id).is('closed_at', null).range(from, from + 999)
+          for (const r of data ?? []) abiertos.add(String(r.student_id))
+          if ((data ?? []).length < 1000) break
+        }
+      } catch { /* sin prioridad: se recorre todo por turnos */ }
+      let cursor = 0
+      try {
+        const { data: c } = await sb.from('moodle_aula_audit').select('import_cursor').eq('aula_id', courseid).maybeSingle()
+        cursor = Number(c?.import_cursor ?? 0) || 0
+      } catch { /* columna aún sin migrar: se empieza desde el principio */ }
+      const prioridad = conPuente.filter(t => abiertos.has(t.sid)).map(t => t.uid)
+      const resto = conPuente.filter(t => !abiertos.has(t.sid)).map(t => t.uid).sort((x, y) => x - y)
+      const desde = resto.findIndex(uid => uid > cursor)
+      const rotado = desde <= 0 ? resto : [...resto.slice(desde), ...resto.slice(0, desde)]
+      targets = [...prioridad, ...rotado]
+      nPrioridad = prioridad.length
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const usergrades: any[] = []
     let idx = 0
+    const hayTiempo = () => (pre?.deadlineMs ? pre.deadlineMs - Date.now() : 240_000) > 45_000
     const worker = async () => {
-      while (idx < targets.length) {
-        heavyTimeout() // corta limpio si la corrida ya no tiene tiempo
+      while (idx < targets.length && hayTiempo()) {
         const uid = targets[idx++]
         try {
           const r = await moodleCall('gradereport_user_get_grade_items', { courseid, userid: uid }, { timeoutMs: 30_000 })
@@ -247,6 +288,15 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     }
     await Promise.all(Array.from({ length: 8 }, worker))
     report = { usergrades }
+    if (idx < targets.length) parcial = { consultados: idx, total: targets.length, pendientes: targets.length - idx }
+    if (!solo) {
+      // Todo índice < idx ya se consultó (los workers terminan lo que empiezan).
+      // El cursor solo avanza por el tramo rotado, nunca por la prioridad.
+      const nuevoCursor = idx >= targets.length ? 0 : idx > nPrioridad ? targets[idx - 1] : null
+      if (nuevoCursor !== null) {
+        try { await sb.from('moodle_aula_audit').update({ import_cursor: nuevoCursor }).eq('aula_id', courseid) } catch { /* sin migrar */ }
+      }
+    }
   } else {
     report = await moodleCall('gradereport_user_get_grade_items', { courseid }, { timeoutMs: heavyTimeout() })
   }
@@ -690,6 +740,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       recursados_sin_declarar_lista: sinDeclararLista,
       saltados_campus_externo: saltadosExternos,
       detalles_escritos: detallesEscritos,
+      parcial,
     },
   }
 }

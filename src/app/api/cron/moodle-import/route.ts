@@ -110,6 +110,9 @@ export async function POST(req: NextRequest) {
       importadas.push({
         aula: id, nuevas: s.inserted, actualizadas: s.updated, sin_cambio: s.unchanged,
         protegidas: s.protected_rows, cerradas: s.locked_rows, detalles: s.detalles_escritos,
+        // Aula grande que no cupo entera: se importó lo consultado y el cursor
+        // continúa en la próxima corrida.
+        ...(s.parcial ? { parcial: s.parcial } : {}),
       })
     } catch (e) {
       errores.push({ aula: id, errores: [String(e)] })
