@@ -87,13 +87,36 @@ export async function GET() {
   const sb = db()
   const ctx = await contexto(sb)
 
-  const [{ data: kpis }, { data: spk }, efec] = await Promise.all([
+  const [{ data: kpis }, { data: spk }, efec, { data: anios }] = await Promise.all([
     sb.from('effectiveness_kpis').select('id, code'),
-    ctx.ciclo ? sb.from('strategic_plan_kpis').select('kpi_id, strategic_code').eq('cycle_id', ctx.ciclo.id) : Promise.resolve({ data: [] }),
+    ctx.ciclo ? sb.from('strategic_plan_kpis').select('kpi_id, strategic_code, valid_from_year_id, valid_to_year_id').eq('cycle_id', ctx.ciclo.id) : Promise.resolve({ data: [] }),
     ctx.planEfec ? enlacesEfectividad(sb, ctx.planEfec.id) : Promise.resolve({ filas: [], migrado: true }),
+    sb.from('academic_years').select('id, name, start_date'),
   ])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const interno = new Map<string, string>(((kpis ?? []) as any[]).map(k => [String(k.id), norm(k.code)]))
+
+  // Vigencia: SOLO el plan estratégico la tiene (es plurianual). Efectividad y
+  // evaluación son anuales: el KPI rige si el plan de ese año lo incluye.
+  // Aquí solo se REFLEJA; se edita en el Tablero de Indicadores.
+  const hoy = new Date().toISOString().slice(0, 10)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anioDe = new Map<string, { etiqueta: string; start: string }>(((anios ?? []) as any[]).map(a => {
+    const m = String(a.name).match(/(d{4})D+(d{4})/)
+    return [String(a.id), { etiqueta: m ? `${m[1].slice(2)}-${m[2].slice(2)}` : String(a.name), start: String(a.start_date) }]
+  }))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actual = ((anios ?? []) as any[]).filter(a => String(a.start_date) <= hoy).sort((a, b) => String(b.start_date).localeCompare(String(a.start_date)))[0]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vigenciaDe = (r: any) => {
+    const d = r.valid_from_year_id ? anioDe.get(String(r.valid_from_year_id)) : null
+    const h = r.valid_to_year_id ? anioDe.get(String(r.valid_to_year_id)) : null
+    if (!d && !h) return null
+    const ref = actual ? String(actual.start_date) : hoy
+    // Ambos extremos INCLUSIVE, comparando por inicio del año académico
+    const estado = h && h.start < ref ? 'vencido' : d && d.start > ref ? 'futuro' : 'vigente'
+    return { desde: d?.etiqueta ?? null, hasta: h?.etiqueta ?? null, estado }
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const out: Record<string, any> = {}
@@ -104,7 +127,7 @@ export async function GET() {
   for (const r of (spk ?? []) as any[]) {
     if (!out[r.kpi_id]) continue
     const cat = interno.get(String(r.kpi_id)) ?? ''
-    out[r.kpi_id].estrategico = { code: r.strategic_code ? norm(r.strategic_code) : (RE_ESTR.test(cat) ? cat : null) }
+    out[r.kpi_id].estrategico = { code: r.strategic_code ? norm(r.strategic_code) : (RE_ESTR.test(cat) ? cat : null), vigencia: vigenciaDe(r) }
   }
   for (const r of efec.filas) {
     if (!out[r.kpi_id]) continue

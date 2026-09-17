@@ -14,7 +14,7 @@ import { Plus, Trash2, Loader2, Zap } from 'lucide-react'
 // Estratégico E1-K4, Evaluación D-05/I-08 (directo/indirecto). El "nivel" solo
 // existe para los KPIs del plan de efectividad: sale de la letra de su código.
 interface Pertenencia {
-  estrategico: { code: string | null } | null
+  estrategico: { code: string | null; vigencia: { desde: string | null; hasta: string | null; estado: 'vigente' | 'vencido' | 'futuro' } | null } | null
   efectividad: { code: string | null; nivel: string | null } | null
   evaluacion: { code: string; tipo: string } | null
   dimension: string | null
@@ -372,6 +372,13 @@ export function EffectivenessKPICatalog() {
                         className="block mx-auto mt-0.5 text-[11px] font-mono font-medium text-purple-700 hover:underline">
                         {pert[kpi.id]?.estrategico?.code ?? 'sin código'}
                       </button>
+                    )}
+                    {/* Vigencia: solo el estratégico es plurianual. Aquí se refleja; se edita en el Tablero de Indicadores. */}
+                    {pert[kpi.id]?.estrategico?.vigencia && (
+                      <span title={`Vigencia en el plan estratégico (ambos años inclusive) · ${pert[kpi.id]!.estrategico!.vigencia!.estado}. Se edita en el Tablero de Indicadores.`}
+                        className={`inline-flex mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium tabular-nums ${pert[kpi.id]!.estrategico!.vigencia!.estado === 'vencido' ? 'bg-gray-100 text-gray-500 line-through' : pert[kpi.id]!.estrategico!.vigencia!.estado === 'futuro' ? 'bg-amber-50 text-amber-700' : 'bg-purple-50 text-purple-700'}`}>
+                        {pert[kpi.id]!.estrategico!.vigencia!.desde ?? 'inicio'} → {pert[kpi.id]!.estrategico!.vigencia!.hasta ?? 'fin'}
+                      </span>
                     )}
                   </td>
                   <td className="px-2 py-3 text-center">
