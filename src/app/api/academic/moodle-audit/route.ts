@@ -675,7 +675,9 @@ export async function POST(req: NextRequest) {
         enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, sin_idnumber: sinIdnumber,
         informe_sin_notas: informeSinNotas,
         metodo: lectoresProbados > 1 ? `${metodo} (${lectoresProbados} lectores)` : metodo,
-        error: manualEnrol === false ? "sin matriculación manual: el ERP no puede matricular aquí" : null,
+        // Si se llegó hasta aquí, la lectura funcionó: un fallo de matrícula
+        // manual habría lanzado antes y cae en el catch de abajo con su mensaje.
+        error: null,
       }
     } catch (e) {
       return { ...base, ...vacio, enrol_methods: enrolMethods, manual_enrol: manualEnrol, matriculados, sin_idnumber: sinIdnumber, metodo: null, error: e instanceof Error ? e.message.slice(0, 120) : 'error' }
