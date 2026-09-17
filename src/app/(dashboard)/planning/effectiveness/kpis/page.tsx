@@ -6,9 +6,9 @@ export const revalidate = 0
 export default function EffectivenessKPIsPage() {
   return (
     <>
-      <Topbar title="KPIs · Plan de Efectividad" subtitle="Catálogo de indicadores" />
+      <Topbar title="Catálogo de KPIs" subtitle="Planeamiento · indicadores institucionales y su pertenencia a los tres planes" />
       <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <EffectivenessKPICatalog />
         </div>
       </div>

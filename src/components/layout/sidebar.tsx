@@ -223,6 +223,10 @@ const navigation: NavGroup[] = [
       // Va primero: es la vista que cruza los tres planes, y donde alguien
       // que llega a Planeamiento quiere empezar.
       { name: 'Panorama Institucional', href: '/planning/overview', icon: LayoutGrid, pageKey: 'planning_overview' },
+      // Catálogo ÚNICO de KPIs (17/09/2026): subió desde "Plan de Efectividad"
+      // porque sirve a los tres planes; aquí se declara a cuáles pertenece cada
+      // KPI. Misma URL y pageKey: los permisos ya otorgados no cambian.
+      { name: 'Catálogo de KPIs', href: '/planning/effectiveness/kpis', icon: ListChecks, pageKey: 'effectiveness_kpis' },
       {
         name: 'Plan Estratégico', href: '/planning/plan', icon: Target, pageKey: 'planning_plan',
         children: [
@@ -233,9 +237,8 @@ const navigation: NavGroup[] = [
         ],
       },
       {
-        name: 'Plan de Efectividad', href: '/planning/effectiveness/kpis', icon: Gauge, pageKey: 'effectiveness_kpis',
+        name: 'Plan de Efectividad', href: '/planning/effectiveness/plan', icon: Gauge, pageKey: 'effectiveness_plan',
         children: [
-          { name: 'KPIs', href: '/planning/effectiveness/kpis', icon: Target, pageKey: 'effectiveness_kpis' },
           { name: 'Cargar Plan', href: '/planning/effectiveness/plan', icon: TrendingUp, pageKey: 'effectiveness_plan' },
           { name: 'Dashboard', href: '/planning/effectiveness/dashboard', icon: Gauge, pageKey: 'effectiveness_dashboard' },
         ],

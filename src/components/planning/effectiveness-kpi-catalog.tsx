@@ -1,7 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { Plus, Trash2, Loader2, Zap } from 'lucide-react'
+
+// Pertenencia de un KPI a los tres planes (17/09/2026): el catálogo es único y
+// cada plan lo enlaza. Estratégico/Efectividad = casilla (el objetivo se deriva
+// de la dimensión del código); Evaluación = las MEDIDAS que lo triangulan.
+interface Pertenencia {
+  estrategico: { alias: string | null } | null
+  efectividad: { meta: number | null } | null
+  medidas: string[]
+  ancla: string | null
+  tiene_resultado?: boolean
+}
+interface MedidaRef { id: string; code: string; name: string }
 
 interface KPI {
   id: string
@@ -77,13 +89,72 @@ export function EffectivenessKPICatalog() {
   const [editingFormulaId, setEditingFormulaId] = useState<string | null>(null)
   const [editingFormulaValue, setEditingFormulaValue] = useState<string>('')
   const [filtroDim, setFiltroDim] = useState('')
+  const [pert, setPert] = useState<Record<string, Pertenencia>>({})
+  const [medidas, setMedidas] = useState<MedidaRef[]>([])
+  const [ctx, setCtx] = useState<{ ciclo: string | null; plan_efectividad: string | null; plan_evaluacion: string | null } | null>(null)
+  const [busyKpi, setBusyKpi] = useState<string | null>(null)
+  const [evalAbierto, setEvalAbierto] = useState<string | null>(null)
+  const [evalSel, setEvalSel] = useState<Set<string>>(new Set())
+  const [filtroPlan, setFiltroPlan] = useState('')
+
+  const cargarPert = () => fetch('/api/planning/effectiveness/kpi-plans').then(r => r.json()).then(d => {
+    if (d.error) return
+    setPert(d.pertenencias ?? {}); setMedidas(d.medidas ?? []); setCtx(d.contexto ?? null)
+  }).catch(() => {})
 
   useEffect(() => {
     fetch('/api/planning/effectiveness/kpis')
       .then(r => r.json())
       .then((d: KPI[]) => { setKpis(d); setLoading(false) })
       .catch(() => setLoading(false))
+    cargarPert()
   }, [])
+
+  async function postPlan(body: object, kpiId: string): Promise<boolean> {
+    setBusyKpi(kpiId)
+    const r = await fetch('/api/planning/effectiveness/kpi-plans', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const d = await r.json().catch(() => ({}))
+    setBusyKpi(null)
+    if (!r.ok) { alert(d.error ?? 'No se pudo guardar'); return false }
+    await cargarPert()
+    return true
+  }
+
+  async function togglePlan(kpi: KPI, plan: 'estrategico' | 'efectividad', on: boolean) {
+    const p = pert[kpi.id]
+    if (!on) {
+      const pierde = plan === 'estrategico'
+        ? 'su vigencia por años, su alias y su responsable en el plan estratégico'
+        : 'su meta, responsable, estado y decisión en el plan de efectividad'
+      const aviso = `¿Quitar "${kpi.code} · ${kpi.name}" del plan ${plan === 'estrategico' ? 'estratégico' : 'de efectividad'}?\n\nSe pierde ${pierde}.${p?.tiene_resultado ? '\n\n⚠ Este KPI tiene RESULTADOS medidos: no se borran (viven por año), pero dejarán de verse en los tableros de este plan.' : ''}`
+      if (!confirm(aviso)) return
+      await postPlan({ kpi_id: kpi.id, plan, on: false }, kpi.id)
+      return
+    }
+    let alias: string | null | undefined = undefined
+    if (plan === 'estrategico') {
+      const v = window.prompt(`Código de "${kpi.code}" en el plan estratégico (alias, ej. ${dimensionDe(kpi.code)}-K1). Déjalo vacío si usa el mismo código.`, '')
+      if (v === null) return
+      alias = v.trim() || null
+    }
+    await postPlan({ kpi_id: kpi.id, plan, on: true, alias }, kpi.id)
+  }
+
+  async function editarAlias(kpi: KPI) {
+    const actual = pert[kpi.id]?.estrategico?.alias ?? ''
+    const v = window.prompt(`Código de "${kpi.code}" en el plan estratégico:`, actual)
+    if (v === null) return
+    await postPlan({ kpi_id: kpi.id, plan: 'estrategico', on: true, alias: v.trim() || null }, kpi.id)
+  }
+
+  function abrirEval(kpi: KPI) {
+    setEvalAbierto(evalAbierto === kpi.id ? null : kpi.id)
+    setEvalSel(new Set(pert[kpi.id]?.medidas ?? []))
+  }
+  async function guardarEval(kpi: KPI) {
+    const ok = await postPlan({ kpi_id: kpi.id, plan: 'evaluacion', measure_ids: [...evalSel] }, kpi.id)
+    if (ok) setEvalAbierto(null)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -132,7 +203,10 @@ export function EffectivenessKPICatalog() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-gray-900">Catálogo de KPIs</h2>
-          <p className="text-sm text-gray-500">Define los indicadores que se usarán en los planes de efectividad</p>
+          <p className="text-sm text-gray-500">
+            Un solo registro por indicador. Las casillas declaran a qué planes pertenece: Estratégico y Efectividad se anclan
+            solos al objetivo de su dimensión; en Evaluación la pertenencia son las medidas que lo triangulan.
+          </p>
         </div>
         <button onClick={() => setShowForm(o => !o)}
           className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
@@ -226,6 +300,14 @@ export function EffectivenessKPICatalog() {
               </option>
             ))}
           </select>
+          <select value={filtroPlan} onChange={e => setFiltroPlan(e.target.value)}
+            className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todos los planes</option>
+            <option value="estrategico">En el Plan Estratégico ({kpis.filter(k => pert[k.id]?.estrategico).length})</option>
+            <option value="efectividad">En el Plan de Efectividad ({kpis.filter(k => pert[k.id]?.efectividad).length})</option>
+            <option value="evaluacion">En el Plan de Evaluación ({kpis.filter(k => (pert[k.id]?.medidas.length ?? 0) > 0).length})</option>
+            <option value="ninguno">Sin ningún plan ({kpis.filter(k => !pert[k.id]?.estrategico && !pert[k.id]?.efectividad && !(pert[k.id]?.medidas.length)).length})</option>
+          </select>
           {filtroDim && (
             <span className="text-xs text-gray-400">
               {kpis.filter(k => dimensionDe(k.code) === filtroDim).length} KPI(s) de {DIMENSION_NAMES[filtroDim] ?? filtroDim}
@@ -249,13 +331,25 @@ export function EffectivenessKPICatalog() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">Alcance</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">Fórmula</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-24">Tipo</th>
+                <th className="text-center px-2 py-3 text-xs font-semibold text-purple-700 w-20" title={ctx?.ciclo ?? undefined}>Estratégico</th>
+                <th className="text-center px-2 py-3 text-xs font-semibold text-blue-700 w-20" title={ctx?.plan_efectividad ?? undefined}>Efectividad</th>
+                <th className="text-center px-2 py-3 text-xs font-semibold text-emerald-700 w-24" title={ctx?.plan_evaluacion ?? undefined}>Evaluación</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-40">Cálculo auto</th>
                 <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {kpis.filter(k => !filtroDim || dimensionDe(k.code) === filtroDim).map(kpi => (
-                <tr key={kpi.id} className="hover:bg-gray-50">
+              {kpis.filter(k => !filtroDim || dimensionDe(k.code) === filtroDim).filter(k => {
+                const p = pert[k.id]
+                if (!filtroPlan) return true
+                if (filtroPlan === 'estrategico') return !!p?.estrategico
+                if (filtroPlan === 'efectividad') return !!p?.efectividad
+                if (filtroPlan === 'evaluacion') return (p?.medidas.length ?? 0) > 0
+                if (filtroPlan === 'ninguno') return !p?.estrategico && !p?.efectividad && !(p?.medidas.length)
+                return true
+              }).map(kpi => (
+                <Fragment key={kpi.id}>
+                <tr className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-xs font-medium text-gray-700">{kpi.code}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${LEVEL_COLORS[kpi.level] ?? 'bg-gray-100 text-gray-600'}`}>
@@ -267,6 +361,31 @@ export function EffectivenessKPICatalog() {
                   <td className="px-4 py-3 text-gray-500 text-xs">{kpi.formula ?? '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-600">
                     {VALUE_TYPES.find(v => v.value === kpi.value_type)?.label ?? kpi.value_type}
+                  </td>
+                  {/* Pertenencia a los tres planes */}
+                  <td className="px-2 py-3 text-center">
+                    <input type="checkbox" className="w-4 h-4" disabled={busyKpi === kpi.id}
+                      checked={!!pert[kpi.id]?.estrategico}
+                      onChange={e => togglePlan(kpi, 'estrategico', e.target.checked)}
+                      title={pert[kpi.id]?.ancla ? `Se ancla al objetivo ${pert[kpi.id]?.ancla}` : 'El código no permite derivar el objetivo'} />
+                    {pert[kpi.id]?.estrategico && (
+                      <button onClick={() => editarAlias(kpi)} title="Código en el plan estratégico (clic para editar)"
+                        className="block mx-auto mt-0.5 text-[10px] tabular-nums text-purple-700 hover:underline">
+                        {pert[kpi.id]?.estrategico?.alias ?? 'sin alias'}
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-2 py-3 text-center">
+                    <input type="checkbox" className="w-4 h-4" disabled={busyKpi === kpi.id}
+                      checked={!!pert[kpi.id]?.efectividad}
+                      onChange={e => togglePlan(kpi, 'efectividad', e.target.checked)}
+                      title={pert[kpi.id]?.ancla ? `Se ancla al objetivo ${pert[kpi.id]?.ancla}` : 'El código no permite derivar el objetivo'} />
+                  </td>
+                  <td className="px-2 py-3 text-center">
+                    <button onClick={() => abrirEval(kpi)} disabled={busyKpi === kpi.id}
+                      className={`text-[11px] px-2 py-0.5 rounded-full ${(pert[kpi.id]?.medidas.length ?? 0) > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'} hover:ring-1 hover:ring-emerald-300`}>
+                      {(pert[kpi.id]?.medidas.length ?? 0) > 0 ? `${pert[kpi.id]?.medidas.length} medida${pert[kpi.id]?.medidas.length === 1 ? '' : 's'}` : '—'}
+                    </button>
                   </td>
                   <td className="px-4 py-3">
                     {editingFormulaId === kpi.id ? (
@@ -301,6 +420,36 @@ export function EffectivenessKPICatalog() {
                     </button>
                   </td>
                 </tr>
+                {evalAbierto === kpi.id && (
+                  <tr className="bg-emerald-50/40">
+                    <td colSpan={11} className="px-4 py-3">
+                      <p className="text-xs font-semibold text-emerald-800 mb-1.5">
+                        Medidas del plan de evaluación que triangulan {kpi.code} — en ese plan la pertenencia ES la medida
+                      </p>
+                      {medidas.length === 0 ? (
+                        <p className="text-xs text-gray-400">No hay medidas cargadas en el plan de evaluación.</p>
+                      ) : (
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1">
+                          {medidas.map(m => (
+                            <label key={m.id} className="flex items-start gap-1.5 text-xs text-gray-700 cursor-pointer">
+                              <input type="checkbox" className="mt-0.5 w-3.5 h-3.5" checked={evalSel.has(m.id)}
+                                onChange={e => setEvalSel(prev => { const n = new Set(prev); if (e.target.checked) n.add(m.id); else n.delete(m.id); return n })} />
+                              <span><b className="tabular-nums">{m.code}</b> {m.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={() => guardarEval(kpi)} disabled={busyKpi === kpi.id}
+                          className="px-3 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+                          {busyKpi === kpi.id ? 'Guardando…' : 'Guardar medidas'}
+                        </button>
+                        <button onClick={() => setEvalAbierto(null)} className="px-3 py-1 text-xs rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Cancelar</button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>
