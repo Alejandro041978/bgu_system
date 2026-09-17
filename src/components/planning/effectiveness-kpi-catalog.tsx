@@ -9,12 +9,22 @@ import { Plus, Trash2, Loader2, Zap } from 'lucide-react'
 // Evaluación es identidad con su ficha del IAP (I-08 = E1-I03). Corrección del
 // usuario (17/09/2026): los KPIs de evaluación son KPIs de pleno derecho —
 // coexisten con otro plan o son exclusivos—, nunca "medidas relacionadas".
+// El CÓDIGO no es del KPI: es del KPI dentro de un plan (corrección del
+// usuario, 17/09/2026). Efectividad E1-S01 (E# estrategia + I/O/S nivel),
+// Estratégico E1-K4, Evaluación D-05/I-08 (directo/indirecto). El "nivel" solo
+// existe para los KPIs del plan de efectividad: sale de la letra de su código.
 interface Pertenencia {
-  estrategico: { alias: string | null } | null
-  efectividad: { meta: number | null } | null
-  evaluacion: { code: string } | null
-  ancla: string | null
+  estrategico: { code: string | null } | null
+  efectividad: { code: string | null; nivel: string | null } | null
+  evaluacion: { code: string; tipo: string } | null
+  dimension: string | null
   tiene_resultado?: boolean
+}
+type Plan = 'estrategico' | 'efectividad' | 'evaluacion'
+const PLAN_INFO: Record<Plan, { nombre: string; ejemplo: string; pierde: string }> = {
+  estrategico: { nombre: 'plan estratégico', ejemplo: 'E1-K4  (E# = estrategia, K# = correlativo)', pierde: 'su código, su vigencia por años y su responsable en el plan estratégico' },
+  efectividad: { nombre: 'plan de efectividad', ejemplo: 'E1-S01  (E# = estrategia; I / O / S = institucional, operativo o estratégico; correlativo)', pierde: 'su código, su meta, responsable, estado y decisión en el plan de efectividad' },
+  evaluacion: { nombre: 'plan de evaluación', ejemplo: 'D-10 si es directo · I-12 si es indirecto', pierde: 'su ficha en el plan de evaluación (propósito, meta, evidencias); si ya tiene un resultado registrado, el sistema no lo permitirá' },
 }
 
 interface KPI {
@@ -70,7 +80,6 @@ const DIMENSION_NAMES: Record<string, string> = {
   D: 'Evaluación · KPIs directos',
   I: 'Evaluación · KPIs indirectos',
 }
-const dimensionDe = (code: string): string => String(code).split('-')[0]?.trim().toUpperCase() ?? ''
 
 const LEVEL_COLORS: Record<string, string> = {
   institucional: 'bg-purple-100 text-purple-700',
@@ -79,7 +88,7 @@ const LEVEL_COLORS: Record<string, string> = {
 }
 
 const emptyForm = {
-  code: '', level: 'institucional', name: '', formula: '', scope: '',
+  name: '', formula: '', scope: '',
   frequency: 'anual', value_type: 'porcentaje', formula_type: '',
 }
 
@@ -97,10 +106,11 @@ export function EffectivenessKPICatalog() {
   const [ctx, setCtx] = useState<{ ciclo: string | null; plan_efectividad: string | null; plan_evaluacion: string | null } | null>(null)
   const [busyKpi, setBusyKpi] = useState<string | null>(null)
   const [filtroPlan, setFiltroPlan] = useState('')
+  const [migrado, setMigrado] = useState(true)
 
   const cargarPert = () => fetch('/api/planning/effectiveness/kpi-plans').then(r => r.json()).then(d => {
     if (d.error) return
-    setPert(d.pertenencias ?? {}); setCtx(d.contexto ?? null)
+    setPert(d.pertenencias ?? {}); setCtx(d.contexto ?? null); setMigrado(d.migrado !== false)
   }).catch(() => {})
 
   useEffect(() => {
@@ -121,45 +131,34 @@ export function EffectivenessKPICatalog() {
     return true
   }
 
-  async function togglePlan(kpi: KPI, plan: 'estrategico' | 'efectividad', on: boolean) {
+  // Marcar un plan = darle al KPI SU CÓDIGO en ese plan. Desmarcar avisa qué se pierde.
+  async function marcar(kpi: KPI, plan: Plan, on: boolean) {
     const p = pert[kpi.id]
+    const info = PLAN_INFO[plan]
     if (!on) {
-      const pierde = plan === 'estrategico'
-        ? 'su vigencia por años, su alias y su responsable en el plan estratégico'
-        : 'su meta, responsable, estado y decisión en el plan de efectividad'
-      const aviso = `¿Quitar "${kpi.code} · ${kpi.name}" del plan ${plan === 'estrategico' ? 'estratégico' : 'de efectividad'}?\n\nSe pierde ${pierde}.${p?.tiene_resultado ? '\n\n⚠ Este KPI tiene RESULTADOS medidos: no se borran (viven por año), pero dejarán de verse en los tableros de este plan.' : ''}`
+      const cod = p?.[plan]?.code ?? ''
+      const aviso = `¿Quitar "${kpi.name}" del ${info.nombre}${cod ? ` (${cod})` : ''}?\n\nSe pierde ${info.pierde}.${plan !== 'evaluacion' && p?.tiene_resultado ? '\n\n⚠ Este KPI tiene RESULTADOS medidos: no se borran (viven por año), pero dejarán de verse en los tableros de este plan.' : ''}`
       if (!confirm(aviso)) return
       await postPlan({ kpi_id: kpi.id, plan, on: false }, kpi.id)
       return
     }
-    let alias: string | null | undefined = undefined
-    if (plan === 'estrategico') {
-      const v = window.prompt(`Código de "${kpi.code}" en el plan estratégico (alias, ej. ${dimensionDe(kpi.code)}-K1). Déjalo vacío si usa el mismo código.`, '')
-      if (v === null) return
-      alias = v.trim() || null
-    }
-    await postPlan({ kpi_id: kpi.id, plan, on: true, alias }, kpi.id)
-  }
-
-  async function editarAlias(kpi: KPI) {
-    const actual = pert[kpi.id]?.estrategico?.alias ?? ''
-    const v = window.prompt(`Código de "${kpi.code}" en el plan estratégico:`, actual)
-    if (v === null) return
-    await postPlan({ kpi_id: kpi.id, plan: 'estrategico', on: true, alias: v.trim() || null }, kpi.id)
-  }
-
-  async function toggleEval(kpi: KPI, on: boolean) {
-    if (!on) {
-      const cod = pert[kpi.id]?.evaluacion?.code
-      if (!confirm(`¿Quitar "${kpi.code} · ${kpi.name}" del plan de evaluación (${cod})?
-
-Se da de baja su ficha en ese plan (propósito, meta, evidencias). Si ya tiene un resultado registrado, el sistema no lo permitirá.`)) return
-      await postPlan({ kpi_id: kpi.id, plan: 'evaluacion', on: false }, kpi.id)
-      return
-    }
-    const v = window.prompt(`Código de "${kpi.code}" en el plan de evaluación (D-nn si es directo, I-nn si es indirecto):`, '')
+    const v = window.prompt(`Código de "${kpi.name}" en el ${info.nombre}:\n\nFormato: ${info.ejemplo}`, '')
     if (v === null || !v.trim()) return
-    await postPlan({ kpi_id: kpi.id, plan: 'evaluacion', on: true, code: v.trim() }, kpi.id)
+    await postPlan({ kpi_id: kpi.id, plan, on: true, code: v.trim() }, kpi.id)
+  }
+
+  async function editarCodigo(kpi: KPI, plan: Plan) {
+    const actual = pert[kpi.id]?.[plan]?.code ?? ''
+    const v = window.prompt(`Código de "${kpi.name}" en el ${PLAN_INFO[plan].nombre}:\n\nFormato: ${PLAN_INFO[plan].ejemplo}`, actual)
+    if (v === null || !v.trim() || v.trim().toUpperCase() === actual) return
+    await postPlan({ kpi_id: kpi.id, plan, on: true, code: v.trim() }, kpi.id)
+  }
+
+  // Dimensión de un KPI: el E# de sus códigos de plan (o D/I si es exclusivo de evaluación)
+  const dimDe = (k: KPI): string => pert[k.id]?.dimension ?? '—'
+  const ordenCodigo = (k: KPI): string => {
+    const p = pert[k.id]
+    return `${dimDe(k)}|${p?.efectividad?.code ?? p?.estrategico?.code ?? p?.evaluacion?.code ?? ''}|${k.name}`
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -173,7 +172,7 @@ Se da de baja su ficha en ese plan (propósito, meta, evidencias). Si ya tiene u
       })
       const data = await res.json() as KPI & { error?: string }
       if (!res.ok) throw new Error(data.error ?? 'Error al guardar')
-      setKpis(prev => [...prev, data].sort((a, b) => a.code.localeCompare(b.code)))
+      setKpis(prev => [...prev, data])
       setShowForm(false)
       setForm({ ...emptyForm })
     } catch (err) {
@@ -210,9 +209,10 @@ Se da de baja su ficha en ese plan (propósito, meta, evidencias). Si ya tiene u
         <div>
           <h2 className="text-base font-semibold text-gray-900">Catálogo de KPIs</h2>
           <p className="text-sm text-gray-500">
-            Un solo registro por indicador y hasta tres códigos, uno por plan. Las casillas declaran a qué planes pertenece:
-            Estratégico y Efectividad se anclan solos al objetivo de su dimensión; en Evaluación el KPI lleva su código D-/I-
-            (coexiste con otro plan o es exclusivo de evaluación).
+            Un indicador es una denominación; <b>el código es del indicador dentro de cada plan</b>. Marca a qué planes pertenece y
+            cada uno le pone el suyo: <span className="font-mono text-purple-700">E1-K4</span> en el estratégico,{' '}
+            <span className="font-mono text-blue-700">E1-S01</span> en efectividad (E# = estrategia; I/O/S = su nivel) y{' '}
+            <span className="font-mono text-emerald-700">D-05 / I-08</span> en evaluación (directo / indirecto).
           </p>
         </div>
         <button onClick={() => setShowForm(o => !o)}
@@ -225,20 +225,12 @@ Se da de baja su ficha en ese plan (propósito, meta, evidencias). Si ya tiene u
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <p className="text-sm font-semibold text-gray-800">Nuevo indicador</p>
           <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Código *</label>
-              <input required value={form.code}
-                onChange={e => setForm(p => ({ ...p, code: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="KPI-01" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Nivel *</label>
-              <select value={form.level} onChange={e => setForm(p => ({ ...p, level: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                {LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-              </select>
-            </div>
+            {/* Sin código ni nivel: el indicador nace con su denominación y recibe
+                su código (y, en efectividad, su nivel I/O/S) al marcarlo en cada plan. */}
+            <p className="col-span-3 text-xs text-gray-500 bg-blue-50 rounded-lg px-3 py-2">
+              El indicador se crea solo con su denominación. Su <b>código</b> se asigna después, al marcar a qué plan pertenece:
+              cada plan le pone el suyo (E1-S01 en efectividad, E1-K4 en el estratégico, D-05 / I-08 en evaluación).
+            </p>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Tipo de valor *</label>
               <select value={form.value_type} onChange={e => setForm(p => ({ ...p, value_type: e.target.value }))}
@@ -301,9 +293,9 @@ Se da de baja su ficha en ese plan (propósito, meta, evidencias). Si ya tiene u
           <select value={filtroDim} onChange={e => setFiltroDim(e.target.value)}
             className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Todas las dimensiones</option>
-            {[...new Set(kpis.map(k => dimensionDe(k.code)))].sort().map(d => (
+            {[...new Set(kpis.map(k => dimDe(k)))].sort().map(d => (
               <option key={d} value={d}>
-                {d}{DIMENSION_NAMES[d] ? ` · ${DIMENSION_NAMES[d]}` : ''} ({kpis.filter(k => dimensionDe(k.code) === d).length})
+                {d === '—' ? 'Sin plan asignado' : d}{DIMENSION_NAMES[d] ? ` · ${DIMENSION_NAMES[d]}` : ''} ({kpis.filter(k => dimDe(k) === d).length})
               </option>
             ))}
           </select>
@@ -317,9 +309,16 @@ Se da de baja su ficha en ese plan (propósito, meta, evidencias). Si ya tiene u
           </select>
           {filtroDim && (
             <span className="text-xs text-gray-400">
-              {kpis.filter(k => dimensionDe(k.code) === filtroDim).length} KPI(s) de {DIMENSION_NAMES[filtroDim] ?? filtroDim}
+              {kpis.filter(k => dimDe(k) === filtroDim).length} KPI(s) de {DIMENSION_NAMES[filtroDim] ?? filtroDim}
             </span>
           )}
+        </div>
+      )}
+
+      {!migrado && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+          Falta correr la migración <span className="font-mono">supabase/kpi_codigo_por_plan.sql</span>: hasta entonces los códigos de
+          efectividad se leen del identificador interno y no se pueden editar.
         </div>
       )}
 
@@ -332,21 +331,19 @@ Se da de baja su ficha en ese plan (propósito, meta, evidencias). Si ya tiene u
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-24">Código</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-28">Nivel</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">Denominación</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">Alcance</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">Fórmula</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-24">Tipo</th>
-                <th className="text-center px-2 py-3 text-xs font-semibold text-purple-700 w-20" title={ctx?.ciclo ?? undefined}>Estratégico</th>
-                <th className="text-center px-2 py-3 text-xs font-semibold text-blue-700 w-20" title={ctx?.plan_efectividad ?? undefined}>Efectividad</th>
-                <th className="text-center px-2 py-3 text-xs font-semibold text-emerald-700 w-24" title={ctx?.plan_evaluacion ?? undefined}>Evaluación</th>
+                <th className="text-center px-2 py-3 text-xs font-semibold text-purple-700 w-24" title={ctx?.ciclo ?? undefined}>Estratégico<span className="block font-normal text-[10px] text-purple-400">E#-K#</span></th>
+                <th className="text-center px-2 py-3 text-xs font-semibold text-blue-700 w-28" title={ctx?.plan_efectividad ?? undefined}>Efectividad<span className="block font-normal text-[10px] text-blue-400">E#-I/O/S##</span></th>
+                <th className="text-center px-2 py-3 text-xs font-semibold text-emerald-700 w-24" title={ctx?.plan_evaluacion ?? undefined}>Evaluación<span className="block font-normal text-[10px] text-emerald-400">D-## · I-##</span></th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 w-40">Cálculo auto</th>
                 <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {kpis.filter(k => !filtroDim || dimensionDe(k.code) === filtroDim).filter(k => {
+              {[...kpis].sort((a, b) => ordenCodigo(a).localeCompare(ordenCodigo(b))).filter(k => !filtroDim || dimDe(k) === filtroDim).filter(k => {
                 const p = pert[k.id]
                 if (!filtroPlan) return true
                 if (filtroPlan === 'estrategico') return !!p?.estrategico
@@ -357,44 +354,59 @@ Se da de baja su ficha en ese plan (propósito, meta, evidencias). Si ya tiene u
               }).map(kpi => (
                 <Fragment key={kpi.id}>
                 <tr className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-xs font-medium text-gray-700">{kpi.code}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${LEVEL_COLORS[kpi.level] ?? 'bg-gray-100 text-gray-600'}`}>
-                      {LEVELS.find(l => l.value === kpi.level)?.label ?? kpi.level}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-900 text-xs">{kpi.name}</td>
+                  <td className="px-4 py-3 text-gray-900 text-xs font-medium">{kpi.name}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{kpi.scope ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{kpi.formula ?? '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-600">
                     {VALUE_TYPES.find(v => v.value === kpi.value_type)?.label ?? kpi.value_type}
                   </td>
                   {/* Pertenencia a los tres planes */}
+                  {/* Cada plan: casilla + el código del KPI EN ESE PLAN (clic para editarlo) */}
                   <td className="px-2 py-3 text-center">
                     <input type="checkbox" className="w-4 h-4" disabled={busyKpi === kpi.id}
                       checked={!!pert[kpi.id]?.estrategico}
-                      onChange={e => togglePlan(kpi, 'estrategico', e.target.checked)}
-                      title={pert[kpi.id]?.ancla ? `Se ancla al objetivo ${pert[kpi.id]?.ancla}` : 'El código no permite derivar el objetivo'} />
+                      onChange={e => marcar(kpi, 'estrategico', e.target.checked)}
+                      title="Al marcar se pide su código en el plan estratégico (E#-K#); el E# lo ancla al objetivo de esa estrategia" />
                     {pert[kpi.id]?.estrategico && (
-                      <button onClick={() => editarAlias(kpi)} title="Código en el plan estratégico (clic para editar)"
-                        className="block mx-auto mt-0.5 text-[10px] tabular-nums text-purple-700 hover:underline">
-                        {pert[kpi.id]?.estrategico?.alias ?? 'sin alias'}
+                      <button onClick={() => editarCodigo(kpi, 'estrategico')} title="Código en el plan estratégico (clic para editar)"
+                        className="block mx-auto mt-0.5 text-[11px] font-mono font-medium text-purple-700 hover:underline">
+                        {pert[kpi.id]?.estrategico?.code ?? 'sin código'}
                       </button>
                     )}
                   </td>
                   <td className="px-2 py-3 text-center">
                     <input type="checkbox" className="w-4 h-4" disabled={busyKpi === kpi.id}
                       checked={!!pert[kpi.id]?.efectividad}
-                      onChange={e => togglePlan(kpi, 'efectividad', e.target.checked)}
-                      title={pert[kpi.id]?.ancla ? `Se ancla al objetivo ${pert[kpi.id]?.ancla}` : 'El código no permite derivar el objetivo'} />
+                      onChange={e => marcar(kpi, 'efectividad', e.target.checked)}
+                      title="Al marcar se pide su código en el plan de efectividad (E#-I/O/S##); la letra define su nivel y el E# lo ancla al objetivo" />
+                    {pert[kpi.id]?.efectividad && (
+                      <>
+                        <button onClick={() => editarCodigo(kpi, 'efectividad')} title="Código en el plan de efectividad (clic para editar)"
+                          className="block mx-auto mt-0.5 text-[11px] font-mono font-medium text-blue-700 hover:underline">
+                          {pert[kpi.id]?.efectividad?.code ?? 'sin código'}
+                        </button>
+                        {/* El nivel NO es del KPI: sale de la letra I/O/S de este código */}
+                        {pert[kpi.id]?.efectividad?.nivel && (
+                          <span className={`inline-flex mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${LEVEL_COLORS[pert[kpi.id]!.efectividad!.nivel!] ?? 'bg-gray-100 text-gray-600'}`}>
+                            {LEVELS.find(l => l.value === pert[kpi.id]?.efectividad?.nivel)?.label}
+                          </span>
+                        )}
+                      </>
+                    )}
                   </td>
                   <td className="px-2 py-3 text-center">
                     <input type="checkbox" className="w-4 h-4" disabled={busyKpi === kpi.id}
                       checked={!!pert[kpi.id]?.evaluacion}
-                      onChange={e => toggleEval(kpi, e.target.checked)}
-                      title="El KPI ES un indicador del plan de evaluación (identidad 1 a 1, con su código D-/I-)" />
+                      onChange={e => marcar(kpi, 'evaluacion', e.target.checked)}
+                      title="Al marcar se pide su código en el plan de evaluación (D-## directo · I-## indirecto)" />
                     {pert[kpi.id]?.evaluacion && (
-                      <span className="block mt-0.5 text-[10px] tabular-nums text-emerald-700">{pert[kpi.id]?.evaluacion?.code}</span>
+                      <>
+                        <button onClick={() => editarCodigo(kpi, 'evaluacion')} title="Código en el plan de evaluación (clic para editar)"
+                          className="block mx-auto mt-0.5 text-[11px] font-mono font-medium text-emerald-700 hover:underline">
+                          {pert[kpi.id]?.evaluacion?.code}
+                        </button>
+                        <span className="text-[10px] text-emerald-600/70">{pert[kpi.id]?.evaluacion?.tipo}</span>
+                      </>
                     )}
                   </td>
                   <td className="px-4 py-3">

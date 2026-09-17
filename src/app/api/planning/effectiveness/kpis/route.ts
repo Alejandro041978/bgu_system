@@ -22,12 +22,19 @@ export async function POST(req: NextRequest) {
   if (noAutorizado) return noAutorizado
 
   const body = await req.json() as {
-    code: string; level: string; name: string;
+    code?: string; level?: string; name: string;
     formula?: string; scope?: string; frequency: string; value_type: string; formula_type?: string
   }
-  if (!body.code || !body.level || !body.name || !body.frequency || !body.value_type) {
-    return NextResponse.json({ error: 'code, level, name, frequency y value_type son requeridos' }, { status: 400 })
+  if (!body.name || !body.frequency || !body.value_type) {
+    return NextResponse.json({ error: 'name, frequency y value_type son requeridos' }, { status: 400 })
   }
+  // El código es del KPI DENTRO DE UN PLAN (17/09/2026): un indicador nace solo
+  // con su denominación y recibe sus códigos al asignarse a cada plan. El campo
+  // code del catálogo queda como identificador INTERNO (no se muestra); level
+  // conserva un valor por compatibilidad, pero el nivel visible se deriva de la
+  // letra del código de efectividad.
+  if (!body.code) body.code = `KPI-${Date.now().toString(36).toUpperCase()}`
+  if (!body.level) body.level = 'institucional'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (db() as any)
     .from('effectiveness_kpis')

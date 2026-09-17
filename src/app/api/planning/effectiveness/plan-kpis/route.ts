@@ -59,9 +59,23 @@ export async function GET(req: NextRequest) {
     r.id, `${raMap[r.action_id] ?? '—'} → avance ${r.year}`
   ]))
 
+  // El código y el nivel son del KPI DENTRO de este plan (plan_code: E1-S01, la
+  // letra I/O/S es el nivel). Consulta aparte y tolerante: si la migración
+  // kpi_codigo_por_plan.sql aún no corrió, se cae al código del catálogo.
+  const pcRes = await sb.from('effectiveness_plan_kpis').select('id, plan_code').eq('plan_id', planId)
+  const planCode: Record<string, string> = Object.fromEntries(
+    ((pcRes.error ? [] : pcRes.data) ?? []).filter((r: { plan_code: string | null }) => r.plan_code).map((r: { id: string; plan_code: string }) => [r.id, r.plan_code]))
+  const NIVEL: Record<string, string> = { I: 'institucional', O: 'operativo', S: 'estrategico' }
+  const conCodigoDelPlan = (pkId: string, kpi: { code: string; level: string } | undefined) => {
+    const pc = planCode[pkId]
+    if (!kpi || !pc) return kpi ?? null
+    const letra = pc.match(/^Ed+-([IOS])d+$/)?.[1]
+    return { ...kpi, code: pc, level: letra ? NIVEL[letra] : kpi.level }
+  }
+
   const enriched = rows.map(pk => ({
     ...pk,
-    kpi: kpiMap[pk.kpi_id] ?? null,
+    kpi: conCodigoDelPlan(pk.id, kpiMap[pk.kpi_id]),
     responsible: pk.responsible_id ? empMap[pk.responsible_id] ?? null : null,
     link_label: pk.link_id
       ? (pk.link_type === 'objetivo' ? objMap[pk.link_id]

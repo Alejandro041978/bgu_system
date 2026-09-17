@@ -171,16 +171,8 @@ export function PlanIndicators() {
                           <tr key={i.id + i.origen_nombre} className="border-t border-gray-50">
                             <td className="px-4 py-2">
                               <p className="text-[13px] text-gray-800">
-                                <span className="text-gray-400 tabular-nums">{i.code}</span> {i.name}
-                                {/* Doble nomenclatura del documento maestro: el
-                                    mismo KPI se llama distinto en el plan
-                                    estratégico (E1-K1 = E1-O01). */}
-                                {i.codigo_estrategico && i.codigo_estrategico !== i.code && (
-                                  <span className="ml-1.5 text-[10.5px] bg-purple-50 text-purple-700 rounded px-1.5 py-0.5 tabular-nums"
-                                    title="Código de este KPI en el plan estratégico">
-                                    Estratégico: {i.codigo_estrategico}
-                                  </span>
-                                )}
+                                {/* El código es del KPI DENTRO del plan: aquí manda el del plan estratégico (E1-K4). */}
+                                <span className="text-gray-400 tabular-nums">{i.codigo_estrategico ?? i.code}</span> {i.name}
                               </p>
                               {i.origen === 'accion' && i.origen_nombre && (
                                 <p className="text-[11px] text-gray-400">vía {i.origen_nombre}</p>
