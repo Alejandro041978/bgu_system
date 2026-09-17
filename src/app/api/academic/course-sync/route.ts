@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
   let resultado: Record<string, unknown>
   try {
     const r = await importAula(sb, aula, user.id, {
-      deadlineMs: started + 270_000,
+      deadlineMs: started + 240_000, // las consultas paran ~45 s antes: escribir un aula grande toma ~80 s y el tope es 300
       ...(b.student_id ? { onlyStudentIds: [String(b.student_id)] } : {}),
     })
     if (!r.ok) resultado = { aula, estado: 'rechazada', detalle: r.error }
