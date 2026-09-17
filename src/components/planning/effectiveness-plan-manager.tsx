@@ -283,9 +283,12 @@ export function EffectivenessPlanManager({
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                       <option value="">— Seleccionar KPI —</option>
                       {kpiCatalog.map(k => (
-                        <option key={k.id} value={k.id}>{k.code} · {k.name}</option>
+                        <option key={k.id} value={k.id}>{k.code} · {k.name}{planKPIs.some(p => p.kpi_id === k.id) ? '  (ya vinculado a este plan)' : ''}</option>
                       ))}
                     </select>
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Solo aparecen los KPIs que el Catálogo de KPIs declara del plan de efectividad. Para sumar otro, márcalo allí con su código (E#-I/O/S##).
+                    </p>
                   </div>
 
                   <div>

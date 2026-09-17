@@ -99,10 +99,21 @@ export async function POST(req: NextRequest) {
   if (!body.plan_id || !body.kpi_id) {
     return NextResponse.json({ error: 'plan_id y kpi_id requeridos' }, { status: 400 })
   }
+  // Solo se vinculan KPIs que el catálogo declara del plan de efectividad: los
+  // que ya tienen SU código de efectividad. El código viaja al nuevo enlace
+  // (así un plan 2026-2027 hereda E1-S01 sin volver a teclearlo).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: previos, error: ePrev } = await (db() as any).from('effectiveness_plan_kpis')
+    .select('plan_code').eq('kpi_id', body.kpi_id).not('plan_code', 'is', null).order('created_at', { ascending: false }).limit(1)
+  const planCode: string | null = previos?.[0]?.plan_code ?? null
+  if (!ePrev && !planCode) {
+    return NextResponse.json({ error: 'Este KPI no está declarado del plan de efectividad. Márcalo primero en el Catálogo de KPIs, donde recibe su código (E#-I/O/S##).' }, { status: 409 })
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (db() as any)
     .from('effectiveness_plan_kpis')
     .insert({
+      ...(planCode ? { plan_code: planCode } : {}),
       plan_id: body.plan_id,
       kpi_id: body.kpi_id,
       link_type: body.link_type ?? null,
