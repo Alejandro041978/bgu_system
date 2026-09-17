@@ -268,6 +268,33 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
 // humana: bandeja de colocación en Estudiantes por Convocatoria.
 // ---------------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+// ---------------------------------------------------------------------------
+// Colocar en el carrusel CARGADO en la matrícula (17/09/2026).
+//
+// Regla del usuario: la vendedora CARGA (colección + carrusel de entrada quedan
+// en la matrícula), el PAGO ejecuta (la activación coloca) y los reportes solo
+// reflejan. Antes la activación ignoraba el carrusel cargado y deducía "el"
+// de entrada del programa; con dos cadenas (los Bachelors: Spanish y Upgrade)
+// se rendía y alguien tenía que re-colocar a mano desde el reporte — 92 de 92
+// matrículas activadas se rehicieron así, todas en el mismo carrusel que ya
+// se había elegido al matricular.
+// ---------------------------------------------------------------------------
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function placeStudentInGroup(sb: any, studentId: string, programId: string, groupId: string): Promise<{ ok: boolean; group_id?: string; note: string }> {
+  const { data: gs } = await sb.from('academic_groups').select('id, program_id').eq('program_id', programId)
+  const ids = ((gs ?? []) as { id: string }[]).map(g => String(g.id))
+  if (!ids.includes(String(groupId))) return { ok: false, note: 'El carrusel cargado en la matrícula no pertenece a su programa' }
+  // Si ya está en ALGÚN carrusel del programa (pudo avanzar), no se recoloca
+  const { data: existing } = await sb.from('academic_group_students')
+    .select('group_id, status').eq('student_id', studentId).in('group_id', ids)
+  if ((existing ?? []).length) return { ok: true, group_id: String((existing as { group_id: string }[])[0].group_id), note: 'Ya estaba en un carrusel del programa' }
+  const { error } = await sb.from('academic_group_students')
+    .insert({ group_id: groupId, student_id: studentId, status: 'activo' })
+  if (error) return { ok: false, note: error.message }
+  await marcarParaSincronizar(sb, groupId)
+  return { ok: true, group_id: groupId, note: 'Colocado en el carrusel cargado en la matrícula' }
+}
+
 export async function placeStudentInEntry(sb: any, studentId: string, programId: string): Promise<{ ok: boolean; group_id?: string; note: string }> {
   const { data: gs } = await sb.from('academic_groups').select('id, next_group_id').eq('program_id', programId)
   const groups = (gs ?? []) as { id: string; next_group_id: string | null }[]

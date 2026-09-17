@@ -151,7 +151,11 @@ export function NuevaMatricula() {
   // corresponde colección, así que ni se le exige ni se le pide.
   const esExterno = !!programs.find(p => p.id === programId)?.partner_campus
   const sinColeccion = !!programId && !esExterno && colecciones.length === 0
-  const canSubmit = studentReady && programId && convId && (esExterno || !!collectionId) && !saving && !prereqBlocks
+  // El carrusel de entrada es OBLIGATORIO cuando el programa tiene carruseles
+  // (17/09/2026): la activación ejecuta lo cargado aquí, y una matrícula sin
+  // carrusel en un programa con varias cadenas quedaría sin ruta al pagarse.
+  const faltaCarrusel = !esExterno && carruseles.length > 0 && !entryGroupId
+  const canSubmit = studentReady && programId && convId && (esExterno || !!collectionId) && !faltaCarrusel && !saving && !prereqBlocks
 
   async function submit() {
     if (!canSubmit) return
@@ -383,7 +387,7 @@ export function NuevaMatricula() {
 
       <p className="text-[11px] text-gray-400 flex items-start gap-1.5">
         <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-        Al matricular, si el programa tiene un único carrusel de entrada el estudiante se coloca automáticamente en él. Si hay varias variantes, la colocación se hace en Estudiantes por Convocatoria. El carrusel define qué asignaturas cursa; la colección, en cuál de las aulas de cada una entra.
+        Aquí solo se CARGA la matrícula: nace pendiente de pago con su estado de cuenta, y la colección y el carrusel elegidos quedan guardados en ella. Todo lo demás —registro curricular, correo institucional, colocación en el carrusel y acceso a las aulas— se ejecuta solo al ACTIVARSE con el pago de los conceptos iniciales. El carrusel define qué asignaturas cursa; la colección, en cuál de las aulas de cada una entra. Si hay que corregir lo cargado, se hace en la ficha del estudiante.
       </p>
     </div>
   )

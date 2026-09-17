@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, Users, CheckCircle2, ArrowRightCircle, Search, MapPin } from 'lucide-react'
+import { Loader2, Users, CheckCircle2, Search, MapPin } from 'lucide-react'
 
 interface Ref { id: string; name: string }
 interface Conv { id: string; name: string; semester: string; first_day: string | null }
@@ -10,7 +10,8 @@ interface ProgEntry {
   enrollment_id?: string
   pending_payment?: boolean
   placed: { group_id: string; label: string; status: string } | null
-  candidates: { id: string; label: string }[]
+  // Carrusel CARGADO en la matrícula (se ejecuta al activarse con el pago)
+  loaded: { group_id: string; label: string } | null
 }
 interface Row { student_id: string; name: string; document: string; situation: string | null; programs: ProgEntry[]; fecha: string | null }
 interface Data {
@@ -48,8 +49,6 @@ export function ConvocatoriaStudents() {
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('')
   // selección de carrusel por matrícula (clave student|program) y estado de colocación
-  const [choice, setChoice] = useState<Record<string, string>>({})
-  const [placing, setPlacing] = useState<Record<string, boolean>>({})
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
   // Localizador: buscar a cualquiera sin saber su convocatoria y saltar a ella
   const [locQ, setLocQ] = useState('')
@@ -128,58 +127,13 @@ export function ConvocatoriaStudents() {
   }, [])
 
   useEffect(() => {
-    setData(null); setFilter(''); setChoice({}); setNotice(null)
+    setData(null); setFilter(''); setNotice(null)
     if (!convId) return
     load(convId)
   }, [convId, load])
 
-  async function place(row: Row, p: ProgEntry) {
-    const key = `${row.student_id}|${p.program_id}`
-    const groupId = p.candidates.length === 1 ? p.candidates[0].id : choice[key]
-    if (!groupId) return
-    setPlacing(prev => ({ ...prev, [key]: true }))
-    setNotice(null)
-    const res = await fetch('/api/academic/convocatoria-students', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student_id: row.student_id, program_id: p.program_id, group_id: groupId }),
-    })
-    const d = await res.json()
-    setPlacing(prev => ({ ...prev, [key]: false }))
-    if (!res.ok || d.error) {
-      setNotice({ kind: 'error', text: `${row.name}: ${d.error ?? 'error al colocar'}` })
-    } else {
-      setNotice({ kind: 'ok', text: `${row.name} colocado en ${d.group_label}` })
-    }
-    load(convId)
-  }
-
-  // Activación manual de una matrícula pendiente de pago (excepciones: becas,
-  // convenios). El backend exige force y deja auditado quién lo pulsó.
-  async function activate(row: Row, p: ProgEntry) {
-    if (!p.enrollment_id) return
-    if (!confirm(`¿Activar la matrícula de ${row.name} en ${p.name} sin esperar el pago? Quedará registrado a tu nombre.`)) return
-    const key = `${row.student_id}|${p.program_id}`
-    setPlacing(prev => ({ ...prev, [key]: true }))
-    setNotice(null)
-    const res = await fetch('/api/admision/matricula/activate', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enrollment_id: p.enrollment_id, force: true }),
-    })
-    const d = await res.json()
-    setPlacing(prev => ({ ...prev, [key]: false }))
-    if (!res.ok && res.status !== 207) {
-      setNotice({ kind: 'error', text: `${row.name}: ${d.error ?? 'error al activar'}` })
-    } else {
-      const partes = [
-        d.acta_registradas ? `${d.acta_registradas} asignaturas registradas en el acta` : null,
-        d.correo?.ok ? `correo ${d.correo.email}` : null,
-        d.colocacion?.note ?? null,
-      ].filter(Boolean).join(' · ')
-      setNotice({ kind: d.errors?.length ? 'error' : 'ok', text: `${row.name} activado: ${partes}${d.errors?.length ? ` · avisos: ${d.errors.join('; ')}` : ''}` })
-    }
-    load(convId)
-  }
+  // (17/09/2026) Este reporte es SOLO un reflejo: sin colocar ni activar. La
+  // vendedora carga, el pago ejecuta, y lo cargado se corrige en la ficha.
 
   const visible = data?.rows.filter(r => {
     if (!filter) return true
@@ -324,7 +278,6 @@ export function ConvocatoriaStudents() {
                         <td className="px-3 py-2.5">
                           <div className="space-y-1.5">
                             {r.programs.map(p => {
-                              const key = `${r.student_id}|${p.program_id}`
                               return (
                                 <div key={p.program_id} className="flex items-center flex-wrap gap-1.5">
                                   <span className="bg-gray-100 text-gray-600 text-[11px] px-2 py-0.5 rounded-full">{p.name}</span>
@@ -334,43 +287,18 @@ export function ConvocatoriaStudents() {
                                       {p.placed.status !== 'activo' && <span className="text-green-500">({p.placed.status})</span>}
                                     </span>
                                   ) : p.pending_payment ? (
-                                    <>
-                                      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] px-2 py-0.5 rounded-full">
-                                        💳 Pendiente de pago
-                                      </span>
-                                      <button
-                                        onClick={() => activate(r, p)}
-                                        disabled={placing[key]}
-                                        title="Activa sin esperar el pago (queda auditado)"
-                                        className="inline-flex items-center gap-1 border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-40 text-[11px] px-2.5 py-1 rounded-lg transition-colors"
-                                      >
-                                        {placing[key] ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRightCircle className="w-3 h-3" />}
-                                        Activar
-                                      </button>
-                                    </>
-                                  ) : p.candidates.length === 0 ? (
-                                    <span className="text-[11px] text-red-500">sin carruseles en el programa</span>
+                                    <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] px-2 py-0.5 rounded-full"
+                                      title="Se coloca sola al activarse con el pago de los conceptos iniciales">
+                                      💳 Pendiente de pago{p.loaded ? ` · cargado: ${p.loaded.label}` : ' · sin carrusel cargado'}
+                                    </span>
                                   ) : (
-                                    <>
-                                      {p.candidates.length > 1 && (
-                                        <select
-                                          value={choice[key] ?? ''}
-                                          onChange={e => setChoice(prev => ({ ...prev, [key]: e.target.value }))}
-                                          className="border border-amber-200 bg-amber-50/50 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        >
-                                          <option value="">Elegir carrusel…</option>
-                                          {p.candidates.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                                        </select>
-                                      )}
-                                      <button
-                                        onClick={() => place(r, p)}
-                                        disabled={placing[key] || (p.candidates.length > 1 && !choice[key])}
-                                        className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-[11px] px-2.5 py-1 rounded-lg transition-colors"
-                                      >
-                                        {placing[key] ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRightCircle className="w-3 h-3" />}
-                                        {p.candidates.length === 1 ? `Colocar en ${p.candidates[0].label}` : 'Colocar'}
-                                      </button>
-                                    </>
+                                    <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 text-[11px] px-2 py-0.5 rounded-full"
+                                      title="Matrícula activa sin colocación: corrige lo cargado y re-ejecuta la activación en la ficha del estudiante">
+                                      ⚠ Activa sin colocar{p.loaded ? ` · cargado: ${p.loaded.label}` : ' · sin carrusel cargado'}
+                                    </span>
+                                  )}
+                                  {p.placed && p.loaded && p.placed.group_id !== p.loaded.group_id && (
+                                    <span className="text-[10px] text-gray-400" title="El estudiante avanzó o fue colocado antes de la carga">cargado: {p.loaded.label}</span>
                                   )}
                                 </div>
                               )
@@ -392,7 +320,7 @@ export function ConvocatoriaStudents() {
           )}
 
           <p className="text-[11px] text-gray-400">
-            Al colocar, el estudiante entra al carrusel (membresía activa) y se matricula en sus aulas Moodle mapeadas. Los candidatos son las entradas naturales del programa (los carruseles que ningún otro apunta); con varios candidatos (ej. variantes por idioma) la elección es obligatoria.
+            Este reporte es un reflejo: muestra el carrusel cargado al matricular y la colocación efectiva. La colocación la ejecuta la activación de la matrícula (pago de los conceptos iniciales); si lo cargado está mal, se corrige en la ficha del estudiante.
           </p>
         </>
       )}

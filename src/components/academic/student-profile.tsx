@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Loader2, Search, Save, RotateCcw, GraduationCap, User, MapPin, Wallet } from 'lucide-react'
+import { EnrollmentSetup } from '@/components/academic/enrollment-setup'
 
 // Dónde está (convocatoria + carrusel) y cómo va la cobranza de cada
 // matrícula: lo trae el localizador y el estado de cuenta, no se replica aquí.
@@ -334,6 +335,10 @@ export function StudentProfile() {
                       <a href={`/academic/estudiantes-convocatoria?student_id=${student.id}`} className="ml-auto text-blue-600 hover:underline shrink-0">Ver en su convocatoria</a>
                     )}
                   </div>
+                  {/* Lo cargado en la matrícula (colección + carrusel), su
+                      corrección y la activación por excepción: los reportes
+                      ya no actúan, el dato se corrige aquí. */}
+                  <EnrollmentSetup enrollmentId={e.id} onChanged={() => open(student!.id)} />
                   {/* Cobranza: resumen de una línea, el detalle vive en el estado de cuenta */}
                   <div className="flex items-center gap-2 text-xs pl-6">
                     <Wallet className="w-3.5 h-3.5 text-gray-300 shrink-0" />

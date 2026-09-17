@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchByIn } from '@/lib/grades-write'
-import { marcarParaSincronizar } from '@/lib/moodle-provision'
 import { guardStaff } from '@/lib/api-guard'
 
 export const revalidate = 0
@@ -19,15 +18,6 @@ async function requireUser() {
 
 interface Group { id: string; program_id: string; next_group_id: string | null; abbreviation: string | null; name: string | null }
 const glabel = (g: Group) => [g.abbreviation, g.name].filter(Boolean).join(' · ') || g.id
-
-// Carruseles candidatos para colocar una matrícula del programa: las entradas
-// naturales (carruseles a los que ningún otro del programa apunta). Si hay
-// varias (ej. variantes por idioma), la elección es humana.
-function candidatesFor(programId: string, groups: Group[]): Group[] {
-  const ofProgram = groups.filter(g => g.program_id === programId)
-  const pointed = new Set(ofProgram.map(g => g.next_group_id).filter(Boolean))
-  return ofProgram.filter(g => !pointed.has(g.id))
-}
 
 // GET ?convocatoria_id= → estudiantes de la convocatoria con su estado de
 // colocación en carruseles: por cada matrícula (estudiante × programa), en qué
@@ -46,7 +36,7 @@ export async function GET(req: NextRequest) {
   const enr: any[] = []
   for (let from = 0; ; from += 1000) {
     const { data } = await sb.from('academic_student_enrollments')
-      .select('id, student_id, program_id, enrollment_date, status')
+      .select('id, student_id, program_id, enrollment_date, status, entry_group_id')
       .eq('convocatoria_id', convocatoriaId).range(from, from + 999)
     const chunk = data ?? []
     enr.push(...chunk)
@@ -101,7 +91,8 @@ export async function GET(req: NextRequest) {
     enrollment_id?: string
     pending_payment?: boolean
     placed: { group_id: string; label: string; status: string } | null
-    candidates: { id: string; label: string }[]
+    // Carrusel CARGADO en la matrícula por quien la registró (se ejecuta al activarse)
+    loaded: { group_id: string; label: string } | null
   }
   const byStudent = new Map<string, { programs: ProgEntry[]; fecha: string | null }>()
   for (const e of enr) {
@@ -116,8 +107,7 @@ export async function GET(req: NextRequest) {
         enrollment_id: e.id,
         pending_payment: pending,
         placed: placed ? { group_id: placed.group.id, label: glabel(placed.group), status: placed.status } : null,
-        // Pendiente de pago: sin candidatos — la activación (pago o manual) coloca
-        candidates: placed || pending ? [] : candidatesFor(e.program_id, groups).map(g => ({ id: g.id, label: glabel(g) })),
+        loaded: (() => { const g = e.entry_group_id ? groupOf.get(e.entry_group_id) : null; return g ? { group_id: g.id, label: glabel(g) } : null })(),
       })
     }
     if (e.enrollment_date && (!s.fecha || e.enrollment_date < s.fecha)) s.fecha = e.enrollment_date
@@ -146,50 +136,10 @@ export async function GET(req: NextRequest) {
   })
 }
 
-// POST { student_id, program_id, group_id } → coloca la matrícula en el
-// carrusel elegido: membresía activa + matrícula en las aulas Moodle del grupo.
-export async function POST(req: NextRequest) {
-  const noAutorizado = await guardStaff()
-  if (noAutorizado) return noAutorizado
-
-  if (!(await requireUser())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
-  const body = await req.json().catch(() => null)
-  const { student_id, program_id, group_id } = (body ?? {}) as { student_id?: string; program_id?: string; group_id?: string }
-  if (!student_id || !program_id || !group_id) {
-    return NextResponse.json({ error: 'Faltan student_id, program_id o group_id' }, { status: 400 })
-  }
-
-  const sb = db()
-  const { data: group } = await sb.from('academic_groups')
-    .select('id, program_id, abbreviation, name, next_group_id').eq('id', group_id).maybeSingle()
-  if (!group) return NextResponse.json({ error: 'Carrusel no encontrado' }, { status: 404 })
-  if (group.program_id !== program_id) {
-    return NextResponse.json({ error: 'El carrusel no pertenece al programa de la matrícula' }, { status: 400 })
-  }
-
-  // Gate de pago: una matrícula pendiente no se coloca (se activa primero)
-  const { data: enrRow } = await sb.from('academic_student_enrollments')
-    .select('id, status').eq('student_id', student_id).eq('program_id', program_id).limit(1).maybeSingle()
-  if (enrRow?.status === 'pendiente_pago') {
-    return NextResponse.json({ error: 'La matrícula está pendiente de pago: se coloca al activarse (pago de conceptos iniciales o botón Activar)' }, { status: 409 })
-  }
-
-  // Si ya está en algún carrusel del programa, no colocar de nuevo (pudo avanzar)
-  const { data: gs } = await sb.from('academic_groups').select('id').eq('program_id', program_id)
-  const programGroupIds = ((gs ?? []) as { id: string }[]).map(g => g.id)
-  const { data: existing } = await sb.from('academic_group_students')
-    .select('group_id, status').eq('student_id', student_id).in('group_id', programGroupIds)
-  if ((existing ?? []).length) {
-    return NextResponse.json({ ok: false, error: 'El estudiante ya está en un carrusel de este programa' }, { status: 409 })
-  }
-
-  const { error } = await sb.from('academic_group_students')
-    .insert({ group_id, student_id, status: 'activo' })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  // Colocar es decidir su ruta. Las aulas las pone el reconciliador; aquí solo
-  // se le adelanta el turno a este carrusel.
-  await marcarParaSincronizar(sb, group_id)
-  return NextResponse.json({ ok: true, group_label: glabel(group as Group) })
+// POST retirado (17/09/2026): el reporte es SOLO un reflejo (regla del usuario:
+// la vendedora carga, el pago ejecuta, los reportes reflejan). La colocación la
+// ejecuta la activación con el carrusel cargado en la matrícula; lo cargado se
+// corrige en la ficha del estudiante.
+export async function POST() {
+  return NextResponse.json({ error: 'Este reporte es de solo lectura: la colocación la ejecuta la activación de la matrícula. Corrige lo cargado en la ficha del estudiante.' }, { status: 410 })
 }

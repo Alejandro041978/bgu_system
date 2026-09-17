@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { placeStudentInEntry } from './carousel'
+import { placeStudentInEntry, placeStudentInGroup } from './carousel'
 import { createStudentEmail, notifyStudentEmail, googleConfigured, langFor } from './google-workspace'
 import { completarRegistroDeMatricula } from './curricular-plan'
 
@@ -92,7 +92,7 @@ export async function activateEnrollment(enrollmentId: string, activatedBy: stri
   }
 
   const { data: enr } = await sb.from('academic_student_enrollments')
-    .select('id, student_id, program_id, status, academic_programs(name, category:academic_programs_category(name))')
+    .select('id, student_id, program_id, status, entry_group_id, academic_programs(name, category:academic_programs_category(name))')
     .eq('id', enrollmentId).maybeSingle()
   if (!enr) { result.errors.push('Matrícula no encontrada'); return result }
   const { data: stu } = await sb.from('academic_students')
@@ -111,10 +111,21 @@ export async function activateEnrollment(enrollmentId: string, activatedBy: stri
   try { result.correo = await ensureStudentEmail(sb, enr, stu, enr.academic_programs?.category?.name ?? '') }
   catch (e) { result.correo = { ok: false, note: e instanceof Error ? e.message : String(e) } }
 
-  // 3. Carrusel + Moodle (colocación de entrada única; con varias, bandeja)
+  // 3. Carrusel + Moodle: se EJECUTA lo que la matrícula trae cargado (regla
+  // del usuario, 17/09/2026: la vendedora carga, el pago ejecuta, los reportes
+  // reflejan). La deducción de "entrada única" queda solo como respaldo para
+  // matrículas antiguas sin carrusel cargado; con varias entradas y sin carga,
+  // queda escrito el aviso — no se inventa una ruta.
   try {
-    const placement = await placeStudentInEntry(sb, enr.student_id, enr.program_id)
-    result.colocacion = { ok: placement.ok, note: placement.note }
+    const placement = enr.entry_group_id
+      ? await placeStudentInGroup(sb, enr.student_id, enr.program_id, String(enr.entry_group_id))
+      : await placeStudentInEntry(sb, enr.student_id, enr.program_id)
+    result.colocacion = {
+      ok: placement.ok,
+      note: !enr.entry_group_id && !placement.ok
+        ? `${placement.note} — cargue el carrusel de entrada en la matrícula (ficha del estudiante) y re-ejecute la activación`
+        : placement.note,
+    }
   } catch (e) { result.colocacion = { ok: false, note: e instanceof Error ? e.message : String(e) } }
 
   // 4. Marcar activa (aunque queden pasos con aviso: son re-ejecutables)
