@@ -301,7 +301,8 @@ export function EffectivenessKPICatalog() {
           </select>
           <select value={filtroPlan} onChange={e => setFiltroPlan(e.target.value)}
             className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Todos los planes</option>
+            {/* KPIs válidos = los que están en AL MENOS un plan, contados una sola vez aunque sirvan a varios */}
+            <option value="">Todos los planes ({kpis.filter(k => pert[k.id]?.estrategico || pert[k.id]?.efectividad || pert[k.id]?.evaluacion).length})</option>
             <option value="estrategico">En el Plan Estratégico ({kpis.filter(k => pert[k.id]?.estrategico).length})</option>
             <option value="efectividad">En el Plan de Efectividad ({kpis.filter(k => pert[k.id]?.efectividad).length})</option>
             <option value="evaluacion">En el Plan de Evaluación ({kpis.filter(k => pert[k.id]?.evaluacion).length})</option>
