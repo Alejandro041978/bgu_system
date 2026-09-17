@@ -39,6 +39,7 @@ interface Indicador {
   // el KPI está enlazado a ese plan (16/09/2026). null = no está en el
   // estratégico o el alias no se cargó.
   codigo_estrategico: string | null
+  es_estrategico: boolean
 }
 
 export async function GET(req: NextRequest) {
@@ -101,6 +102,10 @@ export async function GET(req: NextRequest) {
     .select('kpi_id, valid_from_year_id, valid_to_year_id, strategic_code').eq('cycle_id', ciclo.id)
   if (!spkRows) ({ data: spkRows } = await sb.from('strategic_plan_kpis')
     .select('kpi_id, valid_from_year_id, valid_to_year_id').eq('cycle_id', ciclo.id))
+  // Pertenece al plan estratégico = tiene fila en strategic_plan_kpis. El
+  // tablero también lista KPIs que solo son de efectividad: esos NO llevan vigencia.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const esEstrategico = new Set<string>(((spkRows ?? []) as any[]).map(r => String(r.kpi_id)))
   const aliasDeKpi = new Map<string, string>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const r of (spkRows ?? []) as any[]) {
@@ -196,6 +201,7 @@ export async function GET(req: NextRequest) {
         return v?.hasta ? { id: v.hasta, etiqueta: etiquetaDeAnio.get(v.hasta) ?? '?' } : null
       })(),
       codigo_estrategico: aliasDeKpi.get(String(e.kpi_id)) ?? null,
+      es_estrategico: esEstrategico.has(String(e.kpi_id)),
     }
     if (!porObjetivo.has(objetivoId)) porObjetivo.set(objetivoId, [])
     porObjetivo.get(objetivoId)!.push(ind)
@@ -273,10 +279,11 @@ export async function PATCH(req: NextRequest) {
       .eq('cycle_id', ciclo.id).eq('kpi_id', b.kpi_id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   } else {
-    if (!b.objective_id) return NextResponse.json({ error: 'El KPI no pertenece aún al plan: falta objective_id para crearle la pertenencia.' }, { status: 400 })
-    const { error } = await sb.from('strategic_plan_kpis')
-      .insert({ cycle_id: ciclo.id, kpi_id: b.kpi_id, objective_id: b.objective_id, valid_from_year_id: desde, valid_to_year_id: hasta })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    // La vigencia es del KPI DENTRO del plan estratégico: fijarla NO lo hace
+    // miembro. Antes se le creaba aquí una pertenencia SIN código (pasó con
+    // E6-O01 y E5-O01 el 17/09/2026). La pertenencia se declara en el Catálogo
+    // de KPIs, que es donde recibe su código E#-K#.
+    return NextResponse.json({ error: 'Este KPI no pertenece al plan estratégico, así que no lleva vigencia. Si debe pertenecer, márcalo en el Catálogo de KPIs (ahí recibe su código E#-K#) y luego fija la vigencia.' }, { status: 409 })
   }
   return NextResponse.json({ ok: true })
 }

@@ -14,6 +14,7 @@ interface Indicador {
   vigencia_desde: { id: string; etiqueta: string } | null
   vigencia_hasta: { id: string; etiqueta: string } | null
   codigo_estrategico: string | null
+  es_estrategico: boolean
 }
 interface Objetivo { id: string; code: string; name: string; indicadores: Indicador[] }
 interface Dimension { id: string; code: string; name: string; objetivos: Objetivo[] }
@@ -194,7 +195,9 @@ export function PlanIndicators() {
                             </td>
                             <td className="px-3 py-2 text-[12px] text-gray-500">{i.responsable ?? '—'}</td>
                             <td className="px-3 py-2 text-[12px]">
-                              {editandoVig === i.id ? (
+                              {!i.es_estrategico ? (
+                                <span className="text-gray-300" title="No pertenece al plan estratégico: la vigencia es solo de los KPIs de este plan. Para incluirlo, márcalo en el Catálogo de KPIs.">no aplica</span>
+                              ) : editandoVig === i.id ? (
                                 <span className="flex items-center gap-1 flex-wrap">
                                   <select value={vigForm.desde} onChange={e => setVigForm(p => ({ ...p, desde: e.target.value }))}
                                     className="border border-blue-300 rounded px-1 py-0.5 text-[11px] bg-white">
