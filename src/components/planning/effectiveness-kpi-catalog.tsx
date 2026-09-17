@@ -4,16 +4,18 @@ import { Fragment, useState, useEffect } from 'react'
 import { Plus, Trash2, Loader2, Zap } from 'lucide-react'
 
 // Pertenencia de un KPI a los tres planes (17/09/2026): el catálogo es único y
-// cada plan lo enlaza. Estratégico/Efectividad = casilla (el objetivo se deriva
-// de la dimensión del código); Evaluación = las MEDIDAS que lo triangulan.
+// cada plan lo enlaza, SIEMPRE 1 a 1: un indicador, hasta tres códigos (uno por
+// plan). Estratégico/Efectividad se anclan al objetivo de su dimensión;
+// Evaluación es identidad con su ficha del IAP (I-08 = E1-I03). Corrección del
+// usuario (17/09/2026): los KPIs de evaluación son KPIs de pleno derecho —
+// coexisten con otro plan o son exclusivos—, nunca "medidas relacionadas".
 interface Pertenencia {
   estrategico: { alias: string | null } | null
   efectividad: { meta: number | null } | null
-  medidas: string[]
+  evaluacion: { code: string } | null
   ancla: string | null
   tiene_resultado?: boolean
 }
-interface MedidaRef { id: string; code: string; name: string }
 
 interface KPI {
   id: string
@@ -65,6 +67,8 @@ const DIMENSION_NAMES: Record<string, string> = {
   E5: 'Global Positioning',
   E6: 'University Culture',
   E7: 'Financial Support',
+  D: 'Evaluación · KPIs directos',
+  I: 'Evaluación · KPIs indirectos',
 }
 const dimensionDe = (code: string): string => String(code).split('-')[0]?.trim().toUpperCase() ?? ''
 
@@ -90,16 +94,13 @@ export function EffectivenessKPICatalog() {
   const [editingFormulaValue, setEditingFormulaValue] = useState<string>('')
   const [filtroDim, setFiltroDim] = useState('')
   const [pert, setPert] = useState<Record<string, Pertenencia>>({})
-  const [medidas, setMedidas] = useState<MedidaRef[]>([])
   const [ctx, setCtx] = useState<{ ciclo: string | null; plan_efectividad: string | null; plan_evaluacion: string | null } | null>(null)
   const [busyKpi, setBusyKpi] = useState<string | null>(null)
-  const [evalAbierto, setEvalAbierto] = useState<string | null>(null)
-  const [evalSel, setEvalSel] = useState<Set<string>>(new Set())
   const [filtroPlan, setFiltroPlan] = useState('')
 
   const cargarPert = () => fetch('/api/planning/effectiveness/kpi-plans').then(r => r.json()).then(d => {
     if (d.error) return
-    setPert(d.pertenencias ?? {}); setMedidas(d.medidas ?? []); setCtx(d.contexto ?? null)
+    setPert(d.pertenencias ?? {}); setCtx(d.contexto ?? null)
   }).catch(() => {})
 
   useEffect(() => {
@@ -147,13 +148,18 @@ export function EffectivenessKPICatalog() {
     await postPlan({ kpi_id: kpi.id, plan: 'estrategico', on: true, alias: v.trim() || null }, kpi.id)
   }
 
-  function abrirEval(kpi: KPI) {
-    setEvalAbierto(evalAbierto === kpi.id ? null : kpi.id)
-    setEvalSel(new Set(pert[kpi.id]?.medidas ?? []))
-  }
-  async function guardarEval(kpi: KPI) {
-    const ok = await postPlan({ kpi_id: kpi.id, plan: 'evaluacion', measure_ids: [...evalSel] }, kpi.id)
-    if (ok) setEvalAbierto(null)
+  async function toggleEval(kpi: KPI, on: boolean) {
+    if (!on) {
+      const cod = pert[kpi.id]?.evaluacion?.code
+      if (!confirm(`¿Quitar "${kpi.code} · ${kpi.name}" del plan de evaluación (${cod})?
+
+Se da de baja su ficha en ese plan (propósito, meta, evidencias). Si ya tiene un resultado registrado, el sistema no lo permitirá.`)) return
+      await postPlan({ kpi_id: kpi.id, plan: 'evaluacion', on: false }, kpi.id)
+      return
+    }
+    const v = window.prompt(`Código de "${kpi.code}" en el plan de evaluación (D-nn si es directo, I-nn si es indirecto):`, '')
+    if (v === null || !v.trim()) return
+    await postPlan({ kpi_id: kpi.id, plan: 'evaluacion', on: true, code: v.trim() }, kpi.id)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -204,8 +210,9 @@ export function EffectivenessKPICatalog() {
         <div>
           <h2 className="text-base font-semibold text-gray-900">Catálogo de KPIs</h2>
           <p className="text-sm text-gray-500">
-            Un solo registro por indicador. Las casillas declaran a qué planes pertenece: Estratégico y Efectividad se anclan
-            solos al objetivo de su dimensión; en Evaluación la pertenencia son las medidas que lo triangulan.
+            Un solo registro por indicador y hasta tres códigos, uno por plan. Las casillas declaran a qué planes pertenece:
+            Estratégico y Efectividad se anclan solos al objetivo de su dimensión; en Evaluación el KPI lleva su código D-/I-
+            (coexiste con otro plan o es exclusivo de evaluación).
           </p>
         </div>
         <button onClick={() => setShowForm(o => !o)}
@@ -305,8 +312,8 @@ export function EffectivenessKPICatalog() {
             <option value="">Todos los planes</option>
             <option value="estrategico">En el Plan Estratégico ({kpis.filter(k => pert[k.id]?.estrategico).length})</option>
             <option value="efectividad">En el Plan de Efectividad ({kpis.filter(k => pert[k.id]?.efectividad).length})</option>
-            <option value="evaluacion">En el Plan de Evaluación ({kpis.filter(k => (pert[k.id]?.medidas.length ?? 0) > 0).length})</option>
-            <option value="ninguno">Sin ningún plan ({kpis.filter(k => !pert[k.id]?.estrategico && !pert[k.id]?.efectividad && !(pert[k.id]?.medidas.length)).length})</option>
+            <option value="evaluacion">En el Plan de Evaluación ({kpis.filter(k => pert[k.id]?.evaluacion).length})</option>
+            <option value="ninguno">Sin ningún plan ({kpis.filter(k => !pert[k.id]?.estrategico && !pert[k.id]?.efectividad && !pert[k.id]?.evaluacion).length})</option>
           </select>
           {filtroDim && (
             <span className="text-xs text-gray-400">
@@ -344,8 +351,8 @@ export function EffectivenessKPICatalog() {
                 if (!filtroPlan) return true
                 if (filtroPlan === 'estrategico') return !!p?.estrategico
                 if (filtroPlan === 'efectividad') return !!p?.efectividad
-                if (filtroPlan === 'evaluacion') return (p?.medidas.length ?? 0) > 0
-                if (filtroPlan === 'ninguno') return !p?.estrategico && !p?.efectividad && !(p?.medidas.length)
+                if (filtroPlan === 'evaluacion') return !!p?.evaluacion
+                if (filtroPlan === 'ninguno') return !p?.estrategico && !p?.efectividad && !p?.evaluacion
                 return true
               }).map(kpi => (
                 <Fragment key={kpi.id}>
@@ -382,10 +389,13 @@ export function EffectivenessKPICatalog() {
                       title={pert[kpi.id]?.ancla ? `Se ancla al objetivo ${pert[kpi.id]?.ancla}` : 'El código no permite derivar el objetivo'} />
                   </td>
                   <td className="px-2 py-3 text-center">
-                    <button onClick={() => abrirEval(kpi)} disabled={busyKpi === kpi.id}
-                      className={`text-[11px] px-2 py-0.5 rounded-full ${(pert[kpi.id]?.medidas.length ?? 0) > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'} hover:ring-1 hover:ring-emerald-300`}>
-                      {(pert[kpi.id]?.medidas.length ?? 0) > 0 ? `${pert[kpi.id]?.medidas.length} medida${pert[kpi.id]?.medidas.length === 1 ? '' : 's'}` : '—'}
-                    </button>
+                    <input type="checkbox" className="w-4 h-4" disabled={busyKpi === kpi.id}
+                      checked={!!pert[kpi.id]?.evaluacion}
+                      onChange={e => toggleEval(kpi, e.target.checked)}
+                      title="El KPI ES un indicador del plan de evaluación (identidad 1 a 1, con su código D-/I-)" />
+                    {pert[kpi.id]?.evaluacion && (
+                      <span className="block mt-0.5 text-[10px] tabular-nums text-emerald-700">{pert[kpi.id]?.evaluacion?.code}</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {editingFormulaId === kpi.id ? (
@@ -420,35 +430,6 @@ export function EffectivenessKPICatalog() {
                     </button>
                   </td>
                 </tr>
-                {evalAbierto === kpi.id && (
-                  <tr className="bg-emerald-50/40">
-                    <td colSpan={11} className="px-4 py-3">
-                      <p className="text-xs font-semibold text-emerald-800 mb-1.5">
-                        Medidas del plan de evaluación que triangulan {kpi.code} — en ese plan la pertenencia ES la medida
-                      </p>
-                      {medidas.length === 0 ? (
-                        <p className="text-xs text-gray-400">No hay medidas cargadas en el plan de evaluación.</p>
-                      ) : (
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1">
-                          {medidas.map(m => (
-                            <label key={m.id} className="flex items-start gap-1.5 text-xs text-gray-700 cursor-pointer">
-                              <input type="checkbox" className="mt-0.5 w-3.5 h-3.5" checked={evalSel.has(m.id)}
-                                onChange={e => setEvalSel(prev => { const n = new Set(prev); if (e.target.checked) n.add(m.id); else n.delete(m.id); return n })} />
-                              <span><b className="tabular-nums">{m.code}</b> {m.name}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex gap-2 mt-2">
-                        <button onClick={() => guardarEval(kpi)} disabled={busyKpi === kpi.id}
-                          className="px-3 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
-                          {busyKpi === kpi.id ? 'Guardando…' : 'Guardar medidas'}
-                        </button>
-                        <button onClick={() => setEvalAbierto(null)} className="px-3 py-1 text-xs rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Cancelar</button>
-                      </div>
-                    </td>
-                  </tr>
-                )}
                 </Fragment>
               ))}
             </tbody>

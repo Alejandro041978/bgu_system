@@ -1,0 +1,493 @@
+{
+  "fecha": "2026-09-17T20:28:28.493Z",
+  "proposito": "Corrección del modelo de KPIs del plan de evaluación: identidad 1 a 1 (indicator_id), alta de 14 exclusivos en el catálogo, retiro de los cruces 1-a-varios (iap_measure_kpis)",
+  "iap_measures_indicator_id": [
+    {
+      "id": "96501a43-0876-492a-8624-2d8c00e49829",
+      "code": "D-01",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "fa2fc19b-8647-4f3c-8059-735ba9b59427",
+      "code": "D-02",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "c8ce329c-ab20-4753-bcaa-5a394ad66173",
+      "code": "D-03",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "9a5adfee-fcd7-46f4-a86a-af32bcac3045",
+      "code": "D-04",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "c990a1a2-a74c-4f54-bb9b-e8454e9dab70",
+      "code": "D-05",
+      "indicator_id": "6c499b9a-d388-4b3a-9212-d8d65cda942e",
+      "indicador_codigo": "E1-S01"
+    },
+    {
+      "id": "887db657-5263-445f-8274-dee72379f044",
+      "code": "D-06",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "f47acd46-bd84-4f74-b6e3-dac426fe9975",
+      "code": "D-07",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "0d84c78a-f7ff-4dbe-a3b7-f2dd58673389",
+      "code": "D-08",
+      "indicator_id": "f4655669-decb-4ad9-bf34-ecbd16f9159d",
+      "indicador_codigo": "E2-K4"
+    },
+    {
+      "id": "88220dd8-4635-4196-b618-c5d33a394ca2",
+      "code": "D-09",
+      "indicator_id": "efbc1e4f-65e1-4c24-a339-082cda4cb910",
+      "indicador_codigo": "E5-O01"
+    },
+    {
+      "id": "60dedc88-f1df-43a8-9ee2-18a368034b3f",
+      "code": "I-01",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "b6e24611-e169-4245-a341-2f77db431c58",
+      "code": "I-02",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "955a7314-498b-44fc-a206-227351738214",
+      "code": "I-03",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "49114671-f31c-4e9a-9e35-0fbaecfc9aed",
+      "code": "I-04",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "ea548ba5-9bb4-41ab-9b54-2a02856a9b2c",
+      "code": "I-05",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "3bb9387a-ad03-4e28-b5da-c4d258978e44",
+      "code": "I-06",
+      "indicator_id": "43119411-fc28-4aef-8756-cd9211856579",
+      "indicador_codigo": "E2-I01"
+    },
+    {
+      "id": "3719f1bf-beed-47f3-ab9a-484416e5d80e",
+      "code": "I-07",
+      "indicator_id": "379c2b2c-a3f9-4725-a5d4-009669ae7534",
+      "indicador_codigo": "E1-I02"
+    },
+    {
+      "id": "619e292e-5fa7-45f7-add4-38bb6d11546a",
+      "code": "I-08",
+      "indicator_id": "f48ac0c3-6994-4bf0-889f-1dd448aea2d1",
+      "indicador_codigo": "E1-I03"
+    },
+    {
+      "id": "14ef9cb1-42dd-46a2-bcdc-d12017f6255e",
+      "code": "I-09",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "code": "I-10",
+      "indicator_id": null,
+      "indicador_codigo": null
+    },
+    {
+      "id": "56564c22-d781-48ee-966b-fb9af3b5dd4f",
+      "code": "I-11",
+      "indicator_id": "4add9fbd-91a9-4e1f-8355-17b419fb62db",
+      "indicador_codigo": "E3-S02"
+    }
+  ],
+  "iap_measure_kpis": [
+    {
+      "measure_id": "96501a43-0876-492a-8624-2d8c00e49829",
+      "kpi_id": "6c499b9a-d388-4b3a-9212-d8d65cda942e"
+    },
+    {
+      "measure_id": "fa2fc19b-8647-4f3c-8059-735ba9b59427",
+      "kpi_id": "6c499b9a-d388-4b3a-9212-d8d65cda942e"
+    },
+    {
+      "measure_id": "c8ce329c-ab20-4753-bcaa-5a394ad66173",
+      "kpi_id": "f48ac0c3-6994-4bf0-889f-1dd448aea2d1"
+    },
+    {
+      "measure_id": "c8ce329c-ab20-4753-bcaa-5a394ad66173",
+      "kpi_id": "6700dcdd-849c-4efd-97f4-d71444adf97b"
+    },
+    {
+      "measure_id": "c8ce329c-ab20-4753-bcaa-5a394ad66173",
+      "kpi_id": "a91a04c6-ac26-4758-aa31-48f1c8718d36"
+    },
+    {
+      "measure_id": "9a5adfee-fcd7-46f4-a86a-af32bcac3045",
+      "kpi_id": "6c499b9a-d388-4b3a-9212-d8d65cda942e"
+    },
+    {
+      "measure_id": "887db657-5263-445f-8274-dee72379f044",
+      "kpi_id": "6c499b9a-d388-4b3a-9212-d8d65cda942e"
+    },
+    {
+      "measure_id": "887db657-5263-445f-8274-dee72379f044",
+      "kpi_id": "f48ac0c3-6994-4bf0-889f-1dd448aea2d1"
+    },
+    {
+      "measure_id": "f47acd46-bd84-4f74-b6e3-dac426fe9975",
+      "kpi_id": "00de3b91-7e2c-4f5a-8524-6698fcbe7796"
+    },
+    {
+      "measure_id": "f47acd46-bd84-4f74-b6e3-dac426fe9975",
+      "kpi_id": "95c99234-ef3e-46ee-8d29-b4f93ca12c33"
+    },
+    {
+      "measure_id": "f47acd46-bd84-4f74-b6e3-dac426fe9975",
+      "kpi_id": "92c79eed-5b0a-41d6-ba43-0c22a30c33fd"
+    },
+    {
+      "measure_id": "88220dd8-4635-4196-b618-c5d33a394ca2",
+      "kpi_id": "efbc1e4f-65e1-4c24-a339-082cda4cb910"
+    },
+    {
+      "measure_id": "88220dd8-4635-4196-b618-c5d33a394ca2",
+      "kpi_id": "45ee5d72-5c70-4ea9-9dc9-fda6a5933af5"
+    },
+    {
+      "measure_id": "88220dd8-4635-4196-b618-c5d33a394ca2",
+      "kpi_id": "6ba3c753-35d9-4d69-a960-2f9b13b4932b"
+    },
+    {
+      "measure_id": "88220dd8-4635-4196-b618-c5d33a394ca2",
+      "kpi_id": "61979df8-84b4-456c-a27b-97ca73fe9600"
+    },
+    {
+      "measure_id": "60dedc88-f1df-43a8-9ee2-18a368034b3f",
+      "kpi_id": "6700dcdd-849c-4efd-97f4-d71444adf97b"
+    },
+    {
+      "measure_id": "60dedc88-f1df-43a8-9ee2-18a368034b3f",
+      "kpi_id": "00de3b91-7e2c-4f5a-8524-6698fcbe7796"
+    },
+    {
+      "measure_id": "60dedc88-f1df-43a8-9ee2-18a368034b3f",
+      "kpi_id": "c2ea201d-d993-4a81-84ca-2c594a49069b"
+    },
+    {
+      "measure_id": "60dedc88-f1df-43a8-9ee2-18a368034b3f",
+      "kpi_id": "e16dfecb-1427-40cb-b760-22af00306950"
+    },
+    {
+      "measure_id": "b6e24611-e169-4245-a341-2f77db431c58",
+      "kpi_id": "6700dcdd-849c-4efd-97f4-d71444adf97b"
+    },
+    {
+      "measure_id": "b6e24611-e169-4245-a341-2f77db431c58",
+      "kpi_id": "313b216f-9917-4de2-99d9-7d144db63b03"
+    },
+    {
+      "measure_id": "b6e24611-e169-4245-a341-2f77db431c58",
+      "kpi_id": "00de3b91-7e2c-4f5a-8524-6698fcbe7796"
+    },
+    {
+      "measure_id": "955a7314-498b-44fc-a206-227351738214",
+      "kpi_id": "6700dcdd-849c-4efd-97f4-d71444adf97b"
+    },
+    {
+      "measure_id": "955a7314-498b-44fc-a206-227351738214",
+      "kpi_id": "313b216f-9917-4de2-99d9-7d144db63b03"
+    },
+    {
+      "measure_id": "955a7314-498b-44fc-a206-227351738214",
+      "kpi_id": "6c499b9a-d388-4b3a-9212-d8d65cda942e"
+    },
+    {
+      "measure_id": "49114671-f31c-4e9a-9e35-0fbaecfc9aed",
+      "kpi_id": "c2ea201d-d993-4a81-84ca-2c594a49069b"
+    },
+    {
+      "measure_id": "49114671-f31c-4e9a-9e35-0fbaecfc9aed",
+      "kpi_id": "e16dfecb-1427-40cb-b760-22af00306950"
+    },
+    {
+      "measure_id": "49114671-f31c-4e9a-9e35-0fbaecfc9aed",
+      "kpi_id": "00de3b91-7e2c-4f5a-8524-6698fcbe7796"
+    },
+    {
+      "measure_id": "49114671-f31c-4e9a-9e35-0fbaecfc9aed",
+      "kpi_id": "ea8fa644-be39-46d0-b83e-da27af9868b7"
+    },
+    {
+      "measure_id": "49114671-f31c-4e9a-9e35-0fbaecfc9aed",
+      "kpi_id": "313b216f-9917-4de2-99d9-7d144db63b03"
+    },
+    {
+      "measure_id": "ea548ba5-9bb4-41ab-9b54-2a02856a9b2c",
+      "kpi_id": "7a4302f5-8b5b-46b5-b12a-39cadc59a5e8"
+    },
+    {
+      "measure_id": "ea548ba5-9bb4-41ab-9b54-2a02856a9b2c",
+      "kpi_id": "c2ea201d-d993-4a81-84ca-2c594a49069b"
+    },
+    {
+      "measure_id": "ea548ba5-9bb4-41ab-9b54-2a02856a9b2c",
+      "kpi_id": "00de3b91-7e2c-4f5a-8524-6698fcbe7796"
+    },
+    {
+      "measure_id": "0d84c78a-f7ff-4dbe-a3b7-f2dd58673389",
+      "kpi_id": "dd263b4d-09f7-40c5-8291-3ba844eca903"
+    },
+    {
+      "measure_id": "0d84c78a-f7ff-4dbe-a3b7-f2dd58673389",
+      "kpi_id": "caaadee1-fe1a-475c-86f7-7423e7c84b3d"
+    },
+    {
+      "measure_id": "0d84c78a-f7ff-4dbe-a3b7-f2dd58673389",
+      "kpi_id": "f4655669-decb-4ad9-bf34-ecbd16f9159d"
+    },
+    {
+      "measure_id": "14ef9cb1-42dd-46a2-bcdc-d12017f6255e",
+      "kpi_id": "30b06797-53a6-43a7-bdcc-e2e194d44cb0"
+    },
+    {
+      "measure_id": "14ef9cb1-42dd-46a2-bcdc-d12017f6255e",
+      "kpi_id": "1632bff9-641d-4a2e-ab59-60155dcba68d"
+    },
+    {
+      "measure_id": "c990a1a2-a74c-4f54-bb9b-e8454e9dab70",
+      "kpi_id": "6c499b9a-d388-4b3a-9212-d8d65cda942e"
+    },
+    {
+      "measure_id": "c990a1a2-a74c-4f54-bb9b-e8454e9dab70",
+      "kpi_id": "e16dfecb-1427-40cb-b760-22af00306950"
+    },
+    {
+      "measure_id": "3bb9387a-ad03-4e28-b5da-c4d258978e44",
+      "kpi_id": "43119411-fc28-4aef-8756-cd9211856579"
+    },
+    {
+      "measure_id": "3bb9387a-ad03-4e28-b5da-c4d258978e44",
+      "kpi_id": "e16dfecb-1427-40cb-b760-22af00306950"
+    },
+    {
+      "measure_id": "56564c22-d781-48ee-966b-fb9af3b5dd4f",
+      "kpi_id": "4add9fbd-91a9-4e1f-8355-17b419fb62db"
+    },
+    {
+      "measure_id": "3719f1bf-beed-47f3-ab9a-484416e5d80e",
+      "kpi_id": "379c2b2c-a3f9-4725-a5d4-009669ae7534"
+    },
+    {
+      "measure_id": "3719f1bf-beed-47f3-ab9a-484416e5d80e",
+      "kpi_id": "f48ac0c3-6994-4bf0-889f-1dd448aea2d1"
+    },
+    {
+      "measure_id": "3719f1bf-beed-47f3-ab9a-484416e5d80e",
+      "kpi_id": "1762fd3e-7c2f-4fbc-bca8-192f96ba75e4"
+    },
+    {
+      "measure_id": "3719f1bf-beed-47f3-ab9a-484416e5d80e",
+      "kpi_id": "bcf0d263-36fb-4015-b56a-29f0adec3a06"
+    },
+    {
+      "measure_id": "619e292e-5fa7-45f7-add4-38bb6d11546a",
+      "kpi_id": "f48ac0c3-6994-4bf0-889f-1dd448aea2d1"
+    },
+    {
+      "measure_id": "619e292e-5fa7-45f7-add4-38bb6d11546a",
+      "kpi_id": "a91a04c6-ac26-4758-aa31-48f1c8718d36"
+    },
+    {
+      "measure_id": "f47acd46-bd84-4f74-b6e3-dac426fe9975",
+      "kpi_id": "a25114d6-63f3-47a0-b469-325d0ce254ec"
+    },
+    {
+      "measure_id": "f47acd46-bd84-4f74-b6e3-dac426fe9975",
+      "kpi_id": "6b0a9489-408b-4c66-abde-86f2c12deb79"
+    },
+    {
+      "measure_id": "ea548ba5-9bb4-41ab-9b54-2a02856a9b2c",
+      "kpi_id": "519b5823-1647-4800-a13b-a47ea6676f45"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "a91a04c6-ac26-4758-aa31-48f1c8718d36"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "6c499b9a-d388-4b3a-9212-d8d65cda942e"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "43119411-fc28-4aef-8756-cd9211856579"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "38649686-37de-4d0e-a1ce-174ece4a5980"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "8ad50d05-d041-487d-b4b7-93f5d8017c0c"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "b4028389-8af4-4123-b70d-6baaaf982d05"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "c2ea201d-d993-4a81-84ca-2c594a49069b"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "4add9fbd-91a9-4e1f-8355-17b419fb62db"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "944972de-e794-4c7f-8f57-667dacf71fec"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "e16dfecb-1427-40cb-b760-22af00306950"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "00de3b91-7e2c-4f5a-8524-6698fcbe7796"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "30b06797-53a6-43a7-bdcc-e2e194d44cb0"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "d5fe1660-2823-4d18-a39e-582e6d6a2e15"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "1632bff9-641d-4a2e-ab59-60155dcba68d"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "1762fd3e-7c2f-4fbc-bca8-192f96ba75e4"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "a25114d6-63f3-47a0-b469-325d0ce254ec"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "523ceb16-a799-4949-9bfb-23dcb95b3622"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "193f1e15-87eb-4171-96c6-dd1c0f6006b3"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "64e33ac0-3d7f-42fa-bb20-204d030fc8fa"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "6700dcdd-849c-4efd-97f4-d71444adf97b"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "bcf0d263-36fb-4015-b56a-29f0adec3a06"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "caaadee1-fe1a-475c-86f7-7423e7c84b3d"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "f4655669-decb-4ad9-bf34-ecbd16f9159d"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "6ba3c753-35d9-4d69-a960-2f9b13b4932b"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "5ca59ef0-ee1e-467b-bac3-5d859b9616a5"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "90902c67-e526-4544-8d88-a95872d73628"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "61979df8-84b4-456c-a27b-97ca73fe9600"
+    },
+    {
+      "measure_id": "dbcfa74d-71fc-4bba-884b-93edecc4573c",
+      "kpi_id": "6b0a9489-408b-4c66-abde-86f2c12deb79"
+    }
+  ],
+  "catalogo_codigos_antes": [
+    "E1-I01",
+    "E1-I02",
+    "E1-I03",
+    "E1-O01",
+    "E1-S01",
+    "E1-S02",
+    "E2-I01",
+    "E2-K4",
+    "E2-O01",
+    "E2-O02",
+    "E2-S01",
+    "E2-S02",
+    "E3-I01",
+    "E3-I02",
+    "E3-O01",
+    "E3-O02",
+    "E3-S01",
+    "E3-S02",
+    "E4-I01",
+    "E4-K2",
+    "E4-O01",
+    "E4-O02",
+    "E4-S01",
+    "E4-S02",
+    "E5-I01",
+    "E5-I02",
+    "E5-K1",
+    "E5-K2",
+    "E5-K4",
+    "E5-O01",
+    "E5-S01",
+    "E5-S02",
+    "E6-I01",
+    "E6-K2",
+    "E6-K3",
+    "E6-K4",
+    "E6-O01",
+    "E6-S01",
+    "E7-I01",
+    "E7-K2",
+    "E7-O01",
+    "E7-O02",
+    "E7-S01"
+  ]
+}
