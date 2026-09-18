@@ -11,6 +11,7 @@
 // cobranza > cashpay. El opt-out es UNIVERSAL. Las campañas apagadas no
 // asignan a nadie.
 // ---------------------------------------------------------------------------
+import { overdueByStudent } from './moodle-access'
 
 export interface CampaignDef { key: string; name: string; priority: number; cooldown_days: number; active: boolean; config: Record<string, unknown> }
 export interface Assignment { student_id: string; campaign_key: string; reason: string }
@@ -89,7 +90,6 @@ export async function resolveEligibility(sb: any): Promise<{
   const optouts = new Set(optoutRows.map(o => String(o.student_id)))
 
   // Señales por estudiante ------------------------------------------------
-  const hoy = new Date().toISOString().slice(0, 10)
   const pendienteTitulo = new Set(grads.filter(g => g.titulacion_status === 'pendiente').map(g => String(g.student_id)))
 
   const ausenteCfg = campaigns.find(c => c.key === 'ausente')
@@ -97,19 +97,21 @@ export async function resolveEligibility(sb: any): Promise<{
   const inactivos = new Map<string, number>()
   for (const t of tracking) if (t.inactivity_days != null) inactivos.set(String(t.student_id), Number(t.inactivity_days))
 
-  const exigibleBy = new Map<string, number>(), totalBy = new Map<string, number>(), paidBy = new Map<string, number>()
+  // "Vencida" = la definición OFICIAL del ERP, la MISMA función que restringe
+  // el campus (overdueByStudent): solo TUITION, cuota por cuota — a cada cuota
+  // vencida se le restan únicamente los pagos de ESA cuota.
+  //
+  // Hasta el 18/09/2026 aquí se sumaban las cuotas vencidas y se restaban
+  // TODOS los pagos del estudiante, incluido el de la matrícula inicial (que no
+  // tiene vencimiento y por eso no estaba en la suma): quien pagó $300 de
+  // matrícula y debía $120 de una cuota salía con −$180, "sin deuda". Camila
+  // veía 20 de los 120 deudores activos; los otros 100 caían en Ausente o Cash
+  // Pay. Decisión del usuario: corregir, y Cobranza mira SOLO tuition.
+  const vencidaOficial = await overdueByStudent(sb)
+  const totalBy = new Map<string, number>(), paidBy = new Map<string, number>()
   for (const c of charges) {
     if (!c.student_id) continue
-    const amt = Number(c.amount ?? 0)
-    totalBy.set(String(c.student_id), (totalBy.get(String(c.student_id)) ?? 0) + amt)
-    // "Vencida" = la definición OFICIAL del ERP (la misma de la restricción de
-    // Moodle y el reporte de deuda): con fecha de vencimiento y ya cumplida.
-    // Una cuota SIN fecha (p. ej. el enrollment) no está vencida — cuenta en el
-    // saldo total (cashpay), no en cobranza. Antes se contaba como vencida y
-    // la campaña habría cobrado deudas que el resto del ERP no llama deuda.
-    if (c.due_date && String(c.due_date).slice(0, 10) <= hoy) {
-      exigibleBy.set(String(c.student_id), (exigibleBy.get(String(c.student_id)) ?? 0) + amt)
-    }
+    totalBy.set(String(c.student_id), (totalBy.get(String(c.student_id)) ?? 0) + Number(c.amount ?? 0))
   }
   for (const p of payments) {
     if (!p.student_id) continue
@@ -134,7 +136,7 @@ export async function resolveEligibility(sb: any): Promise<{
     if (optouts.has(sid)) continue
 
     const situ = String(s.situation ?? 'activo').toLowerCase()
-    const vencida = (exigibleBy.get(sid) ?? 0) - (paidBy.get(sid) ?? 0)
+    const vencida = vencidaOficial.get(sid) ?? 0
     const saldoTotal = (totalBy.get(sid) ?? 0) - (paidBy.get(sid) ?? 0)
     const dias = inactivos.get(sid) ?? 0
 
