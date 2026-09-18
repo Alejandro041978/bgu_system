@@ -36,11 +36,22 @@ export async function GET(req: NextRequest) {
       .from('academic_grades')
       .select('*')
       .eq('document_number', document)
-      .order('term_year', { ascending: false })
-      .order('term_block', { ascending: false })
       .order('course_code')
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     let grades = data ?? []
+
+    // El periodo es el SEMESTRE (semester_id), el mismo que muestra el registro
+    // curricular. Año + bloque (term_year/term_block) son el dato crudo de
+    // SystemActiva: se contradicen entre sí y ya no se muestran (18/09/2026).
+    {
+      const { data: sems } = await sb.from('academic_semesters').select('id, name, start_date')
+      const semDe = new Map<string, { name: string; start_date: string }>(
+        ((sems ?? []) as { id: string; name: string; start_date: string }[]).map(s => [String(s.id), { name: s.name, start_date: String(s.start_date) }]))
+      grades = grades
+        .map((g: { semester_id?: string | null }) => ({ ...g, semestre: g.semester_id ? (semDe.get(String(g.semester_id)) ?? null) : null }))
+        .sort((a: { semestre: { start_date: string } | null; course_code: string | null }, b: { semestre: { start_date: string } | null; course_code: string | null }) =>
+          String(b.semestre?.start_date ?? '').localeCompare(String(a.semestre?.start_date ?? '')) || String(a.course_code ?? '').localeCompare(String(b.course_code ?? '')))
+    }
 
     // El código que se muestra es el del plan de estudios. academic_grades.course_code
     // guarda el número de orden con el que la nota llegó de SystemActiva (207, 101),

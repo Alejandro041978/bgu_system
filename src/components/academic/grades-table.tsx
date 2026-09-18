@@ -18,6 +18,8 @@ export interface Grade {
   edited_at?: string | null
   estado_academico?: string | null
   rendido_pct?: number | null
+  // Periodo real: el semestre (lo trae /api/academic/grades?document=)
+  semestre?: { name: string; start_date: string } | null
 }
 
 function gradeInfo(g: Grade): { value: number | null; passed: boolean | null; label: string } {
@@ -45,15 +47,15 @@ function gradeInfo(g: Grade): { value: number | null; passed: boolean | null; la
 /**
  * `agrupacion` decide cómo se corta la tabla.
  *
- *   'periodo' → Año + Bloque, como lo traía SystemActiva (vista del ERP)
+ *   'periodo' → por SEMESTRE (AY 25-26 FALL 2025), el mismo periodo que
+ *               muestra el registro curricular; del más reciente al más
+ *               antiguo, y "Sin periodo" al final (vista del ERP)
  *   'ninguno' → una sola lista de asignaturas (portal del estudiante)
  *
- * El bloque es herencia de Activa y no significa nada en el plan de estudios
- * actual: llega vacío en las asignaturas nuevas y con números sueltos en las
- * viejas. Al estudiante le partía su historial en secciones que no
- * corresponden a ningún período que haya cursado. En su portal ve lo único que
- * le importa: sus asignaturas y sus notas. En el ERP se conserva el corte
- * porque Registros lo usa para rastrear de qué carga vino cada nota.
+ * Hasta el 18/09/2026 se cortaba por Año + Bloque, el dato crudo de
+ * SystemActiva: se contradecía consigo mismo en miles de filas y partía el
+ * historial en secciones que no correspondían a ningún periodo cursado. Esos
+ * campos siguen en la base como referencia, pero ya no se muestran.
  */
 export function GradesTable(
   { grades, onEdit, agrupacion = 'periodo' }:
@@ -68,35 +70,26 @@ export function GradesTable(
     )
   }
 
-  // Agrupar por período, más reciente primero. Sin agrupación, un solo grupo.
-  const groups = new Map<string, Grade[]>()
+  // Agrupar por semestre, más reciente primero; sin semestre, al final.
+  const groups = new Map<string, { periodo: string | null; inicio: string; rows: Grade[] }>()
   for (const g of grades) {
-    const key = agrupacion === 'ninguno' ? '' : `${g.term_year ?? '—'}·${g.term_block ?? '—'}`
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key)!.push(g)
+    const key = agrupacion === 'ninguno' ? '' : (g.semestre?.name ?? '∅')
+    if (!groups.has(key)) groups.set(key, { periodo: agrupacion === 'ninguno' ? null : (g.semestre?.name ?? null), inicio: g.semestre?.start_date ?? '', rows: [] })
+    groups.get(key)!.rows.push(g)
   }
+  const ordenados = [...groups.entries()].sort((a, b) => b[1].inicio.localeCompare(a[1].inicio))
 
   return (
     <div className="space-y-4">
-      {Array.from(groups.entries()).map(([key, rows]) => {
-        const [year, block] = key.split('·')
-        // "—" es lo que puso la clave cuando el dato no existe: no es un valor.
-        const periodo = year !== '—' && block !== '—' ? `Año ${year} · Bloque ${block}`
-          : year !== '—' ? `Año ${year}`
-            : block !== '—' ? `Bloque ${block}`
-              : null
+      {ordenados.map(([key, { periodo, rows }]) => {
         const withGrade = rows.filter(r => gradeInfo(r).value !== null)
         const avg = withGrade.length
           ? (withGrade.reduce((s, r) => s + (gradeInfo(r).value ?? 0), 0) / withGrade.length).toFixed(1)
           : null
         return (
           <div key={key} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {/* Año y bloque son el dato CRUDO que traía SystemActiva, y solo lo
-                traen las notas que vinieron de allí: el orden temporal se
-                decide con el semestre. Cuando faltan los dos, el encabezado
-                degeneraba en "Año — · Bloque —", que no informa de nada y
-                parece un dato roto. Se muestra el periodo solo cuando existe;
-                el promedio se mantiene, que sí dice algo. */}
+            {/* Se muestra el semestre cuando existe; el promedio se mantiene,
+                que sí dice algo. */}
             {agrupacion !== 'ninguno' && (periodo || avg) && (
               <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
                 <Award className="w-4 h-4 text-blue-500" />
