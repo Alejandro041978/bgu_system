@@ -39,6 +39,11 @@ export async function GET(req: NextRequest) {
     : { data: [] }
   const activa = ((mem ?? []) as { group_id: string; status: string }[]).find(m => m.status === 'activo') ?? (mem ?? [])[0] ?? null
   const gEfectivo = activa ? gs.find(g => g.id === activa.group_id) : null
+  // Todas las activas: más de una es una anomalía (dos cadenas a la vez) que
+  // "re-ejecutar activación" reconcilia con lo cargado.
+  const activas = ((mem ?? []) as { group_id: string; status: string }[]).filter(m => m.status === 'activo')
+    .map(m => gs.find(g => g.id === m.group_id)).filter(Boolean)
+    .map(g => ({ group_id: g!.id, label: glabel(g!) }))
 
   // Comentarios internos de la vendedora (consulta aparte y tolerante: si la
   // migración enrollment_comments.sql no corrió, simplemente no hay notas).
@@ -54,6 +59,7 @@ export async function GET(req: NextRequest) {
     collection_id: enr.collection_id ?? null,
     entry_group_id: enr.entry_group_id ?? null,
     efectivo: gEfectivo ? { group_id: gEfectivo.id, label: glabel(gEfectivo), status: activa!.status } : null,
+    membresias_activas: activas,
     colecciones: ((cols ?? []) as { id: string; name: string; active: boolean }[]).map(c => ({ id: c.id, name: c.name, active: c.active })),
     carruseles: gs.map(g => ({ id: g.id, label: glabel(g) })).sort((a, b) => a.label.localeCompare(b.label)),
   })

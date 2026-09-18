@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, Settings2, Zap } from 'lucide-react'
+import { AlertTriangle, Loader2, Settings2, Zap } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
 // Lo CARGADO en una matrícula (colección + carrusel de entrada), su reflejo
@@ -14,6 +14,7 @@ interface Setup {
   enrollment_id: string; status: string | null; activada: boolean
   collection_id: string | null; entry_group_id: string | null
   efectivo: { group_id: string; label: string; status: string } | null
+  membresias_activas?: { group_id: string; label: string }[]
   colecciones: { id: string; name: string; active: boolean }[]
   carruseles: { id: string; label: string }[]
   // Notas internas cargadas por la vendedora al matricular
@@ -143,6 +144,12 @@ export function EnrollmentSetup({ enrollmentId, onChanged }: { enrollmentId: str
             <p className="text-gray-600 whitespace-pre-wrap"><span className="text-[11px] font-semibold uppercase text-amber-700">Económico:</span> {s.financial_comments}</p>
           )}
         </>
+      )}
+      {(s.membresias_activas?.length ?? 0) > 1 && (
+        <p className="text-red-700 flex items-start gap-1">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>Está en <b>{s.membresias_activas!.length} carruseles a la vez</b>: {s.membresias_activas!.map(m => m.label).join(' y ')}. «Re-ejecutar activación» lo deja solo en la cadena cargada y da de baja las aulas de la otra.</span>
+        </p>
       )}
       {difiere && (
         <p className="text-amber-700">⚠ Lo cargado ({carLabel}) difiere de la colocación efectiva ({s.efectivo!.label}): el estudiante ya avanzó o fue colocado antes de la carga.</p>

@@ -281,18 +281,52 @@ export async function advanceCarousels(sb: any, opts: { studentId?: string; dryR
 // ---------------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function placeStudentInGroup(sb: any, studentId: string, programId: string, groupId: string): Promise<{ ok: boolean; group_id?: string; note: string }> {
-  const { data: gs } = await sb.from('academic_groups').select('id, program_id').eq('program_id', programId)
-  const ids = ((gs ?? []) as { id: string }[]).map(g => String(g.id))
+  const { data: gs } = await sb.from('academic_groups').select('id, program_id, abbreviation, name, next_group_id').eq('program_id', programId)
+  const grupos = (gs ?? []) as { id: string; abbreviation: string | null; name: string | null; next_group_id: string | null }[]
+  const ids = grupos.map(g => String(g.id))
   if (!ids.includes(String(groupId))) return { ok: false, note: 'El carrusel cargado en la matrícula no pertenece a su programa' }
-  // Si ya está en ALGÚN carrusel del programa (pudo avanzar), no se recoloca
+
+  // La CADENA del carrusel cargado: lo alcanzable hacia adelante por
+  // next_group_id y lo que llega hasta él. Avanzar dentro de la cadena es
+  // legítimo; estar en OTRA cadena del programa, no.
+  const siguiente = new Map(grupos.map(g => [String(g.id), g.next_group_id ? String(g.next_group_id) : null]))
+  const cadena = new Set<string>([String(groupId)])
+  for (let c = siguiente.get(String(groupId)); c && !cadena.has(c); c = siguiente.get(c)) cadena.add(c)
+  let creció = true
+  while (creció) {
+    creció = false
+    for (const [g, n] of siguiente) if (n && cadena.has(n) && !cadena.has(g)) { cadena.add(g); creció = true }
+  }
+  const etiqueta = (id: string) => { const g = grupos.find(x => String(x.id) === id); return g ? [g.abbreviation, g.name].filter(Boolean).join(' · ') : id }
+
   const { data: existing } = await sb.from('academic_group_students')
     .select('group_id, status').eq('student_id', studentId).in('group_id', ids)
-  if ((existing ?? []).length) return { ok: true, group_id: String((existing as { group_id: string }[])[0].group_id), note: 'Ya estaba en un carrusel del programa' }
+  const activas = ((existing ?? []) as { group_id: string; status: string }[]).filter(m => m.status === 'activo').map(m => String(m.group_id))
+  const enCadena = activas.filter(g => cadena.has(g))
+  const enOtra = activas.filter(g => !cadena.has(g))
+
+  // Reconciliar con lo cargado (17/09/2026, caso Catachura: colocado a mano en
+  // ADM_SP1 antes de la carga y luego por la activación en ADM_UP1 — quedó en
+  // dos cadenas). Lo que está en OTRA cadena se retira, con baja de sus aulas
+  // en Moodle; la cadena cargada se marca para que el reconciliador vuelva a
+  // dar de alta cualquier aula compartida en minutos.
+  const notas: string[] = []
+  for (const g of enOtra) {
+    const { error } = await sb.from('academic_group_students').delete().eq('group_id', g).eq('student_id', studentId)
+    if (error) { notas.push(`no se pudo retirar de ${etiqueta(g)}: ${error.message}`); continue }
+    await provisionStudent(g, studentId, 'unenrol').catch(() => null)
+    notas.push(`retirado de ${etiqueta(g)} (otra cadena) y dado de baja de sus aulas`)
+  }
+
+  if (enCadena.length) {
+    if (enOtra.length) await marcarParaSincronizar(sb, enCadena[0])
+    return { ok: true, group_id: enCadena[0], note: [enCadena[0] === String(groupId) ? 'Ya estaba en el carrusel cargado' : `Ya estaba en ${etiqueta(enCadena[0])}, dentro de la cadena cargada`, ...notas].join('; ') }
+  }
   const { error } = await sb.from('academic_group_students')
     .insert({ group_id: groupId, student_id: studentId, status: 'activo' })
   if (error) return { ok: false, note: error.message }
   await marcarParaSincronizar(sb, groupId)
-  return { ok: true, group_id: groupId, note: 'Colocado en el carrusel cargado en la matrícula' }
+  return { ok: true, group_id: groupId, note: ['Colocado en el carrusel cargado en la matrícula', ...notas].join('; ') }
 }
 
 export async function placeStudentInEntry(sb: any, studentId: string, programId: string): Promise<{ ok: boolean; group_id?: string; note: string }> {
