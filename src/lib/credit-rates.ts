@@ -48,7 +48,9 @@ export async function snapshotCreditRate(sb: any, enrollmentId: string, programI
     const resolved = await resolveCreditRate(sb, programId, onDate)
     if (!resolved) return
 
-    const { data: courses } = await sb.from('academic_courses').select('credits').eq('program_id', programId)
+    // Solo la MALLA: las opciones de electiva (graduation_requirement=false) no
+    // cuentan — la casilla que llenan ya vale sus créditos.
+    const { data: courses } = await sb.from('academic_courses').select('credits').eq('program_id', programId).not('graduation_requirement', 'is', false)
     const totalCredits = (courses ?? []).reduce((s: number, c: { credits: number | null }) => s + Number(c.credits ?? 0), 0)
 
     await sb.from('academic_student_enrollments').update({

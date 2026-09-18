@@ -26,7 +26,7 @@ export async function GET() {
     sb.from('credit_rates').select('*').order('effective_from', { ascending: false }).order('created_at', { ascending: false }),
     sb.from('academic_programs_category').select('id, name, sigla').order('name'),
     sb.from('academic_programs').select('id, name, category_id').order('name'),
-    sb.from('academic_courses').select('program_id, credits'),
+    sb.from('academic_courses').select('program_id, credits').not('graduation_requirement', 'is', false), // solo la malla
   ])
   const creditsByProgram: Record<string, number> = {}
   for (const c of (courses ?? []) as { program_id: string | null; credits: number | null }[]) {

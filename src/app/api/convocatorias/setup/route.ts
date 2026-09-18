@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
       casillas.set(l.collection_id, (casillas.get(l.collection_id) ?? 0) + 1)
     }
   }
-  const { data: courses } = await sb.from('academic_courses').select('program_id').in('program_id', programIds)
+  const { data: courses } = await sb.from('academic_courses').select('program_id').in('program_id', programIds).not('graduation_requirement', 'is', false) // solo la malla
   const malla = new Map<string, number>()
   for (const c of (courses ?? []) as { program_id: string }[]) malla.set(c.program_id, (malla.get(c.program_id) ?? 0) + 1)
 

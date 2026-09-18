@@ -61,7 +61,7 @@ export async function creditosFacturablesEnBloque(sb: SB, enrollmentIds?: string
   const studentIds = [...new Set(enrs.map(e => String(e.student_id)))]
   const porEstudiante = !!enrollmentIds
   const [cursos, matriculas, tcs] = await Promise.all([
-    todo(sb, 'academic_courses', 'id, program_id, credits'),
+    todo(sb, 'academic_courses', 'id, program_id, credits, graduation_requirement'),
     porEstudiante
       ? todoIn(sb, 'academic_course_enrollments', 'student_id, course_id, program_id, status', 'student_id', studentIds)
       : todo(sb, 'academic_course_enrollments', 'id, student_id, course_id, program_id, status'),
@@ -78,6 +78,10 @@ export async function creditosFacturablesEnBloque(sb: SB, enrollmentIds?: string
   const mallaDePrograma = new Map<string, string[]>()
   for (const c of cursos) {
     creditoDeCurso.set(String(c.id), Number(c.credits ?? 0))
+    // Solo la MALLA: las opciones de electiva (graduation_requirement=false) no
+    // se cobran por sí mismas — la casilla que llenan ya está registrada y
+    // cobrada. Contarlas duplicaría los créditos de quien eligió especialidad.
+    if (c.graduation_requirement === false) continue
     if (c.program_id) mallaDePrograma.set(String(c.program_id), [...(mallaDePrograma.get(String(c.program_id)) ?? []), String(c.id)])
   }
   const vivasDe = new Map<string, { course_id: string; program_id: string | null }[]>()

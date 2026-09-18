@@ -35,7 +35,9 @@ export async function emitDocument(requestId: string): Promise<EmitDocResult> {
       const { data: cat } = await sb.from('academic_programs_category').select('name').eq('id', prog.category_id).maybeSingle()
       categoryName = cat?.name ?? ''
     }
-    const { data: courses } = await sb.from('academic_courses').select('credits, hours').eq('program_id', r.program_id)
+    // Solo la MALLA: las opciones de electiva (graduation_requirement=false) no
+    // cuentan — la casilla que llenan ya vale sus créditos.
+    const { data: courses } = await sb.from('academic_courses').select('credits, hours').eq('program_id', r.program_id).not('graduation_requirement', 'is', false)
     const sum = (courses ?? []).reduce((a: number, c: { credits: number | null }) => a + Number(c.credits ?? 0), 0)
     creditsTotal = sum ? String(sum) : ''
     const sumH = (courses ?? []).reduce((a: number, c: { hours: number | null }) => a + Number(c.hours ?? 0), 0)

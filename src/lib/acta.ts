@@ -128,8 +128,13 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
     if (c.is_elective) {
       const chosen = eleccionesDe?.get(String(c.id))
       if (!chosen) {
+        // Sin elección la casilla sigue 'pendiente' para el egreso, pero SÍ
+        // está en su registro desde la matrícula y por eso se cobra (regla del
+        // usuario, 17/09/2026: el estudiante se matriculó en las 20 y su plan
+        // de pagos es por 60 créditos; elegir la especialidad meses después no
+        // tiene nada que ver con los pagos).
         summary.pendiente++
-        return { code: c.code, name: c.name, credits: c.credits, registrada: false, status: 'pendiente' as const, grade: null }
+        return { code: c.code, name: c.name, credits: c.credits, registrada: registradas.has(String(c.id)), status: 'pendiente' as const, grade: null }
       }
       const nombre = `${c.name} — ${[chosen.code, chosen.name].filter(Boolean).join(' · ')}`
       const base = { code: c.code, name: nombre, credits: c.credits, registrada: true }

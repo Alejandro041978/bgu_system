@@ -97,8 +97,11 @@ export async function completarRegistroDeMatricula(
   if (!s?.document_number) return { creadas: 0 }
   if (SITUACIONES_EXENTAS.includes(String(s.situation ?? ''))) return { creadas: 0 }
 
+  // Solo la MALLA: las opciones de electiva (graduation_requirement=false)
+  // NO se registran al matricular — entran solo al elegir la especialidad
+  // (17/09/2026: 52 estudiantes del DBA recibieron 20 opciones de más).
   const { data: malla } = await sb.from('academic_courses')
-    .select('id, code, name, credits').eq('program_id', programId)
+    .select('id, code, name, credits').eq('program_id', programId).not('graduation_requirement', 'is', false)
   if (!(malla ?? []).length) return { creadas: 0 }
 
   // Lo que ya tiene registrado sale del REGISTRO, no de la tabla de notas.
@@ -158,7 +161,7 @@ export async function analizarCobertura(sb: SB): Promise<MatriculaIncompleta[]> 
   const [cats, progs, courses, studs, enrs, matriculas, tcs, tItems] = await Promise.all([
     todo(sb, 'academic_programs_category', 'id, name'),
     todo(sb, 'academic_programs', 'id, name, category_id'),
-    todo(sb, 'academic_courses', 'id, program_id, name, code, credits'),
+    todo(sb, 'academic_courses', 'id, program_id, name, code, credits, graduation_requirement'),
     todo(sb, 'academic_students', 'id, document_number, first_name, last_name, second_last_name, email, situation'),
     todo(sb, 'academic_student_enrollments', 'id, student_id, program_id, status'),
     todo(sb, 'academic_course_enrollments', 'student_id, course_id'),
@@ -170,6 +173,7 @@ export async function analizarCobertura(sb: SB): Promise<MatriculaIncompleta[]> 
   const prog = new Map(progs.map(p => [p.id, p]))
   const malla = new Map<string, typeof courses>()
   for (const c of courses) {
+    if (c.graduation_requirement === false) continue // opciones de electiva: fuera de la malla
     if (!malla.has(c.program_id)) malla.set(c.program_id, [])
     malla.get(c.program_id)!.push(c)
   }
