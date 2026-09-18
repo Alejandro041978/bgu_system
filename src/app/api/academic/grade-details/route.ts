@@ -28,9 +28,9 @@ export async function GET(req: NextRequest) {
   const sb = db()
   const [{ data: details }, { data: enr }, { data: stu }] = await Promise.all([
     sb.from('academic_grade_details')
-      .select('id, external_id, enrollment_id, course_code, course_name, term_year, term_block, semester_id, final_grade, retake_grade, makeup_grade, extra_points, passing_score, max_score, grades, process_grades')
+      .select('id, external_id, enrollment_id, course_code, course_name, semester_id, final_grade, retake_grade, makeup_grade, extra_points, passing_score, max_score, grades, process_grades')
       .eq('student_id', studentId)
-      .order('term_year', { ascending: false }).order('term_block', { ascending: false }).order('course_name'),
+      .order('course_name'),
     sb.from('academic_student_enrollments').select('id, academic_programs(name)').eq('student_id', studentId),
     sb.from('academic_students').select('document_number').eq('id', studentId).maybeSingle(),
   ])

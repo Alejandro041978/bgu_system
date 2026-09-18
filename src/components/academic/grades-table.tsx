@@ -7,8 +7,6 @@ export interface Grade {
   course_code: string | null
   course_name: string | null
   credits: number | null
-  term_year: number | null
-  term_block: string | null
   final_grade: number | null
   retake_grade: number | null
   passing_score: number | null

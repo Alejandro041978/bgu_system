@@ -178,7 +178,7 @@ export async function GET(req: NextRequest) {
     //
     // Una columna que no se pide llega como undefined y nadie se queja.
     const all = await fetchByIn(sb, 'academic_grades',
-      'external_id, document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year, semester_id',
+      'external_id, document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, semester_id',
       'document_number', docsAula)
     const { data: semAll } = await sb.from('academic_semesters').select('id, start_date')
     const inicioSem = new Map<string, string>()
@@ -214,7 +214,6 @@ export async function GET(req: NextRequest) {
     .sort((a, b) =>
       String(b?.start_date ?? b?.year?.start_date ?? '').localeCompare(String(a?.start_date ?? a?.year?.start_date ?? '')))
   const semesterStartAula: string | null = semsAula[0]?.start_date ? String(semsAula[0].start_date) : null
-  const termYearAula: number | null = inicios.length ? Number(String(inicios[0]).slice(0, 4)) : null
 
   const politica = await aulaPolicy(sb, courseid, report)
 
@@ -257,7 +256,7 @@ export async function GET(req: NextRequest) {
         }))
       const r = resolveImportTarget(
         gradesByDoc.get(doc) ?? [], linkedCourse, stableUuid(`moodle:${courseid}:${ug.userid}`), passing,
-        { rendido_pct: rendidoPct(proc as ItemProceso[]), term_year: termYearAula, semester_start: semesterStartAula, semester_id: semsAula[0]?.id ? String(semsAula[0].id) : null, valor: total },
+        { rendido_pct: rendidoPct(proc as ItemProceso[]), semester_start: semesterStartAula, semester_id: semsAula[0]?.id ? String(semsAula[0].id) : null, valor: total },
         declaradoDe.get(String(stu.id)) ?? null,
       )
       if (r.action === 'skip' && r.sin_declarar) { destino = 'recursado SIN DECLARAR — no se abre (declararlo en Recursados)'; yaRegistradas++ }

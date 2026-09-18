@@ -76,7 +76,7 @@ async function main() {
       const fila: MatriculaDeNota = {
         student_id: s.id, document_number: String(A.document_number), course_id: String(destino.id),
         program_id: String(destino.program_id), attempt: intento,
-        semester_id: A.semester_id ?? null, term_year: A.term_year ?? null, term_block: A.term_block ?? null,
+        semester_id: A.semester_id ?? null,
         status: estadoDeNota(A, null), source: String(A.source ?? 'systemactiva'),
       }
       const r = await asegurarMatriculas(sb, [fila], 'adjudicacion-homonimas')

@@ -26,8 +26,6 @@ export interface FilaIntento {
   // 6.747 filas, con un term_year de un sistema y un bloque que nombraba otro
   // año.
   orden?: string | null
-  term_year?: number | null
-  term_block?: string | null
   synced_at?: string | null
   intento?: number | null
   // Evidencia de que ese intento se cursó de verdad. Sin nota y sin nada
@@ -49,10 +47,7 @@ const esIntentoReal = (f: FilaIntento): boolean =>
 
 // Clave de orden del periodo. Sin año no se puede ordenar: esas filas van al
 // final y comparten número, que es lo honesto cuando no se sabe cuándo fue.
-const clave = (f: FilaIntento): string =>
-  f.orden ? String(f.orden)
-    : f.term_year != null ? `${String(f.term_year).padStart(4, '0')}|${f.term_block ?? ''}`
-      : ''
+const clave = (f: FilaIntento): string => f.orden ? String(f.orden) : ''
 
 export function numerarIntentos<T extends FilaIntento>(filas: T[]): (T & { intento_calc: number })[] {
   const orden = [...filas].sort((a, b) => {

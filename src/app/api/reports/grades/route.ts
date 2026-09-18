@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
     todo(sb, 'academic_semesters', 'id, name, academic_year_id'),
     todo(sb, 'academic_students', 'id, document_number, first_name, last_name, second_last_name, situation'),
     todo(sb, 'academic_student_enrollments', 'student_id, program_id, convocatoria_id'),
-    todo(sb, 'academic_grades', 'external_id, document_number, course_id, course_name, final_grade, retake_grade, passing_score, estado_academico, semester_id, term_block, source, withdrawn_at'),
+    todo(sb, 'academic_grades', 'external_id, document_number, course_id, course_name, final_grade, retake_grade, passing_score, estado_academico, semester_id, source, withdrawn_at'),
     passingByCourse(sb),
   ])
 

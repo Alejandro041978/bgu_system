@@ -26,11 +26,9 @@ export interface NotaMin {
   final_grade: number | null
   retake_grade: number | null
   passing_score: number | null
-  term_year: number | null
-  term_block: string | null
-  // El periodo con la nomenclatura del ERP. term_year y term_block son de
-  // SystemActiva y están en retirada; éste es el que pasa al registro.
+  // El periodo: el semestre del ERP, y su fecha de inicio para ordenar.
   semester_id?: string | null
+  semester_start?: string | null
   withdrawn_at: string | null
   synced_at: string | null
   source: string | null
@@ -191,8 +189,6 @@ export interface MatriculaDeNota {
   program_enrollment_id?: string | null
   attempt: number
   semester_id?: string | null
-  term_year?: number | null
-  term_block?: string | null
   status: EstadoMatricula
   source: string
 }
@@ -280,10 +276,9 @@ export async function sincronizarEstadoDeMatricula(sb: any, externalId: string):
 // asignatura en 2022, 2024 y 2025.
 export function ordenarIntentos(notas: NotaMin[]): NotaMin[] {
   return [...notas].sort((a, b) => {
-    const ay = a.term_year ?? 9999, by = b.term_year ?? 9999
-    if (ay !== by) return ay - by
-    const ab = String(a.term_block ?? ''), bb = String(b.term_block ?? '')
-    if (ab !== bb) return ab.localeCompare(bb)
+    // Por inicio de semestre; sin semestre, al final (no se sabe cuándo fue).
+    const as = a.semester_start ?? '9999', bs = b.semester_start ?? '9999'
+    if (as !== bs) return as.localeCompare(bs)
     return String(a.synced_at ?? '').localeCompare(String(b.synced_at ?? ''))
   })
 }

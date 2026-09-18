@@ -7,7 +7,7 @@ interface Program { id: string; name: string; category: string }
 interface Course { id: string; code: string | null; name: string; level: number | null }
 interface Row {
   document: string; student_name: string
-  term_year: number | null; term_block: string | null
+  periodo: string | null
   final_grade: number | null; retake_grade: number | null; efectiva: number | null
   estado: 'aprobado' | 'desaprobado' | 'en_curso'
   source: string | null; edited: boolean; locked: boolean
@@ -21,7 +21,7 @@ interface Acta {
 interface Evaluacion { n: number; pct: number | null; val: number | null; desc: string }
 interface DetalleRow {
   student_id: string; name: string; document: string
-  term_year: number | null; term_block: string | null
+  periodo: string | null
   final_grade: number | null; retake_grade: number | null
   evaluaciones: Evaluacion[]
 }
@@ -74,19 +74,19 @@ export function CourseReport() {
   }, [courseId])
 
   const visibles = (acta?.rows ?? []).filter(r =>
-    term === 'todos' || `${r.term_year ?? '—'} · ${r.term_block ?? '—'}` === term)
+    term === 'todos' || (r.periodo ?? 'Sin periodo') === term)
 
   async function toggleExpand(r: Row) {
-    const key = `${r.document}|${r.term_year}|${r.term_block}`
+    const key = `${r.document}|${r.periodo ?? ''}`
     if (expandido === key) { setExpandido(null); return }
     await cargarDetalle()
     setExpandido(key)
   }
   const detalleDe = (r: Row): DetalleRow | null =>
-    (detalle ?? []).find(d => d.document === r.document && d.term_year === r.term_year && d.term_block === r.term_block) ?? null
+    (detalle ?? []).find(d => d.document === r.document && (d.periodo ?? '') === (r.periodo ?? '')) ?? null
 
   // Matriz del término elegido: columnas = evaluaciones (en orden), filas = estudiantes
-  const detTerm = (detalle ?? []).filter(d => term !== 'todos' && `${d.term_year ?? '—'} · ${d.term_block ?? '—'}` === term)
+  const detTerm = (detalle ?? []).filter(d => term !== 'todos' && (d.periodo ?? 'Sin periodo') === term)
   const columnas: string[] = []
   {
     const orden = new Map<string, number>()
@@ -174,7 +174,7 @@ export function CourseReport() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {detTerm.map(d => (
-                    <tr key={d.student_id + String(d.term_block)} className="hover:bg-gray-50/50">
+                    <tr key={d.student_id + String(d.periodo)} className="hover:bg-gray-50/50">
                       <td className="px-3 py-1.5 sticky left-0 bg-white z-10 whitespace-nowrap">
                         <p className="text-gray-800 text-xs">{d.name}</p>
                         <p className="text-[10px] text-gray-400">{d.document}</p>
@@ -217,14 +217,14 @@ export function CourseReport() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {visibles.map((r, i) => {
-                  const key = `${r.document}|${r.term_year}|${r.term_block}`
+                  const key = `${r.document}|${r.periodo ?? ''}`
                   const det = expandido === key ? detalleDe(r) : null
                   return [
                     <tr key={i} className="hover:bg-gray-50/50 cursor-pointer" onClick={() => toggleExpand(r)}>
                       <td className="pl-3 text-gray-300">{expandido === key ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}</td>
                       <td className="px-4 py-2 text-gray-800">{r.student_name}</td>
                       <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{r.document}</td>
-                      <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">{r.term_year ?? '—'} · {r.term_block ?? '—'}</td>
+                      <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">{r.periodo ?? '—'}</td>
                       <td className="px-3 py-2 text-right text-gray-600">{r.final_grade ?? '—'}</td>
                       <td className="px-3 py-2 text-right text-gray-600">{r.retake_grade ?? '—'}</td>
                       <td className={`px-3 py-2 text-right font-semibold ${r.estado === 'aprobado' ? 'text-green-700' : r.estado === 'desaprobado' ? 'text-rose-700' : 'text-gray-400'}`}>{r.efectiva ?? '—'}</td>

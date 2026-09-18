@@ -84,7 +84,7 @@ async function pagadoDeCargo(sb: any, chargeExternalId: string): Promise<number>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sellarIntento1(sb: any, r: any, quien: string): Promise<{ ok: boolean; error?: string }> {
   const { data: nota } = await sb.from('academic_grades')
-    .select('external_id, final_grade, retake_grade, passing_score, estado_academico, rendido_pct, moodle_course_id, term_year, semester_id, last_evaluated_at')
+    .select('external_id, final_grade, retake_grade, passing_score, estado_academico, rendido_pct, moodle_course_id, semester_id, last_evaluated_at')
     .eq('student_id', r.student_id).eq('course_id', r.course_id).eq('intento', Number(r.prev_attempt)).maybeSingle()
   if (!nota) return { ok: false, error: 'No se encontró el acta del intento anterior' }
   const { data: det } = await sb.from('academic_grade_details')

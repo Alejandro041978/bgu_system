@@ -67,8 +67,10 @@ export async function GET(req: NextRequest) {
     const nameOf = new Map(studs.map(s => [s.id, [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' ')]))
     const docOf = new Map(studs.map(s => [s.id, String(s.document_number ?? '')]))
     const details = await fetchByIn(sb, 'academic_grade_details',
-      'student_id, course_code, course_name, term_year, term_block, final_grade, retake_grade, process_grades, grades',
+      'student_id, course_code, course_name, semester_id, final_grade, retake_grade, process_grades, grades',
       'student_id', sids)
+    const { data: semsD } = await sb.from('academic_semesters').select('id, name')
+    const nombreSemD = new Map<string, string>(((semsD ?? []) as { id: string; name: string }[]).map(s => [String(s.id), s.name]))
     const rows = details
       // academic_grade_details no guarda course_id, así que aquí el nombre es
       // lo único que hay. Lo que sí se quita es el código: emparejaba por
@@ -78,7 +80,8 @@ export async function GET(req: NextRequest) {
         student_id: d.student_id,
         name: nameOf.get(d.student_id) ?? '?',
         document: docOf.get(d.student_id) ?? '',
-        term_year: d.term_year, term_block: d.term_block,
+        // El término es el semestre (año + bloque de Activa se retiraron)
+        periodo: d.semester_id ? (nombreSemD.get(String(d.semester_id)) ?? null) : null,
         final_grade: d.final_grade, retake_grade: d.retake_grade,
         // Lista unificada (misma regla que el Acta Detallada): sin el
         // marcador "Total" vacío del histórico
@@ -119,8 +122,11 @@ export async function GET(req: NextRequest) {
   // Notas de esos estudiantes que correspondan a la asignatura (paginado:
   // PostgREST corta en 1000 y un lote de documentos trae muchas más)
   const grades = await fetchByIn(sb, 'academic_grades',
-    'external_id, document_number, course_code, course_name, term_year, term_block, final_grade, retake_grade, passing_score, source, edited_at, locked_at, estado_academico',
+    'external_id, document_number, course_id, course_code, course_name, semester_id, final_grade, retake_grade, passing_score, source, edited_at, locked_at, estado_academico',
     'document_number', docs)
+  const { data: sems } = await sb.from('academic_semesters').select('id, name, start_date')
+  const semDe = new Map<string, { name: string; start_date: string }>(
+    ((sems ?? []) as { id: string; name: string; start_date: string }[]).map(s => [String(s.id), { name: s.name, start_date: String(s.start_date) }]))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: any[] = []
   {
@@ -137,7 +143,7 @@ export async function GET(req: NextRequest) {
       rows.push({
         document: String(g.document_number),
         student_name: stu ? [stu.first_name, stu.last_name, stu.second_last_name].filter(Boolean).join(' ') : (g.student_name ?? '?'),
-        term_year: g.term_year, term_block: g.term_block,
+        periodo: g.semester_id ? (semDe.get(String(g.semester_id))?.name ?? null) : null,
         final_grade: g.final_grade, retake_grade: g.retake_grade,
         efectiva,
         // El estado calculado manda sobre comparar la nota contra el mínimo:
@@ -153,7 +159,10 @@ export async function GET(req: NextRequest) {
   }
   rows.sort((a, b) => String(a.student_name).localeCompare(String(b.student_name)))
 
-  const terms = [...new Set(rows.map(r => `${r.term_year ?? '—'} · ${r.term_block ?? '—'}`))].sort().reverse()
+  // Términos = semestres, del más reciente al más antiguo; "Sin periodo" al final
+  const inicioDeNombre = new Map([...semDe.values()].map(s => [s.name, s.start_date]))
+  const terms = [...new Set(rows.map(r => String(r.periodo ?? 'Sin periodo')))]
+    .sort((a, b) => String(inicioDeNombre.get(b) ?? '').localeCompare(String(inicioDeNombre.get(a) ?? '')))
   const conNota = rows.filter(r => r.efectiva != null)
   return NextResponse.json({
     course: { id: course.id, code: course.code, name: course.name, program: course.academic_programs?.name ?? '', passing },

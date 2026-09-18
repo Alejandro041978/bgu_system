@@ -151,8 +151,6 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     .sort((a, b) =>
       String(b?.start_date ?? b?.year?.start_date ?? '').localeCompare(String(a?.start_date ?? a?.year?.start_date ?? '')))
   const sem = sems[0] ?? null
-  const termYear: number | null = sem?.year?.start_date ? Number(String(sem.year.start_date).slice(0, 4)) : null
-  const termBlock: string | null = sem?.name ? String(sem.name).trim().replace(/\s+/g, '_') : null
   // El semestre en sí, que es el orden temporal fiable: año+bloque se
   // contradicen en 6.747 filas del histórico.
   const semesterId: string | null = sem?.id ? String(sem.id) : null
@@ -354,7 +352,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     // para eso. Una columna que no se pide llega como undefined y el código de
     // abajo no se entera (20/08/2026).
     const all = await fetchByIn(sb, 'academic_grades',
-      'external_id, student_id, document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, term_year, semester_id',
+      'external_id, student_id, document_number, course_id, course_code, course_name, final_grade, retake_grade, passing_score, source, intento, semester_id',
       'student_id', sidsImport, { orderBy: 'external_id' })
     // Cada nota previa viaja con la FECHA de su semestre: es con lo que se
     // decide si el intento que llega es posterior, y el año suelto no sirve.
@@ -471,7 +469,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       { id: destCourse.id, code: destCourse.code, name: destCourse.name },
       stableUuid(`moodle:${courseid}:${ug.userid}`),
       passing,
-      { rendido_pct: rendido, term_year: termYear, semester_start: semesterStart, semester_id: semesterId, valor: total },
+      { rendido_pct: rendido, semester_start: semesterStart, semester_id: semesterId, valor: total },
       declaradoDe.get(String(stu.id)) ?? null,
     )
     if (target.action === 'skip') {
@@ -503,8 +501,6 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       // conocía desde el principio y no se escribía en la nota.
       course_id: destCourse.id,
       credits: destCourse.credits ?? null,
-      term_year: termYear,
-      term_block: termBlock,
       semester_id: semesterId,
       final_grade: total,
       // El mínimo NO se guarda en la nota: es la regla de la categoría y se
@@ -542,8 +538,6 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       program_id: destCourse.program_id ?? null,
       attempt: target.intento ?? 1,
       semester_id: semesterId,
-      term_year: termYear,
-      term_block: termBlock,
       status: estadoDeNota({
         ...fila, withdrawn_at: null, synced_at: null,
         course_code: fila.course_code ?? null, course_name: fila.course_name,
@@ -683,8 +677,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
         enrollment_id: enrOf.get(d.student_id) ?? null,
         course_code: destCourse.code,
         course_name: destCourse.name,
-        term_year: termYear,
-        term_block: termBlock,
+        semester_id: semesterId,
         final_grade: d.total,
         passing_score: null,   // regla de la categoría, no dato de la nota
         max_score: 100,

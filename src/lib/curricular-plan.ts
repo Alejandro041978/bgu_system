@@ -77,7 +77,7 @@ export function filaDePlan(
     attempt: 1,
     // Sin periodo: no se cursa todavía. Fecharla sería afirmar cuándo va a
     // ocurrir algo que aún no ocurre.
-    semester_id: null, term_year: null, term_block: null,
+    semester_id: null,
     status: 'no_iniciada',
     source: 'plan',
     opened_by: 'plan-curricular',

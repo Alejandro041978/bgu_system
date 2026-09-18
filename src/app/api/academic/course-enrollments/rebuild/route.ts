@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   const t0 = Date.now()
 
   const students = await todo(sb, 'academic_students', 'id, document_number', 'id')
-  const progEnr = await todo(sb, 'academic_student_enrollments', 'id, student_id, program_id, term_year', 'id')
+  const progEnr = await todo(sb, 'academic_student_enrollments', 'id, student_id, program_id', 'id')
   const courses = await todo(sb, 'academic_courses', 'id, program_id, name, code', 'id') as CursoMalla[]
   const programs = await todo(sb, 'academic_programs', 'id, name, category_id', 'id')
   const cats = await todo(sb, 'academic_programs_category', 'id, passing_score', 'id')
@@ -79,8 +79,14 @@ export async function POST(req: NextRequest) {
   const minPrograma = new Map<string, number | null>(programs.map((p: { id: string; category_id: string | null }) => [String(p.id), minCat.get(String(p.category_id)) ?? null]))
   const nombrePrograma = new Map<string, string>(programs.map((p: { id: string; name: string }) => [p.id, p.name]))
   const todasLasNotas = await todo(sb, 'academic_grades',
-    'external_id, student_id, document_number, course_id, course_name, course_code, final_grade, retake_grade, passing_score, term_year, term_block, semester_id, withdrawn_at, synced_at, source, course_enrollment_id, estado_academico',
+    'external_id, student_id, document_number, course_id, course_name, course_code, final_grade, retake_grade, passing_score, semester_id, withdrawn_at, synced_at, source, course_enrollment_id, estado_academico',
     'external_id') as (NotaMin & { student_id: string | null; course_enrollment_id: string | null; semester_id: string | null; course_id: string | null })[]
+  // Orden temporal de los intentos: el inicio del semestre de cada nota.
+  {
+    const sems = await todo(sb, 'academic_semesters', 'id, start_date', 'id')
+    const inicioDe = new Map<string, string>(sems.map((s: { id: string; start_date: string }) => [String(s.id), String(s.start_date)]))
+    for (const n of todasLasNotas) n.semester_start = n.semester_id ? (inicioDe.get(String(n.semester_id)) ?? null) : null
+  }
 
   // Las filas de plan SÍ entran ahora, y ésa es la novedad de este paso: una
   // asignatura inscrita y sin empezar pertenece al REGISTRO, no a la tabla de
@@ -206,10 +212,6 @@ export async function POST(req: NextRequest) {
         program_id: grupo.program_id,
         program_enrollment_id: grupo.program_id ? (progEnrOf.get(`${grupo.student_id}|${grupo.program_id}`) ?? null) : null,
         attempt: plan ? 1 : i + 1,
-        term_year: n.term_year,
-        term_block: n.term_block,
-        // El periodo con la nomenclatura del ERP. term_year/term_block se
-        // siguen copiando mientras existan, pero éste es el que manda.
         semester_id: n.semester_id ?? null,
         status: estadoDeNota(n, minPrograma.get(String(grupo.program_id ?? '')) ?? null),
         source: plan ? 'plan' : (n.source === 'moodle' ? 'moodle' : 'systemactiva'),

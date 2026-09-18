@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { semestreDePeriodo } from '@/lib/periodos-activa'
 
 export const maxDuration = 60
 
@@ -32,6 +33,14 @@ export async function POST(req: NextRequest) {
   if (!rows.length) return NextResponse.json({ error: 'Sin filas' }, { status: 400 })
 
   const sb = db()
+
+  // Nombre de semestre → id, para traducir el periodo de Activa en la puerta
+  const { data: sems } = await sb.from('academic_semesters').select('id, name')
+  const semId = new Map<string, string>(((sems ?? []) as { id: string; name: string }[]).map(x => [x.name.replace(/s+/g, ' ').trim(), String(x.id)]))
+  const semestreIdDe = (y: number | null, b: string | null): string | null => {
+    const nombre = semestreDePeriodo(y, b)
+    return nombre ? (semId.get(nombre) ?? null) : null
+  }
 
   // Matrícula.id -> student_id
   const stuByEnr = new Map<string, string>()
@@ -68,8 +77,10 @@ export async function POST(req: NextRequest) {
       enrollment_id: enrId,
       course_code: r.course_code ?? null,
       course_name: r.course_name ?? null,
-      term_year: int(r.term_year),
-      term_block: r.term_block ?? null,
+      // Año + bloque de SystemActiva no se guardan: se traducen aquí al semestre
+      // del ERP con la tabla que dio Registros. Sin equivalencia, null.
+      // Solo si se pudo traducir: un null aquí no debe borrar un semestre ya puesto.
+      ...(semestreIdDe(int(r.term_year), r.term_block ?? null) ? { semester_id: semestreIdDe(int(r.term_year), r.term_block ?? null) } : {}),
       final_grade: num(r.final_grade),
       retake_grade: num(r.retake_grade),
       makeup_grade: num(r.makeup_grade),
@@ -85,11 +96,16 @@ export async function POST(req: NextRequest) {
   }
 
   let upserted = 0
-  for (let i = 0; i < toUpsert.length; i += 500) {
-    const chunk = toUpsert.slice(i, i + 500)
-    const { error } = await sb.from('academic_grade_details').upsert(chunk, { onConflict: 'external_id' })
-    if (error) return NextResponse.json({ error: error.message, upserted }, { status: 500 })
-    upserted += chunk.length
+  // Dos tandas: en un upsert por lote las claves que faltan viajan como NULL, y
+  // una fila sin semestre traducible borraría el semestre de las demás.
+  const tandas = [toUpsert.filter(r => 'semester_id' in r), toUpsert.filter(r => !('semester_id' in r))]
+  for (const tanda of tandas) {
+    for (let i = 0; i < tanda.length; i += 500) {
+      const chunk = tanda.slice(i, i + 500)
+      const { error } = await sb.from('academic_grade_details').upsert(chunk, { onConflict: 'external_id' })
+      if (error) return NextResponse.json({ error: error.message, upserted }, { status: 500 })
+      upserted += chunk.length
+    }
   }
 
   return NextResponse.json({ ok: true, total: rows.length, upserted, unmatched_student: unmatched })

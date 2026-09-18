@@ -6,24 +6,34 @@ import { completarRegistroDeMatricula } from './curricular-plan'
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 /**
- * Primer periodo del estudiante (cuando inició estudios): la matrícula más antigua
- * en academic_student_enrollments; si no hay, la nota más antigua; si no, año actual.
+ * Primer SEMESTRE del estudiante (cuando inició estudios): el más antiguo entre
+ * sus notas con semestre; si no tiene ninguna, el semestre que contiene la fecha
+ * de su matrícula más antigua; si no, null. Una convalidación se fecha al inicio
+ * de sus estudios. (Hasta el 18/09/2026 se fechaba con año + bloque de Activa.)
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function firstPeriod(sb: any, studentId: string | null, document: string | null): Promise<{ year: number | null; block: string | null }> {
+async function firstSemester(sb: any, studentId: string | null, document: string | null): Promise<string | null> {
+  const { data: sems } = await sb.from('academic_semesters').select('id, start_date, end_date').order('start_date')
+  const lista = (sems ?? []) as { id: string; start_date: string; end_date: string }[]
+  const inicioDe = new Map(lista.map(s => [String(s.id), String(s.start_date)]))
+  if (studentId || document) {
+    let q = sb.from('academic_grades').select('semester_id').not('semester_id', 'is', null).not('source', 'in', '(convalidacion,validacion)')
+    q = studentId ? q.eq('student_id', studentId) : q.eq('document_number', document)
+    const { data } = await q
+    const ids = [...new Set(((data ?? []) as { semester_id: string }[]).map(g => String(g.semester_id)))]
+      .sort((a, b) => String(inicioDe.get(a) ?? '9999').localeCompare(String(inicioDe.get(b) ?? '9999')))
+    if (ids.length) return ids[0]
+  }
   if (studentId) {
     const { data } = await sb.from('academic_student_enrollments')
-      .select('term_year, term_block').eq('student_id', studentId).not('term_year', 'is', null)
-      .order('term_year', { ascending: true }).order('term_block', { ascending: true }).limit(1)
-    if (data?.[0]) return { year: data[0].term_year, block: data[0].term_block }
+      .select('enrollment_date').eq('student_id', studentId).not('enrollment_date', 'is', null).order('enrollment_date').limit(1)
+    const f = data?.[0]?.enrollment_date ? String(data[0].enrollment_date).slice(0, 10) : null
+    if (f) {
+      const s = lista.find(x => String(x.start_date) <= f && f <= String(x.end_date)) ?? lista.find(x => String(x.start_date) >= f)
+      if (s) return String(s.id)
+    }
   }
-  if (document) {
-    const { data } = await sb.from('academic_grades')
-      .select('term_year, term_block').eq('document_number', document).eq('source', 'systemactiva').not('term_year', 'is', null)
-      .order('term_year', { ascending: true }).order('term_block', { ascending: true }).limit(1)
-    if (data?.[0]) return { year: data[0].term_year, block: data[0].term_block }
-  }
-  return { year: new Date().getFullYear(), block: 'Convalidación' }
+  return null
 }
 
 /**
@@ -71,7 +81,7 @@ export async function reflectItem(itemId: string): Promise<number | null> {
   await sb.from('transfer_credit_items').update({ converted_grade: converted }).eq('id', itemId)
 
   if (converted != null) {
-    const period = await firstPeriod(sb, tc?.student_id ?? null, tc?.student_document ?? null)
+    const period = await firstSemester(sb, tc?.student_id ?? null, tc?.student_document ?? null)
     await sb.from('academic_grades').upsert({
       external_id: itemId,
       document_number: tc?.student_document ?? null,
@@ -86,8 +96,7 @@ export async function reflectItem(itemId: string): Promise<number | null> {
       credits: course?.credits ?? null,
       final_grade: converted,
       passing_score: destPassing,
-      term_year: period.year,
-      term_block: period.block,
+      semester_id: period,
       source: tc?.kind === 'validacion' ? 'validacion' : 'convalidacion',
       updated_at: new Date().toISOString(),
     }, { onConflict: 'external_id' })

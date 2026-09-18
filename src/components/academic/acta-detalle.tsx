@@ -10,7 +10,6 @@ interface Slot { n: number; desc: string; pct: number | null; val: number | null
 interface Detail {
   id: string; external_id: string; editable: boolean; program_name: string
   course_code: string | null; course_name: string | null; source_name?: string | null
-  term_year: number | null; term_block: string | null
   final_grade: number | null; retake_grade: number | null; makeup_grade: number | null
   extra_points: number | null; passing_score: number | null; max_score: number | null
   grades: Slot[] | null; process_grades: Slot[] | null

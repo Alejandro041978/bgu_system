@@ -19,7 +19,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const sb = db()
 
   const { data: enr } = await sb.from('academic_student_enrollments')
-    .select('program_id, term_year, term_block').eq('student_id', id)
+    .select('program_id').eq('student_id', id)
 
   const programIds = [...new Set((enr ?? []).map((e: { program_id: string }) => e.program_id).filter(Boolean))]
   if (programIds.length === 0) return NextResponse.json({ programs: [] })

@@ -209,10 +209,8 @@ export interface ImportRow {
   // cayendo a comparar por nombre.
   course_id?: string | null
   credits?: number | null
-  term_year?: number | null
-  term_block?: string | null
-  // El semestre real. Año y bloque se conservan como dato crudo, pero el orden
-  // temporal se decide con esto.
+  // El semestre real: el único periodo de una nota (año + bloque de
+  // SystemActiva se retiraron el 18/09/2026).
   semester_id?: string | null
   final_grade: number | null
   passing_score?: number | null
@@ -254,7 +252,7 @@ export function resolveImportTarget(
   // Evidencia del intento que se está importando: cuánto rindió y de qué
   // periodo es. Sin ella no se abre un recursado.
   intentoNuevo?: {
-    rendido_pct?: number | null; term_year?: number | null; semester_start?: string | null
+    rendido_pct?: number | null; semester_start?: string | null
     // El semestre del intento que llega: contra él se reconoce la MISMA
     // cursada por dato exacto (previa del mismo semestre), no por heurística.
     semester_id?: string | null
@@ -461,8 +459,8 @@ export function resolveImportTarget(
     // mentía: el aula 155 tiene oferta en dos años y term_year de las notas de
     // Activa contradice al bloque en 6.747 filas, así que "posterior" nunca se
     // cumplía y la regla quedó muerta el día que se escribió.
-    const previoOrden = previa.semester_start ?? (previa.term_year != null ? String(previa.term_year) : null)
-    const nuevoOrden = intentoNuevo?.semester_start ?? (intentoNuevo?.term_year != null ? String(intentoNuevo.term_year) : null)
+    const previoOrden = previa.semester_start ?? null
+    const nuevoOrden = intentoNuevo?.semester_start ?? null
     const posterior = previoOrden != null && nuevoOrden != null && String(nuevoOrden) > String(previoOrden)
     if (rindio && posterior) {
       // Aquí es donde ANTES se abría el intento deducido (las guardas de
@@ -581,8 +579,6 @@ export async function importGrades(
       // resuelva no puede borrar la que ya estaba escrita.
       course_id: r.course_id ?? existing.get(r.external_id)?.course_id ?? null,
       credits: r.credits ?? null,
-      term_year: r.term_year ?? null,
-      term_block: r.term_block ?? null,
       semester_id: r.semester_id ?? null,
       final_grade: r.final_grade,
       passing_score: r.passing_score ?? null,

@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
   const belongs = (g: { course_name: string | null; course_id: string | null }) => malla.some(c => filaDeCurso(g, c))
 
   const { data: grades } = await sb.from('academic_grades')
-    .select('external_id, course_id, course_code, course_name, credits, term_year, term_block, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id, estado_academico, intento, semester_id')
+    .select('external_id, course_id, course_code, course_name, credits, final_grade, retake_grade, passing_score, withdrawn_at, source, moodle_course_id, estado_academico, intento, semester_id')
     .eq('document_number', student.document_number).neq('source', 'convalidacion').neq('source', 'validacion')
 
   // Parciales del Acta Detallada (misma inscripción por external_id): una
