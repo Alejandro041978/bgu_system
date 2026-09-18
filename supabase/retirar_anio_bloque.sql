@@ -53,7 +53,7 @@ end $$;
 --    CUALQUIER otra, se detiene y las nombra todas de una vez.
 drop view if exists v_copias_activa;
 
-do $
+do $$
 declare
   otras text;
 begin
@@ -69,7 +69,7 @@ begin
   if otras is not null then
     raise exception 'Hay vistas que dependen de año/bloque: %. Revisar antes de borrar las columnas.', otras;
   end if;
-end $;
+end $$;
 
 -- 3. Las columnas
 alter table academic_grades             drop column term_year, drop column term_block;
