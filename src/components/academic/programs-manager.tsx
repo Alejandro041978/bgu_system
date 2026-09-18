@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Trash2, BookOpen, ChevronRight, Pencil, Check, X } from 'lucide-react'
 import { ElectivesManager } from './electives-manager'
 
@@ -44,13 +44,39 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
 
   const selectedProgram = programs.find(p => p.id === selected)
 
-  // Group courses by level
-  const coursesByLevel = selectedProgram?.courses.reduce((acc, c) => {
+  // La MALLA es lo que matricula el estudiante: obligatorias + casillas
+  // electivas. Las OPCIONES de electiva (graduation_requirement=false: las
+  // asignaturas de cada especialidad) no son de la malla — el estudiante no
+  // las hace todas, elige una especialidad que llena las casillas — así que no
+  // se cuentan ni se listan por ciclo: van en su propia sección al final.
+  const esOpcion = (c: Course) => c.graduation_requirement === false
+  const mallaDe = (p: Program) => p.courses.filter(c => !esOpcion(c))
+  const opciones = selectedProgram ? selectedProgram.courses.filter(esOpcion) : []
+
+  // Agrupación de las opciones por especialidad / menú (pools del programa)
+  const [pools, setPools] = useState<{ id: string; name: string; tipo: string; course_ids: string[] }[]>([])
+  useEffect(() => {
+    if (!selected) { setPools([]); return }
+    fetch(`/api/academic/electives?program_id=${selected}`).then(r => r.json())
+      .then(d => setPools(d.pools ?? [])).catch(() => setPools([]))
+  }, [selected])
+  const poolDe = new Map<string, string>()
+  for (const p of pools) for (const cid of p.course_ids) poolDe.set(cid, `${p.name}${p.tipo === 'especialidad' ? ' · especialidad' : ' · menú'}`)
+  const opcionesPorPool = opciones.reduce((acc, c) => {
+    const key = poolDe.get(c.id) ?? 'Sin especialidad asignada'
+    if (!acc[key]) acc[key] = []
+    acc[key].push(c)
+    return acc
+  }, {} as Record<string, Course[]>)
+  const gruposOpciones = Object.keys(opcionesPorPool).sort((a, b) => a === 'Sin especialidad asignada' ? 1 : b === 'Sin especialidad asignada' ? -1 : a.localeCompare(b))
+
+  // Group courses by level (solo la malla)
+  const coursesByLevel = (selectedProgram ? mallaDe(selectedProgram) : []).reduce((acc, c) => {
     const key = c.level ?? 0
     if (!acc[key]) acc[key] = []
     acc[key].push(c)
     return acc
-  }, {} as Record<number, Course[]>) ?? {}
+  }, {} as Record<number, Course[]>)
   const levels = Object.keys(coursesByLevel).map(Number).sort((a, b) => a - b)
 
   async function createProgram() {
@@ -285,7 +311,7 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                 <select value={selected ?? ''} onChange={e => setSelected(e.target.value)}
                   className="w-full appearance-none border border-gray-300 rounded-lg pl-4 pr-10 py-2.5 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   {filteredPrograms.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}{p.code ? ` (${p.code})` : ''} — {p.courses.length} asignaturas</option>
+                    <option key={p.id} value={p.id}>{p.name}{p.code ? ` (${p.code})` : ''} — {mallaDe(p).length} asignaturas{p.courses.length - mallaDe(p).length ? ` (+${p.courses.length - mallaDe(p).length} opciones de electiva)` : ''}</option>
                   ))}
                 </select>
                 <ChevronRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none rotate-90" />
@@ -425,6 +451,7 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                                   <td className="px-5 py-2.5">
                                     <p className="font-medium text-gray-800">{course.name}</p>
                                     {course.code && <p className="text-xs text-gray-400">{course.code}</p>}
+                                    {course.is_elective && <p className="text-[11px] text-amber-700">Casilla electiva · se cubre con una especialidad</p>}
                                   </td>
                                   <td className="px-3 py-2.5">
                                     {/* Dónde se enseña y cómo se evalúa. Se declara aquí, junto a
@@ -472,6 +499,78 @@ export function ProgramsManager({ initial, categories = [] }: { initial: Program
                   </table>
                 )}
               </div>
+
+              {/* Opciones de electiva: fuera de la malla, agrupadas por especialidad */}
+              {opciones.length > 0 && (
+                <div className="border-t border-gray-100 mt-2">
+                  <div className="px-5 py-2.5 bg-amber-50/40 border-b border-gray-100">
+                    <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Opciones de electivas · {opciones.length}</p>
+                    <p className="text-[11px] text-amber-700/80">No cuentan en la malla: el estudiante elige una especialidad y sus asignaturas llenan las casillas electivas.</p>
+                  </div>
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y divide-gray-50">
+                      {gruposOpciones.map(g => (
+                        <>
+                          <tr key={`o-${g}`}>
+                            <td colSpan={4} className="px-5 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide bg-gray-50/50">{g}</td>
+                          </tr>
+                          {[...opcionesPorPool[g]].sort((a, b) => (a.code ?? '').localeCompare(b.code ?? '')).map(course => (
+                            <tr key={course.id} className="group hover:bg-gray-50/50">
+                              {editingCourse === course.id ? (
+                                <>
+                                  <td className="px-5 py-2" colSpan={2}>
+                                    <div className="flex gap-2">
+                                      <input value={editCourseForm.name ?? ''} onChange={e => setEditCourseForm(p => ({ ...p, name: e.target.value }))}
+                                        className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                      <input value={editCourseForm.code ?? ''} onChange={e => setEditCourseForm(p => ({ ...p, code: e.target.value }))}
+                                        placeholder="Código" className="w-24 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2 w-20">
+                                    <input type="number" value={editCourseForm.credits ?? ''} onChange={e => setEditCourseForm(p => ({ ...p, credits: Number(e.target.value) }))}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                                  </td>
+                                  <td className="px-3 py-2 w-20">
+                                    <div className="flex items-center gap-1">
+                                      <button onClick={() => saveCourseEdit(course.id)} className="p-1 text-green-600 hover:bg-green-50 rounded"><Check className="w-3.5 h-3.5" /></button>
+                                      <button onClick={() => setEditingCourse(null)} className="p-1 text-gray-400 hover:bg-gray-100 rounded"><X className="w-3.5 h-3.5" /></button>
+                                    </div>
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className="px-5 py-2.5">
+                                    <p className="font-medium text-gray-800">{course.name}</p>
+                                    {course.code && <p className="text-xs text-gray-400">{course.code}</p>}
+                                  </td>
+                                  <td className="px-3 py-2.5 w-56">
+                                    <label className="inline-flex items-center gap-1.5 cursor-pointer" title="La asignatura se cursa en otra institución: su nota nace fuera y se registra a mano">
+                                      <input type="checkbox" checked={!!course.partner_campus} disabled={marcando === course.id}
+                                        onChange={() => marcar(course, 'partner_campus')} className="rounded" />
+                                      <span className={`text-[11px] font-medium ${course.partner_campus ? 'text-violet-700' : 'text-gray-400'}`}>Campus socio</span>
+                                    </label>
+                                  </td>
+                                  <td className="px-3 py-2.5 text-center w-20">
+                                    <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">{course.credits} cr</span>
+                                  </td>
+                                  <td className="px-3 py-2.5 w-20">
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button onClick={() => { setEditingCourse(course.id); setEditCourseForm({ name: course.name, code: course.code, credits: course.credits, hours: course.hours, level: course.level }) }}
+                                        className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded"><Pencil className="w-3.5 h-3.5" /></button>
+                                      <button onClick={() => deleteCourse(course.id)}
+                                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+                                    </div>
+                                  </td>
+                                </>
+                              )}
+                            </tr>
+                          ))}
+                        </>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
               {/* Electivas del programa: casillas de la malla + pools de
                   opciones (menú / especialidad). Fase 1 = configuración. */}
