@@ -98,14 +98,16 @@ export async function GET(req: NextRequest) {
   // ese año (sí en los años en que regía).
   // strategic_code puede no existir aún (migración kpi_alias_enlaces.sql): se
   // degrada al select sin la columna en vez de romper el tablero.
+  // El tablero es del PLAN ESTRATÉGICO: su base son las filas de
+  // strategic_plan_kpis (corrección del usuario, 17/09/2026). Antes se armaba
+  // desde los enlaces de EFECTIVIDAD, así que se colaban KPIs que no son
+  // estratégicos (E1-I02, que solo es de efectividad y evaluación). Los
+  // enlaces de efectividad ahora solo ENRIQUECEN (meta, responsable, acción)
+  // a los KPIs que además están en ese plan.
   let { data: spkRows } = await sb.from('strategic_plan_kpis')
-    .select('kpi_id, valid_from_year_id, valid_to_year_id, strategic_code').eq('cycle_id', ciclo.id)
+    .select('kpi_id, objective_id, responsible_id, valid_from_year_id, valid_to_year_id, strategic_code').eq('cycle_id', ciclo.id)
   if (!spkRows) ({ data: spkRows } = await sb.from('strategic_plan_kpis')
-    .select('kpi_id, valid_from_year_id, valid_to_year_id').eq('cycle_id', ciclo.id))
-  // Pertenece al plan estratégico = tiene fila en strategic_plan_kpis. El
-  // tablero también lista KPIs que solo son de efectividad: esos NO llevan vigencia.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const esEstrategico = new Set<string>(((spkRows ?? []) as any[]).map(r => String(r.kpi_id)))
+    .select('kpi_id, objective_id, responsible_id, valid_from_year_id, valid_to_year_id').eq('cycle_id', ciclo.id))
   const aliasDeKpi = new Map<string, string>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const r of (spkRows ?? []) as any[]) {
@@ -134,9 +136,17 @@ export async function GET(req: NextRequest) {
     return true
   }
 
-  // ── Indicadores y sus enlaces ────────────────────────────────────────────
-  const { data: enlaces } = await sb.from('effectiveness_plan_kpis')
-    .select('id, kpi_id, link_type, link_id, meta, meta_operator, responsible_id, resultado, resultado_updated_at')
+  // ── Enriquecimiento desde efectividad (plan del año elegido) ─────────────
+  const { data: planesEf } = await sb.from('effectiveness_plans').select('id, academic_year_id, created_at').order('created_at', { ascending: false })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const planEf = ((planesEf ?? []) as any[]).find(p => anio && p.academic_year_id === anio.id) ?? (planesEf ?? [])[0] ?? null
+  const { data: enlaces } = planEf
+    ? await sb.from('effectiveness_plan_kpis')
+        .select('id, kpi_id, link_type, link_id, meta, meta_operator, responsible_id, resultado, resultado_updated_at').eq('plan_id', planEf.id)
+    : { data: [] }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const enlaceDeKpi = new Map<string, any>()
+  for (const e of enlaces ?? []) if (!enlaceDeKpi.has(String(e.kpi_id))) enlaceDeKpi.set(String(e.kpi_id), e)
   const { data: cat } = await sb.from('effectiveness_kpis').select('*')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const catPorId = new Map<string, any>((cat ?? []).map((k: { id: string }) => [k.id, k]))
@@ -157,51 +167,58 @@ export async function GET(req: NextRequest) {
   const nombreEmp = new Map<string, string>((emps ?? []).map(
     (e: { id: string; full_name: string }) => [e.id, e.full_name]))
 
-  // Cada enlace se resuelve al OBJETIVO al que pertenece, suba por donde suba.
+  // Cada KPI estratégico cuelga del objetivo de su fila; si la fila no lo
+  // trae, se deriva del enlace de efectividad (objetivo o acción).
   const porObjetivo = new Map<string, Indicador[]>()
-  for (const e of enlaces ?? []) {
-    const k = catPorId.get(e.kpi_id)
+  const vistos = new Set<string>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const r of (spkRows ?? []) as any[]) {
+    const kpiId = String(r.kpi_id)
+    const k = catPorId.get(kpiId)
     if (!k) continue
-    if (!vigenteEnAnio(String(e.kpi_id))) continue
+    if (!vigenteEnAnio(kpiId)) continue
+    const e = enlaceDeKpi.get(kpiId) ?? null
 
-    let objetivoId: string | null = null
+    let objetivoId: string | null = r.objective_id ? String(r.objective_id) : null
     let origen: 'objetivo' | 'accion' = 'objetivo'
     let origenNombre: string | null = null
-
-    if (e.link_type === 'objetivo') {
-      objetivoId = e.link_id
-    } else {
+    if (e && e.link_type && e.link_type !== 'objetivo') {
       const accionId = e.link_type === 'accion_responsable' ? accionDeResp.get(e.link_id) ?? null : e.link_id
       const accion = accionId ? actPorId.get(accionId) : null
       if (accion) {
-        objetivoId = objDeStrat.get(accion.strategy_id) ?? null
+        objetivoId = objetivoId ?? objDeStrat.get(accion.strategy_id) ?? null
         origen = 'accion'
         origenNombre = `${accion.code} · ${accion.name}`
       }
+    } else if (!objetivoId && e?.link_type === 'objetivo') {
+      objetivoId = e.link_id
     }
     if (!objetivoId) continue
+    if (vistos.has(`${kpiId}|${objetivoId}`)) continue
+    vistos.add(`${kpiId}|${objetivoId}`)
 
-    const res = resultados.get(e.kpi_id)
+    const res = resultados.get(kpiId)
+    const responsableId = e?.responsible_id ?? r.responsible_id ?? null
     const ind: Indicador = {
       id: k.id, code: (k.code ?? '').trim(), name: k.name, level: k.level,
       value_type: k.value_type, frequency: k.frequency, source: k.source ?? 'manual',
-      meta: e.meta === null ? null : Number(e.meta), meta_operator: e.meta_operator ?? '>=',
+      meta: e && e.meta !== null && e.meta !== undefined ? Number(e.meta) : null, meta_operator: e?.meta_operator ?? '>=',
       benchmark: k.benchmark === null || k.benchmark === undefined ? null : Number(k.benchmark),
       benchmark_operator: k.benchmark_operator ?? '>=',
-      resultado: res ? res.value : (migrado ? null : (e.resultado === null ? null : Number(e.resultado))),
-      resultado_at: res ? res.at : (migrado ? null : e.resultado_updated_at),
-      responsable: e.responsible_id ? nombreEmp.get(e.responsible_id) ?? null : null,
+      resultado: res ? res.value : (migrado || !e ? null : (e.resultado === null ? null : Number(e.resultado))),
+      resultado_at: res ? res.at : (migrado || !e ? null : e.resultado_updated_at),
+      responsable: responsableId ? nombreEmp.get(responsableId) ?? null : null,
       origen, origen_nombre: origenNombre,
       vigencia_desde: (() => {
-        const v = vigenciaDeKpi.get(String(e.kpi_id))
+        const v = vigenciaDeKpi.get(kpiId)
         return v?.desde ? { id: v.desde, etiqueta: etiquetaDeAnio.get(v.desde) ?? '?' } : null
       })(),
       vigencia_hasta: (() => {
-        const v = vigenciaDeKpi.get(String(e.kpi_id))
+        const v = vigenciaDeKpi.get(kpiId)
         return v?.hasta ? { id: v.hasta, etiqueta: etiquetaDeAnio.get(v.hasta) ?? '?' } : null
       })(),
-      codigo_estrategico: aliasDeKpi.get(String(e.kpi_id)) ?? null,
-      es_estrategico: esEstrategico.has(String(e.kpi_id)),
+      codigo_estrategico: aliasDeKpi.get(kpiId) ?? null,
+      es_estrategico: true,
     }
     if (!porObjetivo.has(objetivoId)) porObjetivo.set(objetivoId, [])
     porObjetivo.get(objetivoId)!.push(ind)
@@ -217,7 +234,7 @@ export async function GET(req: NextRequest) {
   const arbol = (dims ?? []).map((d: { id: string; code: string; name: string }) => ({
     id: d.id, code: d.code, name: d.name,
     objetivos: (objPorDim.get(d.id) ?? []).map(o => {
-      const inds = (porObjetivo.get(o.id) ?? []).sort((a, b) => a.code.localeCompare(b.code))
+      const inds = (porObjetivo.get(o.id) ?? []).sort((a, b) => (a.codigo_estrategico ?? a.code).localeCompare(b.codigo_estrategico ?? b.code))
       return { id: o.id, code: o.code, name: o.name, indicadores: inds }
     }),
   }))
