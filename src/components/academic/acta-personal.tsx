@@ -16,12 +16,20 @@ interface Acta { student: { name: string; document: string | null }; program: { 
 // Cada letra empieza en su mínimo y llega hasta justo antes del siguiente, SIN
 // redondear: es el mismo criterio con el que el ERP decide si se aprueba (un
 // 79.6 no alcanza el 80 de un máster, así que no puede mostrarse como B).
-const ESCALA: [number, string][] = [[95, 'A+'], [90, 'A'], [85, 'B+'], [80, 'B'], [75, 'C+'], [70, 'C'], [65, 'D+'], [60, 'D']]
+// Quality Points de la misma tabla: A+ 4.0 · A 3.75 · B+ 3.5 · B 3.0 · C+ 2.5 ·
+// C 2.0 · D+ 1.5 · D 1.0 · F 0.0. También solo se visualizan.
+const ESCALA: [number, string, number][] = [[95, 'A+', 4.0], [90, 'A', 3.75], [85, 'B+', 3.5], [80, 'B', 3.0], [75, 'C+', 2.5], [70, 'C', 2.0], [65, 'D+', 1.5], [60, 'D', 1.0]]
 const letraDe = (nota: number | null): string | null => {
   if (nota == null || !isFinite(Number(nota))) return null
   for (const [min, letra] of ESCALA) if (Number(nota) >= min) return letra
   return 'F'
 }
+const puntosDe = (nota: number | null): number | null => {
+  if (nota == null || !isFinite(Number(nota))) return null
+  for (const [min, , qp] of ESCALA) if (Number(nota) >= min) return qp
+  return 0
+}
+const fmtQP = (qp: number): string => (Number.isInteger(qp * 10) ? qp.toFixed(1) : qp.toFixed(2))
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   transfer:    { label: 'Transfer Credit', cls: 'bg-indigo-50 text-indigo-700' },
@@ -112,6 +120,13 @@ export function ActaPersonal() {
     if (!l) return <span className="text-gray-300">—</span>
     const bajo = minimo != null && nota != null && Number(nota) < Number(minimo)
     return <span className={`font-semibold ${bajo ? 'text-red-600' : 'text-gray-800'}`} title={bajo ? `Por debajo del mínimo aprobatorio (${letraMinima})` : undefined}>{l}</span>
+  }
+
+  const celdaPuntos = (nota: number | null) => {
+    const qp = puntosDe(nota)
+    if (qp == null) return <span className="text-gray-300">—</span>
+    const bajo = minimo != null && nota != null && Number(nota) < Number(minimo)
+    return <span className={`tabular-nums ${bajo ? 'text-red-600' : 'text-gray-700'}`}>{fmtQP(qp)}</span>
   }
 
   const chips: [string, number, string][] = acta ? [
@@ -210,6 +225,17 @@ export function ActaPersonal() {
                         {sm.nombre} <span className="font-normal normal-case text-gray-400">· {sm.cursos.length} course{sm.cursos.length === 1 ? '' : 's'} · {sm.cursos.reduce((n, c) => n + Number(c.credits ?? 0), 0)} credits</span>
                       </p>
                       <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-[10px] uppercase tracking-wide text-gray-400">
+                            <th className="px-5 pt-2 text-left font-medium">Code</th>
+                            <th className="px-2 pt-2 text-left font-medium">Course</th>
+                            <th className="px-3 pt-2 text-center font-medium">Credits</th>
+                            <th className="px-3 pt-2 text-center font-medium">Grade</th>
+                            <th className="px-3 pt-2 text-center font-medium">Letter</th>
+                            <th className="px-3 pt-2 text-center font-medium">Q. Points</th>
+                            <th className="px-3 pt-2 text-left font-medium">Status</th>
+                          </tr>
+                        </thead>
                         <tbody className="divide-y divide-gray-50">
                           {sm.cursos.map((c, i) => {
                             const st = STATUS[c.status] ?? STATUS.pendiente
@@ -220,6 +246,7 @@ export function ActaPersonal() {
                                 <td className="px-3 py-2 text-center text-gray-500 w-16">{c.credits ?? '—'}</td>
                                 <td className="px-3 py-2 text-center w-20 font-semibold text-gray-800">{c.grade ?? <span className="text-gray-300 font-normal">—</span>}</td>
                                 <td className="px-3 py-2 text-center w-16">{celdaLetra(c.grade)}</td>
+                                <td className="px-3 py-2 text-center w-16">{celdaPuntos(c.grade)}</td>
                                 <td className="px-3 py-2 w-40"><span className={`text-xs font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{STATUS_EN[c.status] ?? c.status}</span></td>
                               </tr>
                             )
@@ -244,6 +271,7 @@ export function ActaPersonal() {
                   <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Cr.</th>
                   <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">Nota</th>
                   <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Letra</th>
+                  <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-24" title="Quality Points">Q. Points</th>
                   <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-40">Estado</th>
                 </tr>
               </thead>
@@ -263,6 +291,7 @@ export function ActaPersonal() {
                           : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-3 py-2.5 text-center">{celdaLetra(c.grade)}</td>
+                      <td className="px-3 py-2.5 text-center">{celdaPuntos(c.grade)}</td>
                       <td className="px-3 py-2.5">
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
                       </td>
