@@ -47,14 +47,38 @@ begin
   end loop;
 end $$;
 
--- 2. Las columnas
+-- 2. Vistas que dependen de esas columnas.
+--    v_copias_activa es una vista de DIAGNÓSTICO del 31/07/2026 (la limpieza de
+--    las 14 copias de Activa): ningún código la usa y se elimina. Si hubiera
+--    CUALQUIER otra, se detiene y las nombra todas de una vez.
+drop view if exists v_copias_activa;
+
+do $
+declare
+  otras text;
+begin
+  select string_agg(distinct c.relname, ', ')
+    into otras
+    from pg_depend d
+    join pg_rewrite r   on r.oid = d.objid
+    join pg_class c     on c.oid = r.ev_class
+    join pg_attribute a on a.attrelid = d.refobjid and a.attnum = d.refobjsubid
+   where d.refobjid in ('academic_grades'::regclass, 'academic_grade_details'::regclass, 'academic_course_enrollments'::regclass)
+     and a.attname in ('term_year', 'term_block')
+     and c.oid <> d.refobjid;
+  if otras is not null then
+    raise exception 'Hay vistas que dependen de año/bloque: %. Revisar antes de borrar las columnas.', otras;
+  end if;
+end $;
+
+-- 3. Las columnas
 alter table academic_grades             drop column term_year, drop column term_block;
 alter table academic_grade_details      drop column term_year, drop column term_block;
 alter table academic_course_enrollments drop column term_year, drop column term_block;
 
 commit;
 
--- 3. Comprobación (debe devolver 0 filas)
+-- 4. Comprobación (debe devolver 0 filas)
 select table_name, column_name
   from information_schema.columns
  where table_schema = 'public'
