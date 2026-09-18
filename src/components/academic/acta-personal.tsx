@@ -129,6 +129,17 @@ export function ActaPersonal() {
     return <span className={`tabular-nums ${bajo ? 'text-red-600' : 'text-gray-700'}`}>{fmtQP(qp)}</span>
   }
 
+  // CGPA: promedio de Quality Points ponderado por créditos. Entran las
+  // asignaturas CURSADAS en la institución con resultado final (aprobadas y
+  // desaprobadas). No entran las que siguen en proceso —su nota es un
+  // acumulado parcial— ni Transfer Credit / Validation, que aportan créditos
+  // pero no promedio. Solo se visualiza.
+  const paraCgpa = (acta?.courses ?? []).filter(c => (c.status === 'aprobado' || c.status === 'desaprobado') && c.grade != null && Number(c.credits ?? 0) > 0)
+  const credCgpa = paraCgpa.reduce((n, c) => n + Number(c.credits ?? 0), 0)
+  const cgpa = credCgpa > 0 ? paraCgpa.reduce((n, c) => n + (puntosDe(c.grade) ?? 0) * Number(c.credits ?? 0), 0) / credCgpa : null
+  const cgpaMinimo = puntosDe(minimo)   // 3.0 en máster/doctorado (B), 2.0 en pregrado/DCE (C)
+  const cgpaBajo = cgpa != null && cgpaMinimo != null && cgpa < cgpaMinimo
+
   const chips: [string, number, string][] = acta ? [
     ['Transfer Credit', acta.summary.transfer, 'bg-indigo-50 text-indigo-700 border-indigo-100'],
     ['Validation', acta.summary.validation, 'bg-purple-50 text-purple-700 border-purple-100'],
@@ -204,6 +215,25 @@ export function ActaPersonal() {
                 <span className="text-xs font-medium">{label}</span>
               </div>
             ))}
+          </div>
+
+          {/* CGPA */}
+          <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl border px-4 py-3 bg-white ${cgpaBajo ? 'border-red-200' : 'border-gray-200'}`}>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">CGPA</span>
+            <span className={`text-2xl font-bold tabular-nums ${cgpa == null ? 'text-gray-300' : cgpaBajo ? 'text-red-600' : 'text-gray-900'}`}>{cgpa == null ? '—' : cgpa.toFixed(2)}</span>
+            <span className="text-xs text-gray-500">
+              {cgpa == null
+                ? (vista === 'oficial' ? 'No completed courses yet' : 'Aún no hay asignaturas con resultado final')
+                : vista === 'oficial'
+                  ? `${paraCgpa.length} completed course${paraCgpa.length === 1 ? '' : 's'} · ${credCgpa} credits`
+                  : `${paraCgpa.length} asignatura${paraCgpa.length === 1 ? '' : 's'} con resultado final · ${credCgpa} créditos`}
+              {cgpaMinimo != null && <> · {vista === 'oficial' ? 'minimum to graduate' : 'mínimo para graduarse'} <b className="text-gray-800">{fmtQP(cgpaMinimo)}</b></>}
+            </span>
+            <span className="text-[11px] text-gray-400 w-full">
+              {vista === 'oficial'
+                ? 'Credit-weighted average of quality points. Transfer Credit, Validation and courses in progress are not included.'
+                : 'Promedio de quality points ponderado por créditos. No incluye Transfer Credit, Validation ni asignaturas en proceso.'}
+            </span>
           </div>
 
           {letraMinima && (
