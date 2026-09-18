@@ -18,7 +18,43 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   pendiente:   { label: 'Pendiente',       cls: 'bg-gray-100 text-gray-500' },
 }
 
+// ── Official view ──────────────────────────────────────────────────────────
+// La vista oficial ordena el plan como lo presenta un documento académico
+// (regla del usuario, 18/09/2026): primero las asignaturas en condición de
+// Transfer Credit, luego el resto; dentro de cada bloque, por el NÚMERO del
+// código (ACC 230 → 230); y la secuencia resultante se corta en años de tres
+// semestres con 3, 3 y 4 asignaturas.
+const STATUS_EN: Record<string, string> = {
+  transfer: 'Transfer Credit', validation: 'Validation', aprobado: 'Passed',
+  desaprobado: 'Failed', en_proceso: 'In Progress', pendiente: 'Pending',
+}
+const PATRON = [3, 3, 4]
+const ORDINAL = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth']
+const ROMANO = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI', 'XXII', 'XXIII', 'XXIV']
+const numeroDe = (code: string | null): number => {
+  const m = String(code ?? '').match(/(\d+)/)
+  return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER
+}
+function vistaOficial(rows: Row[]): { anio: string; semestres: { nombre: string; cursos: Row[] }[] }[] {
+  const porNumero = (a: Row, b: Row) => numeroDe(a.code) - numeroDe(b.code) || String(a.code ?? '').localeCompare(String(b.code ?? ''))
+  const orden = [
+    ...rows.filter(r => r.status === 'transfer').sort(porNumero),
+    ...rows.filter(r => r.status !== 'transfer').sort(porNumero),
+  ]
+  const anios: { anio: string; semestres: { nombre: string; cursos: Row[] }[] }[] = []
+  let i = 0, sem = 0
+  while (i < orden.length) {
+    const tam = PATRON[sem % PATRON.length]
+    const y = Math.floor(sem / PATRON.length)
+    if (!anios[y]) anios[y] = { anio: `${ORDINAL[y] ?? `Year ${y + 1}`} Academic Year`, semestres: [] }
+    anios[y].semestres.push({ nombre: `Semester ${ROMANO[sem] ?? sem + 1}`, cursos: orden.slice(i, i + tam) })
+    i += tam; sem++
+  }
+  return anios
+}
+
 export function ActaPersonal() {
+  const [vista, setVista] = useState<'normal' | 'oficial'>('normal')
   const [q, setQ] = useState('')
   const [hits, setHits] = useState<StudentHit[]>([])
   const [student, setStudent] = useState<StudentHit | null>(null)
@@ -102,6 +138,11 @@ export function ActaPersonal() {
             </select>
           )}
           {programs.length === 1 && <span className="text-sm text-gray-600">{programs[0].name}</span>}
+          <select value={vista} onChange={e => setVista(e.target.value as 'normal' | 'oficial')}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white" title="Cómo se presenta el acta">
+            <option value="normal">Normal view</option>
+            <option value="oficial">Official view</option>
+          </select>
         </div>
       )}
 
@@ -125,7 +166,43 @@ export function ActaPersonal() {
             ))}
           </div>
 
+          {/* Official view: Transfer Credit primero, por número de código, en años de 3·3·4 */}
+          {vista === 'oficial' && (
+            <div className="space-y-5">
+              {vistaOficial(acta.courses).map(y => (
+                <div key={y.anio} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <p className="px-5 py-3 bg-gray-900 text-white text-sm font-semibold tracking-wide">{y.anio}</p>
+                  {y.semestres.map(sm => (
+                    <div key={sm.nombre}>
+                      <p className="px-5 py-2 bg-gray-50 border-y border-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                        {sm.nombre} <span className="font-normal normal-case text-gray-400">· {sm.cursos.length} course{sm.cursos.length === 1 ? '' : 's'} · {sm.cursos.reduce((n, c) => n + Number(c.credits ?? 0), 0)} credits</span>
+                      </p>
+                      <table className="w-full text-sm">
+                        <tbody className="divide-y divide-gray-50">
+                          {sm.cursos.map((c, i) => {
+                            const st = STATUS[c.status] ?? STATUS.pendiente
+                            return (
+                              <tr key={i}>
+                                <td className="px-5 py-2 w-28 text-xs text-gray-500 font-mono whitespace-nowrap">{c.code ?? '—'}</td>
+                                <td className="px-2 py-2 text-gray-800">{c.name}</td>
+                                <td className="px-3 py-2 text-center text-gray-500 w-16">{c.credits ?? '—'}</td>
+                                <td className="px-3 py-2 text-center w-20 font-semibold text-gray-800">{c.grade ?? <span className="text-gray-300 font-normal">—</span>}</td>
+                                <td className="px-3 py-2 w-40"><span className={`text-xs font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{STATUS_EN[c.status] ?? c.status}</span></td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {acta.courses.length === 0 && <p className="text-center text-gray-400 py-10 text-sm">El programa no tiene asignaturas registradas en la malla.</p>}
+            </div>
+          )}
+
           {/* Tabla de la malla */}
+          {vista === 'normal' && (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -163,6 +240,7 @@ export function ActaPersonal() {
               <p className="text-center text-gray-400 py-10 text-sm">El programa no tiene asignaturas registradas en la malla.</p>
             )}
           </div>
+          )}
         </>
       )}
 
