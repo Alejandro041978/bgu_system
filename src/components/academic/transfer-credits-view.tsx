@@ -13,6 +13,8 @@ interface Transfer {
   id: string; student_id: string; student_name: string | null; student_document: string | null
   origin_institution: string; origin_program: string | null; dest_program_id: string | null; scale_id: string | null
   created_at: string; items?: { id: string }[]
+  // Con esquema = generada por convalidación masiva; sin él = método individual
+  scheme_id?: string | null
 }
 interface StudentHit { id: string; name: string; document_number: string | null; email: string | null }
 
@@ -46,11 +48,36 @@ export function TransferCreditsView({ programs, scales, categories, kind = 'conv
     await loadList()
   }
 
+  // Tarjetas: cuántas existen y por qué método nacieron. Pulsar una filtra la lista.
+  const [metodo, setMetodo] = useState<'todas' | 'esquema' | 'individual'>('todas')
+  const porEsquema = transfers.filter(t => !!t.scheme_id)
+  const individuales = transfers.filter(t => !t.scheme_id)
+  const asignaturasDe = (l: Transfer[]) => l.reduce((n, t) => n + (t.items?.length ?? 0), 0)
+  const tarjetas = [
+    { key: 'todas' as const, titulo: `Total de ${noun}es`, lista: transfers, cls: 'text-gray-900' },
+    { key: 'esquema' as const, titulo: 'Por esquema masivo', lista: porEsquema, cls: 'text-blue-700' },
+    { key: 'individual' as const, titulo: 'Método individual', lista: individuales, cls: 'text-violet-700' },
+  ]
+
   const program = detail ? programs.find(p => p.id === detail.transfer.dest_program_id) : undefined
   const scale = detail ? scales.find(s => s.id === detail.transfer.scale_id) : undefined
   const destPassing = program ? (categories.find(c => c.id === program.category_id)?.passing_score ?? null) : null
 
   return (
+    <div className="space-y-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {tarjetas.map(c => (
+        <button key={c.key} onClick={() => setMetodo(c.key)}
+          className={`text-left rounded-xl border px-4 py-3 bg-white transition-colors ${metodo === c.key ? 'border-blue-400 ring-1 ring-blue-200' : 'border-gray-200 hover:border-gray-300'}`}>
+          <p className="text-xs text-gray-500">{c.titulo}</p>
+          <p className={`text-2xl font-bold tabular-nums ${c.cls}`}>{c.lista.length}</p>
+          <p className="text-[11px] text-gray-400">
+            {asignaturasDe(c.lista)} asignatura(s)
+            {c.key !== 'todas' && transfers.length > 0 ? ` · ${Math.round((c.lista.length * 100) / transfers.length)}%` : ''}
+          </p>
+        </button>
+      ))}
+    </div>
     <div className="flex gap-4">
       {/* Lista */}
       <div className="w-72 flex-shrink-0 bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden self-start">
@@ -68,9 +95,10 @@ export function TransferCreditsView({ programs, scales, categories, kind = 'conv
         <div className="max-h-[70vh] overflow-auto divide-y divide-gray-50">
           {(() => {
             const q = search.trim().toLowerCase()
+            const base = metodo === 'esquema' ? porEsquema : metodo === 'individual' ? individuales : transfers
             const list = q
-              ? transfers.filter(t => (t.student_name ?? '').toLowerCase().includes(q) || (t.student_document ?? '').toLowerCase().includes(q))
-              : transfers
+              ? base.filter(t => (t.student_name ?? '').toLowerCase().includes(q) || (t.student_document ?? '').toLowerCase().includes(q))
+              : base
             return list.length === 0 ? (
               <p className="py-10 text-center text-xs text-gray-400">{transfers.length === 0 ? `Sin ${noun}es` : 'Sin resultados'}</p>
             ) : list.map(t => (
@@ -103,6 +131,7 @@ export function TransferCreditsView({ programs, scales, categories, kind = 'conv
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }

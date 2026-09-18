@@ -19,11 +19,20 @@ export async function GET(req: NextRequest) {
 
   if (!(await requireAuth())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const kind = req.nextUrl.searchParams.get('kind') ?? 'convalidacion'
-  const { data } = await db().from('transfer_credits')
-    .select('*, items:transfer_credit_items(id)')
-    .eq('kind', kind)
-    .order('created_at', { ascending: false })
-  return NextResponse.json({ transfers: data ?? [] })
+  // Paginado: PostgREST corta en 1000 y los contadores de la pantalla salen de
+  // esta lista (ya hay más de 700 convalidaciones).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const transfers: any[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data } = await db().from('transfer_credits')
+      .select('*, items:transfer_credit_items(id)')
+      .eq('kind', kind)
+      .order('created_at', { ascending: false }).order('id')
+      .range(from, from + 999)
+    transfers.push(...(data ?? []))
+    if ((data ?? []).length < 1000) break
+  }
+  return NextResponse.json({ transfers })
 }
 
 // POST → crea una convalidación (cabecera)
