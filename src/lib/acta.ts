@@ -29,7 +29,8 @@ export interface ActaSummary {
 }
 export interface Acta {
   student: { name: string; document: string | null }
-  program: { name: string }
+  // passing = mínimo aprobatorio de la CATEGORÍA del programa (70 pregrado/DCE, 80 máster/doctorado)
+  program: { name: string; passing?: number | null }
   courses: ActaRow[]
   summary: ActaSummary
 }
@@ -208,7 +209,7 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
 
   return {
     student: { name: [student.first_name, student.last_name, student.second_last_name].filter(Boolean).join(' '), document },
-    program: { name: program?.name ?? '' },
+    program: { name: program?.name ?? '', passing: categoryPassing },
     courses: rows,
     summary: { ...summary, total: rows.length },
   }

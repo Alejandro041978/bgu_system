@@ -7,7 +7,21 @@ interface StudentHit { id: string; name: string; document_number: string | null;
 interface Program { id: string; name: string }
 interface Row { code: string | null; name: string; credits: number | null; status: string; grade: number | null }
 interface Summary { transfer: number; validation: number; aprobado: number; desaprobado: number; en_proceso: number; pendiente: number; total: number }
-interface Acta { student: { name: string; document: string | null }; program: { name: string }; courses: Row[]; summary: Summary }
+interface Acta { student: { name: string; document: string | null }; program: { name: string; passing?: number | null }; courses: Row[]; summary: Summary }
+
+// ── Nota en letras ─────────────────────────────────────────────────────────
+// Solo se VISUALIZA: no se guarda en la base (pedido del usuario, 18/09/2026).
+// Tabla institucional: A+ 95–100 · A 90–94 · B+ 85–89 · B 80–84 · C+ 75–79 ·
+// C 70–74 · D+ 65–69 · D 60–64 · F menos de 60.
+// Cada letra empieza en su mínimo y llega hasta justo antes del siguiente, SIN
+// redondear: es el mismo criterio con el que el ERP decide si se aprueba (un
+// 79.6 no alcanza el 80 de un máster, así que no puede mostrarse como B).
+const ESCALA: [number, string][] = [[95, 'A+'], [90, 'A'], [85, 'B+'], [80, 'B'], [75, 'C+'], [70, 'C'], [65, 'D+'], [60, 'D']]
+const letraDe = (nota: number | null): string | null => {
+  if (nota == null || !isFinite(Number(nota))) return null
+  for (const [min, letra] of ESCALA) if (Number(nota) >= min) return letra
+  return 'F'
+}
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   transfer:    { label: 'Transfer Credit', cls: 'bg-indigo-50 text-indigo-700' },
@@ -89,6 +103,17 @@ export function ActaPersonal() {
     if (student && pid) loadActa(student.id, pid)
   }
 
+  // Mínimo aprobatorio del programa, en número y en letra (B en máster y
+  // doctorado, C en pregrado y DCE): una letra por debajo se pinta en rojo.
+  const minimo = acta?.program.passing ?? null
+  const letraMinima = letraDe(minimo)
+  const celdaLetra = (nota: number | null) => {
+    const l = letraDe(nota)
+    if (!l) return <span className="text-gray-300">—</span>
+    const bajo = minimo != null && nota != null && Number(nota) < Number(minimo)
+    return <span className={`font-semibold ${bajo ? 'text-red-600' : 'text-gray-800'}`} title={bajo ? `Por debajo del mínimo aprobatorio (${letraMinima})` : undefined}>{l}</span>
+  }
+
   const chips: [string, number, string][] = acta ? [
     ['Transfer Credit', acta.summary.transfer, 'bg-indigo-50 text-indigo-700 border-indigo-100'],
     ['Validation', acta.summary.validation, 'bg-purple-50 text-purple-700 border-purple-100'],
@@ -166,6 +191,13 @@ export function ActaPersonal() {
             ))}
           </div>
 
+          {letraMinima && (
+            <p className="text-xs text-gray-500">
+              {vista === 'oficial' ? 'Minimum passing grade' : 'Nota mínima aprobatoria'}: <b className="text-gray-800">{letraMinima}</b> ({minimo})
+              <span className="text-gray-400"> · A+ 95–100 · A 90–94 · B+ 85–89 · B 80–84 · C+ 75–79 · C 70–74 · D+ 65–69 · D 60–64 · F &lt; 60</span>
+            </p>
+          )}
+
           {/* Official view: Transfer Credit primero, por número de código, en años de 3·3·4 */}
           {vista === 'oficial' && (
             <div className="space-y-5">
@@ -187,6 +219,7 @@ export function ActaPersonal() {
                                 <td className="px-2 py-2 text-gray-800">{c.name}</td>
                                 <td className="px-3 py-2 text-center text-gray-500 w-16">{c.credits ?? '—'}</td>
                                 <td className="px-3 py-2 text-center w-20 font-semibold text-gray-800">{c.grade ?? <span className="text-gray-300 font-normal">—</span>}</td>
+                                <td className="px-3 py-2 text-center w-16">{celdaLetra(c.grade)}</td>
                                 <td className="px-3 py-2 w-40"><span className={`text-xs font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{STATUS_EN[c.status] ?? c.status}</span></td>
                               </tr>
                             )
@@ -210,6 +243,7 @@ export function ActaPersonal() {
                   <th className="text-left px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Asignatura</th>
                   <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Cr.</th>
                   <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">Nota</th>
+                  <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Letra</th>
                   <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-40">Estado</th>
                 </tr>
               </thead>
@@ -228,6 +262,7 @@ export function ActaPersonal() {
                           ? <span className={`font-semibold ${c.status === 'desaprobado' ? 'text-red-600' : c.status === 'transfer' ? 'text-indigo-600' : c.status === 'validation' ? 'text-purple-600' : 'text-gray-800'}`}>{c.grade}</span>
                           : <span className="text-gray-300">—</span>}
                       </td>
+                      <td className="px-3 py-2.5 text-center">{celdaLetra(c.grade)}</td>
                       <td className="px-3 py-2.5">
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
                       </td>
