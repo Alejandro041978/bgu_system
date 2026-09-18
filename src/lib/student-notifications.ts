@@ -206,3 +206,37 @@ export function plantillaReversion(a: { nombre: string; programa: string; resolu
       parrafo(`Nos alegra tenerte de vuelta. ¡Éxitos en esta nueva etapa!`)),
   }
 }
+
+// ── IW automático por abandono (18/09/2026) ─────────────────────────────────
+export function plantillaPreavisoIW(a: { nombre: string; programa: string; dias: number; deuda: number }) {
+  return {
+    subject: 'Aviso importante: tu matrícula está en riesgo de Retiro Institucional',
+    html: marco('Aviso previo de Retiro Institucional',
+      parrafo(`Hola, <strong>${a.nombre}</strong>:`) +
+      parrafo(`Notamos que llevas <strong>${a.dias} días sin conectarte</strong> al campus virtual ni a tu portal, y tu cuenta registra cuotas vencidas. Hemos intentado comunicarnos contigo sin éxito.`) +
+      tabla(
+        dato('Programa', a.programa) +
+        dato('Días sin conexión', String(a.dias)) +
+        dato('Deuda vencida', `$${a.deuda.toFixed(2)}`)
+      ) +
+      parrafo(`Si en los próximos <strong>7 días</strong> no retomas tu actividad ni te comunicas con nosotros, se registrará tu <strong>Retiro Institucional (IW)</strong> del programa.`) +
+      parrafo(`Evitarlo es sencillo: <strong>ingresa a tu campus o a tu portal</strong>, o responde a este correo. Si necesitas una pausa, puedes solicitar una <strong>Licencia Académica (LOA)</strong>; y si tu dificultad es económica, escríbenos para revisar opciones.`) +
+      parrafo(`Queremos que continúes. Estamos para ayudarte.`)),
+  }
+}
+
+export function plantillaIWAutomatico(a: { nombre: string; programa: string; resolucion: string | null; fechaRetiro: string | null }) {
+  return {
+    subject: 'Registro de tu Retiro Institucional (IW)',
+    html: marco('Retiro Institucional registrado',
+      parrafo(`Hola, <strong>${a.nombre}</strong>:`) +
+      parrafo(`Tras un periodo prolongado sin actividad en el campus ni en tu portal, con cuotas vencidas y sin respuesta a nuestros avisos, registramos tu <strong>Retiro Institucional (IW)</strong> del programa.`) +
+      tabla(
+        dato('Programa', a.programa) +
+        dato('Resolución', a.resolucion ?? 'en emisión') +
+        dato('Fecha', fecha(a.fechaRetiro))
+      ) +
+      parrafo(`Tu acceso a las aulas del campus virtual queda suspendido. <strong>Tu historial académico y tus calificaciones se conservan íntegros</strong> en tu expediente.`) +
+      parrafo(`Si esto no refleja tu situación, o deseas retomar tus estudios, escríbenos o solicita el trámite de <strong>Re-Entry</strong> desde tu portal. Estaremos encantados de recibirte de vuelta.`)),
+  }
+}
