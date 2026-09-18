@@ -16,7 +16,8 @@ import { notificarEstudiante, plantillaIWAutomatico, plantillaPreavisoIW } from 
 //   3. Deuda VENCIDA de tuition (mismo criterio que suspende el campus) — no
 //      el saldo, que incluye cuotas futuras.
 //   4. Camila le escribió DENTRO del periodo de desconexión (2+ mensajes
-//      entregados, el último hace 7+ días) y no respondió. Si Camila nunca le
+//      entregados de las campañas Ausente o Cobranza —campaign_contacts—, el
+//      último hace 7+ días) y no respondió. Si Camila nunca le
 //      escribió NO hay IW: lo justo es contactarlo primero.
 //
 // Día 28: preaviso al estudiante. Día 35 (y 7+ días después del preaviso): IW.
@@ -92,7 +93,12 @@ export async function evaluarAutoIW(sb: SB): Promise<{ candidatos: CandidatoAuto
     // Tolerante: si la tabla de solicitudes no existe o cambia, no tumba la evaluación
     todo(sb, 'withdrawal_requests', 'id, student_id, status').catch(() => []),
     overdueByStudent(sb),
-    todo(sb, 'retention_contacts', 'id, student_id, sent_at, status, replied_at'),
+    // La bitácora de Camila es campaign_contacts (motor de campañas). El motor
+    // viejo de retención se fusionó el 10/09/2026: retention_contacts y
+    // retention_settings son restos y NO se leen. Cuentan las dos campañas que
+    // le escriben a un activo desconectado: 'ausente' (sin deuda vencida) y
+    // 'cobranza' (con deuda vencida — a donde el resolutor manda al deudor).
+    todo(sb, 'campaign_contacts', 'id, student_id, campaign_key, sent_at, status, replied_at, outcome_at', q => q.in('campaign_key', ['ausente', 'cobranza'])),
     todo(sb, 'student_notifications', 'id, student_id, kind, created_at', q => q.eq('kind', 'iw_preaviso')).catch(() => []),
     todo(sb, 'academic_group_students', 'student_id, group_id, status', q => q.eq('status', 'activo'), ['student_id', 'group_id']),
     todo(sb, 'academic_course_enrollments', 'id, student_id, status', q => q.in('status', ['en_curso', 'no_iniciada'])),
@@ -124,7 +130,8 @@ export async function evaluarAutoIW(sb: SB): Promise<{ candidatos: CandidatoAuto
   for (const c of contactos) {
     if (c.status !== 'sent' || !c.sent_at) continue
     const k = String(c.student_id)
-    contactosDe.set(k, [...(contactosDe.get(k) ?? []), { sent_at: String(c.sent_at), replied_at: c.replied_at ? String(c.replied_at) : null }])
+    const resp = c.replied_at ?? c.outcome_at ?? null
+    contactosDe.set(k, [...(contactosDe.get(k) ?? []), { sent_at: String(c.sent_at), replied_at: resp ? String(resp) : null }])
   }
   const preavisoDe = new Map<string, string>()
   for (const a of avisos) {
