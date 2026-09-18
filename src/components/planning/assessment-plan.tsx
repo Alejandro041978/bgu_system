@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CalendarDays, Plus, Trash2, Loader2, X } from 'lucide-react'
+import { Plus, Trash2, Loader2, X } from 'lucide-react'
 import { useIAP, BINDING, type Medida, type Disponible } from './assessment-shared'
 
 // ---------------------------------------------------------------------------
@@ -203,59 +203,6 @@ export function AssessmentPlan() {
           </div>
         ))}
 
-        {/* Calendario */}
-        <div>
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-2">
-            <CalendarDays className="h-4 w-4 text-gray-400" />
-            Calendario del ciclo anual
-            <span className="font-normal text-gray-400">
-              {d.anio ? `· ${d.anio.start_date} → ${d.anio.end_date}` : ''}
-            </span>
-          </h2>
-
-          {!!d.cobertura.calendario_con_codigos_rotos && (
-            <div className="mb-2 rounded-lg border border-red-300 bg-red-50 p-3 text-[13px] text-red-800">
-              <b>{d.cobertura.calendario_con_codigos_rotos} de {d.calendario.length} filas</b> apuntan a KPIs que este
-              plan no tiene. Hasta que se reconcilie, esas actividades no se pueden ejecutar contra nada.
-            </div>
-          )}
-
-          {d.calendario.length ? (
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-left text-[11px] uppercase text-gray-400">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Periodo</th>
-                    <th className="px-3 py-2 font-medium">Actividad</th>
-                    <th className="px-3 py-2 font-medium">KPIs</th>
-                    <th className="px-3 py-2 font-medium">Responsable</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.calendario.map(c => (
-                    <tr key={c.seq} className={`border-t border-gray-100 ${c.desconocidas.length ? 'bg-red-50/40' : ''}`}>
-                      <td className="px-3 py-2 whitespace-nowrap text-[12px] font-medium text-gray-700">{c.periodo}</td>
-                      <td className="px-3 py-2 text-[12.5px] text-gray-600">{c.actividad}</td>
-                      <td className="px-3 py-2">
-                        <div className="flex flex-wrap gap-1">
-                          {c.medidas.map(m => (
-                            <span key={m} className={`rounded border px-1 py-0.5 text-[10.5px] ${
-                              c.desconocidas.some(x => m.includes(x))
-                                ? 'border-red-300 bg-red-100 text-red-800'
-                                : 'border-gray-200 bg-gray-50 text-gray-600'}`}>{m}</span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-[12px] text-gray-500">{c.responsable}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400">Este plan no tiene calendario cargado.</p>
-          )}
-        </div>
       </div>
     </div>
   )
