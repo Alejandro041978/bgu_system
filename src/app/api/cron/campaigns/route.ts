@@ -159,6 +159,10 @@ async function run(dryRun: boolean) {
     if ((data ?? []).length < 1000) break
   }
 
+  // A quién se le escribió (o se le escribiría, en ensayo) en ESTA corrida: la
+  // invitación CIBL, que corre al final, no le escribe a nadie de este conjunto.
+  const tocadosEnCorrida = new Set<string>()
+
   const resumen: Record<string, { elegibles: number; enviados: number; saltados: number; motivo?: string }> = {}
   let enviados = 0
   const errores: string[] = []
@@ -331,9 +335,36 @@ async function run(dryRun: boolean) {
       // Nuevos: la cola del resolver, solo quienes nunca recibieron el paso 1
       for (const a of cola) {
         if ((toquesDe.get(`${a.student_id}|${camp.key}`) ?? 0) > 0) continue
-        if (porMatricula && yaMatriculados.has(String(a.student_id))) continue   // se matriculó por su cuenta: no hace falta invitarlo
         const t = trackingDe.get(String(a.student_id))
         cands.push({ sid: String(a.student_id), attempt: 0, dias: Number(t?.inactivity_days ?? 0), reason: a.reason })
+      }
+      // Audiencia PROPIA de la invitación (no pasa por el resolver, ver nota
+      // allí): activos sin deuda vencida que están ASISTIENDO (menos días de
+      // inactividad que el umbral de Ausente — a quien falta a clases se le
+      // invita cuando vuelva, no se le distrae de volver), nunca invitados, sin
+      // mensaje de ninguna campaña en los últimos 7 días ni en esta corrida.
+      if (porMatricula) {
+        const maxInactivo = Number(def.config?.max_inactivity_days ?? 7)
+        const optouts = new Set<string>()
+        { const { data } = await sb.from('campaign_optouts').select('student_id'); for (const o of data ?? []) optouts.add(String(o.student_id)) }
+        for (let f = 0; ; f += 1000) {
+          const { data } = await sb.from('academic_students')
+            .select('id, first_name, last_name, phone_code, phone_number, country, situation, disabled')
+            .eq('situation', 'activo').order('id').range(f, f + 999)
+          for (const s of data ?? []) {
+            const sid = String(s.id)
+            if (s.disabled || optouts.has(sid) || yaMatriculados.has(sid) || tocadosEnCorrida.has(sid)) continue
+            if ((toquesDe.get(`${sid}|${camp.key}`) ?? 0) > 0) continue
+            if ((sinDeudaVencida?.get(sid) ?? 0) > 0.5) continue
+            const dias = Number(trackingDe.get(sid)?.inactivity_days ?? 0)
+            if (dias >= maxInactivo) continue
+            const g = ultimoGlobal.get(sid)
+            if (g && Date.now() - new Date(g).getTime() < 7 * DAY) continue
+            stu.set(s.id, s)
+            cands.push({ sid, attempt: 0, dias, reason: 'beneficio: curso gratuito CIBL' })
+          }
+          if ((data ?? []).length < 1000) break
+        }
       }
       // Quien está a mitad de cadencia va primero (no dejar conversaciones a
       // medias); entre nuevos, los frescos primero — quien lleva 7 días fuera
@@ -367,6 +398,7 @@ async function run(dryRun: boolean) {
           student_id: c.sid, campaign_key: camp.key, template_key: paso.template_key,
           language: lang, reason: c.reason, sent_at: new Date().toISOString(),
         }
+        tocadosEnCorrida.add(c.sid)
         if (dryRun) { resumen[camp.key].enviados++; enviados++; usados++; continue }
         try {
           const sid = await sendTemplate(tel.startsWith('whatsapp:') ? tel : `whatsapp:${tel}`, tpl.sid, vars, creds)
@@ -449,6 +481,7 @@ async function run(dryRun: boolean) {
         student_id: a.student_id, campaign_key: camp.key, template_key: tplKey,
         language: lang, reason: a.reason, sent_at: new Date().toISOString(),
       }
+      tocadosEnCorrida.add(String(a.student_id))
       if (dryRun) { resumen[camp.key].enviados++; enviados++; usados++; continue }
       try {
         const sid = await sendTemplate(`whatsapp:${tel}`, tpl.sid, vars, creds)
