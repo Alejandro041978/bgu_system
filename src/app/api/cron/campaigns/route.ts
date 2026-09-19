@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import { resolveEligibility } from '@/lib/campaign-resolver'
 import { telefonoE164 } from '@/lib/telefono'
 import { empleadoresDelAnio } from '@/lib/employer-eligibility'
+import { enrolledMap, loadStudentsByExternal } from '@/lib/moodle-import'
+import { overdueByStudent } from '@/lib/moodle-access'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -278,12 +280,49 @@ async function run(dryRun: boolean) {
       const umbral = Number(def.config?.inactivity_days ?? 7)
       type Cand = { sid: string; attempt: number; dias: number; reason: string }
       const cands: Cand[] = []
+
+      // Secuencia que se detiene por MATRÍCULA en un curso del campus (Curso
+      // CIBL): config.stop_when = 'moodle_enrolled' + config.moodle_course_id.
+      // Quien ya se matriculó no recibe nada más, y se le sella el resultado en
+      // su contacto (outcome 'matriculado') para que el reporte no dependa de
+      // consultar Moodle. Si Moodle no responde, la campaña NO envía a ciegas.
+      const porMatricula = def.config?.stop_when === 'moodle_enrolled'
+      const yaMatriculados = new Set<string>()
+      let sinDeudaVencida: Map<string, number> | null = null
+      if (porMatricula) {
+        try {
+          const [enr, porExterno] = await Promise.all([enrolledMap(Number(def.config?.moodle_course_id)), loadStudentsByExternal(sb)])
+          for (const u of enr.values()) {
+            const st = u.idnumber ? porExterno.get(u.idnumber) : null
+            if (st?.id) yaMatriculados.add(String(st.id))
+          }
+          sinDeudaVencida = await overdueByStudent(sb)
+        } catch (e) {
+          resumen[camp.key].motivo = `no se pudo consultar la matrícula del curso en Moodle: ${e instanceof Error ? e.message.slice(0, 120) : 'error'}`
+          continue
+        }
+        if (!dryRun && yaMatriculados.size) {
+          const ids = [...yaMatriculados]
+          for (let i = 0; i < ids.length; i += 200) {
+            await sb.from('campaign_contacts').update({ outcome: 'matriculado', outcome_at: new Date().toISOString() })
+              .eq('campaign_key', camp.key).eq('status', 'sent').is('outcome', null).in('student_id', ids.slice(i, i + 200))
+          }
+        }
+      }
+      // Último contacto de CUALQUIER campaña: el recordatorio no pisa a otra
+      const ultimoGlobal = new Map<string, string>()
+      if (porMatricula) for (const [k, v] of ultimoContacto) { const sid = k.split('|')[0]; if (!ultimoGlobal.has(sid) || v > ultimoGlobal.get(sid)!) ultimoGlobal.set(sid, v) }
       // Continuaciones: a mitad de secuencia, con su espera cumplida y aún ausentes
       for (const [k, n] of toquesDe) {
         const [sid, ck] = k.split('|')
         if (ck !== camp.key || n <= 0 || n >= steps.length) continue
         const t = trackingDe.get(sid)
-        if ((t?.inactivity_days ?? 0) < umbral) continue
+        if (porMatricula) {
+          if (yaMatriculados.has(sid)) continue                          // ya aceptó: fin de la secuencia
+          if ((sinDeudaVencida?.get(sid) ?? 0) > 0.5) continue            // hoy tiene deuda vencida: le toca Cobranza
+          const g = ultimoGlobal.get(sid)
+          if (g && g !== ultimoContacto.get(`${sid}|${camp.key}`) && Date.now() - new Date(g).getTime() < 3 * DAY) continue
+        } else if ((t?.inactivity_days ?? 0) < umbral) continue
         const last = ultimoContacto.get(`${sid}|${camp.key}`)
         const gap = Number(steps[n]?.gap_days ?? 7)
         if (last && Date.now() - new Date(last).getTime() < gap * DAY) continue
@@ -292,6 +331,7 @@ async function run(dryRun: boolean) {
       // Nuevos: la cola del resolver, solo quienes nunca recibieron el paso 1
       for (const a of cola) {
         if ((toquesDe.get(`${a.student_id}|${camp.key}`) ?? 0) > 0) continue
+        if (porMatricula && yaMatriculados.has(String(a.student_id))) continue   // se matriculó por su cuenta: no hace falta invitarlo
         const t = trackingDe.get(String(a.student_id))
         cands.push({ sid: String(a.student_id), attempt: 0, dias: Number(t?.inactivity_days ?? 0), reason: a.reason })
       }

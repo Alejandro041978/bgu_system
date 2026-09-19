@@ -43,7 +43,7 @@ export async function resolveEligibility(sb: any): Promise<{
     fetchAll(sb, 'student_tracking', 'student_id, inactivity_days'),
     fetchAll(sb, 'account_charges', 'student_id, amount, due_date'),
     fetchAll(sb, 'account_payments', 'student_id, amount'),
-    fetchAll(sb, 'campaign_contacts', 'student_id, sent_at'),
+    fetchAll(sb, 'campaign_contacts', 'student_id, sent_at, campaign_key, status'),
   ])
 
   // ── Survey Titulados (10/09/2026): TITULADOS de programas oficiales
@@ -84,6 +84,12 @@ export async function resolveEligibility(sb: any): Promise<{
   const retentionContacts = await fetchAll(sb, 'retention_contacts', 'student_id, sent_at, status')
     .then(rows => rows.filter(r => r.status !== 'failed'))
     .catch(() => [])
+
+  // Curso CIBL (19/09/2026): a quién ya se le envió la invitación. La campaña
+  // toma la precedencia UNA sola vez por estudiante (como la encuesta de
+  // titulados); su recordatorio lo maneja la secuencia del cron, no esta cola.
+  const yaInvitadoCibl = new Set<string>(contacts
+    .filter(c => c.campaign_key === 'cibl' && c.status !== 'failed').map(c => String(c.student_id)))
 
   const campaigns = (campRows as CampaignDef[]).sort((a, b) => a.priority - b.priority)
   const activeKeys = new Set(campaigns.filter(c => c.active).map(c => c.key))
@@ -153,6 +159,10 @@ export async function resolveEligibility(sb: any): Promise<{
     if (/retiro_temporal|loa|licencia/i.test(situ)) candidatos.push({ key: 'loa', reason: 'en licencia (LOA)' })
     else if (/retiro_permanente|iw/i.test(situ)) candidatos.push({ key: 'iw', reason: 'retirado (IW)' })
     if (tituladoOficial.has(sid) && !respondioEsteAnio.has(sid)) candidatos.push({ key: 'survey_titulados', reason: 'titulado — encuesta anual pendiente' })
+    // Invitación al curso gratuito de Cambridge Institute for Business
+    // Leadership: activos SIN deuda vencida (decisión del usuario), una vez.
+    // Campus socio queda fuera solo: su situación no es 'activo'.
+    if (/activo/.test(situ) && vencida <= 0.5 && !yaInvitadoCibl.has(sid)) candidatos.push({ key: 'cibl', reason: 'beneficio: curso gratuito CIBL' })
     if (pendienteTitulo.has(sid)) candidatos.push({ key: 'titulacion', reason: 'egresado sin título' })
     // Ausente (fusión con Retención, 10/09/2026): SOLO activos (un egresado no
     // "falta a clases") y SIN deuda vencida — el deudor ausente va a Cobranza

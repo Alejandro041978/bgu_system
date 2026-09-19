@@ -28,6 +28,7 @@ export const OUTCOME_LABEL: Record<string, string> = {
   retencion: 'Volvió al aula',
   survey_titulados: 'Completó la encuesta',
   survey_empleadores: 'Empleador respondió',
+  cibl: 'Se matriculó en el curso',
 }
 
 /**
@@ -138,6 +139,20 @@ export async function computeOutcomes(sb: SB, contacts: ContactRow[]): Promise<S
         if ((hechas.get(student_id) ?? []).some(d => d >= since)) ok.add(student_id)
       }
     } catch { /* tabla ausente: sin evidencia, no se cuenta */ }
+  }
+
+  // ---- Se matriculó en el curso (cibl) --------------------------------------
+  // El cron de campañas sella outcome='matriculado' en el contacto cuando ve al
+  // estudiante en la lista de matriculados del curso del campus.
+  if (byCampaign.has('cibl')) {
+    try {
+      const sids = [...new Set((byCampaign.get('cibl') ?? []).map(x => x.student_id))]
+      for (let i = 0; i < sids.length; i += 300) {
+        const { data } = await sb.from('campaign_contacts').select('student_id')
+          .eq('campaign_key', 'cibl').eq('outcome', 'matriculado').in('student_id', sids.slice(i, i + 300))
+        for (const r of (data ?? []) as { student_id: string }[]) ok.add(String(r.student_id))
+      }
+    } catch { /* sin evidencia, no se cuenta */ }
   }
 
   // ---- Empleador respondió (survey_empleadores) -----------------------------
