@@ -57,19 +57,34 @@ const numeroDe = (code: string | null): number => {
   const m = String(code ?? '').match(/(\d+)/)
   return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER
 }
-function vistaOficial(rows: Row[]): { anio: string; semestres: { nombre: string; cursos: Row[] }[] }[] {
+// Misma regla que el CGPA del encabezado (confirmada por el usuario): entran
+// aprobadas y desaprobadas; NO en proceso, ni Transfer Credit, ni Validation.
+const cuentaParaGpa = (c: Row) => (c.status === 'aprobado' || c.status === 'desaprobado') && c.grade != null && Number(c.credits ?? 0) > 0
+interface SemestreOficial { nombre: string; cursos: Row[]; gpa: number | null; cgpa: number | null }
+function vistaOficial(rows: Row[]): { anio: string; semestres: SemestreOficial[] }[] {
   const porNumero = (a: Row, b: Row) => numeroDe(a.code) - numeroDe(b.code) || String(a.code ?? '').localeCompare(String(b.code ?? ''))
   const orden = [
     ...rows.filter(r => r.status === 'transfer').sort(porNumero),
     ...rows.filter(r => r.status !== 'transfer').sort(porNumero),
   ]
-  const anios: { anio: string; semestres: { nombre: string; cursos: Row[] }[] }[] = []
+  const anios: { anio: string; semestres: SemestreOficial[] }[] = []
   let i = 0, sem = 0
+  // Acumulados para el CGPA: el del último semestre coincide con el del encabezado
+  let puntosAcum = 0, creditosAcum = 0
   while (i < orden.length) {
     const tam = PATRON[sem % PATRON.length]
     const y = Math.floor(sem / PATRON.length)
     if (!anios[y]) anios[y] = { anio: `${ORDINAL[y] ?? `Year ${y + 1}`} Academic Year`, semestres: [] }
-    anios[y].semestres.push({ nombre: `Semester ${ROMANO[sem] ?? sem + 1}`, cursos: orden.slice(i, i + tam) })
+    const cursos = orden.slice(i, i + tam)
+    const validos = cursos.filter(cuentaParaGpa)
+    const cred = validos.reduce((n, c) => n + Number(c.credits ?? 0), 0)
+    const pts = validos.reduce((n, c) => n + (puntosDe(c.grade) ?? 0) * Number(c.credits ?? 0), 0)
+    puntosAcum += pts; creditosAcum += cred
+    anios[y].semestres.push({
+      nombre: `Semester ${ROMANO[sem] ?? sem + 1}`, cursos,
+      gpa: cred > 0 ? pts / cred : null,
+      cgpa: creditosAcum > 0 ? puntosAcum / creditosAcum : null,
+    })
     i += tam; sem++
   }
   return anios
@@ -283,6 +298,10 @@ export function ActaPersonal() {
                           })}
                         </tbody>
                       </table>
+                      <div className="flex justify-end gap-6 px-5 py-2 border-t border-gray-100 text-xs">
+                        <span className="text-gray-500">Term GPA: <b className="text-gray-900 tabular-nums">{sm.gpa == null ? '—' : sm.gpa.toFixed(2)}</b></span>
+                        <span className="text-gray-500">CGPA: <b className={`tabular-nums ${sm.cgpa != null && cgpaMinimo != null && sm.cgpa < cgpaMinimo ? 'text-red-600' : 'text-gray-900'}`}>{sm.cgpa == null ? '—' : sm.cgpa.toFixed(2)}</b></span>
+                      </div>
                     </div>
                   ))}
                 </div>
