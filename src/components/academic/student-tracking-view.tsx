@@ -8,7 +8,7 @@ interface Row {
   inactivity_days: number | null; risk_level: string; name: string; phone: string | null; email: string | null; document_number: string | null
   situation: string; situation_source: string
 }
-interface Data { rows: Row[]; counts: Record<string, number>; situations?: Record<string, number>; last_updated: string | null }
+interface Data { rows: Row[]; counts: Record<string, number>; situations?: Record<string, number>; categories?: { id: string; name: string }[]; last_updated: string | null }
 
 const RISK: Record<string, { label: string; cls: string }> = {
   active:  { label: 'Activo',            cls: 'bg-green-50 text-green-700' },
@@ -31,6 +31,7 @@ export function StudentTrackingView() {
   const [data, setData] = useState<Data | null>(null)
   const [risk, setRisk] = useState('')
   const [situation, setSituation] = useState('')
+  const [category, setCategory] = useState('')
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
 
@@ -39,9 +40,10 @@ export function StudentTrackingView() {
     const qs = new URLSearchParams()
     if (risk) qs.set('risk', risk)
     if (situation) qs.set('situation', situation)
+    if (category) qs.set('category', category)
     const d = await fetch(`/api/academic/tracking${qs.toString() ? `?${qs}` : ''}`).then(r => r.json())
     setData(d); setLoading(false)
-  }, [risk, situation])
+  }, [risk, situation, category])
   useEffect(() => { load() }, [load])
 
   async function setStudentSituation(student_id: string, value: string) {
@@ -86,6 +88,16 @@ export function StudentTrackingView() {
             {RISK[k].label} <span className="opacity-70">({counts[k] ?? 0})</span>
           </button>
         ))}
+      </div>
+
+      {/* Filtro por categoría de programa: los contadores de riesgo y situación se recalculan sobre ella */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] text-gray-400 uppercase tracking-wide mr-1">Categoría:</span>
+        <select value={category} onChange={e => setCategory(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs bg-white min-w-64">
+          <option value="">Todas las categorías de programa</option>
+          {(data?.categories ?? []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
       </div>
 
       {/* Filtros por situación (la campaña de retención sólo aplica a "Activo") */}
