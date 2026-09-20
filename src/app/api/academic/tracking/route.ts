@@ -3,6 +3,7 @@ import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 import { runStudentTracking } from '@/lib/student-tracking'
 import { guardStaff } from '@/lib/api-guard'
+import { overdueByStudent } from '@/lib/moodle-access'
 
 export const revalidate = 0
 export const maxDuration = 300
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
   const situation = req.nextUrl.searchParams.get('situation')
 
   const category = req.nextUrl.searchParams.get('category')
+  const debt = req.nextUrl.searchParams.get('debt')   // 'con' | 'sin' (deuda VENCIDA)
 
   // TODO el seguimiento, paginado. PostgREST corta en 1000 filas aunque se pida
   // limit(2000): la lista, los contadores de riesgo y los de situación salían
@@ -61,8 +63,15 @@ export async function GET(req: NextRequest) {
     if ((page ?? []).length < 1000) break
   }
 
+  // Deuda VENCIDA oficial (tuition, cuota por cuota): la misma que restringe el
+  // campus, mueve a Cobranza y cuenta para el IW automático. La columna "Deuda"
+  // de esta pantalla es el SALDO (incluye cuotas futuras): casi todo matriculado
+  // con plan vigente lo tiene, así que el filtro con/sin deuda usa la vencida.
+  const vencida = await overdueByStudent(sb)
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let base = data.map((r: any) => ({
+    overdue: Math.round((vencida.get(String(r.student_id)) ?? 0) * 100) / 100,
     student_id: r.student_id, balance: r.balance, last_erp_login: r.last_erp_login,
     last_moodle_access: r.last_moodle_access, inactivity_days: r.inactivity_days, risk_level: r.risk_level,
     updated_at: r.updated_at,
@@ -72,6 +81,11 @@ export async function GET(req: NextRequest) {
   }))
   // Filtro por categoría de programa: basta con que UNA de sus matrículas sea de esa categoría
   if (category) base = base.filter(r => catsDe.get(String(r.student_id))?.has(category))
+
+  // Con / sin deuda vencida: contadores antes de aplicar ese mismo filtro
+  const deuda = { con: base.filter(r => r.overdue > 0.005).length, sin: base.filter(r => r.overdue <= 0.005).length }
+  if (debt === 'con') base = base.filter(r => r.overdue > 0.005)
+  else if (debt === 'sin') base = base.filter(r => r.overdue <= 0.005)
 
   // Contadores sobre la base (con la categoría aplicada, sin riesgo ni situación)
   const counts: Record<string, number> = {}
@@ -101,7 +115,7 @@ export async function GET(req: NextRequest) {
 
   const { data: last } = await sb.from('student_tracking').select('updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle()
 
-  return NextResponse.json({ rows, counts, umbrales, situations, categories: cats ?? [], last_updated: last?.updated_at ?? null })
+  return NextResponse.json({ rows, counts, umbrales, deuda, situations, categories: cats ?? [], last_updated: last?.updated_at ?? null })
 }
 
 // PATCH → etiquetar manualmente la situación de un estudiante (source = 'manual')

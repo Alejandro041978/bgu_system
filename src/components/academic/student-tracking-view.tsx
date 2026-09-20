@@ -4,11 +4,11 @@ import { useEffect, useState, useCallback } from 'react'
 import { Loader2, RefreshCw, Phone, Mail } from 'lucide-react'
 
 interface Row {
-  student_id: string; balance: number | null; last_erp_login: string | null; last_moodle_access: string | null
+  student_id: string; balance: number | null; overdue?: number; last_erp_login: string | null; last_moodle_access: string | null
   inactivity_days: number | null; risk_level: string; name: string; phone: string | null; email: string | null; document_number: string | null
   situation: string; situation_source: string
 }
-interface Data { rows: Row[]; counts: Record<string, number>; umbrales?: Record<string, number>; situations?: Record<string, number>; categories?: { id: string; name: string }[]; last_updated: string | null }
+interface Data { rows: Row[]; counts: Record<string, number>; umbrales?: Record<string, number>; deuda?: { con: number; sin: number }; situations?: Record<string, number>; categories?: { id: string; name: string }[]; last_updated: string | null }
 
 const RISK: Record<string, { label: string; cls: string }> = {
   active:  { label: 'Activo',            cls: 'bg-green-50 text-green-700' },
@@ -32,6 +32,7 @@ export function StudentTrackingView() {
   const [risk, setRisk] = useState('')
   const [situation, setSituation] = useState('')
   const [category, setCategory] = useState('')
+  const [debt, setDebt] = useState('')
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
 
@@ -41,9 +42,10 @@ export function StudentTrackingView() {
     if (risk) qs.set('risk', risk)
     if (situation) qs.set('situation', situation)
     if (category) qs.set('category', category)
+    if (debt) qs.set('debt', debt)
     const d = await fetch(`/api/academic/tracking${qs.toString() ? `?${qs}` : ''}`).then(r => r.json())
     setData(d); setLoading(false)
-  }, [risk, situation, category])
+  }, [risk, situation, category, debt])
   useEffect(() => { load() }, [load])
 
   async function setStudentSituation(student_id: string, value: string) {
@@ -110,6 +112,17 @@ export function StudentTrackingView() {
         </select>
       </div>
 
+      {/* Con / sin deuda VENCIDA (tuition vencida e impaga, la que restringe el campus) */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] text-gray-400 uppercase tracking-wide mr-1">Deuda vencida:</span>
+        {([['', 'Todas', null], ['con', 'Con deuda', data?.deuda?.con], ['sin', 'Sin deuda', data?.deuda?.sin]] as const).map(([k, label, n]) => (
+          <button key={k} onClick={() => setDebt(k)} title="Deuda vencida de tuition (cuotas ya vencidas e impagas). La columna Deuda muestra el saldo total, que incluye cuotas futuras."
+            className={`px-3 py-1 rounded-lg text-xs font-medium border ${debt === k ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+            {label}{n != null && <span className="opacity-70"> ({n})</span>}
+          </button>
+        ))}
+      </div>
+
       {/* Filtros por situación (la campaña de retención sólo aplica a "Activo") */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-gray-400 uppercase tracking-wide mr-1">Situación:</span>
@@ -152,7 +165,7 @@ export function StudentTrackingView() {
                       {r.email && <span className="flex items-center gap-0.5"><Mail className="w-3 h-3" />{r.email}</span>}
                     </div>
                   </td>
-                  <td className={`px-4 py-2.5 text-right ${(r.balance ?? 0) > 0 ? 'text-red-600 font-medium' : 'text-gray-500'}`}>{money(r.balance)}</td>
+                  <td className={`px-4 py-2.5 text-right ${(r.balance ?? 0) > 0 ? 'text-red-600 font-medium' : 'text-gray-500'}`}>{money(r.balance)}{(r.overdue ?? 0) > 0.005 && <span className="block text-[10.5px] font-normal text-red-500">vencida {money(r.overdue ?? 0)}</span>}</td>
                   <td className="px-4 py-2.5 text-gray-500 text-xs">{fdate(r.last_erp_login)}</td>
                   <td className="px-4 py-2.5 text-gray-500 text-xs">{fdate(r.last_moodle_access)}</td>
                   <td className="px-4 py-2.5 text-right text-gray-600">{r.inactivity_days ?? '—'}</td>
