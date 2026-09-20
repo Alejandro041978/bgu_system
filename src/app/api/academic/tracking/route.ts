@@ -81,7 +81,17 @@ export async function GET(req: NextRequest) {
     situations[r.situation] = (situations[r.situation] ?? 0) + 1
   }
 
-  let rows = risk ? base.filter(r => r.risk_level === risk) : base
+  // Umbrales largos de inactividad (19/09/2026): más de 30, 60 y 90 días. Son
+  // ACUMULATIVOS y subconjuntos de "≥14 días" (quien lleva 95 días cuenta en los
+  // tres), por eso van aparte de counts, que reparte a cada estudiante en un
+  // solo nivel y cuya suma es el total.
+  const UMBRALES: Record<string, number> = { d30: 30, d60: 60, d90: 90 }
+  const umbrales: Record<string, number> = {}
+  for (const [k, n] of Object.entries(UMBRALES)) umbrales[k] = base.filter(r => r.inactivity_days != null && Number(r.inactivity_days) > n).length
+
+  let rows = !risk ? base
+    : UMBRALES[risk] != null ? base.filter(r => r.inactivity_days != null && Number(r.inactivity_days) > UMBRALES[risk])
+      : base.filter(r => r.risk_level === risk)
   // Filtro por situación: 'activo' es el default; los demás son "excluidos de campaña"
   if (situation === 'activo') rows = rows.filter(r => r.situation === 'activo')
   else if (situation === 'excluidos') rows = rows.filter(r => r.situation !== 'activo')
@@ -91,7 +101,7 @@ export async function GET(req: NextRequest) {
 
   const { data: last } = await sb.from('student_tracking').select('updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle()
 
-  return NextResponse.json({ rows, counts, situations, categories: cats ?? [], last_updated: last?.updated_at ?? null })
+  return NextResponse.json({ rows, counts, umbrales, situations, categories: cats ?? [], last_updated: last?.updated_at ?? null })
 }
 
 // PATCH → etiquetar manualmente la situación de un estudiante (source = 'manual')

@@ -8,7 +8,7 @@ interface Row {
   inactivity_days: number | null; risk_level: string; name: string; phone: string | null; email: string | null; document_number: string | null
   situation: string; situation_source: string
 }
-interface Data { rows: Row[]; counts: Record<string, number>; situations?: Record<string, number>; categories?: { id: string; name: string }[]; last_updated: string | null }
+interface Data { rows: Row[]; counts: Record<string, number>; umbrales?: Record<string, number>; situations?: Record<string, number>; categories?: { id: string; name: string }[]; last_updated: string | null }
 
 const RISK: Record<string, { label: string; cls: string }> = {
   active:  { label: 'Activo',            cls: 'bg-green-50 text-green-700' },
@@ -83,11 +83,21 @@ export function StudentTrackingView() {
         <button onClick={() => setRisk('')} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${risk === '' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
           Todos <span className="opacity-70">({total})</span>
         </button>
-        {(['active', 'nudge7', 'warn14', 'never'] as const).map(k => (
+        {(['active', 'nudge7', 'warn14'] as const).map(k => (
           <button key={k} onClick={() => setRisk(k)} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${risk === k ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
             {RISK[k].label} <span className="opacity-70">({counts[k] ?? 0})</span>
           </button>
         ))}
+        {/* Umbrales largos: acumulativos y contenidos en "≥14 días" */}
+        {([['d30', 'Más de 30 días'], ['d60', 'Más de 60 días'], ['d90', 'Más de 90 días']] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setRisk(k)} title="Subconjunto de «Inactivo ≥14 días»: quien lleva más de 90 también cuenta en más de 30 y más de 60"
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${risk === k ? 'bg-red-700 text-white border-red-700' : 'bg-white text-red-700 border-red-200 hover:bg-red-50'}`}>
+            {label} <span className="opacity-70">({data?.umbrales?.[k] ?? 0})</span>
+          </button>
+        ))}
+        <button onClick={() => setRisk('never')} className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${risk === 'never' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+          {RISK.never.label} <span className="opacity-70">({counts.never ?? 0})</span>
+        </button>
       </div>
 
       {/* Filtro por categoría de programa: los contadores de riesgo y situación se recalculan sobre ella */}
