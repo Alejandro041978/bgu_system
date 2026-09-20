@@ -141,7 +141,7 @@ function marco(titulo: string, cuerpo: string): string {
     </div>
     <div style="padding:32px;">${cuerpo}</div>
     <div style="padding:16px 32px;border-top:1px solid #f3f4f6;">
-      <p style="color:#9ca3af;font-size:12px;margin:0;">Este es un aviso oficial de tu expediente académico. Si tienes preguntas, responde a este correo o escribe a Registros.</p>
+      <p style="color:#9ca3af;font-size:12px;margin:0;">Este es un aviso oficial y automático de tu expediente académico. <strong>Esta casilla no recibe respuestas</strong>: para cualquier consulta usa tu portal de estudiante o los canales de atención de Registros.</p>
     </div>
   </div></body></html>`
 }
@@ -213,14 +213,23 @@ export function plantillaPreavisoIW(a: { nombre: string; programa: string; dias:
     subject: 'Aviso importante: tu matrícula está en riesgo de Retiro Institucional',
     html: marco('Aviso previo de Retiro Institucional',
       parrafo(`Hola, <strong>${a.nombre}</strong>:`) +
-      parrafo(`Notamos que llevas <strong>${a.dias} días sin conectarte</strong> al campus virtual ni a tu portal, y tu cuenta registra cuotas vencidas. Hemos intentado comunicarnos contigo sin éxito.`) +
+      parrafo(`Notamos que llevas <strong>${a.dias} días sin conectarte</strong> al campus virtual ni a tu portal, y tu cuenta registra cuotas vencidas.`) +
       tabla(
         dato('Programa', a.programa) +
         dato('Días sin conexión', String(a.dias)) +
         dato('Deuda vencida', `$${a.deuda.toFixed(2)}`)
       ) +
-      parrafo(`Si en los próximos <strong>7 días</strong> no retomas tu actividad ni te comunicas con nosotros, se registrará tu <strong>Retiro Institucional (IW)</strong> del programa.`) +
-      parrafo(`Evitarlo es sencillo: <strong>ingresa a tu campus o a tu portal</strong>, o responde a este correo. Si necesitas una pausa, puedes solicitar una <strong>Licencia Académica (LOA)</strong>; y si tu dificultad es económica, escríbenos para revisar opciones.`) +
+      parrafo(`Si en los próximos <strong>7 días</strong> tu situación sigue igual, se registrará tu <strong>Retiro Institucional (IW)</strong> del programa.`) +
+      // Solo las acciones que DE VERDAD detienen el retiro (son las condiciones
+      // de la regla): conectarse o regularizar la deuda. No se invita a
+      // responder el correo: la casilla no recibe respuestas.
+      parrafo(`<strong>Cualquiera de estas acciones lo evita:</strong>`) +
+      `<ul style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 14px;padding-left:20px;">
+        <li><strong>Ingresa a tu portal de estudiante</strong>: <a href="https://system.blackwell.university" style="color:#2563eb;">system.blackwell.university</a></li>
+        <li><strong>Ponte al día con tu deuda vencida</strong> desde el estado de cuenta de tu portal. Al regularizarla se restablece también tu acceso al campus virtual, si estuviera suspendido.</li>
+        <li><strong>Ingresa a tu campus virtual</strong>, si tu acceso está habilitado: <a href="https://campus.blackwell.university" style="color:#2563eb;">campus.blackwell.university</a></li>
+      </ul>` +
+      parrafo(`Si lo que necesitas es una pausa, puedes solicitar una <strong>Licencia Académica (LOA)</strong> desde tu portal: con una licencia vigente no se registra el retiro.`) +
       parrafo(`Queremos que continúes. Estamos para ayudarte.`)),
   }
 }
@@ -237,6 +246,6 @@ export function plantillaIWAutomatico(a: { nombre: string; programa: string; res
         dato('Fecha', fecha(a.fechaRetiro))
       ) +
       parrafo(`Tu acceso a las aulas del campus virtual queda suspendido. <strong>Tu historial académico y tus calificaciones se conservan íntegros</strong> en tu expediente.`) +
-      parrafo(`Si esto no refleja tu situación, o deseas retomar tus estudios, escríbenos o solicita el trámite de <strong>Re-Entry</strong> desde tu portal. Estaremos encantados de recibirte de vuelta.`)),
+      parrafo(`Si deseas retomar tus estudios, solicita el trámite de <strong>Re-Entry</strong> desde tu portal de estudiante. Estaremos encantados de recibirte de vuelta.`)),
   }
 }
