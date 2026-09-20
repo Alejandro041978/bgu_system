@@ -99,7 +99,12 @@ export async function evaluarAutoIW(sb: SB): Promise<{ candidatos: CandidatoAuto
     // le escriben a un activo desconectado: 'ausente' (sin deuda vencida) y
     // 'cobranza' (con deuda vencida — a donde el resolutor manda al deudor).
     todo(sb, 'campaign_contacts', 'id, student_id, campaign_key, sent_at, status, replied_at, outcome_at', q => q.in('campaign_key', ['ausente', 'cobranza'])),
-    todo(sb, 'student_notifications', 'id, student_id, kind, created_at', q => q.eq('kind', 'iw_preaviso')).catch(() => []),
+    // OJO: la bitácora fecha con sent_at (no tiene created_at). Pedir una columna
+    // inexistente devolvía error, el catch lo volvía lista vacía y el motor no
+    // veía NINGÚN preaviso: lo habría reenviado cada noche y nunca habría
+    // llegado al IW (detectado el 19/09/2026, tras la primera corrida). Solo
+    // cuentan los realmente enviados. Sin catch: si esto falla, que se note.
+    todo(sb, 'student_notifications', 'id, student_id, kind, sent_at, status', q => q.eq('kind', 'iw_preaviso')),
     todo(sb, 'academic_group_students', 'student_id, group_id, status', q => q.eq('status', 'activo'), ['student_id', 'group_id']),
     todo(sb, 'academic_course_enrollments', 'id, student_id, status', q => q.in('status', ['en_curso', 'no_iniciada'])),
   ])
@@ -135,7 +140,8 @@ export async function evaluarAutoIW(sb: SB): Promise<{ candidatos: CandidatoAuto
   }
   const preavisoDe = new Map<string, string>()
   for (const a of avisos) {
-    const k = String(a.student_id), f = String(a.created_at)
+    if (a.status && !/sent|enviad|ok/i.test(String(a.status))) continue
+    const k = String(a.student_id), f = String(a.sent_at)
     if (!preavisoDe.has(k) || f > preavisoDe.get(k)!) preavisoDe.set(k, f)
   }
 
