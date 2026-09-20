@@ -33,6 +33,9 @@ export interface Acta {
   program: { name: string; passing?: number | null }
   courses: ActaRow[]
   summary: ActaSummary
+  // Insumos del SAP (Satisfactory Academic Progress). Solo se calculan y se
+  // muestran; no se guardan. Ver el bloque SAP al final de computeActa.
+  sap?: { attempted: number; earned: number; program_credits: number }
 }
 
 export async function computeActa(sb: SB, studentId: string, programId: string): Promise<Acta | null> {
@@ -66,7 +69,7 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
   let grades: any[] | null = []
   if (document) {
     const base = () => sb.from('academic_grades')
-      .select('course_id, course_code, course_name, final_grade, retake_grade, passing_score, estado_academico, source')
+      .select('course_id, course_code, course_name, final_grade, retake_grade, passing_score, estado_academico, source, intento')
       .eq('document_number', document).neq('source', 'convalidacion').neq('source', 'validacion')
     const r = await base().is('withdrawn_at', null)
     grades = r.error ? (await base()).data : r.data
@@ -207,11 +210,47 @@ export async function computeActa(sb: SB, studentId: string, programId: string):
     return { ...base, status: 'pendiente' as const, grade: null }
   })
 
+  // ── SAP: créditos intentados y aprobados (reglas del usuario, 19/09/2026) ──
+  //  · Intentado = cada INTENTO con resultado final (aprobado o desaprobado):
+  //    el intento fallido que originó un recursado cuenta, y el recursado
+  //    también. Se cuentan intentos distintos (campo intento), no filas: una
+  //    misma cursada registrada dos veces no es dos intentos.
+  //  · En proceso NO cuenta (ni intentado ni aprobado) hasta tener resultado.
+  //  · Retiradas NO cuentan: el IW es por programa, no por asignatura (las
+  //    notas retiradas ni siquiera llegan aquí: withdrawn_at las filtra).
+  //  · Transfer Credit / Validation cuentan como intentados Y aprobados
+  //    (norma del SAP), aunque no entren al CGPA.
+  //  · Aprobado = créditos de la asignatura una sola vez, si algún intento aprobó.
+  //  · En una casilla electiva manda la elegida, con los créditos de la casilla.
+  let sapAttempted = 0, sapEarned = 0, sapProgram = 0
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const c of malla as any[]) {
+    const cred = Number(c.credits ?? 0)
+    sapProgram += cred
+    const destino = c.is_elective ? eleccionesDe?.get(String(c.id)) : c
+    if (!destino) continue
+    if (transferMap.has(destino.id)) { sapAttempted += cred; sapEarned += cred; continue }
+    const intentos = new Map<number, boolean>()
+    for (const g of gradeRows) {
+      if (g.source === 'plan' || !filaDeCurso(g, destino)) continue
+      const v = (g.retake_grade ?? g.final_grade) as number | null
+      if (v == null || g.estado_academico === 'pendiente') continue
+      const passing = categoryPassing ?? g.passing_score
+      const paso = g.estado_academico === 'aprobado' ? true : g.estado_academico === 'reprobado' ? false
+        : (passing != null ? Number(v) >= Number(passing) : true)
+      const k = Number(g.intento ?? 1)
+      intentos.set(k, (intentos.get(k) ?? false) || paso)
+    }
+    sapAttempted += cred * intentos.size
+    if ([...intentos.values()].some(Boolean)) sapEarned += cred
+  }
+
   return {
     student: { name: [student.first_name, student.last_name, student.second_last_name].filter(Boolean).join(' '), document },
     program: { name: program?.name ?? '', passing: categoryPassing },
     courses: rows,
     summary: { ...summary, total: rows.length },
+    sap: { attempted: sapAttempted, earned: sapEarned, program_credits: sapProgram },
   }
 }
 

@@ -7,7 +7,15 @@ interface StudentHit { id: string; name: string; document_number: string | null;
 interface Program { id: string; name: string }
 interface Row { code: string | null; name: string; credits: number | null; status: string; grade: number | null }
 interface Summary { transfer: number; validation: number; aprobado: number; desaprobado: number; en_proceso: number; pendiente: number; total: number }
-interface Acta { student: { name: string; document: string | null }; program: { name: string; passing?: number | null }; courses: Row[]; summary: Summary }
+interface Acta { student: { name: string; document: string | null }; program: { name: string; passing?: number | null }; courses: Row[]; summary: Summary; sap?: { attempted: number; earned: number; program_credits: number } }
+
+// ── SAP (Satisfactory Academic Progress) ───────────────────────────────────
+// Tres criterios a la vez: CGPA mínimo (2.00 pregrado/DCE · 3.00 posgrado),
+// Pace of Completion ≥ 67% (créditos aprobados ÷ intentados) y Maximum
+// Timeframe ≤ 150% (créditos intentados ÷ créditos del programa). Solo se
+// visualiza; los insumos vienen de computeActa.
+const SAP_PACE_MIN = 67
+const SAP_TIMEFRAME_MAX = 150
 
 // ── Nota en letras ─────────────────────────────────────────────────────────
 // Solo se VISUALIZA: no se guarda en la base (pedido del usuario, 18/09/2026).
@@ -257,6 +265,58 @@ export function ActaPersonal() {
               <span className="text-gray-400"> · A+ 95–100 · A 90–94 · B+ 85–89 · B 80–84 · C+ 75–79 · C 70–74 · D+ 65–69 · D 60–64 · F &lt; 60</span>
             </p>
           )}
+
+          {/* SAP: solo en la Official view */}
+          {vista === 'oficial' && acta.sap && (() => {
+            const { attempted, earned, program_credits } = acta.sap!
+            const pace = attempted > 0 ? (earned / attempted) * 100 : null
+            const timeframe = program_credits > 0 ? (attempted / program_credits) * 100 : null
+            const okCgpa = cgpa == null || cgpaMinimo == null ? null : cgpa >= cgpaMinimo
+            const okPace = pace == null ? null : pace >= SAP_PACE_MIN
+            const okTime = timeframe == null ? null : timeframe <= SAP_TIMEFRAME_MAX
+            const evaluable = okCgpa !== null && okPace !== null && okTime !== null
+            const cumple = evaluable && okCgpa && okPace && okTime
+            const marca = (ok: boolean | null) => ok === null
+              ? <span className="text-gray-300">—</span>
+              : ok ? <span className="text-green-700 font-medium">✓ Yes</span> : <span className="text-red-600 font-medium">✗ No</span>
+            const filas: [string, string, boolean | null, string][] = [
+              [`Minimum CGPA: ${cgpaMinimo == null ? '—' : cgpaMinimo.toFixed(2)}`, cgpa == null ? '—' : cgpa.toFixed(2), okCgpa, 'Completed courses only (no Transfer Credit, Validation or in progress)'],
+              [`Minimum Pace of Completion: ${SAP_PACE_MIN}%`, pace == null ? '—' : `${Math.round(pace)}%`, okPace, `${earned} credits earned ÷ ${attempted} credits attempted`],
+              [`Maximum Timeframe: ≤ ${SAP_TIMEFRAME_MAX}%`, timeframe == null ? '—' : `${Math.round(timeframe)}%`, okTime, `${attempted} credits attempted ÷ ${program_credits} program credits`],
+            ]
+            return (
+              <div className={`bg-white rounded-xl border overflow-hidden ${!evaluable ? 'border-gray-200' : cumple ? 'border-green-200' : 'border-red-200'}`}>
+                <p className="px-5 py-2.5 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wide">Satisfactory Academic Progress (SAP)</p>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-[10px] uppercase tracking-wide text-gray-400">
+                      <th className="px-5 pt-2 text-left font-medium">SAP criterion</th>
+                      <th className="px-3 pt-2 text-right font-medium w-32">Student result</th>
+                      <th className="px-5 pt-2 text-left font-medium w-28">Meets?</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filas.map(([criterio, resultado, ok, detalle]) => (
+                      <tr key={criterio}>
+                        <td className="px-5 py-2 text-gray-800">{criterio}<span className="block text-[11px] text-gray-400">{detalle}</span></td>
+                        <td className={`px-3 py-2 text-right font-semibold tabular-nums ${ok === false ? 'text-red-600' : 'text-gray-900'}`}>{resultado}</td>
+                        <td className="px-5 py-2">{marca(ok)}</td>
+                      </tr>
+                    ))}
+                    <tr className={!evaluable ? 'bg-gray-50' : cumple ? 'bg-green-50' : 'bg-red-50'}>
+                      <td className="px-5 py-2.5 font-semibold text-gray-900" colSpan={2}>SAP status</td>
+                      <td className={`px-5 py-2.5 font-semibold whitespace-nowrap ${!evaluable ? 'text-gray-500' : cumple ? 'text-green-700' : 'text-red-700'}`}>
+                        {!evaluable ? 'Not evaluated yet' : cumple ? '✓ Meets SAP' : '✗ Does Not Meet SAP'}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p className="px-5 py-2 text-[11px] text-gray-400 border-t border-gray-100">
+                  Attempted = every attempt with a final result (passed or failed, including failed attempts that led to a retake) plus Transfer Credit and Validation, which count as attempted and earned. Courses in progress and withdrawn courses are not counted.
+                </p>
+              </div>
+            )
+          })()}
 
           {/* Official view: Transfer Credit primero, por número de código, en años de 3·3·4 */}
           {vista === 'oficial' && (
