@@ -60,7 +60,8 @@ export function RetakesManager() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setResults(((d.students ?? []) as any[]).map(s => ({
       id: String(s.id),
-      name: [s.first_name, s.last_name, s.second_last_name].filter(Boolean).join(' '),
+      // /api/students/search ya devuelve el nombre armado (no los campos sueltos)
+      name: String(s.name ?? ''),
       document: s.document_number ?? null,
     })))
     setSearching(false)
