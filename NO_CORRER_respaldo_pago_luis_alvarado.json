@@ -1,0 +1,26 @@
+{
+ "fecha": "2026-09-23T00:10:51.292Z",
+ "motivo": "Pago heredado de SystemActiva por $100; Flywire entregó $150 (ZBL169472258). Autorizado por el usuario el 23/09/2026.",
+ "antes": {
+  "id": "79f3ef01-4a99-44ec-8a32-7a7f3707ffc7",
+  "external_id": "019e2bcb-d3e5-79f4-ba9f-8e95d1b6698a",
+  "charge_external_id": "019cfc2f-1582-7604-a154-18a574dc2e11",
+  "student_id": "895aee70-b748-411b-ae48-49784908f178",
+  "amount": 100,
+  "paid_date": "2026-05-18",
+  "disbursement_date": "2026-05-15",
+  "receipt_number": null,
+  "series_code": null,
+  "transaction_reference": "ZBL169472258",
+  "payment_type": null,
+  "created_at": "2026-07-08T15:29:17.370709+00:00",
+  "flywire_payment_id": "ZBL169472258",
+  "payment_method": "credit_card",
+  "currency_from": "PEN",
+  "country_from": "Peru",
+  "reconciled_no_charge": false,
+  "books_operation_id": null,
+  "refund_of_payment_id": null,
+  "distributed_from_payment_id": null
+ }
+}
