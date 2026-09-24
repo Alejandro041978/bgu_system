@@ -77,6 +77,59 @@ export async function POST(req: NextRequest) {
   // Con &escala=1 además lee el máximo del total de curso de los primeros 8
   // matriculados con puente: la política del aula juzga la escala por el
   // PRIMER reporte que llega, y en Natural ese máximo puede variar por alumno.
+  // ?diag_doc=DOC&q=ENG (sin aula) → en qué aulas de Moodle está ESA persona y
+  // con qué total en cada una, cruzado con los vínculos del ERP. Para el caso
+  // "la nota existe en Moodle pero el ERP no la ve": suele ser que la nota vive
+  // en un aula que el ERP no tiene vinculada (o vinculada a otra colección).
+  if (!isFinite(soloAula) && req.nextUrl.searchParams.get('diag_doc')) {
+    const doc = String(req.nextUrl.searchParams.get('diag_doc'))
+    const q = (req.nextUrl.searchParams.get('q') ?? '').toUpperCase()
+    const { data: st } = await sb.from('academic_students').select('id, first_name, last_name, document_number, external_id, moodle_user_id, email, email_alt').eq('document_number', doc).maybeSingle()
+    if (!st) return NextResponse.json({ error: 'estudiante no encontrado por documento' }, { status: 404 })
+    let uid: number | null = st.moodle_user_id ? Number(st.moodle_user_id) : null
+    if (!uid) {
+      for (const idn of [st.external_id, st.id].filter(Boolean)) {
+        try {
+          const r = await moodleCall('core_user_get_users_by_field', { field: 'idnumber', values: [String(idn)] })
+          if (Array.isArray(r) && r[0]?.id) { uid = Number(r[0].id); break }
+        } catch { /* siguiente llave */ }
+      }
+    }
+    if (!uid) return NextResponse.json({ estudiante: st, error: 'sin cuenta Moodle localizable' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let cursos: any[] = []
+    try { cursos = await moodleCall('core_enrol_get_users_courses', { userid: uid }, { timeoutMs: 60_000 }) }
+    catch (e) { return NextResponse.json({ estudiante: st, moodle_user_id: uid, error: 'core_enrol_get_users_courses: ' + (e instanceof Error ? e.message : 'error') }) }
+    const ids = (Array.isArray(cursos) ? cursos : []).map(c => Number(c.id))
+    const { data: links } = ids.length ? await sb.from('moodle_course_links').select('aula_id, collection_id, sync_enabled, replaced_at, academic_courses(code), moodle_collections(name)').in('aula_id', ids).eq('kind', 'asignatura') : { data: [] }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const linkDe = new Map<number, any>(((links ?? []) as any[]).map(l => [Number(l.aula_id), l]))
+    const salida: Record<string, unknown>[] = []
+    for (const c of (Array.isArray(cursos) ? cursos : [])) {
+      const nombre = String(c.shortname ?? c.fullname ?? '')
+      const interesa = !q || nombre.toUpperCase().includes(q) || String(c.fullname ?? '').toUpperCase().includes(q)
+      const l = linkDe.get(Number(c.id))
+      const fila: Record<string, unknown> = {
+        aula: Number(c.id), shortname: c.shortname, fullname: c.fullname, visible: c.visible,
+        vinculo: l ? { asignatura: l.academic_courses?.code ?? null, coleccion: l.moodle_collections?.name ?? null, sync: l.sync_enabled, reemplazado: l.replaced_at } : 'SIN VÍNCULO en el ERP',
+      }
+      if (interesa) {
+        try {
+          const r = await moodleCall('gradereport_user_get_grade_items', { courseid: Number(c.id), userid: uid }, { timeoutMs: 30_000 })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const items = ((r?.usergrades?.[0]?.gradeitems ?? []) as any[])
+          const ci = items.find(i => i.itemtype === 'course')
+          fila.total = ci ? { graderaw: ci.graderaw, grademax: ci.grademax, formateado: ci.gradeformatted } : null
+          fila.items_con_nota = items.filter(i => i.itemtype === 'mod' && i.graderaw != null).length
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fechas = items.filter(i => i.itemtype === 'mod' && i.gradedategraded).map((i: any) => Number(i.gradedategraded))
+          fila.ultima_calificacion = fechas.length ? new Date(Math.max(...fechas) * 1000).toISOString().slice(0, 10) : null
+        } catch (e) { fila.total_error = e instanceof Error ? e.message : 'error' }
+      }
+      salida.push(fila)
+    }
+    return NextResponse.json({ estudiante: `${st.first_name ?? ''} ${st.last_name ?? ''}`.trim(), documento: doc, moodle_user_id: uid, aulas: salida.length, cursos: salida })
+  }
   if (isFinite(soloAula) && req.nextUrl.searchParams.get('diag_doc')) {
     const doc = String(req.nextUrl.searchParams.get('diag_doc'))
     const users = await enrolledMap(soloAula, 120_000)
