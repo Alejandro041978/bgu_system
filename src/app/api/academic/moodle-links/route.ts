@@ -11,6 +11,14 @@ export const maxDuration = 120
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = (): any => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
+// La base garantiza "una asignatura, un aula por colección" (índice
+// moodle_course_links_un_aula_por_asignatura_y_coleccion, 24/09/2026). Su
+// rechazo llega como 23505 y se traduce a algo que se entienda en pantalla.
+const mensajeVinculo = (e: { code?: string; message: string }) =>
+  e.code === '23505' && /un_aula_por_asignatura_y_coleccion/.test(e.message)
+    ? 'Esa asignatura ya tiene un aula en esa colección: una asignatura solo puede tener un aula por colección. Reemplaza el vínculo existente en vez de agregar otro.'
+    : e.message
+
 async function requireStaff() {
   const auth = await createAuthClient()
   const { data: { user } } = await auth.auth.getUser()
@@ -325,12 +333,12 @@ export async function POST(req: NextRequest) {
         category_prefix: String(bCat.excluir_categoria).trim(), excluded_by: quien, excluded_at: ahora,
         nota: bCat.nota?.trim() || null,
       }, { onConflict: 'category_prefix' })
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) return NextResponse.json({ error: mensajeVinculo(error) }, { status: error.code === '23505' ? 409 : 500 })
       return NextResponse.json({ ok: true, excluida: bCat.excluir_categoria })
     }
     const { error } = await sb.from('moodle_excluded_categories')
       .delete().eq('category_prefix', String(bCat.incluir_categoria).trim())
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: mensajeVinculo(error) }, { status: error.code === '23505' ? 409 : 500 })
     return NextResponse.json({ ok: true, incluida: bCat.incluir_categoria })
   }
 
@@ -360,7 +368,7 @@ export async function POST(req: NextRequest) {
     if (!filas.length) return NextResponse.json({ ok: true, guardados: 0, nota: 'No quedan vínculos de oferta por migrar' })
     for (let i = 0; i < filas.length; i += 500) {
       const { error } = await sb.from('moodle_course_links').upsert(filas.slice(i, i + 500), { onConflict: 'aula_id' })
-      if (error) return NextResponse.json({ error: error.message, guardados: i }, { status: 500 })
+      if (error) return NextResponse.json({ error: mensajeVinculo(error), guardados: i }, { status: error.code === '23505' ? 409 : 500 })
     }
     return NextResponse.json({ ok: true, migradas_desde_la_oferta: filas.length, sincronizando: filas.length })
   }
@@ -378,7 +386,7 @@ export async function POST(req: NextRequest) {
         : { sync_enabled: false, sync_enabled_by: quien, sync_enabled_at: ahora },
         { count: 'exact' })
       .in('aula_id', ids).eq('kind', 'asignatura')
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: mensajeVinculo(error) }, { status: error.code === '23505' ? 409 : 500 })
 
     // El aula de una asignatura capstone da acceso y nunca trae notas. Se vuelve
     // a apagar aquí en vez de confiar en que nadie la encienda: la regla vive en
@@ -418,7 +426,7 @@ export async function POST(req: NextRequest) {
     if (!filas.length) return NextResponse.json({ ok: true, guardados: 0, nota: `No quedan propuestas de confianza ${aplicar} sin vincular` })
     for (let i = 0; i < filas.length; i += 500) {
       const { error } = await sb.from('moodle_course_links').upsert(filas.slice(i, i + 500), { onConflict: 'aula_id' })
-      if (error) return NextResponse.json({ error: error.message, guardados: i }, { status: 500 })
+      if (error) return NextResponse.json({ error: mensajeVinculo(error), guardados: i }, { status: error.code === '23505' ? 409 : 500 })
     }
     return NextResponse.json({ ok: true, confianza: aplicar, guardados: filas.length })
   }
@@ -440,7 +448,7 @@ export async function POST(req: NextRequest) {
   if (!filas.length) return NextResponse.json({ error: 'No se recibió ningún vínculo' }, { status: 400 })
 
   const { error } = await sb.from('moodle_course_links').upsert(filas, { onConflict: 'aula_id' })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: mensajeVinculo(error) }, { status: error.code === '23505' ? 409 : 500 })
 
   return NextResponse.json({ ok: true, guardados: filas.length })
 }
