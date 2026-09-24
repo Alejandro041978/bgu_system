@@ -1,0 +1,5591 @@
+{
+ "fecha": "2026-09-24T07:38:53.437Z",
+ "motivo": "Matrículas por asignatura de Moodle sin semestre. G1: se copia el de su nota. G2: nota y matrícula al semestre en curso a la fecha de sincronización. Autorizado el 24/09/2026.",
+ "matriculas_antes": [
+  {
+   "id": "00c8519d-328f-4061-99e0-43985dce77d9",
+   "student_id": "704507f3-7591-4522-b72e-306ae22aa14e",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.943954+00:00",
+   "created_at": "2026-07-31T00:55:59.943954+00:00"
+  },
+  {
+   "id": "014a140f-11aa-43fe-a94d-9d09064ab114",
+   "student_id": "b8ad3c43-2728-46d1-a3d5-50df1a4c71f0",
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.525954+00:00",
+   "created_at": "2026-07-31T00:55:54.525954+00:00"
+  },
+  {
+   "id": "01ac0a3d-d0bb-4517-9201-e8a42b3e47e7",
+   "student_id": "4d410b9a-0379-4f6a-9b84-4d0e98238858",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.063775+00:00",
+   "created_at": "2026-07-31T00:55:58.063775+00:00"
+  },
+  {
+   "id": "01b066c1-d461-4bd5-9985-a3e488be390c",
+   "student_id": "56476808-ef0c-4952-ab9e-ddf5dcfb8887",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-08-15T04:20:48.13253+00:00",
+   "created_at": "2026-08-15T04:20:48.13253+00:00"
+  },
+  {
+   "id": "01dcce0d-29d7-425d-9c10-21398f4b3daf",
+   "student_id": "1501601c-50e5-435e-aecf-e12f7e488a0c",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "025358eb-a9a5-49cf-92a9-0f8386d2f174",
+   "student_id": "ba2a2cb0-c54a-4d04-9f62-a12cdb699d97",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.819762+00:00",
+   "created_at": "2026-07-31T00:55:56.819762+00:00"
+  },
+  {
+   "id": "03c85a5d-0abb-45df-ad2f-18bd6bd85fc5",
+   "student_id": "bb20114d-0313-4736-8b2c-50e77130f631",
+   "course_id": "875c501d-454a-4ca9-b423-0ad733b39539",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.957838+00:00",
+   "created_at": "2026-07-31T00:55:58.957838+00:00"
+  },
+  {
+   "id": "03f2ef2a-4fec-4786-8c14-1f1dd2c94ff6",
+   "student_id": "9bfcc5cc-15bc-4614-9355-ca8c95511642",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  },
+  {
+   "id": "06ab2b21-94f2-4051-a771-47f6159aca1c",
+   "student_id": "34784eb8-0f9c-4b22-b904-0b4d5a6e6e2f",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "created_at": "2026-07-31T00:55:56.532027+00:00"
+  },
+  {
+   "id": "06f5ed1f-6171-43c3-91c9-c0aab332a056",
+   "student_id": "2645deff-0a63-4ade-9d5e-103d3fb55b17",
+   "course_id": "40610d09-bde6-4f0c-8022-40809d11927f",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.063775+00:00",
+   "created_at": "2026-07-31T00:55:58.063775+00:00"
+  },
+  {
+   "id": "07ac62cc-b2e1-4b32-9a91-bec9de200981",
+   "student_id": "29b7c12b-c7d8-4e01-b4a6-22b4cb683267",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "096392dd-6327-40b3-8e84-38327d06e4f6",
+   "student_id": "0a135e8c-0d5a-429e-a630-69ea4d251058",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.637019+00:00",
+   "created_at": "2026-07-31T00:55:51.637019+00:00"
+  },
+  {
+   "id": "0966df4f-3b76-4366-a003-7d9b3c6fc981",
+   "student_id": "fe85449f-61e6-4c41-b3a3-257109c45f63",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.401644+00:00",
+   "created_at": "2026-07-31T00:56:00.401644+00:00"
+  },
+  {
+   "id": "097cc754-931f-407c-82c1-42b5259dba52",
+   "student_id": "b1becfbd-d027-43dc-aa25-87298865b011",
+   "course_id": "875c501d-454a-4ca9-b423-0ad733b39539",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.35131+00:00",
+   "created_at": "2026-07-31T00:55:57.35131+00:00"
+  },
+  {
+   "id": "0a4340c7-0f84-4025-805c-f192abd2ea24",
+   "student_id": "000c1730-3119-44d5-99ca-af87c72f53d7",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.139688+00:00",
+   "created_at": "2026-07-31T00:56:01.139688+00:00"
+  },
+  {
+   "id": "0ac885dd-cc69-41f1-8717-744da326ed5e",
+   "student_id": "b38f14e3-2736-43c2-bfb1-196f831730ed",
+   "course_id": "47ce7b6f-7993-4b4f-8cc2-30c4188f3b16",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "created_at": "2026-07-31T00:55:55.403831+00:00"
+  },
+  {
+   "id": "0ca64726-bd8c-4095-930a-1e4b3a2f6c96",
+   "student_id": "8c7abb9f-0dd9-4428-a3bf-12b41e591fc2",
+   "course_id": "4050f8a6-ff89-42e8-aac5-b478b2309c3f",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  },
+  {
+   "id": "0e783e51-2377-41bf-bcf5-9ede3a23146d",
+   "student_id": "bf7277da-04f9-4c48-811b-eeac4107d77a",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.204804+00:00",
+   "created_at": "2026-07-31T00:55:56.204804+00:00"
+  },
+  {
+   "id": "0ebaa8d6-1bf8-46ca-b631-e999c4feb674",
+   "student_id": "7e3fcfd4-edde-44bf-bdbe-8ae8fc8b2379",
+   "course_id": "ba8cbcf1-7d8c-4322-afbc-6d80f3ba8191",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.804977+00:00",
+   "created_at": "2026-07-31T00:55:57.804977+00:00"
+  },
+  {
+   "id": "0eff51c3-2441-48e3-843a-453f00811acf",
+   "student_id": "55fd67b5-0b1a-451e-8a51-24a75cb00523",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.139688+00:00",
+   "created_at": "2026-07-31T00:56:01.139688+00:00"
+  },
+  {
+   "id": "0f077739-94be-4609-be51-ba5ccd6b2398",
+   "student_id": "22a61a76-9e3e-47ca-ab0c-536454aa5c7a",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.900587+00:00",
+   "created_at": "2026-07-31T00:55:52.900587+00:00"
+  },
+  {
+   "id": "0f840a67-b549-4212-b497-4b7dcbd0abdb",
+   "student_id": "627177ec-d50a-4c55-bd95-b4811fd6949e",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.804977+00:00",
+   "created_at": "2026-07-31T00:55:57.804977+00:00"
+  },
+  {
+   "id": "0fc26979-b89e-4c22-b9f2-b7d64f5e91a3",
+   "student_id": "4f08d2e4-b934-468d-8b5f-36ccc9a4ddb7",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "created_at": "2026-07-31T00:55:54.837184+00:00"
+  },
+  {
+   "id": "104878e3-61f3-4f8a-bd57-7af376274195",
+   "student_id": "ba2a2cb0-c54a-4d04-9f62-a12cdb699d97",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.564909+00:00",
+   "created_at": "2026-07-31T00:55:50.564909+00:00"
+  },
+  {
+   "id": "10d4aad8-5762-4f7f-9bb4-9a83e804f2af",
+   "student_id": "a8f31cec-c90e-44e0-b9c4-bf1cc77326fe",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.204804+00:00",
+   "created_at": "2026-07-31T00:55:56.204804+00:00"
+  },
+  {
+   "id": "10f2c3c7-529f-4cfd-bd4c-e54168efdb30",
+   "student_id": "06d38241-af37-4b74-a83d-7bb14a081e96",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "115aa647-b362-4cb2-9184-d54ebcacaeff",
+   "student_id": "5992d2c5-09cf-4266-bd17-23a8cab20b4d",
+   "course_id": "875c501d-454a-4ca9-b423-0ad733b39539",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.200972+00:00",
+   "created_at": "2026-07-31T00:55:52.200972+00:00"
+  },
+  {
+   "id": "117e9870-c5b4-4789-b38e-c988bd9afe6b",
+   "student_id": "7bede79b-f7ec-469f-86f2-58da578d0295",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "created_at": "2026-07-31T00:55:56.532027+00:00"
+  },
+  {
+   "id": "12842d9f-7d97-4ec9-afd8-f709eec5cf40",
+   "student_id": "9bc276c2-1a95-4ea1-b273-12c1b0a5a738",
+   "course_id": "cec62c0e-bbac-4f96-aa34-f94cad9b87be",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  },
+  {
+   "id": "1320862b-c53b-4844-b066-f796c50bf966",
+   "student_id": "fbe11c0f-4769-4d17-a6df-aaa1b2fd7787",
+   "course_id": "0990b9b2-b085-4ed0-ab3e-fc1546bc4ee0",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-08-15T03:31:11.313228+00:00",
+   "created_at": "2026-08-15T03:31:11.313228+00:00"
+  },
+  {
+   "id": "13a57889-0dbc-47a8-abd8-aeba8e1fe358",
+   "student_id": "0d86d21b-04e6-4024-8c47-b92917564770",
+   "course_id": "e6caa970-eafd-4c74-88a8-d9c3013a029e",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.401644+00:00",
+   "created_at": "2026-07-31T00:56:00.401644+00:00"
+  },
+  {
+   "id": "13a8065a-4459-4152-a728-c547ade5534b",
+   "student_id": "70725386-0dbe-49b5-b69a-6b6f8ca9500b",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.595928+00:00",
+   "created_at": "2026-07-31T00:55:57.595928+00:00"
+  },
+  {
+   "id": "13c3aa52-1fc5-41e8-9eb6-43c0e77b665c",
+   "student_id": "9bfcc5cc-15bc-4614-9355-ca8c95511642",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  },
+  {
+   "id": "14134974-4853-4405-a176-bbb0f82727a1",
+   "student_id": "77d0f5ac-9186-41f4-8aae-4f1604ba8f29",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.564909+00:00",
+   "created_at": "2026-07-31T00:55:50.564909+00:00"
+  },
+  {
+   "id": "155411dc-f92a-4b9d-b95c-b30da1debd54",
+   "student_id": "d8f310fc-1a0a-4c7f-baeb-33422cb0028f",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.709258+00:00",
+   "created_at": "2026-07-31T00:55:58.709258+00:00"
+  },
+  {
+   "id": "15d3f91e-453e-484a-a0d3-4e1708053b85",
+   "student_id": "d93aeec6-6fa4-45e4-99c9-da67f080d0ef",
+   "course_id": "e6caa970-eafd-4c74-88a8-d9c3013a029e",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.141075+00:00",
+   "created_at": "2026-07-31T00:55:59.141075+00:00"
+  },
+  {
+   "id": "1626cfd1-1bce-4d6a-a808-4fa94c11934f",
+   "student_id": "abd18fb0-1d3f-46e7-b341-781c70c31b91",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.804977+00:00",
+   "created_at": "2026-07-31T00:55:57.804977+00:00"
+  },
+  {
+   "id": "162e1433-26e1-4db8-83f9-7d0a554d86b0",
+   "student_id": "f9ed390c-2e23-401c-a7be-e313d6d62f6b",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "170e7de7-09d9-4810-9bb0-f728d1b58b49",
+   "student_id": "8c7abb9f-0dd9-4428-a3bf-12b41e591fc2",
+   "course_id": "734f1d50-ff97-440f-b21e-3d0387f2ecb9",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "17685528-5b73-461e-90c6-ce3f4245b41f",
+   "student_id": "627177ec-d50a-4c55-bd95-b4811fd6949e",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.510821+00:00",
+   "created_at": "2026-07-31T00:55:58.510821+00:00"
+  },
+  {
+   "id": "17faf029-2fd7-4ba1-b59e-2705b8a67ad5",
+   "student_id": "0a135e8c-0d5a-429e-a630-69ea4d251058",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.564909+00:00",
+   "created_at": "2026-07-31T00:55:50.564909+00:00"
+  },
+  {
+   "id": "18a1d848-d48e-43a6-83d8-a1017f5766fe",
+   "student_id": "dd2bd5bf-96ec-4e9e-b2ba-4cea1659fcf4",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.354069+00:00",
+   "created_at": "2026-07-31T00:55:54.354069+00:00"
+  },
+  {
+   "id": "1902ef17-124b-4b3d-9769-cd9efc03188e",
+   "student_id": "856f3276-fbb0-4082-8649-caff64609f1c",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.875373+00:00",
+   "created_at": "2026-07-31T00:55:51.875373+00:00"
+  },
+  {
+   "id": "19587a7a-be65-4702-8eca-dd2da835afd9",
+   "student_id": "5e880308-75e1-4b80-b118-fc3f1601d57d",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.164686+00:00",
+   "created_at": "2026-07-31T00:55:57.164686+00:00"
+  },
+  {
+   "id": "19d32c52-96fc-4f65-8ea3-ce76aaec9ad5",
+   "student_id": "9cbde423-93b0-4a1f-b79d-327e9e9f8e47",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.016532+00:00",
+   "created_at": "2026-07-31T00:55:56.016532+00:00"
+  },
+  {
+   "id": "1c0047f0-58dd-4a46-920c-e1c3fe9b1775",
+   "student_id": "627177ec-d50a-4c55-bd95-b4811fd6949e",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "created_at": "2026-07-31T00:55:56.532027+00:00"
+  },
+  {
+   "id": "1c355fc8-6281-4142-918d-67dfd1428c3a",
+   "student_id": "5b530d55-4d81-4ed3-9c12-7f77e348eedf",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "created_at": "2026-07-31T00:55:54.837184+00:00"
+  },
+  {
+   "id": "1c727bd3-a31b-482b-9abd-dcd71161e7da",
+   "student_id": "8692f0ed-c996-4de9-be19-55ac19923ce6",
+   "course_id": "8ce99b8b-c7f8-42c7-86d5-4f222c5991b3",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.424238+00:00",
+   "created_at": "2026-07-31T00:55:53.424238+00:00"
+  },
+  {
+   "id": "1c84b87d-d7e7-4cc4-9a79-63d326387124",
+   "student_id": "9bfcc5cc-15bc-4614-9355-ca8c95511642",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  },
+  {
+   "id": "1d301f5c-f36e-4d3a-8549-c7070ef4547a",
+   "student_id": "bbe24a47-a672-459b-af6b-5820a9542a63",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "1e368eda-1a7b-4512-ac04-1e91673e2bf1",
+   "student_id": "65745dbc-78e9-47d4-b446-182316506b5e",
+   "course_id": "47ce7b6f-7993-4b4f-8cc2-30c4188f3b16",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.39603+00:00",
+   "created_at": "2026-07-31T00:55:59.39603+00:00"
+  },
+  {
+   "id": "1e6b790a-9b57-4afa-975b-9f2ea2097a91",
+   "student_id": "b8ad3c43-2728-46d1-a3d5-50df1a4c71f0",
+   "course_id": "17edfc47-2752-413a-845d-136841802ffa",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.539428+00:00",
+   "created_at": "2026-07-31T00:55:52.539428+00:00"
+  },
+  {
+   "id": "2028f18a-7dee-4c6b-8bf4-6db040158333",
+   "student_id": "ad3ac745-abbb-43ea-9c8d-1925a821110f",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.510821+00:00",
+   "created_at": "2026-07-31T00:55:58.510821+00:00"
+  },
+  {
+   "id": "206d4dd0-0a40-4748-8e64-c82a11362b00",
+   "student_id": "d8f310fc-1a0a-4c7f-baeb-33422cb0028f",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.64787+00:00",
+   "created_at": "2026-07-31T00:56:00.64787+00:00"
+  },
+  {
+   "id": "20ca0153-5c34-45c1-8a05-283ce2bdeae5",
+   "student_id": "ee708ded-e70f-4451-bf26-112e90dc5dba",
+   "course_id": "5bec64d7-5b3c-4496-81a4-35bf4939b104",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.957838+00:00",
+   "created_at": "2026-07-31T00:55:58.957838+00:00"
+  },
+  {
+   "id": "20f445ef-92a0-4041-ae21-a1e6c1aed0dc",
+   "student_id": "c4d1df51-7bbd-476f-9e73-37cbcf031e6c",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.016532+00:00",
+   "created_at": "2026-07-31T00:55:56.016532+00:00"
+  },
+  {
+   "id": "21438056-dd9c-43d4-aa76-80bf44847e74",
+   "student_id": "ee6176b1-2d88-4bc7-8107-3d66b2ad5ad2",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  },
+  {
+   "id": "21b1d328-3ce6-4cb3-9ee4-adc1da4ceba1",
+   "student_id": "7e3fcfd4-edde-44bf-bdbe-8ae8fc8b2379",
+   "course_id": "cec62c0e-bbac-4f96-aa34-f94cad9b87be",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.637019+00:00",
+   "created_at": "2026-07-31T00:55:51.637019+00:00"
+  },
+  {
+   "id": "2222790d-f8ad-4b51-b850-2bb0c6817cb1",
+   "student_id": "51f04e18-b26b-459d-814b-84fe8b64638a",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "2268faf9-0d16-48b9-ac0b-ee8a205d102e",
+   "student_id": "b30c98be-5c0d-4620-a65e-488c93990ada",
+   "course_id": "4fd5cc4b-4446-442a-a903-47b1b4c26255",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.200972+00:00",
+   "created_at": "2026-07-31T00:55:52.200972+00:00"
+  },
+  {
+   "id": "2356a08c-80ff-42ed-9fa2-4c828b622176",
+   "student_id": "a343f948-6d16-48f1-b249-68ee1c3eebe3",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.539428+00:00",
+   "created_at": "2026-07-31T00:55:52.539428+00:00"
+  },
+  {
+   "id": "23ad119c-0e56-4272-bab1-6a3565200bd2",
+   "student_id": "49c655c9-b8b9-4235-bb3c-695e624d56ed",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "23c05a5f-d17e-4c98-98fd-08c4b39ba149",
+   "student_id": "60cce7a4-cb70-424a-903f-56236bfc0bfc",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.164686+00:00",
+   "created_at": "2026-07-31T00:55:57.164686+00:00"
+  },
+  {
+   "id": "244b7d55-ee84-49d4-82e3-b574d95b722c",
+   "student_id": "0ae55f69-0801-48ce-b4a0-3173ee807586",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.804977+00:00",
+   "created_at": "2026-07-31T00:55:57.804977+00:00"
+  },
+  {
+   "id": "244f267d-8bee-4b63-8182-131274a4c284",
+   "student_id": "95f45bd3-c4a9-4dd8-8b08-51088fd437d4",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.39603+00:00",
+   "created_at": "2026-07-31T00:55:59.39603+00:00"
+  },
+  {
+   "id": "24c916e2-880d-4417-9124-865f0fa32a84",
+   "student_id": "34784eb8-0f9c-4b22-b904-0b4d5a6e6e2f",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.252197+00:00",
+   "created_at": "2026-07-31T00:55:51.252197+00:00"
+  },
+  {
+   "id": "251eb88a-8604-459a-a32a-dad3e334295c",
+   "student_id": "efc56e5d-b0e5-4555-a11c-d05def69ba56",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.900587+00:00",
+   "created_at": "2026-07-31T00:55:52.900587+00:00"
+  },
+  {
+   "id": "25693e09-fa30-4985-987e-7b5d1d154ea8",
+   "student_id": "4c97d4b1-51e5-470e-aab7-9e17b94da8ce",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.637019+00:00",
+   "created_at": "2026-07-31T00:55:51.637019+00:00"
+  },
+  {
+   "id": "2654d38c-e303-45be-97b9-1e2546a5a9ef",
+   "student_id": "6d5aa139-5cc4-45ab-950c-2a2e8925e648",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "26568d49-8ad8-4aac-90ce-6df9e22530f5",
+   "student_id": "cfb7d2dc-b55a-4920-8a4a-932579b5e19a",
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.564909+00:00",
+   "created_at": "2026-07-31T00:55:50.564909+00:00"
+  },
+  {
+   "id": "26c0c100-9ce1-4644-8688-7fd6b6aa5216",
+   "student_id": "181b690b-b301-4eb1-9d0c-a75af75893b6",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.025192+00:00",
+   "created_at": "2026-07-31T00:55:55.025192+00:00"
+  },
+  {
+   "id": "27cc7b7d-919c-4297-9ca0-9a487861b902",
+   "student_id": "16160312-fc39-4593-bcf9-97466ee60f12",
+   "course_id": "e6e46525-cda5-4b07-b8a1-414ef4aa7028",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "2806452d-3889-4e97-8759-5ea079f232e9",
+   "student_id": "56d8efa7-8f5a-444b-a5f2-aa93d5c3c4b4",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.637019+00:00",
+   "created_at": "2026-07-31T00:55:51.637019+00:00"
+  },
+  {
+   "id": "2b56174f-8804-453f-8a1a-c1d698e281a8",
+   "student_id": "d4b0f8e4-fdf0-4dbc-b530-5a85f536e6ca",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.424238+00:00",
+   "created_at": "2026-07-31T00:55:53.424238+00:00"
+  },
+  {
+   "id": "2b892fd5-89f4-4158-9c1b-7cd0cf950406",
+   "student_id": "9771b3d3-e20d-4ef6-b51f-352cbe19baab",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.252197+00:00",
+   "created_at": "2026-07-31T00:55:51.252197+00:00"
+  },
+  {
+   "id": "2d14e57f-0032-4cce-a612-fbdedc05a2ca",
+   "student_id": "60cce7a4-cb70-424a-903f-56236bfc0bfc",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.957838+00:00",
+   "created_at": "2026-07-31T00:55:58.957838+00:00"
+  },
+  {
+   "id": "2dadb4bc-03b9-4442-b3fa-a2fe363f2fba",
+   "student_id": "f8c3c1e0-6dee-4d2c-a439-d1961b28e430",
+   "course_id": "000347b0-f9f7-4dde-8af8-e299f551a814",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "created_at": "2026-07-31T00:55:54.837184+00:00"
+  },
+  {
+   "id": "2de0d48c-af3a-4bd7-aded-b1705d9e3105",
+   "student_id": "a7046644-65c2-469a-8a30-0ccec1aaff41",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.831096+00:00",
+   "created_at": "2026-07-31T00:56:00.831096+00:00"
+  },
+  {
+   "id": "2e0291f8-8eba-4feb-920d-4739cbda9e54",
+   "student_id": "51ddf6b9-eb31-4d6b-9333-0b1dc219a105",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.204804+00:00",
+   "created_at": "2026-07-31T00:55:56.204804+00:00"
+  },
+  {
+   "id": "2e3fb59c-e437-4a58-86ff-b3d94ddfb7c7",
+   "student_id": "4d410b9a-0379-4f6a-9b84-4d0e98238858",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.148844+00:00",
+   "created_at": "2026-07-31T00:55:53.148844+00:00"
+  },
+  {
+   "id": "2f04d227-4b26-4bcd-82c9-2014128ddac7",
+   "student_id": "2c0b484a-c468-469f-aab4-97b3e842fffa",
+   "course_id": "6c353fb7-acec-4991-b534-576a08bfa357",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "2f52f309-07fe-4b89-b86a-3d9a85e9084b",
+   "student_id": "d1394832-80b5-49de-af10-e2005ce16655",
+   "course_id": "0d399b08-377c-4914-8334-195a247004e7",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "2fd0c00b-ad39-43d2-8a8a-9375aa5f2bf9",
+   "student_id": "b98fb527-ef1e-4224-b871-5d144044e6ef",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.39603+00:00",
+   "created_at": "2026-07-31T00:55:59.39603+00:00"
+  },
+  {
+   "id": "2fde9ad0-7a99-4951-8b3f-51986444bca6",
+   "student_id": "03074650-b8ae-4f63-8cd7-d5f2b4f322c2",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "created_at": "2026-07-31T00:55:55.403831+00:00"
+  },
+  {
+   "id": "3048d650-d0d7-4dd1-be54-a5916c5b1b53",
+   "student_id": "65745dbc-78e9-47d4-b446-182316506b5e",
+   "course_id": "6c353fb7-acec-4991-b534-576a08bfa357",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.804977+00:00",
+   "created_at": "2026-07-31T00:55:57.804977+00:00"
+  },
+  {
+   "id": "30ef8368-1203-48ca-b764-32e63b31cd2b",
+   "student_id": "e0e03e39-0b81-450d-9ce9-75a681e51195",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.354069+00:00",
+   "created_at": "2026-07-31T00:55:54.354069+00:00"
+  },
+  {
+   "id": "31251f47-346d-4a73-a2ec-97ea4b2cc60e",
+   "student_id": "acd692fa-33e0-4ee0-8668-02e6c67bd694",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.503295+00:00",
+   "created_at": "2026-07-31T00:56:01.503295+00:00"
+  },
+  {
+   "id": "3150aa98-52c5-4065-90a5-1f6c45265d1a",
+   "student_id": "c2a0c428-b204-4b04-a9d0-37c92f50a6d5",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.525954+00:00",
+   "created_at": "2026-07-31T00:55:54.525954+00:00"
+  },
+  {
+   "id": "31901e4a-12db-4a62-949e-575d17ae7dc5",
+   "student_id": "140d1522-8a73-4bb1-8230-8051f311a254",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "created_at": "2026-07-31T00:55:54.837184+00:00"
+  },
+  {
+   "id": "320b8c3d-2ffd-49cc-9580-75d5be717113",
+   "student_id": "74f1b278-ac8d-476d-9fca-b48fd839e2f1",
+   "course_id": "c703af7d-46a0-4cbb-a75d-b74cfb754a73",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "3219e294-28b7-480b-b59e-77ae7bd4a4c9",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-08-15T04:20:49.147194+00:00",
+   "created_at": "2026-08-15T04:20:49.147194+00:00"
+  },
+  {
+   "id": "3300611e-1c5d-486a-9eb5-49c260b67296",
+   "student_id": "9cd7b8b3-5eb7-4c8d-a70c-8ec6f971b326",
+   "course_id": "83d2c0e8-8cb7-450f-b94b-fe2707e2eefe",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.204804+00:00",
+   "created_at": "2026-07-31T00:55:56.204804+00:00"
+  },
+  {
+   "id": "33c7558b-ac39-48fd-83f6-5651165263b7",
+   "student_id": "64310dca-2d76-4bd6-ac41-596b169d0ffa",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.957838+00:00",
+   "created_at": "2026-07-31T00:55:58.957838+00:00"
+  },
+  {
+   "id": "34689518-9d0f-4891-a331-f053ff1667ce",
+   "student_id": "d8f310fc-1a0a-4c7f-baeb-33422cb0028f",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.424238+00:00",
+   "created_at": "2026-07-31T00:55:53.424238+00:00"
+  },
+  {
+   "id": "3493ff89-9e51-4f86-a562-e41db0966db0",
+   "student_id": "684b5ee1-f8bf-4335-bcf6-5173e0fd5eef",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "365ca3a7-f2e1-4a62-9019-08e6a292d8a2",
+   "student_id": "a6dadf33-488f-4183-a53d-fea30518bab5",
+   "course_id": "ba8cbcf1-7d8c-4322-afbc-6d80f3ba8191",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.637019+00:00",
+   "created_at": "2026-07-31T00:55:51.637019+00:00"
+  },
+  {
+   "id": "367c68c8-7b74-445a-8a9c-a2fd7c2ce16f",
+   "student_id": "33963edf-8273-4566-a414-175485eabebc",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.503295+00:00",
+   "created_at": "2026-07-31T00:56:01.503295+00:00"
+  },
+  {
+   "id": "36887e0a-e123-4ffe-8419-27c87d4ddd1a",
+   "student_id": "75c9105c-cd7f-43f8-b906-389992ace1b4",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.525954+00:00",
+   "created_at": "2026-07-31T00:55:54.525954+00:00"
+  },
+  {
+   "id": "379b4edb-d9fd-4ca3-b1b3-afc0c6cf6e56",
+   "student_id": "ba2a2cb0-c54a-4d04-9f62-a12cdb699d97",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "390d1916-fec7-4d04-8c0d-6027cdbd406d",
+   "student_id": "75e13eaa-8d6f-4fe4-b0b8-43edd5e7bf51",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.139688+00:00",
+   "created_at": "2026-07-31T00:56:01.139688+00:00"
+  },
+  {
+   "id": "39125213-364c-4687-8e8f-3b81a1c7c6c5",
+   "student_id": "653ab419-3ba3-4853-b721-5f533b3f0b33",
+   "course_id": "e6caa970-eafd-4c74-88a8-d9c3013a029e",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.063775+00:00",
+   "created_at": "2026-07-31T00:55:58.063775+00:00"
+  },
+  {
+   "id": "3993783f-97a3-4680-9e5a-c35f67a9a2e4",
+   "student_id": "53345d09-fbbe-4150-84a4-4e76de6d8086",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.39603+00:00",
+   "created_at": "2026-07-31T00:55:59.39603+00:00"
+  },
+  {
+   "id": "39b41dd9-c505-4bc4-b894-7ca62f4685dd",
+   "student_id": "fe3372f7-173a-4d8b-8c9f-ef8bdbf96a65",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.510821+00:00",
+   "created_at": "2026-07-31T00:55:58.510821+00:00"
+  },
+  {
+   "id": "39c35797-9baf-4d92-bace-e9c429293b33",
+   "student_id": "b38f14e3-2736-43c2-bfb1-196f831730ed",
+   "course_id": "bd548fd3-a6ef-41c4-b352-30aabcd0b98b",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.943954+00:00",
+   "created_at": "2026-07-31T00:55:59.943954+00:00"
+  },
+  {
+   "id": "39d011f6-d6d7-4205-bb0d-897e6a05d85b",
+   "student_id": "b98fb527-ef1e-4224-b871-5d144044e6ef",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.251802+00:00",
+   "created_at": "2026-07-31T00:55:58.251802+00:00"
+  },
+  {
+   "id": "3b732601-96e1-485c-8d56-c3dd161ee907",
+   "student_id": "0ae55f69-0801-48ce-b4a0-3173ee807586",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "created_at": "2026-07-31T00:55:56.532027+00:00"
+  },
+  {
+   "id": "3b7a26fe-1460-4a16-a14f-d3664d72364b",
+   "student_id": "0c0c0926-c8c1-41f6-a5a6-5c9d020a6dd9",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.252197+00:00",
+   "created_at": "2026-07-31T00:55:51.252197+00:00"
+  },
+  {
+   "id": "3baaefd8-50fd-4b78-8cd1-ed46436dd4e2",
+   "student_id": "55691c78-c60c-47f9-8231-014f63749c40",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.525954+00:00",
+   "created_at": "2026-07-31T00:55:54.525954+00:00"
+  },
+  {
+   "id": "3ce79e9d-2d98-4508-9842-1fef55fbc6f5",
+   "student_id": "3a6dfa4d-830a-4bfd-8c46-e7a1d55c7852",
+   "course_id": "17edfc47-2752-413a-845d-136841802ffa",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.200972+00:00",
+   "created_at": "2026-07-31T00:55:52.200972+00:00"
+  },
+  {
+   "id": "3da6ec97-5849-4d7c-81ba-73e2b52545aa",
+   "student_id": "594b70a8-4d20-485a-aef4-ad1bb2e5c456",
+   "course_id": "cdadc657-fbe3-4fc0-8785-1ba938116a43",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.595928+00:00",
+   "created_at": "2026-07-31T00:55:57.595928+00:00"
+  },
+  {
+   "id": "3dc69203-4516-4747-acb8-c0a10fa30915",
+   "student_id": "13cedfee-1bcb-406e-9ed7-a2d95030d236",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "created_at": "2026-07-31T00:55:56.532027+00:00"
+  },
+  {
+   "id": "3ebf85d3-3c0e-42c8-9ef2-0575fea4abc1",
+   "student_id": "0c0c0926-c8c1-41f6-a5a6-5c9d020a6dd9",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.900587+00:00",
+   "created_at": "2026-07-31T00:55:52.900587+00:00"
+  },
+  {
+   "id": "3ecb147b-7662-422f-80af-348cc596c475",
+   "student_id": "d177431f-b4f6-4dc2-97d9-3160ec67c703",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.354069+00:00",
+   "created_at": "2026-07-31T00:55:54.354069+00:00"
+  },
+  {
+   "id": "3f401448-bbea-4895-b4d4-58f58efe002a",
+   "student_id": "1a7903dc-ed49-4cff-bba2-940435a43496",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  },
+  {
+   "id": "3f613a81-c577-48c5-8fc5-dcdba63038c0",
+   "student_id": "181b690b-b301-4eb1-9d0c-a75af75893b6",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.831096+00:00",
+   "created_at": "2026-07-31T00:56:00.831096+00:00"
+  },
+  {
+   "id": "3f706a8e-d9ba-42be-8231-e55ded7a29ec",
+   "student_id": "dd2bd5bf-96ec-4e9e-b2ba-4cea1659fcf4",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.819762+00:00",
+   "created_at": "2026-07-31T00:55:56.819762+00:00"
+  },
+  {
+   "id": "3f8f07b3-a61d-4455-b98d-e5e71e8b2066",
+   "student_id": "ba09062c-a2f3-473e-be38-d7d03c3dc7f1",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.503295+00:00",
+   "created_at": "2026-07-31T00:56:01.503295+00:00"
+  },
+  {
+   "id": "3fe1d64c-0399-441f-b547-b0ecd1eb2567",
+   "student_id": "b30c98be-5c0d-4620-a65e-488c93990ada",
+   "course_id": "02723b34-42c2-402f-9423-13854c989fa7",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.141075+00:00",
+   "created_at": "2026-07-31T00:55:59.141075+00:00"
+  },
+  {
+   "id": "415866c7-a06f-446b-8eab-a970ae2d839b",
+   "student_id": "d6a5a67d-6b62-4ce6-9913-c602fcefb383",
+   "course_id": "ae8c0ea1-68fd-4034-8903-5863944c7ab2",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-09-01T09:51:27.422008+00:00",
+   "created_at": "2026-09-01T09:51:27.422008+00:00"
+  },
+  {
+   "id": "41bc4302-c578-41af-bb90-31d090538bc6",
+   "student_id": "856f3276-fbb0-4082-8649-caff64609f1c",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.564909+00:00",
+   "created_at": "2026-07-31T00:55:50.564909+00:00"
+  },
+  {
+   "id": "428f1270-b56b-419f-85c5-f42654ccd0fe",
+   "student_id": "2115d97c-c638-4b0f-aec3-fec40ab1ba29",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.204804+00:00",
+   "created_at": "2026-07-31T00:55:56.204804+00:00"
+  },
+  {
+   "id": "43378051-e709-4b58-bbea-ed88fc328303",
+   "student_id": "b38f14e3-2736-43c2-bfb1-196f831730ed",
+   "course_id": "6c353fb7-acec-4991-b534-576a08bfa357",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.503295+00:00",
+   "created_at": "2026-07-31T00:56:01.503295+00:00"
+  },
+  {
+   "id": "44c5aaee-be7a-496c-85d0-aa5600054e90",
+   "student_id": "cd1a647c-38b0-4dbb-af97-0a4a9c2d6ba5",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.063775+00:00",
+   "created_at": "2026-07-31T00:55:58.063775+00:00"
+  },
+  {
+   "id": "46a97cd3-4255-4c06-96c1-bb4d2ad032fa",
+   "student_id": "0daef465-34ef-46a5-9e5c-20524610fcfc",
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.64787+00:00",
+   "created_at": "2026-07-31T00:56:00.64787+00:00"
+  },
+  {
+   "id": "47202065-38a3-4f09-b48b-c40b7daaf2fd",
+   "student_id": "4c97d4b1-51e5-470e-aab7-9e17b94da8ce",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "created_at": "2026-07-31T00:55:56.532027+00:00"
+  },
+  {
+   "id": "47d90d67-5b14-4d52-a6d4-2f711596e213",
+   "student_id": "7e9f6644-a330-4017-84d1-bdf32a32b935",
+   "course_id": "319fcbda-7c1f-4e3f-aaa9-1d9d4a621a33",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.539428+00:00",
+   "created_at": "2026-07-31T00:55:52.539428+00:00"
+  },
+  {
+   "id": "47fe4708-3ebe-4fb5-8399-04470b440558",
+   "student_id": "326b8746-ef59-4d04-adb5-6844866cd1e5",
+   "course_id": "0990b9b2-b085-4ed0-ab3e-fc1546bc4ee0",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-08-15T03:31:10.008706+00:00",
+   "created_at": "2026-08-15T03:31:10.008706+00:00"
+  },
+  {
+   "id": "47ffcc36-712e-4b73-aeb3-a03a0f0101d6",
+   "student_id": "7d5035cd-8014-4026-8009-b69d1e9bc486",
+   "course_id": "ed0e4cca-5aee-4bdd-a0ef-974024d65764",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "49222f6c-acca-4b17-a5da-1ca3f59b4066",
+   "student_id": "fdeef059-2047-4cd3-bae6-bc7cd5a0ed67",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.401644+00:00",
+   "created_at": "2026-07-31T00:56:00.401644+00:00"
+  },
+  {
+   "id": "49a2b112-0af4-40c7-a7bb-bce714b65749",
+   "student_id": "22a61a76-9e3e-47ca-ab0c-536454aa5c7a",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.919965+00:00",
+   "created_at": "2026-07-31T00:55:50.919965+00:00"
+  },
+  {
+   "id": "4ac42ee5-1b68-46af-bcad-d8239c481ed8",
+   "student_id": "684b5ee1-f8bf-4335-bcf6-5173e0fd5eef",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.39603+00:00",
+   "created_at": "2026-07-31T00:55:59.39603+00:00"
+  },
+  {
+   "id": "4aebe8e0-4a94-4873-b611-89862fcdfedb",
+   "student_id": "c7ae222b-2691-4e5a-94fb-1e5e352f5e2d",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.957838+00:00",
+   "created_at": "2026-07-31T00:55:58.957838+00:00"
+  },
+  {
+   "id": "4b03a81e-b1a8-444c-9762-87eac4cf0718",
+   "student_id": "10b660f2-e806-4b5c-a945-e38268377d8a",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.525954+00:00",
+   "created_at": "2026-07-31T00:55:54.525954+00:00"
+  },
+  {
+   "id": "4b1e0890-31c7-4dca-b239-5bf70b832753",
+   "student_id": "97299c41-0ac2-4e60-9837-b1fc5e3cf1a3",
+   "course_id": "47ce7b6f-7993-4b4f-8cc2-30c4188f3b16",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "4d76a10e-4af8-4ffb-a392-ab156064010f",
+   "student_id": "a44d81f7-c506-4ceb-ae0d-04a04a412a4e",
+   "course_id": "40610d09-bde6-4f0c-8022-40809d11927f",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.875373+00:00",
+   "created_at": "2026-07-31T00:55:51.875373+00:00"
+  },
+  {
+   "id": "4e3797a6-a83d-4317-b5fa-f12d4fa5586d",
+   "student_id": "8c7abb9f-0dd9-4428-a3bf-12b41e591fc2",
+   "course_id": "6ece4d1b-fd97-453a-a238-bc4c4366bcdc",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.510821+00:00",
+   "created_at": "2026-07-31T00:55:58.510821+00:00"
+  },
+  {
+   "id": "4eabae2c-7951-4ee9-82b8-0814fc8b0571",
+   "student_id": "dd2bd5bf-96ec-4e9e-b2ba-4cea1659fcf4",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "50198650-5801-40ce-a536-77ee7dc0c401",
+   "student_id": "7e3fcfd4-edde-44bf-bdbe-8ae8fc8b2379",
+   "course_id": "c0710dd3-9e3f-4568-92fa-f241cac22f99",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.564909+00:00",
+   "created_at": "2026-07-31T00:55:50.564909+00:00"
+  },
+  {
+   "id": "50c3e49f-51d5-46a3-91e8-1cfd91f1d260",
+   "student_id": "77d0f5ac-9186-41f4-8aae-4f1604ba8f29",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "created_at": "2026-07-31T00:55:55.403831+00:00"
+  },
+  {
+   "id": "5153bd26-22bc-490d-a68d-7ae46338db8c",
+   "student_id": "04170810-376f-4d7f-905d-6cc3fb19b3dd",
+   "course_id": "9babed3b-fbbf-4b41-8639-85ac76417a1e",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.919965+00:00",
+   "created_at": "2026-07-31T00:55:50.919965+00:00"
+  },
+  {
+   "id": "51980463-b640-4c1e-80c7-25033c0f5650",
+   "student_id": "a8c55238-a04e-477f-8808-c980af9ecdc2",
+   "course_id": "099bc6f4-8b18-425d-83ee-eebd123266e9",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.919965+00:00",
+   "created_at": "2026-07-31T00:55:50.919965+00:00"
+  },
+  {
+   "id": "52003d7b-cb86-4173-9370-93af94126743",
+   "student_id": "c029d2ce-668a-493e-a380-28626a1c45bc",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "529e8b22-9b0f-448b-adcc-42528c6847fc",
+   "student_id": "f7761e81-bb43-44cb-a334-0b17afecd017",
+   "course_id": "47ce7b6f-7993-4b4f-8cc2-30c4188f3b16",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.831096+00:00",
+   "created_at": "2026-07-31T00:56:00.831096+00:00"
+  },
+  {
+   "id": "52e14189-4035-4502-8303-73359f7c70b7",
+   "student_id": "689a8b32-9101-40c4-ba98-c7868385fa09",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.401644+00:00",
+   "created_at": "2026-07-31T00:56:00.401644+00:00"
+  },
+  {
+   "id": "53315066-00a3-4b85-8651-508eeffe96f6",
+   "student_id": "0697431b-66a6-4166-bd57-9014b987a42c",
+   "course_id": "53a613c1-1018-42a0-88d7-7247d6899540",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.503295+00:00",
+   "created_at": "2026-07-31T00:56:01.503295+00:00"
+  },
+  {
+   "id": "538a7806-eaa1-4ff3-93b4-e3ed96f75bf1",
+   "student_id": "2c0b484a-c468-469f-aab4-97b3e842fffa",
+   "course_id": "47ce7b6f-7993-4b4f-8cc2-30c4188f3b16",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.251802+00:00",
+   "created_at": "2026-07-31T00:55:58.251802+00:00"
+  },
+  {
+   "id": "5437e2f5-7553-466e-9860-6ab8bc47de80",
+   "student_id": "d4262e7a-ec05-4fc2-acf4-06a5360f2597",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.401644+00:00",
+   "created_at": "2026-07-31T00:56:00.401644+00:00"
+  },
+  {
+   "id": "543e48d1-dfc9-4a76-9898-75dc01715de4",
+   "student_id": "acd692fa-33e0-4ee0-8668-02e6c67bd694",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "reprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.510821+00:00",
+   "created_at": "2026-07-31T00:55:58.510821+00:00"
+  },
+  {
+   "id": "5599a3c6-4314-483a-a68d-1f5ccaefe504",
+   "student_id": "7bede79b-f7ec-469f-86f2-58da578d0295",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "created_at": "2026-07-31T00:55:56.532027+00:00"
+  },
+  {
+   "id": "58d64626-d0fa-4db4-af49-2110cb1fc45c",
+   "student_id": "29b7c12b-c7d8-4e01-b4a6-22b4cb683267",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "59481d3f-4f30-4dac-8eff-1a552f2dd59b",
+   "student_id": "45aec463-417b-4d68-a874-d36410623f97",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-09-01T09:53:31.821824+00:00",
+   "created_at": "2026-09-01T09:53:31.821824+00:00"
+  },
+  {
+   "id": "5a168241-45ac-492f-88bd-cbe90110253d",
+   "student_id": "bc9aa267-f52e-4781-bfac-a12c70a18409",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.943954+00:00",
+   "created_at": "2026-07-31T00:55:59.943954+00:00"
+  },
+  {
+   "id": "5a780dfc-b152-4b26-a75f-2fff01474da4",
+   "student_id": "4a8a15ef-fa7b-4cd5-97a8-7cca13a43a12",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "5adb717b-8639-4a23-96a5-50e2dbd77bd8",
+   "student_id": "64310dca-2d76-4bd6-ac41-596b169d0ffa",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.016532+00:00",
+   "created_at": "2026-07-31T00:55:56.016532+00:00"
+  },
+  {
+   "id": "5c8f32f4-6fe7-416f-ae8d-7b2acc30eb37",
+   "student_id": "e6b28205-5ce9-4a3c-a1ca-5ff34f2083ac",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.875373+00:00",
+   "created_at": "2026-07-31T00:55:51.875373+00:00"
+  },
+  {
+   "id": "5cda03f9-200f-43bd-a777-2846a45627cc",
+   "student_id": "914e593a-573a-463c-8f69-c72a3b6b13c4",
+   "course_id": "5ca3ddb3-4597-427a-b701-90fb02d113bf",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.510821+00:00",
+   "created_at": "2026-07-31T00:55:58.510821+00:00"
+  },
+  {
+   "id": "5d138889-6b36-4910-a3a0-e4ab32b4b572",
+   "student_id": "b6628553-9310-435f-b581-88f6cd3f6ddd",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "reprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "5d2043c2-da1f-4f1d-8470-22407d09e678",
+   "student_id": "63e0019a-355c-48a3-abd9-f601a7d983a0",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.222243+00:00",
+   "created_at": "2026-07-31T00:56:00.222243+00:00"
+  },
+  {
+   "id": "5eae7153-b018-4b66-b097-17775603d4a3",
+   "student_id": "68fbbb49-2b27-4dc4-b4db-1c9f8c9fff34",
+   "course_id": "ae8c0ea1-68fd-4034-8903-5863944c7ab2",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.39603+00:00",
+   "created_at": "2026-07-31T00:55:59.39603+00:00"
+  },
+  {
+   "id": "5ec89fa8-424e-4fb6-9a0d-587c0b8e3667",
+   "student_id": "ba09062c-a2f3-473e-be38-d7d03c3dc7f1",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.063775+00:00",
+   "created_at": "2026-07-31T00:55:58.063775+00:00"
+  },
+  {
+   "id": "608b63e2-4158-48db-9cf6-2550502fb2ff",
+   "student_id": "d901caae-8aaa-4627-9606-1ba818f1415d",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.943954+00:00",
+   "created_at": "2026-07-31T00:55:59.943954+00:00"
+  },
+  {
+   "id": "608f9590-ead1-4164-845d-b53920fc0006",
+   "student_id": "b38f14e3-2736-43c2-bfb1-196f831730ed",
+   "course_id": "055d36d0-0a77-404e-98aa-44a168593f3e",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.222243+00:00",
+   "created_at": "2026-07-31T00:56:00.222243+00:00"
+  },
+  {
+   "id": "60f1c95e-0702-4eef-8d53-53af34c9ff64",
+   "student_id": "423d8652-029f-4a33-9bdd-43a5ec7c9bae",
+   "course_id": "0990b9b2-b085-4ed0-ab3e-fc1546bc4ee0",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-08-15T03:31:13.329011+00:00",
+   "created_at": "2026-08-15T03:31:13.329011+00:00"
+  },
+  {
+   "id": "6126f9f4-c341-4d8c-acb4-c48475d4e918",
+   "student_id": "95a51450-8715-469f-b9ea-9cffd82baad7",
+   "course_id": "17edfc47-2752-413a-845d-136841802ffa",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.139688+00:00",
+   "created_at": "2026-07-31T00:56:01.139688+00:00"
+  },
+  {
+   "id": "6213af6e-ad9c-4f36-9f32-d109f0554c4e",
+   "student_id": "f7761e81-bb43-44cb-a334-0b17afecd017",
+   "course_id": "6c353fb7-acec-4991-b534-576a08bfa357",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.709258+00:00",
+   "created_at": "2026-07-31T00:55:58.709258+00:00"
+  },
+  {
+   "id": "6251b3b1-ab97-4e16-9f08-2defdbb23dfa",
+   "student_id": "d548a959-f0d8-439f-baf9-5470f6b5a303",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.539428+00:00",
+   "created_at": "2026-07-31T00:55:52.539428+00:00"
+  },
+  {
+   "id": "626fe84f-d279-4c73-bebb-b3693e401c8d",
+   "student_id": "48ccdfa8-dd97-4ad2-a463-e94fce2716de",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.919965+00:00",
+   "created_at": "2026-07-31T00:55:50.919965+00:00"
+  },
+  {
+   "id": "662414cd-7c0c-4dc8-887b-101f524f404a",
+   "student_id": "41852000-c495-4827-8278-9dc00901d56a",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.354069+00:00",
+   "created_at": "2026-07-31T00:55:54.354069+00:00"
+  },
+  {
+   "id": "665f1004-b0c5-457d-893e-e127d71c37e0",
+   "student_id": "06d38241-af37-4b74-a83d-7bb14a081e96",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "reprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.831096+00:00",
+   "created_at": "2026-07-31T00:56:00.831096+00:00"
+  },
+  {
+   "id": "666fe47b-3b43-4156-93d8-92cad9f26b99",
+   "student_id": "c5cd0c47-a8fa-479b-a37d-81943a6ded9d",
+   "course_id": "000347b0-f9f7-4dde-8af8-e299f551a814",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.200972+00:00",
+   "created_at": "2026-07-31T00:55:52.200972+00:00"
+  },
+  {
+   "id": "687d3653-a737-4824-8111-416f9f7c5496",
+   "student_id": "e6b28205-5ce9-4a3c-a1ca-5ff34f2083ac",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.919965+00:00",
+   "created_at": "2026-07-31T00:55:50.919965+00:00"
+  },
+  {
+   "id": "696a66da-b7c8-4f61-a7d5-2f89c267862a",
+   "student_id": "d485c490-690b-4914-8f77-1170ff3e80f0",
+   "course_id": "17edfc47-2752-413a-845d-136841802ffa",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.35131+00:00",
+   "created_at": "2026-07-31T00:55:57.35131+00:00"
+  },
+  {
+   "id": "69ac08de-5b5e-422a-8e0e-d0c9d02abdeb",
+   "student_id": "4f08d2e4-b934-468d-8b5f-36ccc9a4ddb7",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "created_at": "2026-07-31T00:55:55.403831+00:00"
+  },
+  {
+   "id": "6bc43d9b-29ba-4a9f-b3be-8beefdd096d2",
+   "student_id": "a44d81f7-c506-4ceb-ae0d-04a04a412a4e",
+   "course_id": "0a9b44b3-6688-4f67-bed1-b4720a0cb783",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.831096+00:00",
+   "created_at": "2026-07-31T00:56:00.831096+00:00"
+  },
+  {
+   "id": "6ca75c74-5946-4788-8b55-3309ed6eb8d3",
+   "student_id": "34784eb8-0f9c-4b22-b904-0b4d5a6e6e2f",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.943954+00:00",
+   "created_at": "2026-07-31T00:55:59.943954+00:00"
+  },
+  {
+   "id": "6ccba6d3-58f0-4306-afc7-70a1c943f01a",
+   "student_id": "740ed451-1024-4d25-9385-f86eb8af88f9",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.424238+00:00",
+   "created_at": "2026-07-31T00:55:53.424238+00:00"
+  },
+  {
+   "id": "6d134282-20e7-4ee6-9add-9833de172c3c",
+   "student_id": "689a8b32-9101-40c4-ba98-c7868385fa09",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.025192+00:00",
+   "created_at": "2026-07-31T00:55:55.025192+00:00"
+  },
+  {
+   "id": "6d29d11a-ecd7-4868-9dfc-84e52e8ea57a",
+   "student_id": "2786ed7d-8cc2-4e9c-a62d-5ad08c66e648",
+   "course_id": "17edfc47-2752-413a-845d-136841802ffa",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "6e1637eb-e813-434d-8125-d137a19a423a",
+   "student_id": "fc0a4d39-21b3-4111-86fa-d77d00b3a33f",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.200972+00:00",
+   "created_at": "2026-07-31T00:55:52.200972+00:00"
+  },
+  {
+   "id": "6f8f6aa1-9bae-43f6-b37e-584503b149f8",
+   "student_id": "1a5c94c4-c803-44dd-b9f0-5130e72e79a0",
+   "course_id": "40610d09-bde6-4f0c-8022-40809d11927f",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.510821+00:00",
+   "created_at": "2026-07-31T00:55:58.510821+00:00"
+  },
+  {
+   "id": "707a5e13-3041-4569-9af3-9092f007e79b",
+   "student_id": "a0cdcf67-aa22-4e19-957d-50745088d0bc",
+   "course_id": "17edfc47-2752-413a-845d-136841802ffa",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.204804+00:00",
+   "created_at": "2026-07-31T00:55:56.204804+00:00"
+  },
+  {
+   "id": "7094f645-8f4a-4291-81c7-6df4a600bd73",
+   "student_id": "dd7c813b-8a92-4eef-96c9-5829cdc3a455",
+   "course_id": "875c501d-454a-4ca9-b423-0ad733b39539",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.831096+00:00",
+   "created_at": "2026-07-31T00:56:00.831096+00:00"
+  },
+  {
+   "id": "70b360ba-28a0-44be-905e-cc7604ba6a28",
+   "student_id": "384178c5-71ba-4bee-8cc5-0b54a2616696",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.595928+00:00",
+   "created_at": "2026-07-31T00:55:57.595928+00:00"
+  },
+  {
+   "id": "7214f310-4968-418b-a8d1-75905613c9e4",
+   "student_id": "059fc9c4-818e-41b2-8c50-5d62d54347e4",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.164686+00:00",
+   "created_at": "2026-07-31T00:55:57.164686+00:00"
+  },
+  {
+   "id": "72a6c92f-0ac6-4c11-8e56-ccff4bf6c5e5",
+   "student_id": "16160312-fc39-4593-bcf9-97466ee60f12",
+   "course_id": "92c94f70-458a-4093-b7ae-e7c78360aa6b",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.164686+00:00",
+   "created_at": "2026-07-31T00:55:57.164686+00:00"
+  },
+  {
+   "id": "72c265b7-9697-4730-8ce3-45f40fa7f56e",
+   "student_id": "d485c490-690b-4914-8f77-1170ff3e80f0",
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.539428+00:00",
+   "created_at": "2026-07-31T00:55:52.539428+00:00"
+  },
+  {
+   "id": "73c51f50-babc-45a3-801d-159478b73a6d",
+   "student_id": "181b690b-b301-4eb1-9d0c-a75af75893b6",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "created_at": "2026-07-31T00:55:55.403831+00:00"
+  },
+  {
+   "id": "7543ce40-4f72-4296-85c0-0568a2d21955",
+   "student_id": "b6628553-9310-435f-b581-88f6cd3f6ddd",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.919965+00:00",
+   "created_at": "2026-07-31T00:55:50.919965+00:00"
+  },
+  {
+   "id": "759b91af-5492-4a41-8525-e87694fb5dcd",
+   "student_id": "bbe24a47-a672-459b-af6b-5820a9542a63",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "76f4b237-427b-43e0-bc1e-433f0db4d919",
+   "student_id": "06d38241-af37-4b74-a83d-7bb14a081e96",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.819762+00:00",
+   "created_at": "2026-07-31T00:55:56.819762+00:00"
+  },
+  {
+   "id": "775c6edc-687c-4b1e-a560-a70454f7ef8b",
+   "student_id": "7be83984-44a9-4202-9e99-8fd1e4493bf1",
+   "course_id": "875c501d-454a-4ca9-b423-0ad733b39539",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.510821+00:00",
+   "created_at": "2026-07-31T00:55:58.510821+00:00"
+  },
+  {
+   "id": "77651a54-69ba-42e6-80b5-5993c3e8c843",
+   "student_id": "53ab12c4-9c9a-4029-96f3-134af38bd4a5",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "created_at": "2026-07-31T00:55:54.837184+00:00"
+  },
+  {
+   "id": "7768f2e1-92d1-4abf-95d8-4360a6d4b022",
+   "student_id": "94c31724-1845-4c85-a16b-a84abd3d099f",
+   "course_id": "6c353fb7-acec-4991-b534-576a08bfa357",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.525954+00:00",
+   "created_at": "2026-07-31T00:55:54.525954+00:00"
+  },
+  {
+   "id": "77cc2398-b49a-4a0a-92d0-a0a038bcf418",
+   "student_id": "2786ed7d-8cc2-4e9c-a62d-5ad08c66e648",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.222243+00:00",
+   "created_at": "2026-07-31T00:56:00.222243+00:00"
+  },
+  {
+   "id": "78c4b925-559d-4a79-9c1a-a61795cd829b",
+   "student_id": "000c1730-3119-44d5-99ca-af87c72f53d7",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.510821+00:00",
+   "created_at": "2026-07-31T00:55:58.510821+00:00"
+  },
+  {
+   "id": "79e81d84-a3d5-4f51-9325-ab712fecf766",
+   "student_id": "1007850a-9d81-4a7c-a739-f9c2fee254a6",
+   "course_id": "c703af7d-46a0-4cbb-a75d-b74cfb754a73",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.139688+00:00",
+   "created_at": "2026-07-31T00:56:01.139688+00:00"
+  },
+  {
+   "id": "7bd12b67-968b-4ff6-99cf-9d381986105a",
+   "student_id": "2f0770a3-75a4-4ed3-8771-749113b4b4d2",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "7d05703d-14d5-4e0f-bd0f-7de64c2f69d6",
+   "student_id": "6ed10bb1-2f5f-414c-9235-375ab82fbfc5",
+   "course_id": "0990b9b2-b085-4ed0-ab3e-fc1546bc4ee0",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-08-15T03:31:11.313228+00:00",
+   "created_at": "2026-08-15T03:31:11.313228+00:00"
+  },
+  {
+   "id": "7d9e4815-12e6-4c2d-8f8f-51b0ba62dde1",
+   "student_id": "8692f0ed-c996-4de9-be19-55ac19923ce6",
+   "course_id": "c9a215d0-837c-4ed7-a85d-6b90875886bf",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.139688+00:00",
+   "created_at": "2026-07-31T00:56:01.139688+00:00"
+  },
+  {
+   "id": "7e3e235f-660d-4cc2-a9c8-1ef3c704c7c6",
+   "student_id": "d485c490-690b-4914-8f77-1170ff3e80f0",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.424238+00:00",
+   "created_at": "2026-07-31T00:55:53.424238+00:00"
+  },
+  {
+   "id": "7ef82877-a7f9-4a9e-a337-cec214129f6e",
+   "student_id": "856f3276-fbb0-4082-8649-caff64609f1c",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "7fc50f52-f5fa-4ad0-985b-f8f48ec94743",
+   "student_id": "64310dca-2d76-4bd6-ac41-596b169d0ffa",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "7fc949a2-6a93-49d5-94c0-3ce4296ba8d2",
+   "student_id": "895aee70-b748-411b-ae48-49784908f178",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.569786+00:00",
+   "created_at": "2026-07-31T00:55:49.569786+00:00"
+  },
+  {
+   "id": "81906555-3664-47ed-9b72-666682cf5e97",
+   "student_id": "2115d97c-c638-4b0f-aec3-fec40ab1ba29",
+   "course_id": "af45a30f-d96c-4722-8350-82dd0560f024",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.200972+00:00",
+   "created_at": "2026-07-31T00:55:52.200972+00:00"
+  },
+  {
+   "id": "81bd81e6-9ecc-44ad-a16c-8b8fcfa308e5",
+   "student_id": "575a19b2-6fcc-41d8-874d-8501c9968caa",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.424238+00:00",
+   "created_at": "2026-07-31T00:55:53.424238+00:00"
+  },
+  {
+   "id": "81d0a2b6-c76e-4843-b056-19743bf95a4b",
+   "student_id": "99aa02bf-8769-4af0-909e-4a66b435b7ef",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "81f6b0de-a5c6-4de7-b9de-9885eb95779f",
+   "student_id": "594b70a8-4d20-485a-aef4-ad1bb2e5c456",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.564909+00:00",
+   "created_at": "2026-07-31T00:55:50.564909+00:00"
+  },
+  {
+   "id": "8214262a-888e-47b6-90bf-b47e633e7c08",
+   "student_id": "cbaa7c25-feda-4eaa-ae22-9df69ec884d7",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.875373+00:00",
+   "created_at": "2026-07-31T00:55:51.875373+00:00"
+  },
+  {
+   "id": "824b8d76-47c9-4abe-86e9-3bbefe314c34",
+   "student_id": "181b690b-b301-4eb1-9d0c-a75af75893b6",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.919965+00:00",
+   "created_at": "2026-07-31T00:55:50.919965+00:00"
+  },
+  {
+   "id": "82501e97-13c0-4266-9cc0-c6f6225a3d66",
+   "student_id": "d58c915d-e216-4d08-ba0f-72661c285318",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.139688+00:00",
+   "created_at": "2026-07-31T00:56:01.139688+00:00"
+  },
+  {
+   "id": "82f0ce86-19f0-4050-a3d3-8f3fcac5632d",
+   "student_id": "000c1730-3119-44d5-99ca-af87c72f53d7",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.709258+00:00",
+   "created_at": "2026-07-31T00:55:58.709258+00:00"
+  },
+  {
+   "id": "8390ae6a-5ca6-440c-a3d2-bc97b8fc87af",
+   "student_id": "94c31724-1845-4c85-a16b-a84abd3d099f",
+   "course_id": "055d36d0-0a77-404e-98aa-44a168593f3e",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.539428+00:00",
+   "created_at": "2026-07-31T00:55:52.539428+00:00"
+  },
+  {
+   "id": "848387fa-b114-4d07-9f43-cbfb34a5dddc",
+   "student_id": "51ad5e88-72ff-454a-a1d3-86b56b0a253c",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.919965+00:00",
+   "created_at": "2026-07-31T00:55:50.919965+00:00"
+  },
+  {
+   "id": "84bfd006-6310-4e30-9dc9-95bd8628f190",
+   "student_id": "51ad5e88-72ff-454a-a1d3-86b56b0a253c",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.141075+00:00",
+   "created_at": "2026-07-31T00:55:59.141075+00:00"
+  },
+  {
+   "id": "86fb8450-8a6d-4a93-91cc-b69c5a1c9efc",
+   "student_id": "56d8efa7-8f5a-444b-a5f2-aa93d5c3c4b4",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.831096+00:00",
+   "created_at": "2026-07-31T00:56:00.831096+00:00"
+  },
+  {
+   "id": "870f4bd4-312a-49d3-b1a2-ecee81680b0d",
+   "student_id": "2c0b484a-c468-469f-aab4-97b3e842fffa",
+   "course_id": "055d36d0-0a77-404e-98aa-44a168593f3e",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.819762+00:00",
+   "created_at": "2026-07-31T00:55:56.819762+00:00"
+  },
+  {
+   "id": "87541f2a-fe09-4005-9aed-ec6df5e680f0",
+   "student_id": "1b9832ee-5c98-4368-81af-23ce8a00d690",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.35131+00:00",
+   "created_at": "2026-07-31T00:55:57.35131+00:00"
+  },
+  {
+   "id": "875b05e9-930f-4c06-bfea-3039bc9416ed",
+   "student_id": "856f3276-fbb0-4082-8649-caff64609f1c",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "created_at": "2026-07-31T00:55:55.403831+00:00"
+  },
+  {
+   "id": "87a484c4-f441-475f-a228-6aa657da2737",
+   "student_id": "6104d7d4-d259-48fa-936e-74ed5159d452",
+   "course_id": "304e4f81-4679-4469-83ad-f8afd7504406",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  },
+  {
+   "id": "8804ac75-7c2c-4467-a106-97ba22f43187",
+   "student_id": "92354099-3dfb-4f60-b275-e077949cd211",
+   "course_id": "0a9b44b3-6688-4f67-bed1-b4720a0cb783",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "created_at": "2026-07-31T00:55:54.837184+00:00"
+  },
+  {
+   "id": "88252740-5837-435a-bed7-91d3e37112ff",
+   "student_id": "5e880308-75e1-4b80-b118-fc3f1601d57d",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.401644+00:00",
+   "created_at": "2026-07-31T00:56:00.401644+00:00"
+  },
+  {
+   "id": "890fa91e-640f-406a-b943-3f9c6feeb414",
+   "student_id": "60cce7a4-cb70-424a-903f-56236bfc0bfc",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.875373+00:00",
+   "created_at": "2026-07-31T00:55:51.875373+00:00"
+  },
+  {
+   "id": "89fa66b5-aead-4ab9-9d35-02eed5e773bc",
+   "student_id": "e9061820-9e37-4000-ad99-47589397ae49",
+   "course_id": "40610d09-bde6-4f0c-8022-40809d11927f",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  },
+  {
+   "id": "8b22de8d-f154-4697-b3a2-94a6dffa3417",
+   "student_id": "10c2fe00-9028-4e9d-bbca-d930dfb24979",
+   "course_id": "107e0e86-e3d9-4c1e-a72c-6da848f32078",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.943954+00:00",
+   "created_at": "2026-07-31T00:55:59.943954+00:00"
+  },
+  {
+   "id": "8b5b4ef8-1849-4f23-aab1-86c624aaa9d1",
+   "student_id": "39dd5f9c-0310-4072-b137-f5818c560d7e",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.804977+00:00",
+   "created_at": "2026-07-31T00:55:57.804977+00:00"
+  },
+  {
+   "id": "8ca23481-3612-4627-867a-96501002aaaa",
+   "student_id": "8c7abb9f-0dd9-4428-a3bf-12b41e591fc2",
+   "course_id": "ae8c0ea1-68fd-4034-8903-5863944c7ab2",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.251802+00:00",
+   "created_at": "2026-07-31T00:55:58.251802+00:00"
+  },
+  {
+   "id": "8e639691-35b8-4faa-a1de-6d07840ed4d7",
+   "student_id": "cfb7d2dc-b55a-4920-8a4a-932579b5e19a",
+   "course_id": "17edfc47-2752-413a-845d-136841802ffa",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "created_at": "2026-07-31T00:55:54.837184+00:00"
+  },
+  {
+   "id": "8ec04c9a-cad0-4976-a318-77467f0a7722",
+   "student_id": "d212a74a-fdcf-4bee-8391-bb05b1cece73",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.35131+00:00",
+   "created_at": "2026-07-31T00:55:57.35131+00:00"
+  },
+  {
+   "id": "8eccb9ae-00cd-47b8-be0b-9d57ebc5ef7e",
+   "student_id": "a0cdcf67-aa22-4e19-957d-50745088d0bc",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.943954+00:00",
+   "created_at": "2026-07-31T00:55:59.943954+00:00"
+  },
+  {
+   "id": "920666ea-e12a-4634-b6c2-2b5ed8f0a17e",
+   "student_id": "7d5035cd-8014-4026-8009-b69d1e9bc486",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "9242b2ba-fdfd-4ced-9260-067c7140d4f4",
+   "student_id": "ea605317-8ecd-4806-8513-a841d5ed3781",
+   "course_id": "40610d09-bde6-4f0c-8022-40809d11927f",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "92509057-af37-43c9-b670-f80c67b27a91",
+   "student_id": "ea605317-8ecd-4806-8513-a841d5ed3781",
+   "course_id": "0a9b44b3-6688-4f67-bed1-b4720a0cb783",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.919965+00:00",
+   "created_at": "2026-07-31T00:55:50.919965+00:00"
+  },
+  {
+   "id": "92ee0460-ce80-4a09-814b-e14c6acd937c",
+   "student_id": "4aba199c-c7b9-4cba-9a3d-b6bdf196a9bc",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "93fc7268-de3a-46b8-b040-66b3b045fdcc",
+   "student_id": "0a135e8c-0d5a-429e-a630-69ea4d251058",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.401644+00:00",
+   "created_at": "2026-07-31T00:56:00.401644+00:00"
+  },
+  {
+   "id": "94264da2-7df1-4712-b6e5-b998af469fe0",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "course_id": "875c501d-454a-4ca9-b423-0ad733b39539",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.204804+00:00",
+   "created_at": "2026-07-31T00:55:56.204804+00:00"
+  },
+  {
+   "id": "94a2aad3-588a-460d-8954-2efd7777335c",
+   "student_id": "d1394832-80b5-49de-af10-e2005ce16655",
+   "course_id": "304e4f81-4679-4469-83ad-f8afd7504406",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.957838+00:00",
+   "created_at": "2026-07-31T00:55:58.957838+00:00"
+  },
+  {
+   "id": "95ac2d5a-09ed-4893-b3cd-74f6e631d00a",
+   "student_id": "e0e03e39-0b81-450d-9ce9-75a681e51195",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.354069+00:00",
+   "created_at": "2026-07-31T00:55:54.354069+00:00"
+  },
+  {
+   "id": "977e1c1f-7d4e-41f0-a49b-84075fda6996",
+   "student_id": "ee708ded-e70f-4451-bf26-112e90dc5dba",
+   "course_id": "319fcbda-7c1f-4e3f-aaa9-1d9d4a621a33",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.148844+00:00",
+   "created_at": "2026-07-31T00:55:53.148844+00:00"
+  },
+  {
+   "id": "98adf988-843c-4109-96bf-258e3396bda6",
+   "student_id": "92354099-3dfb-4f60-b275-e077949cd211",
+   "course_id": "40610d09-bde6-4f0c-8022-40809d11927f",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.016532+00:00",
+   "created_at": "2026-07-31T00:55:56.016532+00:00"
+  },
+  {
+   "id": "98fbd774-9ed2-457d-a192-369b412980f6",
+   "student_id": "a7046644-65c2-469a-8a30-0ccec1aaff41",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.139688+00:00",
+   "created_at": "2026-07-31T00:56:01.139688+00:00"
+  },
+  {
+   "id": "993f2f70-9072-4a24-8196-4203faa5df98",
+   "student_id": "0697431b-66a6-4166-bd57-9014b987a42c",
+   "course_id": "000347b0-f9f7-4dde-8af8-e299f551a814",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "998a4f56-9cfe-4620-840a-835fb92676df",
+   "student_id": "045aeeec-8467-47d9-a2f3-011ebc6480f8",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.804977+00:00",
+   "created_at": "2026-07-31T00:55:57.804977+00:00"
+  },
+  {
+   "id": "9a929824-dab3-4a01-a914-6a9628a1860c",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-08-15T04:20:48.13253+00:00",
+   "created_at": "2026-08-15T04:20:48.13253+00:00"
+  },
+  {
+   "id": "9c85962f-bbda-45c9-a24b-e8a69d8b1356",
+   "student_id": "bdd823a4-3b56-4208-82cc-a226b9613cbc",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.401644+00:00",
+   "created_at": "2026-07-31T00:56:00.401644+00:00"
+  },
+  {
+   "id": "9d4c8731-f3e2-4b2c-a097-c2492a58c6c0",
+   "student_id": "7bede79b-f7ec-469f-86f2-58da578d0295",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.251802+00:00",
+   "created_at": "2026-07-31T00:55:58.251802+00:00"
+  },
+  {
+   "id": "9e26312a-3955-4cfb-9646-b28aa0ae4d3a",
+   "student_id": "ba09062c-a2f3-473e-be38-d7d03c3dc7f1",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "9e8c0b31-e7f2-426e-960d-be48e2eedb7f",
+   "student_id": "3b7b85ee-457e-4eda-a192-65425695d650",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.569786+00:00",
+   "created_at": "2026-07-31T00:55:49.569786+00:00"
+  },
+  {
+   "id": "9f8a1e76-6304-43d1-96c5-fb9cff5238f2",
+   "student_id": "3a2056d7-49ef-420a-8ca9-6784abaea2a8",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.39603+00:00",
+   "created_at": "2026-07-31T00:55:59.39603+00:00"
+  },
+  {
+   "id": "9ffd7b2e-a509-4c81-a824-33b2939a26be",
+   "student_id": "dacaf0ab-2a10-45ba-a0a9-5a09f80b34d8",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.401644+00:00",
+   "created_at": "2026-07-31T00:56:00.401644+00:00"
+  },
+  {
+   "id": "a018c3ba-4741-43cd-8d6d-c14f99b767cb",
+   "student_id": "6d3dfaf6-e3a8-4f32-b89f-b47d0a227f87",
+   "course_id": "5ca3ddb3-4597-427a-b701-90fb02d113bf",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  },
+  {
+   "id": "a0ed4ccd-0230-4063-8967-ef1ad68d3a2a",
+   "student_id": "6333a0a6-7295-492d-a806-1ed641a19be7",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-08-15T03:31:03.540917+00:00",
+   "created_at": "2026-08-15T03:31:03.540917+00:00"
+  },
+  {
+   "id": "a0f07fe9-aab4-4e3e-83a2-ee33d5a2d256",
+   "student_id": "10c2fe00-9028-4e9d-bbca-d930dfb24979",
+   "course_id": "a791974a-8a5d-4a08-a45a-47ca508f41da",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.204804+00:00",
+   "created_at": "2026-07-31T00:55:56.204804+00:00"
+  },
+  {
+   "id": "a11d41f2-b9a2-42c2-803a-4a8f0b044d4c",
+   "student_id": "4d410b9a-0379-4f6a-9b84-4d0e98238858",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "created_at": "2026-07-31T00:55:56.532027+00:00"
+  },
+  {
+   "id": "a1704d45-4262-4d20-aa7c-f3a43e4ecc11",
+   "student_id": "71685dd7-ee22-4014-a3f8-f42f3bcdb503",
+   "course_id": "c2257f18-2f69-4893-9c4a-e860b533f295",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.595928+00:00",
+   "created_at": "2026-07-31T00:55:57.595928+00:00"
+  },
+  {
+   "id": "a1748366-b116-41a1-a671-4150a532b6be",
+   "student_id": "29b7c12b-c7d8-4e01-b4a6-22b4cb683267",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "a288c4f8-1750-47f0-9a8f-bd252c189fb8",
+   "student_id": "b3566421-8eaf-48ef-980e-1bab8b225762",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-08-15T04:20:57.27764+00:00",
+   "created_at": "2026-08-15T04:20:57.27764+00:00"
+  },
+  {
+   "id": "a29d84c3-cb0a-42b8-b9bb-e73708123d67",
+   "student_id": "313673b5-95c2-4831-94bd-38c450128712",
+   "course_id": "cd5f88c1-b074-47ab-ab53-ba89eb381dd8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.709258+00:00",
+   "created_at": "2026-07-31T00:55:58.709258+00:00"
+  },
+  {
+   "id": "a2b6e852-2149-4338-9b95-7c4503487dc2",
+   "student_id": "bbcb1ac5-5202-4d4e-ac53-41ff84c9baf3",
+   "course_id": "f5a9e03e-280c-405e-965c-88fd7b81c1f8",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.64787+00:00",
+   "created_at": "2026-07-31T00:56:00.64787+00:00"
+  },
+  {
+   "id": "a374bf04-d701-4839-a795-e9f334ed77d2",
+   "student_id": "0daef465-34ef-46a5-9e5c-20524610fcfc",
+   "course_id": "17edfc47-2752-413a-845d-136841802ffa",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "a3791537-7f7d-4e92-901e-f77076d871d9",
+   "student_id": "4eb5e1a5-1234-4084-9d6c-7462922da722",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.957838+00:00",
+   "created_at": "2026-07-31T00:55:58.957838+00:00"
+  },
+  {
+   "id": "a3f3b7c3-716f-49ad-9efd-f2b33f166e42",
+   "student_id": "b30c98be-5c0d-4620-a65e-488c93990ada",
+   "course_id": "5943be68-d02b-4c49-a9ce-1e81f8365dcf",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.35131+00:00",
+   "created_at": "2026-07-31T00:55:57.35131+00:00"
+  },
+  {
+   "id": "a40bec64-277d-4338-8072-d627d8860baf",
+   "student_id": "bff93c8a-4b05-4245-9863-05ed5fc66ee8",
+   "course_id": "c703af7d-46a0-4cbb-a75d-b74cfb754a73",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "created_at": "2026-07-31T00:55:56.532027+00:00"
+  },
+  {
+   "id": "a4449b65-d7dd-4d41-a979-5e37dc854813",
+   "student_id": "a72feb40-674c-4e2c-8bc9-469dbb362747",
+   "course_id": "c2257f18-2f69-4893-9c4a-e860b533f295",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "created_at": "2026-07-31T00:55:55.403831+00:00"
+  },
+  {
+   "id": "a558570b-9610-4626-ac70-5ca44c75f8af",
+   "student_id": "4c9939d1-fa7d-4699-b017-ac07d3dab231",
+   "course_id": "83d2c0e8-8cb7-450f-b94b-fe2707e2eefe",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.525954+00:00",
+   "created_at": "2026-07-31T00:55:54.525954+00:00"
+  },
+  {
+   "id": "a604d7a2-531a-42a4-a9dc-92c4801176de",
+   "student_id": "000c1730-3119-44d5-99ca-af87c72f53d7",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.564909+00:00",
+   "created_at": "2026-07-31T00:55:50.564909+00:00"
+  },
+  {
+   "id": "a6356e50-3164-4d13-80ef-0bc01d02f696",
+   "student_id": "6651d0e6-f71b-49de-a7e3-d0faaf125f30",
+   "course_id": "77fa0472-b1fa-4852-8769-5fde68aa4c71",
+   "status": "reprobada",
+   "attempt": 2,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "a6802247-63fc-4004-bcbd-134cc4427a94",
+   "student_id": "b616b6d9-ea1c-47d4-830a-d26498f8244f",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.819762+00:00",
+   "created_at": "2026-07-31T00:55:56.819762+00:00"
+  },
+  {
+   "id": "a6915ff6-d964-474a-a0a8-de5fb944815e",
+   "student_id": "b90fc296-ee8b-478a-b2d3-7618fa1b87fc",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.252197+00:00",
+   "created_at": "2026-07-31T00:55:51.252197+00:00"
+  },
+  {
+   "id": "a77bad1d-5cde-4ee6-8d15-c82586b1121a",
+   "student_id": "4a8a15ef-fa7b-4cd5-97a8-7cca13a43a12",
+   "course_id": "875c501d-454a-4ca9-b423-0ad733b39539",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.424238+00:00",
+   "created_at": "2026-07-31T00:55:53.424238+00:00"
+  },
+  {
+   "id": "a77edaa0-4f74-4ccf-b2b3-c16ced2b1cd9",
+   "student_id": "56d8efa7-8f5a-444b-a5f2-aa93d5c3c4b4",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.510821+00:00",
+   "created_at": "2026-07-31T00:55:58.510821+00:00"
+  },
+  {
+   "id": "a7833c8d-6066-48ae-88b6-4d80efaf2070",
+   "student_id": "627177ec-d50a-4c55-bd95-b4811fd6949e",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.148844+00:00",
+   "created_at": "2026-07-31T00:55:53.148844+00:00"
+  },
+  {
+   "id": "a792245e-39cc-44d3-b796-ff2145ed8b6a",
+   "student_id": "95a51450-8715-469f-b9ea-9cffd82baad7",
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "a7afc257-a3f1-4376-a9e6-6dbf1b426850",
+   "student_id": "d4b0f8e4-fdf0-4dbc-b530-5a85f536e6ca",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.525954+00:00",
+   "created_at": "2026-07-31T00:55:54.525954+00:00"
+  },
+  {
+   "id": "a8708a25-1f8d-4251-a715-07afbfc507b4",
+   "student_id": "8d78515c-fc1e-4b7e-964d-9c051011a818",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.141075+00:00",
+   "created_at": "2026-07-31T00:55:59.141075+00:00"
+  },
+  {
+   "id": "a99c86cd-2f58-43b6-a66d-b5cce9494cf6",
+   "student_id": "c80a6ed9-d4b1-40b4-9f9c-b664373ed727",
+   "course_id": "c703af7d-46a0-4cbb-a75d-b74cfb754a73",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.35131+00:00",
+   "created_at": "2026-07-31T00:55:57.35131+00:00"
+  },
+  {
+   "id": "aa58f5f7-8d93-481a-a297-e7363b802e4d",
+   "student_id": "9cbde423-93b0-4a1f-b79d-327e9e9f8e47",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.251802+00:00",
+   "created_at": "2026-07-31T00:55:58.251802+00:00"
+  },
+  {
+   "id": "aa91af8d-5aff-481e-a1ea-737131c102b7",
+   "student_id": "d1394832-80b5-49de-af10-e2005ce16655",
+   "course_id": "f5a9e03e-280c-405e-965c-88fd7b81c1f8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.141075+00:00",
+   "created_at": "2026-07-31T00:55:59.141075+00:00"
+  },
+  {
+   "id": "ab8d4571-d392-48d4-8e23-362245142530",
+   "student_id": "8937635c-f82b-40d9-8539-7ecec8235f4c",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.063775+00:00",
+   "created_at": "2026-07-31T00:55:58.063775+00:00"
+  },
+  {
+   "id": "ac853262-5787-47a7-9fe0-004de06d821f",
+   "student_id": "8692f0ed-c996-4de9-be19-55ac19923ce6",
+   "course_id": "b4a3d7f6-c729-4f12-97df-d08fd7f81f20",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.222243+00:00",
+   "created_at": "2026-07-31T00:56:00.222243+00:00"
+  },
+  {
+   "id": "acf3e7b2-a00a-4b7d-9138-6d3bb3658576",
+   "student_id": "412a97ff-9991-429f-8a6c-254b3fb75f2e",
+   "course_id": "7ee52d5b-2ea3-4a8c-8572-a72f40b23fe6",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.525954+00:00",
+   "created_at": "2026-07-31T00:55:54.525954+00:00"
+  },
+  {
+   "id": "adf0778c-4253-4bb1-910d-28c2e8b65289",
+   "student_id": "a6dadf33-488f-4183-a53d-fea30518bab5",
+   "course_id": "cec62c0e-bbac-4f96-aa34-f94cad9b87be",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.222243+00:00",
+   "created_at": "2026-07-31T00:56:00.222243+00:00"
+  },
+  {
+   "id": "ae513211-1b02-42c6-b785-56f8977a4828",
+   "student_id": "e7e9a233-fdee-4a60-ac97-3dd2ad7c379a",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.804977+00:00",
+   "created_at": "2026-07-31T00:55:57.804977+00:00"
+  },
+  {
+   "id": "aeb0a876-6207-4a89-a0ad-84532873b31d",
+   "student_id": "abda0c1e-c4b9-49d8-b9cc-b2ee52f89c9e",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.900587+00:00",
+   "created_at": "2026-07-31T00:55:52.900587+00:00"
+  },
+  {
+   "id": "afc7aab4-0ecd-4ef3-b760-5dd549138729",
+   "student_id": "e2f9f6cd-d1ce-492c-820b-a00ac5120317",
+   "course_id": "0a9b44b3-6688-4f67-bed1-b4720a0cb783",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "created_at": "2026-07-31T00:55:54.837184+00:00"
+  },
+  {
+   "id": "b0554c32-ae41-4537-9273-27d78f66b9ef",
+   "student_id": "9cbde423-93b0-4a1f-b79d-327e9e9f8e47",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.354069+00:00",
+   "created_at": "2026-07-31T00:55:54.354069+00:00"
+  },
+  {
+   "id": "b139429e-d9e4-4cb1-bfe6-6248c720b4e8",
+   "student_id": "021eee6a-73c3-4f6d-b6f9-b5f59d1cfaa3",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.016532+00:00",
+   "created_at": "2026-07-31T00:55:56.016532+00:00"
+  },
+  {
+   "id": "b1ca79ee-76fc-4979-8c9c-390c4525d953",
+   "student_id": "1a5c94c4-c803-44dd-b9f0-5130e72e79a0",
+   "course_id": "0a9b44b3-6688-4f67-bed1-b4720a0cb783",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.016532+00:00",
+   "created_at": "2026-07-31T00:55:56.016532+00:00"
+  },
+  {
+   "id": "b247d811-be35-46db-bc3b-d54217a8b745",
+   "student_id": "0f9d7752-800d-4f97-94b3-d36eb91d9f71",
+   "course_id": "9bb075d9-9f94-4721-ad3e-fdf8b0e9ae33",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.900587+00:00",
+   "created_at": "2026-07-31T00:55:52.900587+00:00"
+  },
+  {
+   "id": "b26fdccf-3f0c-4379-b809-789c80283a5e",
+   "student_id": "04170810-376f-4d7f-905d-6cc3fb19b3dd",
+   "course_id": "a791974a-8a5d-4a08-a45a-47ca508f41da",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.141075+00:00",
+   "created_at": "2026-07-31T00:55:59.141075+00:00"
+  },
+  {
+   "id": "b2b826c9-7c4e-4677-977f-76a8e48b50ac",
+   "student_id": "3ee36d77-1c81-41d2-bdc2-d19b54f4c8e0",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.875373+00:00",
+   "created_at": "2026-07-31T00:55:51.875373+00:00"
+  },
+  {
+   "id": "b3352964-eac3-401f-99b0-7768059c153f",
+   "student_id": "689a8b32-9101-40c4-ba98-c7868385fa09",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.164686+00:00",
+   "created_at": "2026-07-31T00:55:57.164686+00:00"
+  },
+  {
+   "id": "b46e6f2a-f625-4a87-bc57-d2561e985e4b",
+   "student_id": "3a6dfa4d-830a-4bfd-8c46-e7a1d55c7852",
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.35131+00:00",
+   "created_at": "2026-07-31T00:55:57.35131+00:00"
+  },
+  {
+   "id": "b4d484aa-1426-4879-aebd-0bd7ddde8856",
+   "student_id": "6d5aa139-5cc4-45ab-950c-2a2e8925e648",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "b62832eb-dd14-42f4-9ade-0cdcc94adfda",
+   "student_id": "f69ea8f6-764f-4885-bdca-8b7d255f3824",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.222243+00:00",
+   "created_at": "2026-07-31T00:56:00.222243+00:00"
+  },
+  {
+   "id": "b65248b7-d34d-4ee2-8df9-4a3ec1e86f9a",
+   "student_id": "684b5ee1-f8bf-4335-bcf6-5173e0fd5eef",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.35131+00:00",
+   "created_at": "2026-07-31T00:55:57.35131+00:00"
+  },
+  {
+   "id": "b657dd5c-3c80-4da9-b1e5-5c4f701e6500",
+   "student_id": "7d5035cd-8014-4026-8009-b69d1e9bc486",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "b6abf245-2a10-4d48-a406-73ea11e8ca4a",
+   "student_id": "acd692fa-33e0-4ee0-8668-02e6c67bd694",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.251802+00:00",
+   "created_at": "2026-07-31T00:55:58.251802+00:00"
+  },
+  {
+   "id": "b7a6473c-5c00-42e6-969d-02e121abad8f",
+   "student_id": "6229e485-4d0f-4469-928f-ddb14c0f9b2c",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-08-15T04:20:51.820951+00:00",
+   "created_at": "2026-08-15T04:20:51.820951+00:00"
+  },
+  {
+   "id": "b7f852d9-3e51-4439-b21f-413adb9dc991",
+   "student_id": "d4b0f8e4-fdf0-4dbc-b530-5a85f536e6ca",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.35131+00:00",
+   "created_at": "2026-07-31T00:55:57.35131+00:00"
+  },
+  {
+   "id": "b855072b-c402-4c2c-9fcf-c8f8a5a0c104",
+   "student_id": "c7ae222b-2691-4e5a-94fb-1e5e352f5e2d",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.64787+00:00",
+   "created_at": "2026-07-31T00:56:00.64787+00:00"
+  },
+  {
+   "id": "b962ff38-1b66-426b-a564-4e5351785478",
+   "student_id": "44b71ae2-9a38-4576-bb73-5f5e893cd72b",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.200972+00:00",
+   "created_at": "2026-07-31T00:55:52.200972+00:00"
+  },
+  {
+   "id": "bab43b1f-c1f3-48d8-a2d4-7781afdb0433",
+   "student_id": "895aee70-b748-411b-ae48-49784908f178",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.569786+00:00",
+   "created_at": "2026-07-31T00:55:49.569786+00:00"
+  },
+  {
+   "id": "baeafc94-82ca-4271-8d87-dcc1eaecc924",
+   "student_id": "d177431f-b4f6-4dc2-97d9-3160ec67c703",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.39603+00:00",
+   "created_at": "2026-07-31T00:55:59.39603+00:00"
+  },
+  {
+   "id": "bb765a9d-a087-45ca-91b0-32499a7589c8",
+   "student_id": "6703e7d0-0262-4dec-b46b-ddb405dc664f",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.595928+00:00",
+   "created_at": "2026-07-31T00:55:57.595928+00:00"
+  },
+  {
+   "id": "bc63e41f-bf27-44d1-8261-30d93c6d62f4",
+   "student_id": "204bef99-6a79-48bd-b988-56f05ebb3ab3",
+   "course_id": "c2257f18-2f69-4893-9c4a-e860b533f295",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.831096+00:00",
+   "created_at": "2026-07-31T00:56:00.831096+00:00"
+  },
+  {
+   "id": "bc8e64d5-0369-4ab1-bfab-5b3fd2b46710",
+   "student_id": "7d5035cd-8014-4026-8009-b69d1e9bc486",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "bcd8f450-19a3-4152-9341-1640af28e0ee",
+   "student_id": "740ed451-1024-4d25-9385-f86eb8af88f9",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.35131+00:00",
+   "created_at": "2026-07-31T00:55:57.35131+00:00"
+  },
+  {
+   "id": "bce4c7e5-743e-49ae-8142-1ad62afa22be",
+   "student_id": "55691c78-c60c-47f9-8231-014f63749c40",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.141075+00:00",
+   "created_at": "2026-07-31T00:55:59.141075+00:00"
+  },
+  {
+   "id": "bdd8dc00-7929-4354-887a-fb74ca10fdfe",
+   "student_id": "fe5e2bc6-3a86-479c-9ec6-2bb6a0548587",
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "created_at": "2026-07-31T00:55:55.403831+00:00"
+  },
+  {
+   "id": "c2329238-1975-41a8-89a4-99ff9d56b819",
+   "student_id": "895aee70-b748-411b-ae48-49784908f178",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.569786+00:00",
+   "created_at": "2026-07-31T00:55:49.569786+00:00"
+  },
+  {
+   "id": "c2933132-f5bc-4e65-a359-c1e08ffbe8e4",
+   "student_id": "f83defb0-d852-4977-a24d-5da11f5ed741",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.569786+00:00",
+   "created_at": "2026-07-31T00:55:49.569786+00:00"
+  },
+  {
+   "id": "c30f14c2-bb55-4b59-ad2b-d8e85f94eecb",
+   "student_id": "795b2270-c4ed-4882-b394-135aa4448608",
+   "course_id": "304e4f81-4679-4469-83ad-f8afd7504406",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.569786+00:00",
+   "created_at": "2026-07-31T00:55:49.569786+00:00"
+  },
+  {
+   "id": "c478b9b7-7191-4633-8371-3273f42d8a64",
+   "student_id": "c2a0c428-b204-4b04-a9d0-37c92f50a6d5",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.804977+00:00",
+   "created_at": "2026-07-31T00:55:57.804977+00:00"
+  },
+  {
+   "id": "c49e12a5-45ab-415d-bd08-b75012e94fc0",
+   "student_id": "045aeeec-8467-47d9-a2f3-011ebc6480f8",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.637019+00:00",
+   "created_at": "2026-07-31T00:55:51.637019+00:00"
+  },
+  {
+   "id": "c5db75bb-b436-4f66-acb6-387bf6c29e35",
+   "student_id": "e0e03e39-0b81-450d-9ce9-75a681e51195",
+   "course_id": "d55f3b52-1749-47bb-80fc-86df3d049c81",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.943954+00:00",
+   "created_at": "2026-07-31T00:55:59.943954+00:00"
+  },
+  {
+   "id": "c6e07f62-415b-4ae4-8ceb-d08cac439c7a",
+   "student_id": "a7046644-65c2-469a-8a30-0ccec1aaff41",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "c82eb9fc-c23d-44cc-8b3d-86fdc8ab74bc",
+   "student_id": "bbe24a47-a672-459b-af6b-5820a9542a63",
+   "course_id": "ed0e4cca-5aee-4bdd-a0ef-974024d65764",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "c83e2a89-6430-4a0c-8438-11a5047fba1e",
+   "student_id": "045aeeec-8467-47d9-a2f3-011ebc6480f8",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.252197+00:00",
+   "created_at": "2026-07-31T00:55:51.252197+00:00"
+  },
+  {
+   "id": "cacc15bd-8829-4eef-a038-0d5a72d5ef96",
+   "student_id": "68157a19-3612-468f-bd95-b93182a4882e",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.804977+00:00",
+   "created_at": "2026-07-31T00:55:57.804977+00:00"
+  },
+  {
+   "id": "cae4e7c5-cb24-41c2-800a-0030d9cdfd83",
+   "student_id": "f7761e81-bb43-44cb-a334-0b17afecd017",
+   "course_id": "bd548fd3-a6ef-41c4-b352-30aabcd0b98b",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.251802+00:00",
+   "created_at": "2026-07-31T00:55:58.251802+00:00"
+  },
+  {
+   "id": "cb490ee5-d3e2-4a2d-9d21-e807d440cbc3",
+   "student_id": "bbe24a47-a672-459b-af6b-5820a9542a63",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "cb7898eb-3cd6-4908-9b99-0c4c01fb6116",
+   "student_id": "a3dc8ee0-4e2c-482a-9971-872c7d812a59",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.539428+00:00",
+   "created_at": "2026-07-31T00:55:52.539428+00:00"
+  },
+  {
+   "id": "ced62b34-c9c9-4ba2-ad76-49ba4521b38c",
+   "student_id": "2c0b484a-c468-469f-aab4-97b3e842fffa",
+   "course_id": "bd548fd3-a6ef-41c4-b352-30aabcd0b98b",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.252197+00:00",
+   "created_at": "2026-07-31T00:55:51.252197+00:00"
+  },
+  {
+   "id": "d0f909e2-d5eb-4d5f-ae4d-2b6bb8a090e3",
+   "student_id": "836ca723-5775-4f20-86d9-a575f5e7d330",
+   "course_id": "c2257f18-2f69-4893-9c4a-e860b533f295",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.148844+00:00",
+   "created_at": "2026-07-31T00:55:53.148844+00:00"
+  },
+  {
+   "id": "d177b08a-0eb0-4529-968f-b9d6610442ea",
+   "student_id": "ba2a2cb0-c54a-4d04-9f62-a12cdb699d97",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.35131+00:00",
+   "created_at": "2026-07-31T00:55:57.35131+00:00"
+  },
+  {
+   "id": "d1f2108c-cdd2-48d7-8a06-3c5d066751c4",
+   "student_id": "b98fb527-ef1e-4224-b871-5d144044e6ef",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.204804+00:00",
+   "created_at": "2026-07-31T00:55:56.204804+00:00"
+  },
+  {
+   "id": "d21a1c92-df41-48c7-8de4-3e845cdb0874",
+   "student_id": "6d5aa139-5cc4-45ab-950c-2a2e8925e648",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:50.235966+00:00",
+   "created_at": "2026-07-31T00:55:50.235966+00:00"
+  },
+  {
+   "id": "d2564bf8-0fef-4219-bf89-5e4713d3819a",
+   "student_id": "44874ec1-1f62-4b2e-ab29-02b6a2ac4638",
+   "course_id": "ae8c0ea1-68fd-4034-8903-5863944c7ab2",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.139688+00:00",
+   "created_at": "2026-07-31T00:56:01.139688+00:00"
+  },
+  {
+   "id": "d3830710-4e38-4da3-a71b-abfe39c6ca63",
+   "student_id": "44b71ae2-9a38-4576-bb73-5f5e893cd72b",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.64787+00:00",
+   "created_at": "2026-07-31T00:56:00.64787+00:00"
+  },
+  {
+   "id": "d4040448-45c5-4a80-9dd3-f7ce2b92252e",
+   "student_id": "55691c78-c60c-47f9-8231-014f63749c40",
+   "course_id": "c3b09360-75b0-45b5-926c-7cb9f05188c8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "created_at": "2026-07-31T00:55:56.532027+00:00"
+  },
+  {
+   "id": "d44824d2-c9c7-4b10-b4a0-0f396f737ac9",
+   "student_id": "77d0f5ac-9186-41f4-8aae-4f1604ba8f29",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.204804+00:00",
+   "created_at": "2026-07-31T00:55:56.204804+00:00"
+  },
+  {
+   "id": "d47db310-1f7b-43dc-83d0-ec371b0a39d4",
+   "student_id": "64310dca-2d76-4bd6-ac41-596b169d0ffa",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.39603+00:00",
+   "created_at": "2026-07-31T00:55:59.39603+00:00"
+  },
+  {
+   "id": "d514e2fa-3283-4019-b96f-f1e19fc1d889",
+   "student_id": "9bc276c2-1a95-4ea1-b273-12c1b0a5a738",
+   "course_id": "ba8cbcf1-7d8c-4322-afbc-6d80f3ba8191",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  },
+  {
+   "id": "d556cbd8-1935-4755-ae0e-9e9f82a2c1b8",
+   "student_id": "a6fc9bba-b43f-413f-9519-40d354ef53fe",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.595928+00:00",
+   "created_at": "2026-07-31T00:55:57.595928+00:00"
+  },
+  {
+   "id": "d5faba13-aded-4279-83d9-22717fc7fa4d",
+   "student_id": "34f503e0-a652-49df-ab99-8b0d91d3c88e",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.804977+00:00",
+   "created_at": "2026-07-31T00:55:57.804977+00:00"
+  },
+  {
+   "id": "d80f8b13-16f8-454a-9167-6226d7e7abbd",
+   "student_id": "3b7b85ee-457e-4eda-a192-65425695d650",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.569786+00:00",
+   "created_at": "2026-07-31T00:55:49.569786+00:00"
+  },
+  {
+   "id": "d8741b33-1248-4b72-b795-41e3611135c2",
+   "student_id": "fe5e2bc6-3a86-479c-9ec6-2bb6a0548587",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "reprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.025192+00:00",
+   "created_at": "2026-07-31T00:55:55.025192+00:00"
+  },
+  {
+   "id": "d9063fd6-0c1d-400d-8309-a9096a3986e0",
+   "student_id": "90feff02-e63e-4899-b52e-4e1d6107b868",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.424238+00:00",
+   "created_at": "2026-07-31T00:55:53.424238+00:00"
+  },
+  {
+   "id": "d9c31f7a-9def-4dc0-ba03-132304faf3d1",
+   "student_id": "d93aeec6-6fa4-45e4-99c9-da67f080d0ef",
+   "course_id": "875c501d-454a-4ca9-b423-0ad733b39539",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.64787+00:00",
+   "created_at": "2026-07-31T00:56:00.64787+00:00"
+  },
+  {
+   "id": "db6ea995-83e9-47fb-aaa6-7d3c04221799",
+   "student_id": "48ccdfa8-dd97-4ad2-a463-e94fce2716de",
+   "course_id": "875c501d-454a-4ca9-b423-0ad733b39539",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.831096+00:00",
+   "created_at": "2026-07-31T00:56:00.831096+00:00"
+  },
+  {
+   "id": "db7ff7c8-150a-4c75-b7fd-c2b528d05694",
+   "student_id": "3a6dfa4d-830a-4bfd-8c46-e7a1d55c7852",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.819762+00:00",
+   "created_at": "2026-07-31T00:55:56.819762+00:00"
+  },
+  {
+   "id": "dbf813de-bb6b-4ecb-80a4-965c63b80d6d",
+   "student_id": "64630cd2-a675-45c0-95ea-a5f13edcaf10",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.510821+00:00",
+   "created_at": "2026-07-31T00:55:58.510821+00:00"
+  },
+  {
+   "id": "dcc8fb92-6e93-4a6b-b956-d4b70bad2f5f",
+   "student_id": "8f81e396-ab31-4923-9df5-6898e731fbce",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.900587+00:00",
+   "created_at": "2026-07-31T00:55:52.900587+00:00"
+  },
+  {
+   "id": "dd7b230b-67e3-431a-bda0-588e9d500a15",
+   "student_id": "bbcb1ac5-5202-4d4e-ac53-41ff84c9baf3",
+   "course_id": "304e4f81-4679-4469-83ad-f8afd7504406",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "def439d8-fcc3-474b-81c1-6f524c0e0d51",
+   "student_id": "dd7c813b-8a92-4eef-96c9-5829cdc3a455",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.875373+00:00",
+   "created_at": "2026-07-31T00:55:51.875373+00:00"
+  },
+  {
+   "id": "e0890d00-1502-4b76-a2dd-e4b268d13f06",
+   "student_id": "2786ed7d-8cc2-4e9c-a62d-5ad08c66e648",
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "e29d0e2b-2a75-4f3f-b1e9-b98185cae34f",
+   "student_id": "b6628553-9310-435f-b581-88f6cd3f6ddd",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "reprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.64787+00:00",
+   "created_at": "2026-07-31T00:56:00.64787+00:00"
+  },
+  {
+   "id": "e2fa273b-03fc-4b05-b7ac-1536c6be5a6f",
+   "student_id": "a0cdcf67-aa22-4e19-957d-50745088d0bc",
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.709258+00:00",
+   "created_at": "2026-07-31T00:55:58.709258+00:00"
+  },
+  {
+   "id": "e3ca6813-478b-44b0-a2ac-5a33e0d2db7f",
+   "student_id": "bbe24a47-a672-459b-af6b-5820a9542a63",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "e3ff5db8-1f21-4392-8cd4-664b1f104bee",
+   "student_id": "1cfb6d6c-3950-4cb4-8424-fda4e6c96a0d",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "e4394375-14c2-4a98-9847-aecf97a4a34f",
+   "student_id": "19a914a2-1cf0-41d8-ad51-7354bf8af191",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.148844+00:00",
+   "created_at": "2026-07-31T00:55:53.148844+00:00"
+  },
+  {
+   "id": "e49452a5-bd64-4368-836d-8d55d3704b23",
+   "student_id": "cfb7d2dc-b55a-4920-8a4a-932579b5e19a",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.164686+00:00",
+   "created_at": "2026-07-31T00:55:57.164686+00:00"
+  },
+  {
+   "id": "e4f92f42-248e-4876-becf-871fe61bdc08",
+   "student_id": "c2a0c428-b204-4b04-a9d0-37c92f50a6d5",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:00.222243+00:00",
+   "created_at": "2026-07-31T00:56:00.222243+00:00"
+  },
+  {
+   "id": "e5370a2e-b989-41df-a25e-f69d258f181b",
+   "student_id": "efc56e5d-b0e5-4555-a11c-d05def69ba56",
+   "course_id": "2a618d89-3fa6-4a49-b44b-2d68189c2d6c",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "created_at": "2026-07-31T00:55:54.837184+00:00"
+  },
+  {
+   "id": "e5de11d7-0847-49a0-8b59-2ecd9b910d55",
+   "student_id": "c7ae222b-2691-4e5a-94fb-1e5e352f5e2d",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "created_at": "2026-07-31T00:55:55.403831+00:00"
+  },
+  {
+   "id": "e5f77008-97bc-4fbf-a21b-e868a5240f3d",
+   "student_id": "e2f9f6cd-d1ce-492c-820b-a00ac5120317",
+   "course_id": "40610d09-bde6-4f0c-8022-40809d11927f",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.200972+00:00",
+   "created_at": "2026-07-31T00:55:52.200972+00:00"
+  },
+  {
+   "id": "e6ca34e7-dd28-4db8-ae93-fb0c3f163798",
+   "student_id": "4e4119d5-dc02-499f-896f-c05c2d6ee5f0",
+   "course_id": "c703af7d-46a0-4cbb-a75d-b74cfb754a73",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.251802+00:00",
+   "created_at": "2026-07-31T00:55:58.251802+00:00"
+  },
+  {
+   "id": "e7239a4e-040d-4847-ba7a-e03301a41a31",
+   "student_id": "31ae00b0-1998-420b-8515-ec2fb5cae108",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.943954+00:00",
+   "created_at": "2026-07-31T00:55:59.943954+00:00"
+  },
+  {
+   "id": "e78a2d4a-c1fc-4b0a-aeff-3e49c3be2dcb",
+   "student_id": "39dd5f9c-0310-4072-b137-f5818c560d7e",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "e93df5e1-9489-4e8c-bc07-67f6510e601d",
+   "student_id": "95a51450-8715-469f-b9ea-9cffd82baad7",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.354069+00:00",
+   "created_at": "2026-07-31T00:55:54.354069+00:00"
+  },
+  {
+   "id": "e9d38e50-4f2e-41c4-906d-c3d1ad494d10",
+   "student_id": "94c31724-1845-4c85-a16b-a84abd3d099f",
+   "course_id": "47ce7b6f-7993-4b4f-8cc2-30c4188f3b16",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.200972+00:00",
+   "created_at": "2026-07-31T00:55:52.200972+00:00"
+  },
+  {
+   "id": "e9ea2ab2-7447-4ea1-a28a-e549e0168156",
+   "student_id": "9cd7b8b3-5eb7-4c8d-a70c-8ec6f971b326",
+   "course_id": "28ddc7c6-367a-421e-a812-bcd83bdc3bd6",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.251802+00:00",
+   "created_at": "2026-07-31T00:55:58.251802+00:00"
+  },
+  {
+   "id": "ea942154-550b-4d40-8b19-43199c450ec4",
+   "student_id": "8614994d-e7b8-4324-8906-ad68fc22d3eb",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.539428+00:00",
+   "created_at": "2026-07-31T00:55:52.539428+00:00"
+  },
+  {
+   "id": "eabf5538-ade9-4e16-a734-0ec8b567e130",
+   "student_id": "b6628553-9310-435f-b581-88f6cd3f6ddd",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "reprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.016532+00:00",
+   "created_at": "2026-07-31T00:55:56.016532+00:00"
+  },
+  {
+   "id": "eae2cc03-f5d3-41db-b468-85ed3e1b9225",
+   "student_id": "04170810-376f-4d7f-905d-6cc3fb19b3dd",
+   "course_id": "107e0e86-e3d9-4c1e-a72c-6da848f32078",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.354069+00:00",
+   "created_at": "2026-07-31T00:55:54.354069+00:00"
+  },
+  {
+   "id": "eb425b64-d218-4607-880a-984306cc46e1",
+   "student_id": "0ae55f69-0801-48ce-b4a0-3173ee807586",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.39603+00:00",
+   "created_at": "2026-07-31T00:55:59.39603+00:00"
+  },
+  {
+   "id": "eb4d548b-7732-4687-b6de-15d5017bc59d",
+   "student_id": "5e880308-75e1-4b80-b118-fc3f1601d57d",
+   "course_id": "0f9eb4f0-9174-487f-b7da-0b3bebe7d43d",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.016532+00:00",
+   "created_at": "2026-07-31T00:55:56.016532+00:00"
+  },
+  {
+   "id": "eca1a66d-23d8-45d9-8ee0-6068d4a9dbea",
+   "student_id": "a6dadf33-488f-4183-a53d-fea30518bab5",
+   "course_id": "c0710dd3-9e3f-4568-92fa-f241cac22f99",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.819762+00:00",
+   "created_at": "2026-07-31T00:55:56.819762+00:00"
+  },
+  {
+   "id": "ed519f7a-696d-4270-b882-21336c9f2dde",
+   "student_id": "ba09062c-a2f3-473e-be38-d7d03c3dc7f1",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.875373+00:00",
+   "created_at": "2026-07-31T00:55:51.875373+00:00"
+  },
+  {
+   "id": "edb644ab-66f1-43a8-b7ce-7e8425714caf",
+   "student_id": "c18880c7-51d9-4a49-bfe6-f16d9ac51337",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.204804+00:00",
+   "created_at": "2026-07-31T00:55:56.204804+00:00"
+  },
+  {
+   "id": "ef62fdd5-e634-487e-9402-f4e2ec8826a5",
+   "student_id": "7d5035cd-8014-4026-8009-b69d1e9bc486",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "eff7dac5-9034-43ce-afbc-68c1ccd710a2",
+   "student_id": "0b288466-7159-4e55-8516-5c28eaa13cbd",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.532027+00:00",
+   "created_at": "2026-07-31T00:55:56.532027+00:00"
+  },
+  {
+   "id": "f012febe-d87b-48b3-94cf-fddc9d278c03",
+   "student_id": "94c31724-1845-4c85-a16b-a84abd3d099f",
+   "course_id": "bd548fd3-a6ef-41c4-b352-30aabcd0b98b",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:56.016532+00:00",
+   "created_at": "2026-07-31T00:55:56.016532+00:00"
+  },
+  {
+   "id": "f07ef876-a9f9-45e2-a6c9-84e78dd90a6b",
+   "student_id": "51ad5e88-72ff-454a-a1d3-86b56b0a253c",
+   "course_id": "7af24b5a-f98e-4354-8326-917b6bedc748",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:59.39603+00:00",
+   "created_at": "2026-07-31T00:55:59.39603+00:00"
+  },
+  {
+   "id": "f174e451-5d0b-481c-80ea-cb7bcdad320b",
+   "student_id": "d8f310fc-1a0a-4c7f-baeb-33422cb0028f",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.164686+00:00",
+   "created_at": "2026-07-31T00:55:57.164686+00:00"
+  },
+  {
+   "id": "f17f4a9f-41cd-4573-b451-a6f274174587",
+   "student_id": "b195faca-5a45-4467-ad72-26b4611a5787",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.025192+00:00",
+   "created_at": "2026-07-31T00:55:55.025192+00:00"
+  },
+  {
+   "id": "f1b467d3-7625-4114-9f57-96be22a975ce",
+   "student_id": "b8ad3c43-2728-46d1-a3d5-50df1a4c71f0",
+   "course_id": "a8a6b316-8ecb-453b-abb0-5e0c13b63bde",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.148844+00:00",
+   "created_at": "2026-07-31T00:55:53.148844+00:00"
+  },
+  {
+   "id": "f2481762-c1be-4bff-8c5b-e2959991aac8",
+   "student_id": "2645deff-0a63-4ade-9d5e-103d3fb55b17",
+   "course_id": "0a9b44b3-6688-4f67-bed1-b4720a0cb783",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.817858+00:00",
+   "created_at": "2026-07-31T00:55:53.817858+00:00"
+  },
+  {
+   "id": "f33dd776-555f-42fe-9888-ad5c6d538af6",
+   "student_id": "efc56e5d-b0e5-4555-a11c-d05def69ba56",
+   "course_id": "17edfc47-2752-413a-845d-136841802ffa",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.403831+00:00",
+   "created_at": "2026-07-31T00:55:55.403831+00:00"
+  },
+  {
+   "id": "f452943e-5e5f-49a7-a316-9ff1b66bea89",
+   "student_id": "c21a996d-5328-4f4b-b247-b7b4951d6cfb",
+   "course_id": "c8389a16-ec3a-4a9b-b084-95d8b087647c",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.894175+00:00",
+   "created_at": "2026-07-31T00:55:49.894175+00:00"
+  },
+  {
+   "id": "f4b410c0-10c5-4a8e-b0ad-2000807c6720",
+   "student_id": "0f9d7752-800d-4f97-94b3-d36eb91d9f71",
+   "course_id": "92c94f70-458a-4093-b7ae-e7c78360aa6b",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.139688+00:00",
+   "created_at": "2026-07-31T00:56:01.139688+00:00"
+  },
+  {
+   "id": "f4fee15a-8397-4e4b-99e6-913e31a824b5",
+   "student_id": "795b2270-c4ed-4882-b394-135aa4448608",
+   "course_id": "f5a9e03e-280c-405e-965c-88fd7b81c1f8",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.569786+00:00",
+   "created_at": "2026-07-31T00:55:49.569786+00:00"
+  },
+  {
+   "id": "f51298db-a357-4875-a726-f68af3af7264",
+   "student_id": "40f484b8-596b-423a-a1fb-90110a21945d",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:52.900587+00:00",
+   "created_at": "2026-07-31T00:55:52.900587+00:00"
+  },
+  {
+   "id": "f594d1e8-a478-4d75-bbd2-1f39182504ca",
+   "student_id": "048648e7-c2d8-4101-9f49-8543c6181d4a",
+   "course_id": "e6caa970-eafd-4c74-88a8-d9c3013a029e",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.424238+00:00",
+   "created_at": "2026-07-31T00:55:53.424238+00:00"
+  },
+  {
+   "id": "f60efc42-99d4-49f3-bb7d-6728107a268f",
+   "student_id": "e6b28205-5ce9-4a3c-a1ca-5ff34f2083ac",
+   "course_id": "4a1d3d04-8dbd-4d79-9000-f121a277121d",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.637019+00:00",
+   "created_at": "2026-07-31T00:55:51.637019+00:00"
+  },
+  {
+   "id": "f644ba28-e748-406e-a197-189f18f95cff",
+   "student_id": "10c2fe00-9028-4e9d-bbca-d930dfb24979",
+   "course_id": "9babed3b-fbbf-4b41-8639-85ac76417a1e",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.637019+00:00",
+   "created_at": "2026-07-31T00:55:51.637019+00:00"
+  },
+  {
+   "id": "f70a1364-deed-4513-85bc-78ed600cc8a4",
+   "student_id": "dd2bd5bf-96ec-4e9e-b2ba-4cea1659fcf4",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:57.164686+00:00",
+   "created_at": "2026-07-31T00:55:57.164686+00:00"
+  },
+  {
+   "id": "f70e8640-1396-49b2-a769-63f03460fa10",
+   "student_id": "55691c78-c60c-47f9-8231-014f63749c40",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:58.957838+00:00",
+   "created_at": "2026-07-31T00:55:58.957838+00:00"
+  },
+  {
+   "id": "f829d399-d876-4213-9f90-2d743fc174e1",
+   "student_id": "4f08d2e4-b934-468d-8b5f-36ccc9a4ddb7",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "created_at": "2026-07-31T00:55:54.837184+00:00"
+  },
+  {
+   "id": "f8916b38-0f8e-444e-9c79-4d296aed624f",
+   "student_id": "acd692fa-33e0-4ee0-8668-02e6c67bd694",
+   "course_id": "44e3a381-2632-4010-a548-8c19ae250a9a",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:56:01.503295+00:00",
+   "created_at": "2026-07-31T00:56:01.503295+00:00"
+  },
+  {
+   "id": "fab5aa5a-507c-48a7-a201-a5ec7ff174ad",
+   "student_id": "177a9c0e-9cd4-40dc-b554-b4ef9b7cf066",
+   "course_id": "e6caa970-eafd-4c74-88a8-d9c3013a029e",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:55.667234+00:00",
+   "created_at": "2026-07-31T00:55:55.667234+00:00"
+  },
+  {
+   "id": "fabd57ae-6866-4fd4-95b8-09ff01abebac",
+   "student_id": "4c97d4b1-51e5-470e-aab7-9e17b94da8ce",
+   "course_id": "4d63b8d4-3376-4fe9-880d-7b3e6506b462",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:54.837184+00:00",
+   "created_at": "2026-07-31T00:55:54.837184+00:00"
+  },
+  {
+   "id": "fc948a92-03fe-4f6f-934b-a7d771a8cd03",
+   "student_id": "f2704ff1-f385-4f09-91de-68a0d57f37e7",
+   "course_id": "3883bdc0-ea14-4baa-8ec3-540181aee601",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.148844+00:00",
+   "created_at": "2026-07-31T00:55:53.148844+00:00"
+  },
+  {
+   "id": "fd4fdd4d-640e-4c4e-aef4-69a3a52f7e31",
+   "student_id": "f5f98bf4-6b1d-40d5-8230-497157ff82aa",
+   "course_id": "322854af-c75d-4de9-ba67-e8ad971fd813",
+   "status": "en_curso",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:53.148844+00:00",
+   "created_at": "2026-07-31T00:55:53.148844+00:00"
+  },
+  {
+   "id": "fe543c82-7f43-4947-bf2f-084dadcbe5d5",
+   "student_id": "5c3c187d-7ba6-4ca9-a348-35a448c67e81",
+   "course_id": "d390aafc-3204-43fe-bd2a-c50827c8d486",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:51.875373+00:00",
+   "created_at": "2026-07-31T00:55:51.875373+00:00"
+  },
+  {
+   "id": "ff304c36-026c-494a-a5f2-caec316af886",
+   "student_id": "3b7b85ee-457e-4eda-a192-65425695d650",
+   "course_id": "89b8c386-c44c-42c8-984a-cbaef56a0cfd",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.569786+00:00",
+   "created_at": "2026-07-31T00:55:49.569786+00:00"
+  },
+  {
+   "id": "ffa11847-3543-4dca-a4d7-c534021eb3dd",
+   "student_id": "e9061820-9e37-4000-ad99-47589397ae49",
+   "course_id": "0a9b44b3-6688-4f67-bed1-b4720a0cb783",
+   "status": "aprobada",
+   "attempt": 1,
+   "opened_at": "2026-07-31T00:55:49.193965+00:00",
+   "created_at": "2026-07-31T00:55:49.193965+00:00"
+  }
+ ],
+ "notas_grupo2_antes": [
+  "2c4e1966-3d60-44db-a92d-56fb41ac3571",
+  "b99c7e29-d75f-40d5-adc3-35e766232aa3",
+  "c7e8f52b-d785-483f-af7c-ab58a3222943",
+  "e6154b1d-149a-45d8-823e-b8669e448270",
+  "a35c0e3c-7eee-4381-af77-80c2361eb924",
+  "338052a2-8978-4b5e-add5-f836a337452c",
+  "73500614-ef8c-4919-a01f-952bf27f0f72",
+  "8f844811-0eeb-4a67-a8fa-e0e20fc30cad",
+  "27ad5cc1-64cc-4ca9-9eb6-c66b30eea749",
+  "019be286-62d6-7491-b283-d94c4c9531ae",
+  "966b1d8a-7d58-4d2e-a0a4-05f2341be71a",
+  "e356095b-ec2b-4203-8e9a-bc797b585823",
+  "d5568bdd-3543-4bd8-a0ab-e7a81acdd6f9",
+  "c9fbe7bb-c273-48d3-b2c1-cc974f3d7325",
+  "11ce27b1-ee51-43d5-ab38-1345b0713054",
+  "fe463433-88dc-4375-a59c-67b209100cd6",
+  "ea64e678-3889-42f9-acea-046c48f486ac",
+  "ee044a3d-ac8b-438e-940f-96833b95b8c6",
+  "c7ddf715-3eaf-4757-a49e-40d5644cb20c",
+  "019c6c95-b6b7-76fa-8a0d-c2e818025abe",
+  "05305395-0b71-42f6-b4d8-48b8da1be5eb",
+  "f9307fdd-8063-4eca-a4f5-50d5b56b8bef",
+  "d372580e-8841-42f4-bd2c-72877ba43b65",
+  "b515b59c-b305-4475-ae8f-fbb726815d7f",
+  "01dedf68-da1a-4e85-953d-75e23ff279f9",
+  "cbd2652f-9fa3-4f30-a589-a5fc434ef6d7",
+  "5a9f8c67-9cea-40d1-8c87-3bb855a50872",
+  "78945a96-5eb0-432c-ac5f-fb252a8512fb",
+  "8a8014e3-00c2-40fd-a59d-07bfe2969dc9",
+  "70abe6cc-858b-4f40-a83d-30ef4fb79fb2",
+  "ffe75702-ffc8-4fd1-a54b-e55878c6e75f",
+  "9bd4f08b-a9e2-4db3-ac9c-9a453fb29bae",
+  "a9d7a3f0-c1bf-44c5-a799-6ad3bad8de94",
+  "d448ca8e-95b4-48a9-af4a-e159bcd37be7",
+  "b8f526f7-5bb1-452b-a2e5-0381a4b3f8f0",
+  "1418659b-5c6d-44fe-ac14-6cdb7f5b3117",
+  "86107923-7a03-4707-a774-416da7728878",
+  "019c7283-dffc-7bfa-9267-de36fc2f8a14",
+  "575b2834-8a52-4850-a5f5-339911642944",
+  "83d2cebb-0641-417f-bcb1-a84e4b224d72",
+  "31c63d5c-2e1f-4407-bdb4-edfa0f48e752",
+  "d6a77ece-38b2-436c-a776-abfb5a878ca5",
+  "f7c81743-b00b-40a4-abfa-4f9d01cc7afd",
+  "3e5621d2-8f70-42aa-afd9-0edd83b4bf87",
+  "d2dc8232-aaaf-4e4e-aed6-250574211c07",
+  "56a2c179-369d-4ad5-bf7b-4f7223db3e78",
+  "4b21b19a-0270-41a6-a334-fc2a64ccfb79",
+  "fe70f135-03e8-45c3-961d-12e2cc088d66",
+  "6a62410f-42ce-402f-ab25-d7e791f77979",
+  "b3a62676-d7dc-4cd8-abed-7f817ba32473",
+  "0552b963-f756-48cc-976c-8ca29aacc55b",
+  "22ddcfdf-729c-4d7e-9916-1faa4b8d13eb",
+  "babd80ba-2036-48f5-b2ce-63c156a231c9",
+  "491061cf-f16a-41ec-a684-191bb8c13e82",
+  "76f21de8-b954-4381-aaae-457f836778b7",
+  "e015d7c6-d770-419f-a62e-20b92b776a1c",
+  "0cbc31a4-6ec0-4c5f-9fd1-142253df954a",
+  "27862b27-d434-4977-ad36-8b82283cd0ed",
+  "4202eae8-5220-4b8c-a083-8d158a02cb3d",
+  "2d766ca4-f890-4de5-a0a4-621dc8411785",
+  "2a372c03-4ee6-4a68-b173-4c7c0d454abb",
+  "f5dd77a1-ba27-4584-af7e-22f018573737",
+  "90340c04-4058-4754-a74a-f72c772090e5",
+  "019eb7db-d29d-719a-b99d-bd6af08a9ac7",
+  "f7f851e7-cb37-4a57-aad9-33f264fff8e1",
+  "cc4b5ef9-1be5-4f2d-a4bd-0a3836df6262",
+  "1c23ca7f-f6e4-40f4-a5cb-1b61cc04b2e6",
+  "2b28282a-5d2e-444c-a592-6f1f71ba1cff",
+  "45768b59-25e5-4934-87ed-d443f06c9019",
+  "019f3984-c8f3-7dc4-97a5-619680383614",
+  "0bbb9553-39a4-40de-9b8a-046d0b496c1c",
+  "9c607ab9-8b04-4e15-acaa-12df9b83b505",
+  "fc25fd7b-d26e-419a-b216-2a416cdacb55",
+  "ef9c3713-1e8a-495b-a9c5-1794e7e0fbff",
+  "0141769c-40b0-4729-88a2-61f46f5f44bf",
+  "a53a4aa6-11f7-4f0e-9dcf-16449d7931eb",
+  "8f49bfb3-33a9-4b3b-ac15-440907109a25",
+  "6de5cf9f-5951-4be8-aa93-44848c5addfe",
+  "f079e52c-7618-41ec-9765-7070fe194602",
+  "9a56a926-eb1e-4e18-a979-f8426b4e7360",
+  "01e0bfc7-19c6-4305-a3fb-3c775d433747",
+  "b29349e3-f030-47f1-9d06-5ae5681cf9f1",
+  "019d0295-f0b8-73a1-9bd2-298018a6ad71",
+  "d3519537-0bbd-4523-af62-e3c492d8fc8e",
+  "019c7795-c3f1-7624-98c3-70023556b4b9",
+  "20665b38-048c-4046-a703-324cd4fdbfa0",
+  "7dc35c7b-7d14-4cef-ab86-56cee6c185a5",
+  "8459509c-313b-4a2c-a2de-e8739ffb3da9",
+  "a0a9bb91-7f56-44cb-81f2-47275ce7eba8",
+  "2b2e6c7e-7a95-4cee-a6fc-7a41a529e22d",
+  "c0947e89-d46e-423b-ac49-a4ea453d8c88",
+  "1dbb4bee-2b52-48c9-a0c2-3e4680948958",
+  "6b57c5d8-3025-4858-9cba-d529bc2c796e",
+  "53f58ee5-3345-48aa-af08-8637531cd997",
+  "18e3b908-04fd-4644-aac7-33e29e3fcb85",
+  "441a7d38-24f2-4036-aab2-30b0c7d1f606",
+  "cb3a69dd-bf80-4a7c-bba9-0ce9a7fcd13a",
+  "b35d55f7-fa41-4c67-a9ed-8387132e8df6",
+  "537101d9-658f-4189-afa8-30970b9fecb1",
+  "cbfec293-d163-49a1-a878-646fa7d2fba0",
+  "47fd3225-842f-4c4d-a91e-8980f02544b6",
+  "72fb4e90-48b7-4385-98b1-beb94a6b47d7",
+  "341df695-5c36-4400-8b7e-9d6e98aad2df",
+  "5d5c8618-5a9c-409a-a769-00964517f719",
+  "931b86f7-7047-49f3-b598-5262564c2b2c",
+  "3bb9b53c-851f-4e29-a1d1-02404f9b79c7",
+  "dd730773-5279-45ba-bf3c-8d623df9e9f1",
+  "645ab7ec-e577-4d4e-a269-189b52d469fb",
+  "d221e66e-41d8-4b49-baf0-1a44c886a2ce",
+  "e4d44608-8587-4bea-aa24-c30f322e71bf",
+  "f215dcdc-ef30-417c-bac3-ef94b7259c52",
+  "eeab2858-f5d3-4ca5-ad6e-52b90e436b2d",
+  "6857c35b-a99d-4fd9-b41e-3457428b5dd6",
+  "019cfc2f-1626-704f-84b0-8a120180f4b7",
+  "ef5981c8-f51b-45e9-ab69-4362c40cb527",
+  "9027ab0c-7869-45c4-acdc-60ea98a3dc67",
+  "3b1075e2-dbe4-4562-a9bc-4216ba00bbbf",
+  "c30f146a-73b1-4799-a121-89325c9d4078",
+  "019f3986-1f1c-7204-a7ce-18dc88499377",
+  "019be286-630a-7af8-8b98-9ef995aaec91",
+  "2eaef354-22a5-4c24-a840-d716a3c63b23",
+  "1d8a2b3b-7a6f-4c38-ae41-88bb0382853f",
+  "eb88c6ed-2917-46b7-923b-ce6c6cd404ef",
+  "f4d716c8-3395-4f20-ac73-16ce206b56b4",
+  "ca4ed1f5-bdea-4224-aaff-150ba0826576",
+  "20839711-46f8-434d-9efb-b5840ad51a65",
+  "297b8eb8-b5a8-4044-a348-d3128470e882",
+  "79b8b877-a915-4daf-af8e-46ff22026266",
+  "398f7088-31ec-4b3a-b422-8ec424e75685",
+  "dc31cbab-f0dd-4837-872f-6f03bafa7ab7",
+  "f5fd8655-e54c-4c87-a613-5ec0d96d0794",
+  "84c3ca1c-439c-457d-bc92-a428ce8cb161",
+  "65272814-70b5-4196-83e4-e242ef438a53",
+  "fbbcbd05-8c49-47d9-a54c-e0ce306b3f03",
+  "019cfc2f-15b7-7b28-afea-bf9d1397fb2c",
+  "38a7db82-be0d-46c6-8ec6-d384e0de1356",
+  "1f57e5f5-0dd1-4a38-a526-fc5c93f8109e",
+  "725ad094-423b-43bd-989b-db04dbf33858"
+ ],
+ "asignacion": {
+  "g1": [
+   {
+    "id": "014a140f-11aa-43fe-a94d-9d09064ab114",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "01ac0a3d-d0bb-4517-9201-e8a42b3e47e7",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "01dcce0d-29d7-425d-9c10-21398f4b3daf",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "025358eb-a9a5-49cf-92a9-0f8386d2f174",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "03f2ef2a-4fec-4786-8c14-1f1dd2c94ff6",
+    "semestre": "AY 25-26 SPRING 2026"
+   },
+   {
+    "id": "06ab2b21-94f2-4051-a771-47f6159aca1c",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "06f5ed1f-6171-43c3-91c9-c0aab332a056",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "07ac62cc-b2e1-4b32-9a91-bec9de200981",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "096392dd-6327-40b3-8e84-38327d06e4f6",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "0a4340c7-0f84-4025-805c-f192abd2ea24",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "0ac885dd-cc69-41f1-8717-744da326ed5e",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "0ca64726-bd8c-4095-930a-1e4b3a2f6c96",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "0ebaa8d6-1bf8-46ca-b631-e999c4feb674",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "0f077739-94be-4609-be51-ba5ccd6b2398",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "0f840a67-b549-4212-b497-4b7dcbd0abdb",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "0fc26979-b89e-4c22-b9f2-b7d64f5e91a3",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "104878e3-61f3-4f8a-bd57-7af376274195",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "10f2c3c7-529f-4cfd-bd4c-e54168efdb30",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "117e9870-c5b4-4789-b38e-c988bd9afe6b",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "13c3aa52-1fc5-41e8-9eb6-43c0e77b665c",
+    "semestre": "AY 25-26 SPRING 2026"
+   },
+   {
+    "id": "14134974-4853-4405-a176-bbb0f82727a1",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "155411dc-f92a-4b9d-b95c-b30da1debd54",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "170e7de7-09d9-4810-9bb0-f728d1b58b49",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "17685528-5b73-461e-90c6-ce3f4245b41f",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "17faf029-2fd7-4ba1-b59e-2705b8a67ad5",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "18a1d848-d48e-43a6-83d8-a1017f5766fe",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "1902ef17-124b-4b3d-9769-cd9efc03188e",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "19587a7a-be65-4702-8eca-dd2da835afd9",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "19d32c52-96fc-4f65-8ea3-ce76aaec9ad5",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "1c0047f0-58dd-4a46-920c-e1c3fe9b1775",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "1c355fc8-6281-4142-918d-67dfd1428c3a",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "1c727bd3-a31b-482b-9abd-dcd71161e7da",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "1c84b87d-d7e7-4cc4-9a79-63d326387124",
+    "semestre": "AY 25-26 SPRING 2026"
+   },
+   {
+    "id": "1d301f5c-f36e-4d3a-8549-c7070ef4547a",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "1e368eda-1a7b-4512-ac04-1e91673e2bf1",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "1e6b790a-9b57-4afa-975b-9f2ea2097a91",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "20f445ef-92a0-4041-ae21-a1e6c1aed0dc",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "21b1d328-3ce6-4cb3-9ee4-adc1da4ceba1",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "2268faf9-0d16-48b9-ac0b-ee8a205d102e",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "2356a08c-80ff-42ed-9fa2-4c828b622176",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "23c05a5f-d17e-4c98-98fd-08c4b39ba149",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "244b7d55-ee84-49d4-82e3-b574d95b722c",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "24c916e2-880d-4417-9124-865f0fa32a84",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "251eb88a-8604-459a-a32a-dad3e334295c",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "25693e09-fa30-4985-987e-7b5d1d154ea8",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "26568d49-8ad8-4aac-90ce-6df9e22530f5",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "26c0c100-9ce1-4644-8688-7fd6b6aa5216",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "2806452d-3889-4e97-8759-5ea079f232e9",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "2b56174f-8804-453f-8a1a-c1d698e281a8",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "2d14e57f-0032-4cce-a612-fbdedc05a2ca",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "2de0d48c-af3a-4bd7-aded-b1705d9e3105",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "2e3fb59c-e437-4a58-86ff-b3d94ddfb7c7",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "2f04d227-4b26-4bcd-82c9-2014128ddac7",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "2f52f309-07fe-4b89-b86a-3d9a85e9084b",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "2fd0c00b-ad39-43d2-8a8a-9375aa5f2bf9",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "2fde9ad0-7a99-4951-8b3f-51986444bca6",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "3048d650-d0d7-4dd1-be54-a5916c5b1b53",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "30ef8368-1203-48ca-b764-32e63b31cd2b",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "31251f47-346d-4a73-a2ec-97ea4b2cc60e",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "3150aa98-52c5-4065-90a5-1f6c45265d1a",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "320b8c3d-2ffd-49cc-9580-75d5be717113",
+    "semestre": "AY 23-24 SPRING 2024"
+   },
+   {
+    "id": "3300611e-1c5d-486a-9eb5-49c260b67296",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "33c7558b-ac39-48fd-83f6-5651165263b7",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "34689518-9d0f-4891-a331-f053ff1667ce",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "3493ff89-9e51-4f86-a562-e41db0966db0",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "365ca3a7-f2e1-4a62-9019-08e6a292d8a2",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "379b4edb-d9fd-4ca3-b1b3-afc0c6cf6e56",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "390d1916-fec7-4d04-8c0d-6027cdbd406d",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "39c35797-9baf-4d92-bace-e9c429293b33",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "39d011f6-d6d7-4205-bb0d-897e6a05d85b",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "3b732601-96e1-485c-8d56-c3dd161ee907",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "3b7a26fe-1460-4a16-a14f-d3664d72364b",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "3baaefd8-50fd-4b78-8cd1-ed46436dd4e2",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "3ce79e9d-2d98-4508-9842-1fef55fbc6f5",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "3ebf85d3-3c0e-42c8-9ef2-0575fea4abc1",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "3ecb147b-7662-422f-80af-348cc596c475",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "3f613a81-c577-48c5-8fc5-dcdba63038c0",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "3f706a8e-d9ba-42be-8231-e55ded7a29ec",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "3f8f07b3-a61d-4455-b98d-e5e71e8b2066",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "3fe1d64c-0399-441f-b547-b0ecd1eb2567",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "41bc4302-c578-41af-bb90-31d090538bc6",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "428f1270-b56b-419f-85c5-f42654ccd0fe",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "43378051-e709-4b58-bbea-ed88fc328303",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "44c5aaee-be7a-496c-85d0-aa5600054e90",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "46a97cd3-4255-4c06-96c1-bb4d2ad032fa",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "4ac42ee5-1b68-46af-bcad-d8239c481ed8",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "4aebe8e0-4a94-4873-b611-89862fcdfedb",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "4b1e0890-31c7-4dca-b239-5bf70b832753",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "4d76a10e-4af8-4ffb-a392-ab156064010f",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "4e3797a6-a83d-4317-b5fa-f12d4fa5586d",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "4eabae2c-7951-4ee9-82b8-0814fc8b0571",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "50198650-5801-40ce-a536-77ee7dc0c401",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "50c3e49f-51d5-46a3-91e8-1cfd91f1d260",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "5153bd26-22bc-490d-a68d-7ae46338db8c",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "51980463-b640-4c1e-80c7-25033c0f5650",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "529e8b22-9b0f-448b-adcc-42528c6847fc",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "52e14189-4035-4502-8303-73359f7c70b7",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "538a7806-eaa1-4ff3-93b4-e3ed96f75bf1",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "543e48d1-dfc9-4a76-9898-75dc01715de4",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "5599a3c6-4314-483a-a68d-1f5ccaefe504",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "58d64626-d0fa-4db4-af49-2110cb1fc45c",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "5a168241-45ac-492f-88bd-cbe90110253d",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "5adb717b-8639-4a23-96a5-50e2dbd77bd8",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "5d138889-6b36-4910-a3a0-e4ab32b4b572",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "5d2043c2-da1f-4f1d-8470-22407d09e678",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "5eae7153-b018-4b66-b097-17775603d4a3",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "5ec89fa8-424e-4fb6-9a0d-587c0b8e3667",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "608f9590-ead1-4164-845d-b53920fc0006",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "6126f9f4-c341-4d8c-acb4-c48475d4e918",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "6213af6e-ad9c-4f36-9f32-d109f0554c4e",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "662414cd-7c0c-4dc8-887b-101f524f404a",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "665f1004-b0c5-457d-893e-e127d71c37e0",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "687d3653-a737-4824-8111-416f9f7c5496",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "696a66da-b7c8-4f61-a7d5-2f89c267862a",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "69ac08de-5b5e-422a-8e0e-d0c9d02abdeb",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "6bc43d9b-29ba-4a9f-b3be-8beefdd096d2",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "6ca75c74-5946-4788-8b55-3309ed6eb8d3",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "6d134282-20e7-4ee6-9add-9833de172c3c",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "6f8f6aa1-9bae-43f6-b37e-584503b149f8",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "707a5e13-3041-4569-9af3-9092f007e79b",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "70b360ba-28a0-44be-905e-cc7604ba6a28",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "7214f310-4968-418b-a8d1-75905613c9e4",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "72c265b7-9697-4730-8ce3-45f40fa7f56e",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "73c51f50-babc-45a3-801d-159478b73a6d",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "7543ce40-4f72-4296-85c0-0568a2d21955",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "76f4b237-427b-43e0-bc1e-433f0db4d919",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "775c6edc-687c-4b1e-a560-a70454f7ef8b",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "77651a54-69ba-42e6-80b5-5993c3e8c843",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "7768f2e1-92d1-4abf-95d8-4360a6d4b022",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "78c4b925-559d-4a79-9c1a-a61795cd829b",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "79e81d84-a3d5-4f51-9325-ab712fecf766",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "7d9e4815-12e6-4c2d-8f8f-51b0ba62dde1",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "7e3e235f-660d-4cc2-a9c8-1ef3c704c7c6",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "7ef82877-a7f9-4a9e-a337-cec214129f6e",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "7fc50f52-f5fa-4ad0-985b-f8f48ec94743",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "7fc949a2-6a93-49d5-94c0-3ce4296ba8d2",
+    "semestre": "AY 25-26 SPRING 2026"
+   },
+   {
+    "id": "824b8d76-47c9-4abe-86e9-3bbefe314c34",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "82f0ce86-19f0-4050-a3d3-8f3fcac5632d",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "8390ae6a-5ca6-440c-a3d2-bc97b8fc87af",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "848387fa-b114-4d07-9f43-cbfb34a5dddc",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "84bfd006-6310-4e30-9dc9-95bd8628f190",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "86fb8450-8a6d-4a93-91cc-b69c5a1c9efc",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "870f4bd4-312a-49d3-b1a2-ecee81680b0d",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "875b05e9-930f-4c06-bfea-3039bc9416ed",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "8804ac75-7c2c-4467-a106-97ba22f43187",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "88252740-5837-435a-bed7-91d3e37112ff",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "890fa91e-640f-406a-b943-3f9c6feeb414",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "89fa66b5-aead-4ab9-9d35-02eed5e773bc",
+    "semestre": "AY 25-26 SPRING 2026"
+   },
+   {
+    "id": "8b22de8d-f154-4697-b3a2-94a6dffa3417",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "8ca23481-3612-4627-867a-96501002aaaa",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "8e639691-35b8-4faa-a1de-6d07840ed4d7",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "8ec04c9a-cad0-4976-a318-77467f0a7722",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "8eccb9ae-00cd-47b8-be0b-9d57ebc5ef7e",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "9242b2ba-fdfd-4ced-9260-067c7140d4f4",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "92509057-af37-43c9-b670-f80c67b27a91",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "93fc7268-de3a-46b8-b040-66b3b045fdcc",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "94a2aad3-588a-460d-8954-2efd7777335c",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "95ac2d5a-09ed-4893-b3cd-74f6e631d00a",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "977e1c1f-7d4e-41f0-a49b-84075fda6996",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "98adf988-843c-4109-96bf-258e3396bda6",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "98fbd774-9ed2-457d-a192-369b412980f6",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "993f2f70-9072-4a24-8196-4203faa5df98",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "998a4f56-9cfe-4620-840a-835fb92676df",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "9e26312a-3955-4cfb-9646-b28aa0ae4d3a",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "9f8a1e76-6304-43d1-96c5-fb9cff5238f2",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "a1748366-b116-41a1-a671-4150a532b6be",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a374bf04-d701-4839-a795-e9f334ed77d2",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "a3791537-7f7d-4e92-901e-f77076d871d9",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "a3f3b7c3-716f-49ad-9efd-f2b33f166e42",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "a40bec64-277d-4338-8072-d627d8860baf",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "a604d7a2-531a-42a4-a9dc-92c4801176de",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "a6802247-63fc-4004-bcbd-134cc4427a94",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "a77edaa0-4f74-4ccf-b2b3-c16ced2b1cd9",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "a7833c8d-6066-48ae-88b6-4d80efaf2070",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "a792245e-39cc-44d3-b796-ff2145ed8b6a",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "a7afc257-a3f1-4376-a9e6-6dbf1b426850",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "a99c86cd-2f58-43b6-a66d-b5cce9494cf6",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "aa58f5f7-8d93-481a-a297-e7363b802e4d",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "aa91af8d-5aff-481e-a1ea-737131c102b7",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "ac853262-5787-47a7-9fe0-004de06d821f",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "adf0778c-4253-4bb1-910d-28c2e8b65289",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "afc7aab4-0ecd-4ef3-b760-5dd549138729",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "b0554c32-ae41-4537-9273-27d78f66b9ef",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "b1ca79ee-76fc-4979-8c9c-390c4525d953",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "b26fdccf-3f0c-4379-b809-789c80283a5e",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "b46e6f2a-f625-4a87-bc57-d2561e985e4b",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "b65248b7-d34d-4ee2-8df9-4a3ec1e86f9a",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "b657dd5c-3c80-4da9-b1e5-5c4f701e6500",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "b6abf245-2a10-4d48-a406-73ea11e8ca4a",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "b7f852d9-3e51-4439-b21f-413adb9dc991",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "b855072b-c402-4c2c-9fcf-c8f8a5a0c104",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "b962ff38-1b66-426b-a564-4e5351785478",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "bab43b1f-c1f3-48d8-a2d4-7781afdb0433",
+    "semestre": "AY 25-26 SPRING 2026"
+   },
+   {
+    "id": "bcd8f450-19a3-4152-9341-1640af28e0ee",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "bce4c7e5-743e-49ae-8142-1ad62afa22be",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "c2329238-1975-41a8-89a4-99ff9d56b819",
+    "semestre": "AY 25-26 SPRING 2026"
+   },
+   {
+    "id": "c2933132-f5bc-4e65-a359-c1e08ffbe8e4",
+    "semestre": "AY 25-26 SPRING 2026"
+   },
+   {
+    "id": "c478b9b7-7191-4633-8371-3273f42d8a64",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "c49e12a5-45ab-415d-bd08-b75012e94fc0",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "c5db75bb-b436-4f66-acb6-387bf6c29e35",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "c6e07f62-415b-4ae4-8ceb-d08cac439c7a",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "c83e2a89-6430-4a0c-8438-11a5047fba1e",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "cae4e7c5-cb24-41c2-800a-0030d9cdfd83",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "cb490ee5-d3e2-4a2d-9d21-e807d440cbc3",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "ced62b34-c9c9-4ba2-ad76-49ba4521b38c",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "d177b08a-0eb0-4529-968f-b9d6610442ea",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "d1f2108c-cdd2-48d7-8a06-3c5d066751c4",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "d2564bf8-0fef-4219-bf89-5e4713d3819a",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "d3830710-4e38-4da3-a71b-abfe39c6ca63",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "d4040448-45c5-4a80-9dd3-f7ce2b92252e",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "d44824d2-c9c7-4b10-b4a0-0f396f737ac9",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "d47db310-1f7b-43dc-83d0-ec371b0a39d4",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "d556cbd8-1935-4755-ae0e-9e9f82a2c1b8",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "d80f8b13-16f8-454a-9167-6226d7e7abbd",
+    "semestre": "AY 25-26 SPRING 2026"
+   },
+   {
+    "id": "d8741b33-1248-4b72-b795-41e3611135c2",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "db7ff7c8-150a-4c75-b7fd-c2b528d05694",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "dcc8fb92-6e93-4a6b-b956-d4b70bad2f5f",
+    "semestre": "AY 23-24 SPRING 2024"
+   },
+   {
+    "id": "dd7b230b-67e3-431a-bda0-588e9d500a15",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "e29d0e2b-2a75-4f3f-b1e9-b98185cae34f",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "e2fa273b-03fc-4b05-b7ac-1536c6be5a6f",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "e3ca6813-478b-44b0-a2ac-5a33e0d2db7f",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "e49452a5-bd64-4368-836d-8d55d3704b23",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "e4f92f42-248e-4876-becf-871fe61bdc08",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "e5370a2e-b989-41df-a25e-f69d258f181b",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "e5de11d7-0847-49a0-8b59-2ecd9b910d55",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "e5f77008-97bc-4fbf-a21b-e868a5240f3d",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "e6ca34e7-dd28-4db8-ae93-fb0c3f163798",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "e78a2d4a-c1fc-4b0a-aeff-3e49c3be2dcb",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "e93df5e1-9489-4e8c-bc07-67f6510e601d",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "e9d38e50-4f2e-41c4-906d-c3d1ad494d10",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "e9ea2ab2-7447-4ea1-a28a-e549e0168156",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "ea942154-550b-4d40-8b19-43199c450ec4",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "eabf5538-ade9-4e16-a734-0ec8b567e130",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "eae2cc03-f5d3-41db-b468-85ed3e1b9225",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "eb425b64-d218-4607-880a-984306cc46e1",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "eb4d548b-7732-4687-b6de-15d5017bc59d",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "eca1a66d-23d8-45d9-8ee0-6068d4a9dbea",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "ed519f7a-696d-4270-b882-21336c9f2dde",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "edb644ab-66f1-43a8-b7ce-7e8425714caf",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "f012febe-d87b-48b3-94cf-fddc9d278c03",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "f07ef876-a9f9-45e2-a6c9-84e78dd90a6b",
+    "semestre": "AY 23-24 SUMMER 2024"
+   },
+   {
+    "id": "f174e451-5d0b-481c-80ea-cb7bcdad320b",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "f1b467d3-7625-4114-9f57-96be22a975ce",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "f2481762-c1be-4bff-8c5b-e2959991aac8",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "f33dd776-555f-42fe-9888-ad5c6d538af6",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "f452943e-5e5f-49a7-a316-9ff1b66bea89",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "f60efc42-99d4-49f3-bb7d-6728107a268f",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "f644ba28-e748-406e-a197-189f18f95cff",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "f70a1364-deed-4513-85bc-78ed600cc8a4",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "f70e8640-1396-49b2-a769-63f03460fa10",
+    "semestre": "AY 24-25 FALL 2024"
+   },
+   {
+    "id": "f829d399-d876-4213-9f90-2d743fc174e1",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "f8916b38-0f8e-444e-9c79-4d296aed624f",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "fabd57ae-6866-4fd4-95b8-09ff01abebac",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "fc948a92-03fe-4f6f-934b-a7d771a8cd03",
+    "semestre": "AY 24-25 SUMMER 2025"
+   },
+   {
+    "id": "fd4fdd4d-640e-4c4e-aef4-69a3a52f7e31",
+    "semestre": "AY 25-26 FALL 2025"
+   },
+   {
+    "id": "fe543c82-7f43-4947-bf2f-084dadcbe5d5",
+    "semestre": "AY 24-25 SPRING 2025"
+   },
+   {
+    "id": "ff304c36-026c-494a-a5f2-caec316af886",
+    "semestre": "AY 25-26 SPRING 2026"
+   },
+   {
+    "id": "ffa11847-3543-4dca-a4d7-c534021eb3dd",
+    "semestre": "AY 25-26 SPRING 2026"
+   }
+  ],
+  "g2": [
+   {
+    "id": "00c8519d-328f-4061-99e0-43985dce77d9",
+    "nota": "2c4e1966-3d60-44db-a92d-56fb41ac3571",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "01b066c1-d461-4bd5-9985-a3e488be390c",
+    "nota": "b99c7e29-d75f-40d5-adc3-35e766232aa3",
+    "fecha": "2026-08-20",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "03c85a5d-0abb-45df-ad2f-18bd6bd85fc5",
+    "nota": "c7e8f52b-d785-483f-af7c-ab58a3222943",
+    "fecha": "2026-08-18",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "0966df4f-3b76-4366-a003-7d9b3c6fc981",
+    "nota": "e6154b1d-149a-45d8-823e-b8669e448270",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "097cc754-931f-407c-82c1-42b5259dba52",
+    "nota": "a35c0e3c-7eee-4381-af77-80c2361eb924",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "0e783e51-2377-41bf-bcf5-9ede3a23146d",
+    "nota": "338052a2-8978-4b5e-add5-f836a337452c",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "0eff51c3-2441-48e3-843a-453f00811acf",
+    "nota": "73500614-ef8c-4919-a01f-952bf27f0f72",
+    "fecha": "2026-08-24",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "10d4aad8-5762-4f7f-9bb4-9a83e804f2af",
+    "nota": "8f844811-0eeb-4a67-a8fa-e0e20fc30cad",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "115aa647-b362-4cb2-9184-d54ebcacaeff",
+    "nota": "27ad5cc1-64cc-4ca9-9eb6-c66b30eea749",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "12842d9f-7d97-4ec9-afd8-f709eec5cf40",
+    "nota": "019be286-62d6-7491-b283-d94c4c9531ae",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "1320862b-c53b-4844-b066-f796c50bf966",
+    "nota": "966b1d8a-7d58-4d2e-a0a4-05f2341be71a",
+    "fecha": "2026-09-09",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "13a57889-0dbc-47a8-abd8-aeba8e1fe358",
+    "nota": "e356095b-ec2b-4203-8e9a-bc797b585823",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "13a8065a-4459-4152-a728-c547ade5534b",
+    "nota": "d5568bdd-3543-4bd8-a0ab-e7a81acdd6f9",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "15d3f91e-453e-484a-a0d3-4e1708053b85",
+    "nota": "c9fbe7bb-c273-48d3-b2c1-cc974f3d7325",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "1626cfd1-1bce-4d6a-a808-4fa94c11934f",
+    "nota": "11ce27b1-ee51-43d5-ab38-1345b0713054",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "162e1433-26e1-4db8-83f9-7d0a554d86b0",
+    "nota": "fe463433-88dc-4375-a59c-67b209100cd6",
+    "fecha": "2026-08-21",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "2028f18a-7dee-4c6b-8bf4-6db040158333",
+    "nota": "ea64e678-3889-42f9-acea-046c48f486ac",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "206d4dd0-0a40-4748-8e64-c82a11362b00",
+    "nota": "ee044a3d-ac8b-438e-940f-96833b95b8c6",
+    "fecha": "2026-09-13",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "20ca0153-5c34-45c1-8a05-283ce2bdeae5",
+    "nota": "c7ddf715-3eaf-4757-a49e-40d5644cb20c",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "21438056-dd9c-43d4-aa76-80bf44847e74",
+    "nota": "019c6c95-b6b7-76fa-8a0d-c2e818025abe",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "2222790d-f8ad-4b51-b850-2bb0c6817cb1",
+    "nota": "05305395-0b71-42f6-b4d8-48b8da1be5eb",
+    "fecha": "2026-08-31",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "23ad119c-0e56-4272-bab1-6a3565200bd2",
+    "nota": "f9307fdd-8063-4eca-a4f5-50d5b56b8bef",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "244f267d-8bee-4b63-8182-131274a4c284",
+    "nota": "d372580e-8841-42f4-bd2c-72877ba43b65",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "2654d38c-e303-45be-97b9-1e2546a5a9ef",
+    "nota": "b515b59c-b305-4475-ae8f-fbb726815d7f",
+    "fecha": "2026-08-20",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "27cc7b7d-919c-4297-9ca0-9a487861b902",
+    "nota": "01dedf68-da1a-4e85-953d-75e23ff279f9",
+    "fecha": "2026-08-15",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "2b892fd5-89f4-4158-9c1b-7cd0cf950406",
+    "nota": "cbd2652f-9fa3-4f30-a589-a5fc434ef6d7",
+    "fecha": "2026-09-09",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "2dadb4bc-03b9-4442-b3fa-a2fe363f2fba",
+    "nota": "5a9f8c67-9cea-40d1-8c87-3bb855a50872",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "2e0291f8-8eba-4feb-920d-4739cbda9e54",
+    "nota": "78945a96-5eb0-432c-ac5f-fb252a8512fb",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "31901e4a-12db-4a62-949e-575d17ae7dc5",
+    "nota": "8a8014e3-00c2-40fd-a59d-07bfe2969dc9",
+    "fecha": "2026-08-21",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "3219e294-28b7-480b-b59e-77ae7bd4a4c9",
+    "nota": "70abe6cc-858b-4f40-a83d-30ef4fb79fb2",
+    "fecha": "2026-08-20",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "367c68c8-7b74-445a-8a9c-a2fd7c2ce16f",
+    "nota": "ffe75702-ffc8-4fd1-a54b-e55878c6e75f",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "36887e0a-e123-4ffe-8419-27c87d4ddd1a",
+    "nota": "9bd4f08b-a9e2-4db3-ac9c-9a453fb29bae",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "39125213-364c-4687-8e8f-3b81a1c7c6c5",
+    "nota": "a9d7a3f0-c1bf-44c5-a799-6ad3bad8de94",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "3993783f-97a3-4680-9e5a-c35f67a9a2e4",
+    "nota": "d448ca8e-95b4-48a9-af4a-e159bcd37be7",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "39b41dd9-c505-4bc4-b894-7ca62f4685dd",
+    "nota": "b8f526f7-5bb1-452b-a2e5-0381a4b3f8f0",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "3da6ec97-5849-4d7c-81ba-73e2b52545aa",
+    "nota": "1418659b-5c6d-44fe-ac14-6cdb7f5b3117",
+    "fecha": "2026-09-10",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "3dc69203-4516-4747-acb8-c0a10fa30915",
+    "nota": "86107923-7a03-4707-a774-416da7728878",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "3f401448-bbea-4895-b4d4-58f58efe002a",
+    "nota": "019c7283-dffc-7bfa-9267-de36fc2f8a14",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "415866c7-a06f-446b-8eab-a970ae2d839b",
+    "nota": "575b2834-8a52-4850-a5f5-339911642944",
+    "fecha": "2026-09-15",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "47202065-38a3-4f09-b48b-c40b7daaf2fd",
+    "nota": "83d2cebb-0641-417f-bcb1-a84e4b224d72",
+    "fecha": "2026-09-12",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "47d90d67-5b14-4d52-a6d4-2f711596e213",
+    "nota": "31c63d5c-2e1f-4407-bdb4-edfa0f48e752",
+    "fecha": "2026-08-21",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "47fe4708-3ebe-4fb5-8399-04470b440558",
+    "nota": "d6a77ece-38b2-436c-a776-abfb5a878ca5",
+    "fecha": "2026-09-11",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "47ffcc36-712e-4b73-aeb3-a03a0f0101d6",
+    "nota": "f7c81743-b00b-40a4-abfa-4f9d01cc7afd",
+    "fecha": "2026-09-12",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "49222f6c-acca-4b17-a5da-1ca3f59b4066",
+    "nota": "3e5621d2-8f70-42aa-afd9-0edd83b4bf87",
+    "fecha": "2026-08-24",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "49a2b112-0af4-40c7-a7bb-bce714b65749",
+    "nota": "d2dc8232-aaaf-4e4e-aed6-250574211c07",
+    "fecha": "2026-08-28",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "4b03a81e-b1a8-444c-9762-87eac4cf0718",
+    "nota": "56a2c179-369d-4ad5-bf7b-4f7223db3e78",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "52003d7b-cb86-4173-9370-93af94126743",
+    "nota": "4b21b19a-0270-41a6-a334-fc2a64ccfb79",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "53315066-00a3-4b85-8651-508eeffe96f6",
+    "nota": "fe70f135-03e8-45c3-961d-12e2cc088d66",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "5437e2f5-7553-466e-9860-6ab8bc47de80",
+    "nota": "6a62410f-42ce-402f-ab25-d7e791f77979",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "59481d3f-4f30-4dac-8eff-1a552f2dd59b",
+    "nota": "b3a62676-d7dc-4cd8-abed-7f817ba32473",
+    "fecha": "2026-09-13",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "5a780dfc-b152-4b26-a75f-2fff01474da4",
+    "nota": "0552b963-f756-48cc-976c-8ca29aacc55b",
+    "fecha": "2026-08-20",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "5c8f32f4-6fe7-416f-ae8d-7b2acc30eb37",
+    "nota": "22ddcfdf-729c-4d7e-9916-1faa4b8d13eb",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "5cda03f9-200f-43bd-a777-2846a45627cc",
+    "nota": "babd80ba-2036-48f5-b2ce-63c156a231c9",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "608b63e2-4158-48db-9cf6-2550502fb2ff",
+    "nota": "491061cf-f16a-41ec-a684-191bb8c13e82",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "60f1c95e-0702-4eef-8d53-53af34c9ff64",
+    "nota": "76f21de8-b954-4381-aaae-457f836778b7",
+    "fecha": "2026-09-17",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "6251b3b1-ab97-4e16-9f08-2defdbb23dfa",
+    "nota": "e015d7c6-d770-419f-a62e-20b92b776a1c",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "626fe84f-d279-4c73-bebb-b3693e401c8d",
+    "nota": "0cbc31a4-6ec0-4c5f-9fd1-142253df954a",
+    "fecha": "2026-08-20",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "666fe47b-3b43-4156-93d8-92cad9f26b99",
+    "nota": "27862b27-d434-4977-ad36-8b82283cd0ed",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "6ccba6d3-58f0-4306-afc7-70a1c943f01a",
+    "nota": "4202eae8-5220-4b8c-a083-8d158a02cb3d",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "6d29d11a-ecd7-4868-9dfc-84e52e8ea57a",
+    "nota": "2d766ca4-f890-4de5-a0a4-621dc8411785",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "6e1637eb-e813-434d-8125-d137a19a423a",
+    "nota": "2a372c03-4ee6-4a68-b173-4c7c0d454abb",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "7094f645-8f4a-4291-81c7-6df4a600bd73",
+    "nota": "f5dd77a1-ba27-4584-af7e-22f018573737",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "72a6c92f-0ac6-4c11-8e56-ccff4bf6c5e5",
+    "nota": "90340c04-4058-4754-a74a-f72c772090e5",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "759b91af-5492-4a41-8525-e87694fb5dcd",
+    "nota": "019eb7db-d29d-719a-b99d-bd6af08a9ac7",
+    "fecha": "2026-09-04",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "77cc2398-b49a-4a0a-92d0-a0a038bcf418",
+    "nota": "f7f851e7-cb37-4a57-aad9-33f264fff8e1",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "7bd12b67-968b-4ff6-99cf-9d381986105a",
+    "nota": "cc4b5ef9-1be5-4f2d-a4bd-0a3836df6262",
+    "fecha": "2026-08-31",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "7d05703d-14d5-4e0f-bd0f-7de64c2f69d6",
+    "nota": "1c23ca7f-f6e4-40f4-a5cb-1b61cc04b2e6",
+    "fecha": "2026-09-17",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "81906555-3664-47ed-9b72-666682cf5e97",
+    "nota": "2b28282a-5d2e-444c-a592-6f1f71ba1cff",
+    "fecha": "2026-08-18",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "81bd81e6-9ecc-44ad-a16c-8b8fcfa308e5",
+    "nota": "45768b59-25e5-4934-87ed-d443f06c9019",
+    "fecha": "2026-09-14",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "81d0a2b6-c76e-4843-b056-19743bf95a4b",
+    "nota": "019f3984-c8f3-7dc4-97a5-619680383614",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "81f6b0de-a5c6-4de7-b9de-9885eb95779f",
+    "nota": "0bbb9553-39a4-40de-9b8a-046d0b496c1c",
+    "fecha": "2026-09-10",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "8214262a-888e-47b6-90bf-b47e633e7c08",
+    "nota": "9c607ab9-8b04-4e15-acaa-12df9b83b505",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "82501e97-13c0-4266-9cc0-c6f6225a3d66",
+    "nota": "fc25fd7b-d26e-419a-b216-2a416cdacb55",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "87541f2a-fe09-4005-9aed-ec6df5e680f0",
+    "nota": "ef9c3713-1e8a-495b-a9c5-1794e7e0fbff",
+    "fecha": "2026-08-21",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "87a484c4-f441-475f-a228-6aa657da2737",
+    "nota": "0141769c-40b0-4729-88a2-61f46f5f44bf",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "8b5b4ef8-1849-4f23-aab1-86c624aaa9d1",
+    "nota": "a53a4aa6-11f7-4f0e-9dcf-16449d7931eb",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "920666ea-e12a-4634-b6c2-2b5ed8f0a17e",
+    "nota": "8f49bfb3-33a9-4b3b-ac15-440907109a25",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "92ee0460-ce80-4a09-814b-e14c6acd937c",
+    "nota": "6de5cf9f-5951-4be8-aa93-44848c5addfe",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "94264da2-7df1-4712-b6e5-b998af469fe0",
+    "nota": "f079e52c-7618-41ec-9765-7070fe194602",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "9a929824-dab3-4a01-a914-6a9628a1860c",
+    "nota": "9a56a926-eb1e-4e18-a979-f8426b4e7360",
+    "fecha": "2026-08-20",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "9c85962f-bbda-45c9-a24b-e8a69d8b1356",
+    "nota": "01e0bfc7-19c6-4305-a3fb-3c775d433747",
+    "fecha": "2026-08-31",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "9d4c8731-f3e2-4b2c-a097-c2492a58c6c0",
+    "nota": "b29349e3-f030-47f1-9d06-5ae5681cf9f1",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "9e8c0b31-e7f2-426e-960d-be48e2eedb7f",
+    "nota": "019d0295-f0b8-73a1-9bd2-298018a6ad71",
+    "fecha": "2026-08-19",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "9ffd7b2e-a509-4c81-a824-33b2939a26be",
+    "nota": "d3519537-0bbd-4523-af62-e3c492d8fc8e",
+    "fecha": "2026-08-31",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a018c3ba-4741-43cd-8d6d-c14f99b767cb",
+    "nota": "019c7795-c3f1-7624-98c3-70023556b4b9",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a0ed4ccd-0230-4063-8967-ef1ad68d3a2a",
+    "nota": "20665b38-048c-4046-a703-324cd4fdbfa0",
+    "fecha": "2026-09-09",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "a0f07fe9-aab4-4e3e-83a2-ee33d5a2d256",
+    "nota": "7dc35c7b-7d14-4cef-ab86-56cee6c185a5",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a11d41f2-b9a2-42c2-803a-4a8f0b044d4c",
+    "nota": "8459509c-313b-4a2c-a2de-e8739ffb3da9",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a1704d45-4262-4d20-aa7c-f3a43e4ecc11",
+    "nota": "a0a9bb91-7f56-44cb-81f2-47275ce7eba8",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a288c4f8-1750-47f0-9a8f-bd252c189fb8",
+    "nota": "2b2e6c7e-7a95-4cee-a6fc-7a41a529e22d",
+    "fecha": "2026-08-20",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a29d84c3-cb0a-42b8-b9bb-e73708123d67",
+    "nota": "c0947e89-d46e-423b-ac49-a4ea453d8c88",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a2b6e852-2149-4338-9b95-7c4503487dc2",
+    "nota": "1dbb4bee-2b52-48c9-a0c2-3e4680948958",
+    "fecha": "2026-09-07",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "a4449b65-d7dd-4d41-a979-5e37dc854813",
+    "nota": "6b57c5d8-3025-4858-9cba-d529bc2c796e",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a558570b-9610-4626-ac70-5ca44c75f8af",
+    "nota": "53f58ee5-3345-48aa-af08-8637531cd997",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a6356e50-3164-4d13-80ef-0bc01d02f696",
+    "nota": null,
+    "fecha": "2026-07-31",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a6915ff6-d964-474a-a0a8-de5fb944815e",
+    "nota": "18e3b908-04fd-4644-aac7-33e29e3fcb85",
+    "fecha": "2026-08-20",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a77bad1d-5cde-4ee6-8d15-c82586b1121a",
+    "nota": "441a7d38-24f2-4036-aab2-30b0c7d1f606",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "a8708a25-1f8d-4251-a715-07afbfc507b4",
+    "nota": "cb3a69dd-bf80-4a7c-bba9-0ce9a7fcd13a",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "ab8d4571-d392-48d4-8e23-362245142530",
+    "nota": "b35d55f7-fa41-4c67-a9ed-8387132e8df6",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "acf3e7b2-a00a-4b7d-9138-6d3bb3658576",
+    "nota": "537101d9-658f-4189-afa8-30970b9fecb1",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "ae513211-1b02-42c6-b785-56f8977a4828",
+    "nota": "cbfec293-d163-49a1-a878-646fa7d2fba0",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "aeb0a876-6207-4a89-a0ad-84532873b31d",
+    "nota": "47fd3225-842f-4c4d-a91e-8980f02544b6",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "b139429e-d9e4-4cb1-bfe6-6248c720b4e8",
+    "nota": "72fb4e90-48b7-4385-98b1-beb94a6b47d7",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "b247d811-be35-46db-bc3b-d54217a8b745",
+    "nota": "341df695-5c36-4400-8b7e-9d6e98aad2df",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "b2b826c9-7c4e-4677-977f-76a8e48b50ac",
+    "nota": "5d5c8618-5a9c-409a-a769-00964517f719",
+    "fecha": "2026-08-21",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "b3352964-eac3-401f-99b0-7768059c153f",
+    "nota": "931b86f7-7047-49f3-b598-5262564c2b2c",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "b4d484aa-1426-4879-aebd-0bd7ddde8856",
+    "nota": "3bb9b53c-851f-4e29-a1d1-02404f9b79c7",
+    "fecha": "2026-08-27",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "b62832eb-dd14-42f4-9ade-0cdcc94adfda",
+    "nota": "dd730773-5279-45ba-bf3c-8d623df9e9f1",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "b7a6473c-5c00-42e6-969d-02e121abad8f",
+    "nota": "645ab7ec-e577-4d4e-a269-189b52d469fb",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "baeafc94-82ca-4271-8d87-dcc1eaecc924",
+    "nota": "d221e66e-41d8-4b49-baf0-1a44c886a2ce",
+    "fecha": "2026-08-15",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "bb765a9d-a087-45ca-91b0-32499a7589c8",
+    "nota": "e4d44608-8587-4bea-aa24-c30f322e71bf",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "bc63e41f-bf27-44d1-8261-30d93c6d62f4",
+    "nota": "f215dcdc-ef30-417c-bac3-ef94b7259c52",
+    "fecha": "2026-09-10",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "bc8e64d5-0369-4ab1-bfab-5b3fd2b46710",
+    "nota": "eeab2858-f5d3-4ca5-ad6e-52b90e436b2d",
+    "fecha": "2026-09-09",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "bdd8dc00-7929-4354-887a-fb74ca10fdfe",
+    "nota": "6857c35b-a99d-4fd9-b41e-3457428b5dd6",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "c30f14c2-bb55-4b59-ad2b-d8e85f94eecb",
+    "nota": "019cfc2f-1626-704f-84b0-8a120180f4b7",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "c82eb9fc-c23d-44cc-8b3d-86fdc8ab74bc",
+    "nota": "ef5981c8-f51b-45e9-ab69-4362c40cb527",
+    "fecha": "2026-09-14",
+    "semestre": "AY 26 - 27 FALL 2026"
+   },
+   {
+    "id": "cacc15bd-8829-4eef-a038-0d5a72d5ef96",
+    "nota": "9027ab0c-7869-45c4-acdc-60ea98a3dc67",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "cb7898eb-3cd6-4908-9b99-0c4c01fb6116",
+    "nota": "3b1075e2-dbe4-4562-a9bc-4216ba00bbbf",
+    "fecha": "2026-08-21",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "d0f909e2-d5eb-4d5f-ae4d-2b6bb8a090e3",
+    "nota": "c30f146a-73b1-4799-a121-89325c9d4078",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "d21a1c92-df41-48c7-8de4-3e845cdb0874",
+    "nota": "019f3986-1f1c-7204-a7ce-18dc88499377",
+    "fecha": "2026-08-14",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "d514e2fa-3283-4019-b96f-f1e19fc1d889",
+    "nota": "019be286-630a-7af8-8b98-9ef995aaec91",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "d5faba13-aded-4279-83d9-22717fc7fa4d",
+    "nota": "2eaef354-22a5-4c24-a840-d716a3c63b23",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "d9063fd6-0c1d-400d-8309-a9096a3986e0",
+    "nota": "1d8a2b3b-7a6f-4c38-ae41-88bb0382853f",
+    "fecha": "2026-08-21",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "d9c31f7a-9def-4dc0-ba03-132304faf3d1",
+    "nota": "eb88c6ed-2917-46b7-923b-ce6c6cd404ef",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "db6ea995-83e9-47fb-aaa6-7d3c04221799",
+    "nota": "f4d716c8-3395-4f20-ac73-16ce206b56b4",
+    "fecha": "2026-08-21",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "dbf813de-bb6b-4ecb-80a4-965c63b80d6d",
+    "nota": "ca4ed1f5-bdea-4224-aaff-150ba0826576",
+    "fecha": "2026-08-31",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "def439d8-fcc3-474b-81c1-6f524c0e0d51",
+    "nota": "20839711-46f8-434d-9efb-b5840ad51a65",
+    "fecha": "2026-08-20",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "e0890d00-1502-4b76-a2dd-e4b268d13f06",
+    "nota": "297b8eb8-b5a8-4044-a348-d3128470e882",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "e3ff5db8-1f21-4392-8cd4-664b1f104bee",
+    "nota": "79b8b877-a915-4daf-af8e-46ff22026266",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "e4394375-14c2-4a98-9847-aecf97a4a34f",
+    "nota": "398f7088-31ec-4b3a-b422-8ec424e75685",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "e7239a4e-040d-4847-ba7a-e03301a41a31",
+    "nota": "dc31cbab-f0dd-4837-872f-6f03bafa7ab7",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "ef62fdd5-e634-487e-9402-f4e2ec8826a5",
+    "nota": "f5fd8655-e54c-4c87-a613-5ec0d96d0794",
+    "fecha": "2026-08-24",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "eff7dac5-9034-43ce-afbc-68c1ccd710a2",
+    "nota": "84c3ca1c-439c-457d-bc92-a428ce8cb161",
+    "fecha": "2026-08-18",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "f17f4a9f-41cd-4573-b451-a6f274174587",
+    "nota": "65272814-70b5-4196-83e4-e242ef438a53",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "f4b410c0-10c5-4a8e-b0ad-2000807c6720",
+    "nota": "fbbcbd05-8c49-47d9-a54c-e0ce306b3f03",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "f4fee15a-8397-4e4b-99e6-913e31a824b5",
+    "nota": "019cfc2f-15b7-7b28-afea-bf9d1397fb2c",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "f51298db-a357-4875-a726-f68af3af7264",
+    "nota": "38a7db82-be0d-46c6-8ec6-d384e0de1356",
+    "fecha": "2026-08-25",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "f594d1e8-a478-4d75-bbd2-1f39182504ca",
+    "nota": "1f57e5f5-0dd1-4a38-a526-fc5c93f8109e",
+    "fecha": "2026-08-21",
+    "semestre": "AY 25-26 SUMMER 2026"
+   },
+   {
+    "id": "fab5aa5a-507c-48a7-a201-a5ec7ff174ad",
+    "nota": "725ad094-423b-43bd-989b-db04dbf33858",
+    "fecha": "2026-09-01",
+    "semestre": "AY 25-26 SUMMER 2026"
+   }
+  ]
+ }
+}
