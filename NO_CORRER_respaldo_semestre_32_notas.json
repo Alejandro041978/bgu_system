@@ -1,0 +1,522 @@
+{
+ "fecha": "2026-09-24T07:12:42.329Z",
+ "motivo": "Notas de Moodle nacidas sin semestre (aulas sin oferta) rellenadas con el semestre en curso a su fecha de sincronización. Autorizado el 24/09/2026.",
+ "notas_antes": [
+  {
+   "external_id": "d0f5a600-641a-4f4f-af0f-61dce28e5dbf",
+   "document_number": "42567003",
+   "course_code": "ENG 202",
+   "moodle_course_id": 712,
+   "synced_at": "2026-09-22T16:01:25.752+00:00",
+   "course_enrollment_id": "e40cd9ba-cbaf-474c-953b-a181732cf553"
+  },
+  {
+   "external_id": "019f2977-46a8-78ee-93f2-8f164605460d",
+   "document_number": "00792627",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "synced_at": "2026-09-19T15:38:51.112+00:00",
+   "course_enrollment_id": "ba2f1e98-cc0e-41d8-85e6-a6d60d2c3af2"
+  },
+  {
+   "external_id": "79ead79b-7276-476c-a571-785d7419bd60",
+   "document_number": "40321572",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-22T05:36:53.61+00:00",
+   "course_enrollment_id": "63329be1-a235-466c-a057-094283d7519b"
+  },
+  {
+   "external_id": "2c5b4d8e-237d-4f74-aad8-21340479e59a",
+   "document_number": "N16399218",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-23T23:36:40.127+00:00",
+   "course_enrollment_id": "11d6f796-9f89-47d1-8a7f-654cd6eb3e46"
+  },
+  {
+   "external_id": "69ff49de-76fa-43e8-a01e-1e549e2e2123",
+   "document_number": "46278432",
+   "course_code": "ENG 202",
+   "moodle_course_id": 712,
+   "synced_at": "2026-09-21T10:37:43.776+00:00",
+   "course_enrollment_id": "e7796d95-a5e4-43e8-8134-52351d1713ac"
+  },
+  {
+   "external_id": "df3637cd-83d5-4534-ac67-51a342848666",
+   "document_number": "70569764",
+   "course_code": "ENG 202",
+   "moodle_course_id": 712,
+   "synced_at": "2026-09-22T00:38:50.714+00:00",
+   "course_enrollment_id": "a0db1698-e206-4153-b3a7-6d61532155ab"
+  },
+  {
+   "external_id": "a17ebdaa-ef1f-4096-a541-9bf742ae49ac",
+   "document_number": "09441269",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-21T15:37:18.245+00:00",
+   "course_enrollment_id": "f0cb9abb-6bb3-41cf-b17f-5b9a5c5fedfd"
+  },
+  {
+   "external_id": "1c118e0f-16b6-485c-a0f8-87f601828392",
+   "document_number": "103617359",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-23T09:36:52.322+00:00",
+   "course_enrollment_id": "25423f25-dc31-42b9-83e7-1f60f2232d2e"
+  },
+  {
+   "external_id": "3eb4f60b-11d4-44eb-a00d-6821eefbf62b",
+   "document_number": "60458162",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "synced_at": "2026-09-22T14:38:49.395+00:00",
+   "course_enrollment_id": "7be766be-68f6-4bc5-a162-b219114bd0d7"
+  },
+  {
+   "external_id": "cdad8efd-d94c-45d2-a48e-23f8c2585389",
+   "document_number": "312768",
+   "course_code": "103",
+   "moodle_course_id": 553,
+   "synced_at": "2026-09-18T00:37:00.402+00:00",
+   "course_enrollment_id": "578a9411-084b-4f1d-862e-fd0115b2a169"
+  },
+  {
+   "external_id": "a262f0da-1411-4e4b-a879-ca44555aded0",
+   "document_number": "46102407",
+   "course_code": "ENG 202",
+   "moodle_course_id": 712,
+   "synced_at": "2026-09-22T16:01:25.752+00:00",
+   "course_enrollment_id": "238f7ba2-c76a-46f5-b523-3b86ca73b809"
+  },
+  {
+   "external_id": "fe682f29-ecf4-4c2c-a190-864dcd263665",
+   "document_number": "VASA880617HMCZ",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-19T20:38:07.333+00:00",
+   "course_enrollment_id": "b10a591f-7d19-4c4e-9d81-b78d1530e83d"
+  },
+  {
+   "external_id": "4eb2090b-b5c0-4f4d-a689-5d84b0c5e481",
+   "document_number": "41863462",
+   "course_code": "ENG 202",
+   "moodle_course_id": 712,
+   "synced_at": "2026-09-22T16:01:25.752+00:00",
+   "course_enrollment_id": "947a7a89-f675-4b04-8549-a314608d7d3c"
+  },
+  {
+   "external_id": "56232305-ee96-4cf8-a4ed-a7ad3ae069f2",
+   "document_number": "15345598",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-23T23:36:40.127+00:00",
+   "course_enrollment_id": "7c95ffc5-cb79-4bdb-8664-d704f17f24ff"
+  },
+  {
+   "external_id": "73867c87-fbe1-44d9-a5ca-18555572c0bd",
+   "document_number": "233096873",
+   "course_code": "101",
+   "moodle_course_id": 661,
+   "synced_at": "2026-09-23T12:37:51.846+00:00",
+   "course_enrollment_id": "8292bf4d-e430-400c-91d2-f9fbba0b15ed"
+  },
+  {
+   "external_id": "ce1f256b-b693-413c-aefa-ee39d6841c37",
+   "document_number": "17804130",
+   "course_code": "ENG 202",
+   "moodle_course_id": 743,
+   "synced_at": "2026-09-22T08:37:22.591+00:00",
+   "course_enrollment_id": "56763aae-8dcf-4c2a-a39a-ba9ae26f790b"
+  },
+  {
+   "external_id": "e22220c0-6d83-4b34-a5fb-f110ac9d8aaa",
+   "document_number": "71417795",
+   "course_code": "ENG 202",
+   "moodle_course_id": 712,
+   "synced_at": "2026-09-18T10:37:51.8+00:00",
+   "course_enrollment_id": "b6a5721e-edc4-44d1-be7f-982a6aa5fca4"
+  },
+  {
+   "external_id": "61350d2c-88e0-48cb-a48f-acc4887cd033",
+   "document_number": "73635579",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "synced_at": "2026-09-19T00:38:51.718+00:00",
+   "course_enrollment_id": "ab0ce706-dd0e-45a1-9fba-57b37d0a61dd"
+  },
+  {
+   "external_id": "3cc6477c-a51c-4823-a618-52421c77d222",
+   "document_number": "312768",
+   "course_code": "104",
+   "moodle_course_id": 554,
+   "synced_at": "2026-09-20T22:35:42.067+00:00",
+   "course_enrollment_id": "766c88cb-4a39-427e-b436-9f00717a5b33"
+  },
+  {
+   "external_id": "171e8a89-75ea-406e-acb4-3db4404dbd5c",
+   "document_number": "07641186",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-23T09:36:52.322+00:00",
+   "course_enrollment_id": "1c5189c9-e624-4200-ac9b-1007f68411ff"
+  },
+  {
+   "external_id": "6d1f742f-b596-43fc-a4a3-97522d924b86",
+   "document_number": "47575545",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-23T09:36:52.322+00:00",
+   "course_enrollment_id": "2f78234a-9771-4a5c-8048-c1a120586a1e"
+  },
+  {
+   "external_id": "4b160675-a868-4eac-a839-582ef4242cb1",
+   "document_number": "800550794",
+   "course_code": "101",
+   "moodle_course_id": 460,
+   "synced_at": "2026-09-19T08:36:54.746+00:00",
+   "course_enrollment_id": "ec8d179e-e02d-40e6-a249-0e054f680950"
+  },
+  {
+   "external_id": "b1729ce4-b734-4259-abc5-58abda631396",
+   "document_number": "0919812586",
+   "course_code": "102",
+   "moodle_course_id": 446,
+   "synced_at": "2026-09-19T23:38:07.657+00:00",
+   "course_enrollment_id": "e05414fb-4363-41b3-b485-a447137a9b29"
+  },
+  {
+   "external_id": "7a8270e4-5612-4c00-a339-f36db79e25f8",
+   "document_number": "312768",
+   "course_code": "102",
+   "moodle_course_id": 552,
+   "synced_at": "2026-09-18T01:35:44.185+00:00",
+   "course_enrollment_id": "058c1a5b-b88c-4c61-bcee-1454b41f2a74"
+  },
+  {
+   "external_id": "8027efbb-7cc8-4886-a4f3-eaeeb508c9c2",
+   "document_number": "62602988",
+   "course_code": "MAR 240",
+   "moodle_course_id": 499,
+   "synced_at": "2026-09-23T23:37:07.994+00:00",
+   "course_enrollment_id": "49b2b3b0-4050-41cb-bb46-6880c5796333"
+  },
+  {
+   "external_id": "715ce867-6edc-4e1f-ae73-aaf46121888e",
+   "document_number": "75317741",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "synced_at": "2026-09-22T00:38:51.141+00:00",
+   "course_enrollment_id": "8b0ca74e-7587-415e-8be9-d7b5530fc38e"
+  },
+  {
+   "external_id": "38355fd7-528b-42f6-ab8e-5a9c6af0ce27",
+   "document_number": "44308456",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-22T05:36:53.61+00:00",
+   "course_enrollment_id": "2b65fe66-900a-4b3d-9a04-6ae052711fb2"
+  },
+  {
+   "external_id": "4f55123e-62bd-4002-ad86-29209a7082c1",
+   "document_number": "16502981",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-22T05:36:53.61+00:00",
+   "course_enrollment_id": "dee99e0e-b231-40ee-a9e6-64ed057a6cda"
+  },
+  {
+   "external_id": "8a475451-cf58-456d-a262-d69e867441b5",
+   "document_number": "115948733",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-23T23:36:40.127+00:00",
+   "course_enrollment_id": "22f792c0-671c-43db-8212-2c1762c23997"
+  },
+  {
+   "external_id": "8d07b276-311a-4398-ac6a-de1b91e9a8a0",
+   "document_number": "42753100",
+   "course_code": "QRE 8645",
+   "moodle_course_id": 658,
+   "synced_at": "2026-09-21T01:37:17.277+00:00",
+   "course_enrollment_id": "801966dd-38c3-4fbd-a1b4-2e6dfa60de97"
+  },
+  {
+   "external_id": "019bd839-ab57-7c6a-a5e0-daf17d00b35a",
+   "document_number": "0919812586",
+   "course_code": "101",
+   "moodle_course_id": 447,
+   "synced_at": "2026-09-18T06:35:42.31+00:00",
+   "course_enrollment_id": "1da7bd06-ab2a-4f21-9196-f7907ca8813c"
+  },
+  {
+   "external_id": "c3a81e07-08b3-4838-abe6-e37f88630266",
+   "document_number": "42534157",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "synced_at": "2026-09-19T00:38:51.718+00:00",
+   "course_enrollment_id": "db6717ae-c4fb-4f85-806f-9f0cb0f20cae"
+  }
+ ],
+ "matriculas_antes": [
+  {
+   "id": "058c1a5b-b88c-4c61-bcee-1454b41f2a74",
+   "semester_id": null
+  },
+  {
+   "id": "11d6f796-9f89-47d1-8a7f-654cd6eb3e46",
+   "semester_id": null
+  },
+  {
+   "id": "1c5189c9-e624-4200-ac9b-1007f68411ff",
+   "semester_id": null
+  },
+  {
+   "id": "1da7bd06-ab2a-4f21-9196-f7907ca8813c",
+   "semester_id": null
+  },
+  {
+   "id": "22f792c0-671c-43db-8212-2c1762c23997",
+   "semester_id": null
+  },
+  {
+   "id": "238f7ba2-c76a-46f5-b523-3b86ca73b809",
+   "semester_id": null
+  },
+  {
+   "id": "25423f25-dc31-42b9-83e7-1f60f2232d2e",
+   "semester_id": null
+  },
+  {
+   "id": "2b65fe66-900a-4b3d-9a04-6ae052711fb2",
+   "semester_id": null
+  },
+  {
+   "id": "2f78234a-9771-4a5c-8048-c1a120586a1e",
+   "semester_id": null
+  },
+  {
+   "id": "49b2b3b0-4050-41cb-bb46-6880c5796333",
+   "semester_id": null
+  },
+  {
+   "id": "56763aae-8dcf-4c2a-a39a-ba9ae26f790b",
+   "semester_id": null
+  },
+  {
+   "id": "578a9411-084b-4f1d-862e-fd0115b2a169",
+   "semester_id": null
+  },
+  {
+   "id": "63329be1-a235-466c-a057-094283d7519b",
+   "semester_id": null
+  },
+  {
+   "id": "766c88cb-4a39-427e-b436-9f00717a5b33",
+   "semester_id": null
+  },
+  {
+   "id": "7be766be-68f6-4bc5-a162-b219114bd0d7",
+   "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+  },
+  {
+   "id": "7c95ffc5-cb79-4bdb-8664-d704f17f24ff",
+   "semester_id": null
+  },
+  {
+   "id": "801966dd-38c3-4fbd-a1b4-2e6dfa60de97",
+   "semester_id": null
+  },
+  {
+   "id": "8292bf4d-e430-400c-91d2-f9fbba0b15ed",
+   "semester_id": null
+  },
+  {
+   "id": "8b0ca74e-7587-415e-8be9-d7b5530fc38e",
+   "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+  },
+  {
+   "id": "947a7a89-f675-4b04-8549-a314608d7d3c",
+   "semester_id": null
+  },
+  {
+   "id": "a0db1698-e206-4153-b3a7-6d61532155ab",
+   "semester_id": null
+  },
+  {
+   "id": "ab0ce706-dd0e-45a1-9fba-57b37d0a61dd",
+   "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+  },
+  {
+   "id": "b10a591f-7d19-4c4e-9d81-b78d1530e83d",
+   "semester_id": null
+  },
+  {
+   "id": "b6a5721e-edc4-44d1-be7f-982a6aa5fca4",
+   "semester_id": null
+  },
+  {
+   "id": "ba2f1e98-cc0e-41d8-85e6-a6d60d2c3af2",
+   "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+  },
+  {
+   "id": "db6717ae-c4fb-4f85-806f-9f0cb0f20cae",
+   "semester_id": "78e4ea47-bf10-4eba-ba88-4f5d20901262"
+  },
+  {
+   "id": "dee99e0e-b231-40ee-a9e6-64ed057a6cda",
+   "semester_id": null
+  },
+  {
+   "id": "e05414fb-4363-41b3-b485-a447137a9b29",
+   "semester_id": null
+  },
+  {
+   "id": "e40cd9ba-cbaf-474c-953b-a181732cf553",
+   "semester_id": null
+  },
+  {
+   "id": "e7796d95-a5e4-43e8-8134-52351d1713ac",
+   "semester_id": null
+  },
+  {
+   "id": "ec8d179e-e02d-40e6-a249-0e054f680950",
+   "semester_id": null
+  },
+  {
+   "id": "f0cb9abb-6bb3-41cf-b17f-5b9a5c5fedfd",
+   "semester_id": null
+  }
+ ],
+ "asignacion": [
+  {
+   "external_id": "d0f5a600-641a-4f4f-af0f-61dce28e5dbf",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "019f2977-46a8-78ee-93f2-8f164605460d",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "79ead79b-7276-476c-a571-785d7419bd60",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "2c5b4d8e-237d-4f74-aad8-21340479e59a",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "69ff49de-76fa-43e8-a01e-1e549e2e2123",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "df3637cd-83d5-4534-ac67-51a342848666",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "a17ebdaa-ef1f-4096-a541-9bf742ae49ac",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "1c118e0f-16b6-485c-a0f8-87f601828392",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "3eb4f60b-11d4-44eb-a00d-6821eefbf62b",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "cdad8efd-d94c-45d2-a48e-23f8c2585389",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "a262f0da-1411-4e4b-a879-ca44555aded0",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "fe682f29-ecf4-4c2c-a190-864dcd263665",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "4eb2090b-b5c0-4f4d-a689-5d84b0c5e481",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "56232305-ee96-4cf8-a4ed-a7ad3ae069f2",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "73867c87-fbe1-44d9-a5ca-18555572c0bd",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "ce1f256b-b693-413c-aefa-ee39d6841c37",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "e22220c0-6d83-4b34-a5fb-f110ac9d8aaa",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "61350d2c-88e0-48cb-a48f-acc4887cd033",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "3cc6477c-a51c-4823-a618-52421c77d222",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "171e8a89-75ea-406e-acb4-3db4404dbd5c",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "6d1f742f-b596-43fc-a4a3-97522d924b86",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "4b160675-a868-4eac-a839-582ef4242cb1",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "b1729ce4-b734-4259-abc5-58abda631396",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "7a8270e4-5612-4c00-a339-f36db79e25f8",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "8027efbb-7cc8-4886-a4f3-eaeeb508c9c2",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "715ce867-6edc-4e1f-ae73-aaf46121888e",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "38355fd7-528b-42f6-ab8e-5a9c6af0ce27",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "4f55123e-62bd-4002-ad86-29209a7082c1",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "8a475451-cf58-456d-a262-d69e867441b5",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "8d07b276-311a-4398-ac6a-de1b91e9a8a0",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "019bd839-ab57-7c6a-a5e0-daf17d00b35a",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "c3a81e07-08b3-4838-abe6-e37f88630266",
+   "semestre": "AY 26 - 27 FALL 2026"
+  }
+ ]
+}
