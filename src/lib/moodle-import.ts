@@ -3,7 +3,7 @@ import { rendidoPct, estadoAcademico, huboEvaluacionNueva, esItemBono, type Item
 import { importGrades, resolveImportTarget, fetchByIn, stableUuid, type ImportRow } from './grades-write'
 import { asegurarMatriculas, estadoDeNota, type MatriculaDeNota } from './course-enrollments'
 import { externosDeCurso } from './grade-scope'
-import { semestreEnCurso } from './semestre-en-curso'
+import { cargarSemestres, semestrePorEvaluaciones, fechaDeItem } from './semestre-por-evaluaciones'
 
 // ---------------------------------------------------------------------------
 // Importación de un acta de Moodle al expediente. Pipeline compartido entre
@@ -123,41 +123,12 @@ export async function loadStudentsByExternal(sb: any): Promise<Map<string, any>>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function importAula(sb: any, courseid: number, userId: string, pre?: { byExternal?: Map<string, any>; deadlineMs?: number; onlyStudentIds?: string[] }): Promise<ImportAulaResult> {
-  // El periodo de la nota sale de la OFERTA del aula —semester_offerings dice
-  // en qué semestre se dictó— y de ahí a su año académico.
-  //
-  // Antes era `new Date().getFullYear()`: el año de la corrida del importador.
-  // Las 1.703 notas de Moodle decían todas 2026, y 924 de ellas son de cursos
-  // dictados en 2023, 2024 o 2025. Peor: cada re-importación las volvía a
-  // sellar con el año en curso, así que el dato migraba solo.
-  //
-  // Si el aula no tiene oferta, se deja en blanco. Un periodo desconocido es
-  // un dato que falta; inventarlo lo convierte en un dato falso, que es lo que
-  // nadie puede detectar después.
-  // Un aula puede tener VARIAS ofertas: se reutiliza entre cohortes, así que la
-  // 155 está ofertada en FALL 2024 y en FALL 2025. Antes se tomaba una con
-  // limit(1) sin ordenar —es decir, al azar—, y con eso todas las notas del
-  // aula se sellaban con el año de la cohorte equivocada. Se toma la MÁS
-  // RECIENTE, que es la que se está dictando.
-  const { data: ofertas } = await sb.from('semester_offerings')
-    .select('semester:academic_semesters(id, name, start_date, year:academic_years(start_date))')
-    .eq('moodle_course_id', String(courseid))
-  // "Más reciente" por la FECHA DEL SEMESTRE, no por el año académico: FALL
-  // 2025 y SPRING 2026 son del mismo AY 25-26 y el orden por año los dejaba
-  // empatados — el importador seguía sellando con la oferta vieja aunque la
-  // nueva existiera (caso DBA 643, 27/08/2026). El año queda de respaldo para
-  // semestres sin fecha.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sems = ((ofertas ?? []) as any[]).map(o => o.semester).filter(Boolean)
-    .sort((a, b) =>
-      String(b?.start_date ?? b?.year?.start_date ?? '').localeCompare(String(a?.start_date ?? a?.year?.start_date ?? '')))
-  // Sin oferta: el semestre EN CURSO como respaldo (ver lib/semestre-en-curso).
-  const sem = sems[0] ?? await semestreEnCurso(sb)
-  const semestrePorRespaldo = !sems.length && !!sem
-  // El semestre en sí, que es el orden temporal fiable: año+bloque se
-  // contradecían en 6.747 filas del histórico.
-  const semesterId: string | null = sem?.id ? String(sem.id) : null
-  const semesterStart: string | null = sem?.start_date ? String(sem.start_date) : null
+  // El PERIODO de cada nota sale de las fechas en que ESE estudiante rindió
+  // sus evaluaciones (decisión del usuario, 24/09/2026; ver
+  // lib/semestre-por-evaluaciones). Ya no se usa la oferta del aula ni el
+  // semestre en curso: un aula reutilizada por varias cohortes fechaba a todos
+  // con la cohorte equivocada, y un aula sin oferta no fechaba a nadie.
+  const semestres = await cargarSemestres(sb)
   // Presupuesto para las llamadas pesadas a Moodle (el reporte de un aula de
   // 500+ estudiantes tarda minutos). Sin deadline (importación manual): 240s.
   const heavyTimeout = () => {
@@ -394,7 +365,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   // mapeo contra casillas: el acta es auto-descriptiva y Moodle es la fuente
   // de la estructura de evaluación.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const detailByExternal = new Map<string, { student_id: string; process: any[]; total: number }>()
+  const detailByExternal = new Map<string, { student_id: string; process: any[]; total: number; semester_id: string | null }>()
   // Campus externo POR ESTUDIANTE (09/09/2026): los pares marcados no viajan
   // desde el aula — su única vía es Notas de campus externo, como el candado de
   // capstone pero acotado a estudiantes concretos.
@@ -413,6 +384,8 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
     }
   } catch { /* sin filas: sin declarados */ }
   let sinPuente = 0, sinTotal = 0, yaRegistradas = 0, rellenadas = 0, recursados = 0, saltadosExternos = 0
+  let sinFechas = 0
+  const resellar: { external_id: string; semester_id: string }[] = []
   let sinDeclarar = 0
   const sinDeclararLista: string[] = []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -448,6 +421,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
         pct: i.weightraw != null ? Math.round(Number(i.weightraw) * 10000) / 100 : null,
         val: val == null ? null : Math.round(val * 100) / 100,
         desc: i.itemname ?? '',
+        fecha: fechaDeItem(i),
       }
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -463,6 +437,13 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       } as any)
     })
     const rendido = rendidoPct(process as ItemProceso[])
+    // Semestre de ESTE estudiante en ESTA asignatura: mayoría de sus
+    // evaluaciones calificadas (bonos incluidos: también se rindieron).
+    const semEval = semestrePorEvaluaciones(
+      ((ug.gradeitems ?? []) as any[]).filter(i => i.itemtype === 'mod' && i.graderaw != null).map(fechaDeItem), semestres)
+    const semesterId: string | null = semEval?.id ?? null
+    const semesterStart: string | null = semEval?.start_date ?? null
+    if (!semesterId) sinFechas++
 
     // skip = histórico con nota (intocable); update = fila de una importación
     // anterior (las notas cambian en Moodle y se reflejan); fill = "en curso"
@@ -476,6 +457,9 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       declaradoDe.get(String(stu.id)) ?? null,
     )
     if (target.action === 'skip') {
+      // La nota no se toca (histórica, protegida o cerrada), pero su PERIODO sí
+      // se recalcula: es contexto, no calificación (decisión del usuario).
+      if (semesterId) resellar.push({ external_id: target.external_id, semester_id: semesterId })
       if (target.sin_declarar) {
         sinDeclarar++
         if (sinDeclararLista.length < 20) {
@@ -548,13 +532,31 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       } as never, passing),
       source: 'moodle',
     })
-    detailByExternal.set(externalId, { student_id: stu.id, process, total })
+    detailByExternal.set(externalId, { student_id: stu.id, process, total, semester_id: semesterId })
   }
 
   const result = await importGrades(sb, rows, {
     origin: 'moodle', userId,
     reason: `Importación de acta Moodle (aula ${courseid}) → ${destCourse.code ?? ''} ${destCourse.name ?? ''}`,
   })
+
+  // Periodo de las notas que la importación NO tocó (históricas, protegidas,
+  // cerradas): se recalcula igual, en la nota y en su matrícula, solo si cambia.
+  let resellados = 0
+  if (!result.errors.length && resellar.length) {
+    for (let i = 0; i < resellar.length; i += 200) {
+      const lote = resellar.slice(i, i + 200)
+      const { data: act } = await sb.from('academic_grades').select('external_id, semester_id, course_enrollment_id').in('external_id', lote.map(r => r.external_id))
+      for (const g of (act ?? []) as { external_id: string; semester_id: string | null; course_enrollment_id: string | null }[]) {
+        const nuevo = lote.find(r => r.external_id === g.external_id)?.semester_id
+        if (!nuevo || String(g.semester_id ?? '') === nuevo) continue
+        const u = await sb.from('academic_grades').update({ semester_id: nuevo }).eq('external_id', g.external_id)
+        if (u.error) { result.errors.push('periodo: ' + u.error.message); continue }
+        if (g.course_enrollment_id) await sb.from('academic_course_enrollments').update({ semester_id: nuevo }).eq('id', g.course_enrollment_id)
+        resellados++
+      }
+    }
+  }
 
   // La matrícula por asignatura, en la misma corrida que la nota.
   //
@@ -680,7 +682,7 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
         enrollment_id: enrOf.get(d.student_id) ?? null,
         course_code: destCourse.code,
         course_name: destCourse.name,
-        semester_id: semesterId,
+        semester_id: d.semester_id,
         final_grade: d.total,
         passing_score: null,   // regla de la categoría, no dato de la nota
         max_score: 100,
@@ -739,8 +741,10 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       saltados_campus_externo: saltadosExternos,
       detalles_escritos: detallesEscritos,
       parcial,
-      // El aula no tiene oferta de semestre: se selló con el semestre en curso
-      semestre_por_respaldo: semestrePorRespaldo ? (sem?.name ?? true) : null,
+      // Periodo por evaluaciones: cuántas notas saltadas cambiaron de semestre y
+      // cuántos alumnos aún no tienen ninguna evaluación calificada (sin periodo)
+      periodos_recalculados: resellados,
+      sin_fechas: sinFechas,
     },
   }
 }

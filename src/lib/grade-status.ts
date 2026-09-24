@@ -39,6 +39,9 @@ export interface ItemProceso {
   // no porcentaje. Queda fuera de rendido_pct y de la suma de pesos.
   extra?: boolean
   max?: number | null
+  // Fecha en que Moodle calificó el ítem (gradedategraded → YYYY-MM-DD). De
+  // aquí sale el semestre de la asignatura (lib/semestre-por-evaluaciones).
+  fecha?: string | null
 }
 
 // Cuánto del curso está efectivamente calificado, en porcentaje.

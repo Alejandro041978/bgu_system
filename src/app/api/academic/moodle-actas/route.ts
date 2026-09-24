@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { semestreEnCurso } from '@/lib/semestre-en-curso'
+import { cargarSemestres, semestrePorEvaluaciones, fechaDeItem } from '@/lib/semestre-por-evaluaciones'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { moodleCall, moodleConfigured } from '@/lib/moodle'
@@ -214,9 +214,9 @@ export async function GET(req: NextRequest) {
   const semsAula = ((ofertasAula ?? []) as any[]).map(o => o.semester).filter(Boolean)
     .sort((a, b) =>
       String(b?.start_date ?? b?.year?.start_date ?? '').localeCompare(String(a?.start_date ?? a?.year?.start_date ?? '')))
-  // Sin oferta, la previa usa el mismo respaldo que el importador (semestre en curso)
-  const semAula = semsAula[0] ?? await semestreEnCurso(sb)
-  const semesterStartAula: string | null = semAula?.start_date ? String(semAula.start_date) : null
+  // El periodo lo deciden las evaluaciones de cada alumno (igual que el importador)
+  void semsAula
+  const semestres = await cargarSemestres(sb)
 
   const politica = await aulaPolicy(sb, courseid, report)
 
@@ -257,9 +257,11 @@ export async function GET(req: NextRequest) {
           pct: i.weightraw != null ? Math.round(Number(i.weightraw) * 10000) / 100 : null,
           val: i.graderaw ?? null,
         }))
+      const semEval = semestrePorEvaluaciones(
+        ((ug.gradeitems ?? []) as any[]).filter(i => i.itemtype === 'mod' && i.graderaw != null).map(fechaDeItem), semestres)
       const r = resolveImportTarget(
         gradesByDoc.get(doc) ?? [], linkedCourse, stableUuid(`moodle:${courseid}:${ug.userid}`), passing,
-        { rendido_pct: rendidoPct(proc as ItemProceso[]), semester_start: semesterStartAula, semester_id: semAula?.id ? String(semAula.id) : null, valor: total },
+        { rendido_pct: rendidoPct(proc as ItemProceso[]), semester_start: semEval?.start_date ?? null, semester_id: semEval?.id ?? null, valor: total },
         declaradoDe.get(String(stu.id)) ?? null,
       )
       if (r.action === 'skip' && r.sin_declarar) { destino = 'recursado SIN DECLARAR — no se abre (declararlo en Recursados)'; yaRegistradas++ }
