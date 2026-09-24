@@ -1,0 +1,728 @@
+{
+ "fecha": "2026-09-24T07:42:48.127Z",
+ "motivo": "Notas de Moodle sin semestre cuya matrícula por asignatura sí lo tiene: se copia el de la matrícula. Autorizado el 24/09/2026.",
+ "notas_antes": [
+  {
+   "external_id": "977df116-59c0-4b1a-a6e4-f2d6498caa2d",
+   "document_number": "71039535",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "9248377b-4856-4a14-a37f-53739e47ea82",
+   "synced_at": "2026-08-21T07:37:40.909+00:00"
+  },
+  {
+   "external_id": "ff2f9c8f-2bb6-4ff5-ac82-0eb04ea93e0a",
+   "document_number": "42785522",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "37515877-02cb-4e44-b540-182ab43fc362",
+   "synced_at": "2026-08-21T07:37:40.909+00:00"
+  },
+  {
+   "external_id": "c2b720a7-2422-4cd4-a0cc-843c65ea117f",
+   "document_number": "71781742",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "33255a0a-83e1-47ba-bfaf-f3fa8a769be6",
+   "synced_at": "2026-09-07T06:38:57.414+00:00"
+  },
+  {
+   "external_id": "48021687-759a-4a2b-a0ce-1b546e28fe7b",
+   "document_number": "75515507",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "0571b9bf-7ed1-48ba-881a-b617628fa6cb",
+   "synced_at": "2026-09-04T22:38:51.049+00:00"
+  },
+  {
+   "external_id": "1a1b305c-b818-4f49-a23e-dc4a5642c41e",
+   "document_number": "72866652",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "50c298b7-975f-43fa-98ab-f750c74abde5",
+   "synced_at": "2026-09-07T06:38:57.414+00:00"
+  },
+  {
+   "external_id": "b0e94420-d141-40b7-af64-7886bf398bd3",
+   "document_number": "72909728",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "62eb79a2-1fb7-4e6d-a918-84f546e07208",
+   "synced_at": "2026-09-06T14:39:10.636+00:00"
+  },
+  {
+   "external_id": "2f2ed0c8-83ba-4207-a2c0-69ded2804eee",
+   "document_number": "70555256",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "3b5794fb-f8a5-48f8-a5b7-97a0e23f1343",
+   "synced_at": "2026-09-07T06:38:57.414+00:00"
+  },
+  {
+   "external_id": "77d37d8e-bcf6-4445-ad67-016d1028c5be",
+   "document_number": "71041114",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "3290ed43-19fc-4562-b1ec-e4a0883b2477",
+   "synced_at": "2026-09-07T06:38:57.414+00:00"
+  },
+  {
+   "external_id": "2d40cb6d-6eb7-47e3-a4f1-af2a51cad2ce",
+   "document_number": "003164252",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "e08b8b55-8db0-41ee-9839-0c7f47d9dc17",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "b0002743-53d2-4140-ad6b-9efe8a3e4bf9",
+   "document_number": "47679905",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "cbba1b2c-81b2-4d70-a9ff-06e73769f73b",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "ddb7b11d-7a32-4773-ab46-4fa40f7897d3",
+   "document_number": "48866236",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "91d4a2b2-4314-4f2d-8c70-ba4fc0ab3a97",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "a566b4e9-6bae-41b6-a86f-eeb27c46e710",
+   "document_number": "76820562",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "de9ea397-d86d-4ead-bfe0-90cd3e544810",
+   "synced_at": "2026-08-21T07:37:40.909+00:00"
+  },
+  {
+   "external_id": "a9096b9b-c284-4152-a2f5-5e76ed50ab46",
+   "document_number": "75255975",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "e98b7ebf-d51b-44d2-85bc-e08c46641ba7",
+   "synced_at": "2026-08-21T07:37:40.909+00:00"
+  },
+  {
+   "external_id": "96a819d2-568f-4c10-a7e7-2cab0f9f733c",
+   "document_number": "73999691",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "5c6b83a5-41a1-4a3b-8603-1c7fd6ae0239",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "eff8c833-c1f0-441b-a654-ee5f475b5bb5",
+   "document_number": "70574089",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "9253881c-93a9-43cd-8f44-115314be8f24",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "fc44a6da-df55-4828-a088-aaca38e7a4f8",
+   "document_number": "45200602",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "3bf29d98-5500-46c6-9338-e313f61f5fa3",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "95303816-4ad2-4497-a466-d3ca91636bc4",
+   "document_number": "71969987",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "5270f332-3a93-4d23-be79-464d546024ce",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "0d27fa1e-be4d-4836-abde-99e1551317f0",
+   "document_number": "74434600",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "d9458893-8e98-40b1-ab79-614c206accbe",
+   "synced_at": "2026-09-07T06:38:57.414+00:00"
+  },
+  {
+   "external_id": "99180038-ffe4-43bf-accc-b11a7b1fe3e2",
+   "document_number": "74945590",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "b6275c8f-e565-4e77-bc17-54106efce46b",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "62541ae5-90f8-4f1e-a241-04365ad7f16a",
+   "document_number": "75765445",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "6c02fcb6-c5c8-43ff-b542-ea001acdc98e",
+   "synced_at": "2026-09-07T06:38:57.414+00:00"
+  },
+  {
+   "external_id": "4d96ab24-02bb-4989-a686-4518f705f925",
+   "document_number": "46356604",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "fb55fd61-f7f2-451a-afec-bab3db86fbc2",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "73010a06-2f79-4c6c-a111-dbf8b8b9ae2e",
+   "document_number": "75263897",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "0b8c7960-fca4-4447-aab6-ca077ad1b9ab",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "68b31e08-e720-4ece-a24e-e54617d910f1",
+   "document_number": "73024467",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "a9f3aafa-a7b7-4f4f-9704-92f2cd02636b",
+   "synced_at": "2026-09-07T06:38:57.414+00:00"
+  },
+  {
+   "external_id": "a7be4ef2-6af8-4232-a554-1d2111717cb7",
+   "document_number": "42720587",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "6a984fbe-b4e7-44c7-9c33-298a7a3d01db",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "afe44721-287c-40c9-a7a3-7a01a6cc6214",
+   "document_number": "72130187",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "76963fa1-af80-4d54-866c-ae6603d52512",
+   "synced_at": "2026-08-27T13:02:36.688+00:00"
+  },
+  {
+   "external_id": "3c5fa119-16d5-4836-a249-f2e683e2abe2",
+   "document_number": "74076218",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "abe7a763-0533-4ac8-a0c0-a5f9701b79ac",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "d8032e33-4596-476d-af98-7fc35ed0b555",
+   "document_number": "71980724",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "ddebf95c-2263-46f3-9fac-8366eb5a51d4",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "79ce45c5-a175-4173-aab0-c0ed893a1e2c",
+   "document_number": "75545014",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "66d640e3-e5a2-4bf3-b46b-fe887e853acf",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "38960579-5866-4cba-a772-6926c7ec9dc4",
+   "document_number": "75099961",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "e8fcba45-80a8-4394-8b53-e7d54de3ab8a",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "08af66a8-2d93-47a1-a234-2c9ccb4cfa43",
+   "document_number": "71051040",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "88d1f2e4-1c3c-4c0b-9204-8c40508f5179",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "2d822648-a63f-49d2-a0fe-890d9d00669b",
+   "document_number": "42451426",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "23dac300-4c67-458e-bef0-d200ffd5e56e",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "923e6f04-b6b8-4173-a6f8-6155512e4bbf",
+   "document_number": "72513917",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "c648caf9-43d2-420f-948b-9cd8c137fba2",
+   "synced_at": "2026-08-24T11:37:05.528+00:00"
+  },
+  {
+   "external_id": "cc958a90-bdff-4488-a28b-4abc174dbd27",
+   "document_number": "44208294",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "2f255a6b-6ed6-4e9e-b4a5-ee19ee7724ac",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "57095813-77b7-4119-a279-89f7d4827c5b",
+   "document_number": "75392842",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "9971dbd1-264c-47b3-a5f9-9d0653bd927e",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "a244841b-a0ab-42ef-a93b-21c92939676b",
+   "document_number": "71208093",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "bb0134ae-6ee9-43ca-83e3-d90137c3333e",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "5f0a0ff6-ed3a-4eb6-a3f3-49ac578fbddc",
+   "document_number": "73092624",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "f48ea9c2-3347-45a0-ab2c-2806d2a3f9ef",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "78f7256c-f567-45a6-ab9c-f22e38ca419b",
+   "document_number": "49003916",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "db722971-cb50-4bad-921b-1ad437f66f13",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "703a99d9-bf50-4370-afd9-9b355814e17a",
+   "document_number": "42567003",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "b9060614-3289-44ee-9b68-c96dcd573220",
+   "synced_at": "2026-08-21T07:37:40.909+00:00"
+  },
+  {
+   "external_id": "94cfa40e-e2e8-43a7-af4c-49c132ec8004",
+   "document_number": "74081266",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "af8fd879-04e7-4ffb-afd2-160292e12e4b",
+   "synced_at": "2026-08-21T07:37:40.909+00:00"
+  },
+  {
+   "external_id": "019e60f5-d349-7d87-ba07-bda8293125b9",
+   "document_number": "60989041",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "deb06588-4bf0-4762-98ce-5ec7051c6d96",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "1be8dea9-7102-4f57-a619-41a3b0472a22",
+   "document_number": "75580174",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "f755080d-8f08-4485-8052-8f077ab965e9",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "53a46395-f3b9-468a-bc1e-50e050a35022",
+   "document_number": "42996748",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "9a74ad45-0349-4230-8868-a2d8cece49f0",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "6b863b6a-edd0-4e09-90c1-ed50fc0ac201",
+   "document_number": "10812376",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "8301adfd-f91d-4c79-ae07-25c85b93c45c",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "8ffa9ba6-0b2e-4990-b590-adca5edfe25e",
+   "document_number": "45338348",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "b73c6bb9-59ce-437b-9c12-27a636d30db4",
+   "synced_at": "2026-08-20T10:36:49.422+00:00"
+  },
+  {
+   "external_id": "055069cd-416c-4f10-a9e5-9272a4431bbb",
+   "document_number": "72665534",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "bc14da23-74a8-4f82-aed7-f53a4b0252d3",
+   "synced_at": "2026-09-11T06:39:02.518+00:00"
+  },
+  {
+   "external_id": "f27792a0-3d1c-43e8-a266-a760993c59a8",
+   "document_number": "44303120",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "cf110eb2-978f-454f-abc4-b35d3b9e72c0",
+   "synced_at": "2026-09-15T00:38:39.5+00:00"
+  },
+  {
+   "external_id": "dcb6b702-3e0a-4a9e-826e-8d961dd88558",
+   "document_number": "74284353",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "7f5a8fcd-1811-45ba-89bd-a802f2ae4dfe",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "019bd831-6d42-7ac3-852e-d734f685e1a7",
+   "document_number": "70778185",
+   "course_code": "104",
+   "moodle_course_id": 403,
+   "course_enrollment_id": "020ce8f7-082f-4e0c-946a-9124094f6c97",
+   "synced_at": "2026-08-17T09:36:41.423+00:00"
+  },
+  {
+   "external_id": "f0d86b4c-9b5d-4993-aee3-a28a651a2e6f",
+   "document_number": "75915262",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "38ec2341-af55-40a2-b119-01c087df79aa",
+   "synced_at": "2026-08-20T10:36:49.422+00:00"
+  },
+  {
+   "external_id": "ec187a2f-ef8f-4946-bfb6-7461341aa6bf",
+   "document_number": "75725962",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "41bdd13e-df1a-4e53-be02-5e15efe5f59f",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "cc5e2f18-6ddd-48df-a414-19baa8a13a66",
+   "document_number": "46471011",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "abfc8773-83c5-4fd2-ab5b-59f9299bc889",
+   "synced_at": "2026-08-22T11:38:57.85+00:00"
+  },
+  {
+   "external_id": "46e1dade-0f12-4cd8-a7f6-3f1a1f76e4a5",
+   "document_number": "71399316",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "c2c0f110-84d9-463e-a8ab-0c5e9efff662",
+   "synced_at": "2026-08-19T20:36:40.814+00:00"
+  },
+  {
+   "external_id": "32c438e9-9dac-4ad6-afcf-565e20798079",
+   "document_number": "70618015",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "8d64d838-f6c8-4aeb-b570-019bb4f7a905",
+   "synced_at": "2026-08-20T10:36:49.422+00:00"
+  },
+  {
+   "external_id": "460ecbab-ae9f-4dae-94f7-f786a1ea63b9",
+   "document_number": "74120182",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "d4f4ffea-8551-4edb-911f-c380388f01fa",
+   "synced_at": "2026-08-20T10:36:49.422+00:00"
+  },
+  {
+   "external_id": "019e60f2-29fb-754a-8b71-ebb39ea953b3",
+   "document_number": "60464112",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "f61284d9-cbed-4bd0-bb04-a032f32bbf03",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "5b8eee21-579e-4634-aca1-2e54d8a6d30a",
+   "document_number": "73318577",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "d4ac59a7-f1c8-41cc-9c5c-f4f9d20f1802",
+   "synced_at": "2026-08-20T10:36:49.422+00:00"
+  },
+  {
+   "external_id": "b96aaa6c-5f9d-4609-8b91-46319182e31d",
+   "document_number": "42496292",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "9ec40366-11d6-4cd8-a8a6-0ce3f889ac66",
+   "synced_at": "2026-08-20T10:36:49.422+00:00"
+  },
+  {
+   "external_id": "f08e532e-b320-4a20-8000-6701f2e9697f",
+   "document_number": "71226409",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "3d9594bf-4a75-43ff-81e8-a5ac76a87c4e",
+   "synced_at": "2026-09-02T07:38:45.668+00:00"
+  },
+  {
+   "external_id": "5c9afd9c-2347-4154-9f8d-08c379528365",
+   "document_number": "29728784",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "00b41d0b-f157-43db-aa9b-a67740969070",
+   "synced_at": "2026-09-01T06:37:22.22+00:00"
+  },
+  {
+   "external_id": "3ac393e9-c676-4193-89e3-b50b2473be8f",
+   "document_number": "70656588",
+   "course_code": "ENG 101",
+   "moodle_course_id": 711,
+   "course_enrollment_id": "7bb28649-ffb6-4550-bf42-5e3767a78bc1",
+   "synced_at": "2026-08-27T13:02:36.688+00:00"
+  }
+ ],
+ "asignacion": [
+  {
+   "external_id": "977df116-59c0-4b1a-a6e4-f2d6498caa2d",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "ff2f9c8f-2bb6-4ff5-ac82-0eb04ea93e0a",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "c2b720a7-2422-4cd4-a0cc-843c65ea117f",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "48021687-759a-4a2b-a0ce-1b546e28fe7b",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "1a1b305c-b818-4f49-a23e-dc4a5642c41e",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "b0e94420-d141-40b7-af64-7886bf398bd3",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "2f2ed0c8-83ba-4207-a2c0-69ded2804eee",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "77d37d8e-bcf6-4445-ad67-016d1028c5be",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "2d40cb6d-6eb7-47e3-a4f1-af2a51cad2ce",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "b0002743-53d2-4140-ad6b-9efe8a3e4bf9",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "ddb7b11d-7a32-4773-ab46-4fa40f7897d3",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "a566b4e9-6bae-41b6-a86f-eeb27c46e710",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "a9096b9b-c284-4152-a2f5-5e76ed50ab46",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "96a819d2-568f-4c10-a7e7-2cab0f9f733c",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "eff8c833-c1f0-441b-a654-ee5f475b5bb5",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "fc44a6da-df55-4828-a088-aaca38e7a4f8",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "95303816-4ad2-4497-a466-d3ca91636bc4",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "0d27fa1e-be4d-4836-abde-99e1551317f0",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "99180038-ffe4-43bf-accc-b11a7b1fe3e2",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "62541ae5-90f8-4f1e-a241-04365ad7f16a",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "4d96ab24-02bb-4989-a686-4518f705f925",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "73010a06-2f79-4c6c-a111-dbf8b8b9ae2e",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "68b31e08-e720-4ece-a24e-e54617d910f1",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "a7be4ef2-6af8-4232-a554-1d2111717cb7",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "afe44721-287c-40c9-a7a3-7a01a6cc6214",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "3c5fa119-16d5-4836-a249-f2e683e2abe2",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "d8032e33-4596-476d-af98-7fc35ed0b555",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "79ce45c5-a175-4173-aab0-c0ed893a1e2c",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "38960579-5866-4cba-a772-6926c7ec9dc4",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "08af66a8-2d93-47a1-a234-2c9ccb4cfa43",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "2d822648-a63f-49d2-a0fe-890d9d00669b",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "923e6f04-b6b8-4173-a6f8-6155512e4bbf",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "cc958a90-bdff-4488-a28b-4abc174dbd27",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "57095813-77b7-4119-a279-89f7d4827c5b",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "a244841b-a0ab-42ef-a93b-21c92939676b",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "5f0a0ff6-ed3a-4eb6-a3f3-49ac578fbddc",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "78f7256c-f567-45a6-ab9c-f22e38ca419b",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "703a99d9-bf50-4370-afd9-9b355814e17a",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "94cfa40e-e2e8-43a7-af4c-49c132ec8004",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "019e60f5-d349-7d87-ba07-bda8293125b9",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "1be8dea9-7102-4f57-a619-41a3b0472a22",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "53a46395-f3b9-468a-bc1e-50e050a35022",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "6b863b6a-edd0-4e09-90c1-ed50fc0ac201",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "8ffa9ba6-0b2e-4990-b590-adca5edfe25e",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "055069cd-416c-4f10-a9e5-9272a4431bbb",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "f27792a0-3d1c-43e8-a266-a760993c59a8",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "dcb6b702-3e0a-4a9e-826e-8d961dd88558",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "019bd831-6d42-7ac3-852e-d734f685e1a7",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "f0d86b4c-9b5d-4993-aee3-a28a651a2e6f",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "ec187a2f-ef8f-4946-bfb6-7461341aa6bf",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "cc5e2f18-6ddd-48df-a414-19baa8a13a66",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "46e1dade-0f12-4cd8-a7f6-3f1a1f76e4a5",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "32c438e9-9dac-4ad6-afcf-565e20798079",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "460ecbab-ae9f-4dae-94f7-f786a1ea63b9",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "019e60f2-29fb-754a-8b71-ebb39ea953b3",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "5b8eee21-579e-4634-aca1-2e54d8a6d30a",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "b96aaa6c-5f9d-4609-8b91-46319182e31d",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "f08e532e-b320-4a20-8000-6701f2e9697f",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "5c9afd9c-2347-4154-9f8d-08c379528365",
+   "semestre": "AY 26 - 27 FALL 2026"
+  },
+  {
+   "external_id": "3ac393e9-c676-4193-89e3-b50b2473be8f",
+   "semestre": "AY 26 - 27 FALL 2026"
+  }
+ ]
+}
