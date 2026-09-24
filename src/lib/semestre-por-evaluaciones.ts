@@ -33,7 +33,15 @@ export function semestreDeFecha(fecha: string, semestres: Semestre[]): Semestre 
     ?? null
 }
 
+// Resguardo (usuario, 24/09/2026): si TODAS las evaluaciones comparten una sola
+// fecha y son 3 o más, no se rindieron ese día — son calificaciones migradas o
+// restauradas en bloque (caso Franco Gonzales: 15 quizzes de 2023 fechados el
+// 27/04/2026). No se afirma periodo: se conserva el que la nota tenga. Con 1 o
+// 2 ítems una misma fecha sí puede ser real (dos quizzes el mismo día).
+export const MIN_ITEMS_MIGRACION = 3
 export function semestrePorEvaluaciones(fechas: (string | null | undefined)[], semestres: Semestre[]): Semestre | null {
+  const validas = fechas.filter((f): f is string => !!f).map(f => String(f).slice(0, 10))
+  if (validas.length >= MIN_ITEMS_MIGRACION && new Set(validas).size === 1) return null
   const votos = new Map<string, number>()
   for (const f of fechas) {
     if (!f) continue

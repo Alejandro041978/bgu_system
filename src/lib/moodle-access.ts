@@ -112,10 +112,33 @@ export async function planAccess(sb: SB): Promise<AccessRow[]> {
     .select('student_id').eq('type', 'IW').eq('status', 'vigente')
   const iwVigente = new Set<string>((retiros ?? []).map((w: { student_id: string }) => String(w.student_id)))
 
+  // Y a TODOS los que el CAMPUS reporta suspendidos (24/09/2026). Hasta hoy el
+  // motor solo miraba deuda, IW y su propia anotación: una cuenta cerrada a
+  // mano en Moodle, o una reactivación por pago que Moodle no aplicó mientras
+  // el ERP se anotaba "reactivada", quedaba fuera del plan para siempre (casos
+  // Maldonado de Ramírez, Olivares, Vilca: sin deuda, sin IW, campus cerrado).
+  // Cuesta ~20 llamadas al campus por corrida; convierte una suspensión
+  // fantasma en una reactivación a la noche siguiente.
+  const suspendidosEnCampus = new Set<string>()
+  if (moodleConfigured()) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const conCuenta: any[] = []
+    for (let f = 0; ; f += 1000) {
+      const { data } = await sb.from('academic_students').select('id, moodle_user_id').not('moodle_user_id', 'is', null).order('id').range(f, f + 999)
+      conCuenta.push(...(data ?? []))
+      if ((data ?? []).length < 1000) break
+    }
+    try {
+      const estado = await suspendedByMoodleIds(conCuenta.map(s => Number(s.moodle_user_id)).filter(n => Number.isFinite(n) && n > 0))
+      for (const s of conCuenta) if (estado.get(Number(s.moodle_user_id)) === true) suspendidosEnCampus.add(String(s.id))
+    } catch { /* campus sin responder: el plan sigue con lo que el ERP sabe */ }
+  }
+
   const ids = new Set<string>([
     ...over.keys(),
     ...iwVigente,
     ...((suspended ?? []).map((s: { id: string }) => s.id)),
+    ...suspendidosEnCampus,
   ])
   if (!ids.size) return []
 
@@ -239,7 +262,13 @@ export async function unsuspendStudent(sb: SB, studentId: string): Promise<void>
     .select('external_id, email, email_alt, moodle_user_id, moodle_suspended').eq('id', studentId).maybeSingle()
   if (!s?.moodle_suspended) return
   const uid = s.moodle_user_id ?? await resolveMoodleUserId(s.external_id, s.email_alt, s.email).catch(() => null)
-  if (uid) await setUserSuspended(uid, false).catch(() => null)
+  // La anotación "reactivada" solo si el campus lo CONFIRMÓ (setUserSuspended
+  // relee la cuenta y lanza si no aplicó). Antes se anotaba aunque Moodle
+  // fallara —p. ej. en mantenimiento—, y el estudiante desaparecía del plan de
+  // acceso con el campus todavía cerrado. Si falla, la anotación se queda en
+  // "suspendida" y el plan nocturno lo reintenta.
+  if (!uid) return
+  await setUserSuspended(uid, false)
   await sb.from('academic_students').update({ moodle_suspended: false, moodle_suspended_at: null }).eq('id', studentId)
 }
 
