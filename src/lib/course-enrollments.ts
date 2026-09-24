@@ -202,12 +202,21 @@ export async function asegurarMatriculas(sb: any, filas: MatriculaDeNota[], abie
   for (const f of filas) unicas.set(`${f.student_id}|${f.course_id}|${f.attempt}`, f)
   const lote = [...unicas.values()].map(f => ({ ...f, opened_by: abiertoPor }))
 
+  // Un semestre DESCONOCIDO (aula sin oferta) no borra el que la matrícula ya
+  // tiene: el upsert escribe null si se le pasa null, así que las filas sin
+  // semestre van en una tanda aparte SIN esa clave (24/09/2026).
+  const conSem = lote.filter(f => f.semester_id)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const sinSem = lote.filter(f => !f.semester_id).map(({ semester_id: _s, ...resto }) => resto)
+
   let escritas = 0
-  for (let i = 0; i < lote.length; i += 400) {
-    const { error } = await sb.from('academic_course_enrollments')
-      .upsert(lote.slice(i, i + 400), { onConflict: 'student_id,course_id,attempt' })
-    if (error) return { escritas, error: error.message }
-    escritas += Math.min(400, lote.length - i)
+  for (const tanda of [conSem, sinSem]) {
+    for (let i = 0; i < tanda.length; i += 400) {
+      const { error } = await sb.from('academic_course_enrollments')
+        .upsert(tanda.slice(i, i + 400), { onConflict: 'student_id,course_id,attempt' })
+      if (error) return { escritas, error: error.message }
+      escritas += Math.min(400, tanda.length - i)
+    }
   }
   return { escritas }
 }

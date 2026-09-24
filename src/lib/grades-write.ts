@@ -504,7 +504,7 @@ export async function importGrades(
   const ids = rows.map(r => r.external_id)
   for (let i = 0; i < ids.length; i += 200) {
     const { data } = await sb.from('academic_grades')
-      .select('external_id, final_grade, retake_grade, edited_at, locked_at, course_id, student_id').in('external_id', ids.slice(i, i + 200))
+      .select('external_id, final_grade, retake_grade, edited_at, locked_at, course_id, student_id, semester_id').in('external_id', ids.slice(i, i + 200))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const g of (data ?? []) as any[]) existing.set(g.external_id, g)
   }
@@ -579,7 +579,12 @@ export async function importGrades(
       // resuelva no puede borrar la que ya estaba escrita.
       course_id: r.course_id ?? existing.get(r.external_id)?.course_id ?? null,
       credits: r.credits ?? null,
-      semester_id: r.semester_id ?? null,
+      // Nunca a null si la fila ya tenía semestre: un aula SIN oferta de
+      // semestre (322 de 549 al 24/09/2026) importa con semestre desconocido, y
+      // eso no puede borrar el periodo que la nota ya tenía (caso Gonzales
+      // Quispe: dos notas de 2023 quedaron "sin periodo" al vaciarlas y
+      // re-sincronizar).
+      semester_id: r.semester_id ?? existing.get(r.external_id)?.semester_id ?? null,
       final_grade: r.final_grade,
       passing_score: r.passing_score ?? null,
       rendido_pct: r.rendido_pct ?? null,
