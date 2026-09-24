@@ -49,9 +49,19 @@ export async function POST(req: NextRequest) {
   const sb = db()
 
   // Sólo grupos con gente dentro: los vacíos no tienen a quién matricular.
-  const { data: miembros } = await sb.from('academic_group_students')
-    .select('group_id').eq('status', 'activo')
-  const conAlumnos = [...new Set((miembros ?? []).map((m: { group_id: string }) => m.group_id))] as string[]
+  // PAGINADO: PostgREST corta en 1000 filas y hay más de 1000 membresías
+  // activas. Sin paginar, los carruseles cuyas filas caían después del corte
+  // (BBA SP1/SP2/UP1/UP2, DCEU 003/015…) no entraban NUNCA a la rotación —
+  // por eso llevaban last_enrol_sync_at en null (detectado el 24/09/2026).
+  const conAlumnosSet = new Set<string>()
+  for (let from = 0; ; from += 1000) {
+    const { data: miembros, error } = await sb.from('academic_group_students')
+      .select('group_id').eq('status', 'activo').order('group_id').order('student_id').range(from, from + 999)
+    if (error) return NextResponse.json({ error: 'academic_group_students: ' + error.message }, { status: 500 })
+    for (const m of (miembros ?? []) as { group_id: string }[]) conAlumnosSet.add(String(m.group_id))
+    if ((miembros ?? []).length < 1000) break
+  }
+  const conAlumnos = [...conAlumnosSet]
   if (!conAlumnos.length) return NextResponse.json({ ok: true, grupos: 0, nota: 'Ningún grupo con estudiantes activos' })
 
   const { data: grupos } = await sb.from('academic_groups')
