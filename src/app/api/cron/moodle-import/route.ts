@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moodleConfigured } from '@/lib/moodle'
-import { importAula, loadStudentsByExternal, CRON_ACTOR_UUID } from '@/lib/moodle-import'
+import { importAula, loadStudentsByExternal, enrolledMap, CRON_ACTOR_UUID } from '@/lib/moodle-import'
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
@@ -63,6 +63,39 @@ export async function POST(req: NextRequest) {
   // vuelta al campus. Sigue exigiendo el vínculo encendido: esto elige entre
   // las aulas autorizadas, no autoriza ninguna.
   const soloAula = Number(req.nextUrl.searchParams.get('aula') ?? NaN)
+  // ?aula=N&censo=1 → SOLO diagnóstico (no importa): quiénes están matriculados
+  // en el aula según Moodle, cruzados con el ERP — colección cargada, carrusel
+  // (activo/completado) y programa. Para detectar estudiantes en el aula de
+  // OTRA colección (24/09/2026: aula 722 con 233 matriculados en una colección
+  // cuya mediana es 12).
+  if (isFinite(soloAula) && req.nextUrl.searchParams.get('censo') === '1') {
+    const users = await enrolledMap(soloAula, 120_000)
+    const byExternal = await loadStudentsByExternal(sb)
+    const { data: link } = await sb.from('moodle_course_links').select('collection_id, course_id, academic_courses(program_id, code)').eq('aula_id', soloAula).eq('kind', 'asignatura').is('replaced_at', null).limit(1).maybeSingle()
+    const programId = link?.academic_courses?.program_id ?? null
+    const { data: cols } = await sb.from('moodle_collections').select('id, name')
+    const colName = new Map<string, string>((cols ?? []).map((c: { id: string; name: string }) => [String(c.id), c.name]))
+    const sids: string[] = []
+    const sinPuente: string[] = []
+    for (const u of users.values()) { const st = u.idnumber ? byExternal.get(u.idnumber) : null; if (st?.id) sids.push(String(st.id)); else sinPuente.push(u.fullname) }
+    const { data: enrs } = sids.length ? await sb.from('academic_student_enrollments').select('student_id, collection_id, status, program_id').in('student_id', sids) : { data: [] }
+    const { data: gs } = programId ? await sb.from('academic_groups').select('id, abbreviation').eq('program_id', programId) : { data: [] }
+    const gAbbr = new Map((gs ?? []).map((g: { id: string; abbreviation: string }) => [String(g.id), g.abbreviation]))
+    const { data: mem } = sids.length && (gs ?? []).length ? await sb.from('academic_group_students').select('student_id, group_id, status').in('student_id', sids).in('group_id', (gs ?? []).map((g: { id: string }) => g.id)) : { data: [] }
+    const porColeccion: Record<string, number> = {}, porCarrusel: Record<string, number> = {}
+    const ejemplosOtraCol: string[] = []
+    const colAula = link?.collection_id ? colName.get(String(link.collection_id)) : null
+    for (const sid of sids) {
+      const e = (enrs ?? []).filter((x: { student_id: string; program_id: string | null }) => x.student_id === sid && (!programId || x.program_id === programId))
+      const c: string = e[0]?.collection_id ? String(colName.get(String(e[0].collection_id)) ?? 'otra') : (e.length ? 'sin colección' : 'sin matrícula en este programa')
+      porColeccion[c] = (porColeccion[c] ?? 0) + 1
+      const ms = (mem ?? []).filter((m: { student_id: string }) => m.student_id === sid)
+      const k = ms.length ? ms.map((m: { group_id: string; status: string }) => `${gAbbr.get(String(m.group_id))}:${m.status}`).sort().join('+') : 'sin carrusel'
+      porCarrusel[k] = (porCarrusel[k] ?? 0) + 1
+      if (colAula && c !== colAula && c !== 'sin colección' && ejemplosOtraCol.length < 10) { const st = [...byExternal.values()].find((x: { id: string }) => String(x.id) === sid); ejemplosOtraCol.push(`${st?.first_name ?? ''} ${st?.last_name ?? ''} (${c})`) }
+    }
+    return NextResponse.json({ aula: soloAula, asignatura: link?.academic_courses?.code ?? null, coleccion_del_aula: colAula, matriculados_moodle: users.size, con_puente: sids.length, sin_puente: sinPuente.length, ejemplos_sin_puente: sinPuente.slice(0, 5), por_coleccion_cargada: porColeccion, por_carrusel: porCarrusel, ejemplos_otra_coleccion: ejemplosOtraCol })
+  }
   if (isFinite(soloAula)) {
     if (!aulaIds.includes(soloAula)) {
       return NextResponse.json({ error: `El aula ${soloAula} no está vinculada con la sincronización encendida.` }, { status: 400 })
