@@ -3,6 +3,7 @@ import { rendidoPct, estadoAcademico, huboEvaluacionNueva, esItemBono, type Item
 import { importGrades, resolveImportTarget, fetchByIn, stableUuid, type ImportRow } from './grades-write'
 import { asegurarMatriculas, estadoDeNota, type MatriculaDeNota } from './course-enrollments'
 import { externosDeCurso } from './grade-scope'
+import { semestreEnCurso } from './semestre-en-curso'
 
 // ---------------------------------------------------------------------------
 // Importación de un acta de Moodle al expediente. Pipeline compartido entre
@@ -150,9 +151,11 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
   const sems = ((ofertas ?? []) as any[]).map(o => o.semester).filter(Boolean)
     .sort((a, b) =>
       String(b?.start_date ?? b?.year?.start_date ?? '').localeCompare(String(a?.start_date ?? a?.year?.start_date ?? '')))
-  const sem = sems[0] ?? null
+  // Sin oferta: el semestre EN CURSO como respaldo (ver lib/semestre-en-curso).
+  const sem = sems[0] ?? await semestreEnCurso(sb)
+  const semestrePorRespaldo = !sems.length && !!sem
   // El semestre en sí, que es el orden temporal fiable: año+bloque se
-  // contradicen en 6.747 filas del histórico.
+  // contradecían en 6.747 filas del histórico.
   const semesterId: string | null = sem?.id ? String(sem.id) : null
   const semesterStart: string | null = sem?.start_date ? String(sem.start_date) : null
   // Presupuesto para las llamadas pesadas a Moodle (el reporte de un aula de
@@ -736,6 +739,8 @@ export async function importAula(sb: any, courseid: number, userId: string, pre?
       saltados_campus_externo: saltadosExternos,
       detalles_escritos: detallesEscritos,
       parcial,
+      // El aula no tiene oferta de semestre: se selló con el semestre en curso
+      semestre_por_respaldo: semestrePorRespaldo ? (sem?.name ?? true) : null,
     },
   }
 }

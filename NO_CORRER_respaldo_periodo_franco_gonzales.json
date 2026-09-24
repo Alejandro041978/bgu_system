@@ -1,0 +1,32 @@
+{
+ "fecha": "2026-09-24T06:52:05.355Z",
+ "motivo": "Dos notas de Franco Gonzales Quispe perdieron su semestre (AY 22-23 SUMMER 2023) al vaciarlas y re-sincronizar desde aulas 711/712 sin oferta. Autorizado el 24/09/2026.",
+ "notas_antes": [
+  {
+   "external_id": "4927ae14-4114-493f-bb53-ba0a556b8cb1",
+   "course_code": "ENG 101",
+   "semester_id": null,
+   "course_enrollment_id": "90e9007a-5263-458f-8dd2-412ccbf6a393"
+  },
+  {
+   "external_id": "9295ec14-688c-4e87-a096-871f3e3c6fe7",
+   "course_code": "ENG 202",
+   "semester_id": null,
+   "course_enrollment_id": "e8b8db2b-4b2c-40ca-8598-5a90501fd072"
+  }
+ ],
+ "matriculas_antes": [
+  {
+   "id": "90e9007a-5263-458f-8dd2-412ccbf6a393",
+   "semester_id": null
+  },
+  {
+   "id": "e8b8db2b-4b2c-40ca-8598-5a90501fd072",
+   "semester_id": null
+  }
+ ],
+ "semestre_restaurado": {
+  "id": "0a6d32cd-f5d2-4df0-8c89-79573ea2a0af",
+  "name": "AY 22-23 SUMMER 2023"
+ }
+}

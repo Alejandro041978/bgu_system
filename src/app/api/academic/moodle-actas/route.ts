@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { semestreEnCurso } from '@/lib/semestre-en-curso'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createAuthClient } from '@/lib/supabase/server'
 import { moodleCall, moodleConfigured } from '@/lib/moodle'
@@ -213,7 +214,9 @@ export async function GET(req: NextRequest) {
   const semsAula = ((ofertasAula ?? []) as any[]).map(o => o.semester).filter(Boolean)
     .sort((a, b) =>
       String(b?.start_date ?? b?.year?.start_date ?? '').localeCompare(String(a?.start_date ?? a?.year?.start_date ?? '')))
-  const semesterStartAula: string | null = semsAula[0]?.start_date ? String(semsAula[0].start_date) : null
+  // Sin oferta, la previa usa el mismo respaldo que el importador (semestre en curso)
+  const semAula = semsAula[0] ?? await semestreEnCurso(sb)
+  const semesterStartAula: string | null = semAula?.start_date ? String(semAula.start_date) : null
 
   const politica = await aulaPolicy(sb, courseid, report)
 
@@ -256,7 +259,7 @@ export async function GET(req: NextRequest) {
         }))
       const r = resolveImportTarget(
         gradesByDoc.get(doc) ?? [], linkedCourse, stableUuid(`moodle:${courseid}:${ug.userid}`), passing,
-        { rendido_pct: rendidoPct(proc as ItemProceso[]), semester_start: semesterStartAula, semester_id: semsAula[0]?.id ? String(semsAula[0].id) : null, valor: total },
+        { rendido_pct: rendidoPct(proc as ItemProceso[]), semester_start: semesterStartAula, semester_id: semAula?.id ? String(semAula.id) : null, valor: total },
         declaradoDe.get(String(stu.id)) ?? null,
       )
       if (r.action === 'skip' && r.sin_declarar) { destino = 'recursado SIN DECLARAR — no se abre (declararlo en Recursados)'; yaRegistradas++ }
