@@ -93,6 +93,8 @@ export async function POST(req: NextRequest) {
     const porColeccionActivos: Record<string, number> = {}
     const uidDeSid = new Map<string, number>(); for (const [uid, u] of users) { const st = u.idnumber ? byExternal.get(u.idnumber) : null; if (st?.id) uidDeSid.set(String(st.id), uid) }
     const ejemplosOtraCol: string[] = []
+    const detalle = req.nextUrl.searchParams.get('detalle') === '1'
+    const cruzados: Record<string, unknown>[] = []
     const colAula = link?.collection_id ? colName.get(String(link.collection_id)) : null
     for (const sid of sids) {
       const e = (enrs ?? []).filter((x: { student_id: string; program_id: string | null }) => x.student_id === sid && (!programId || x.program_id === programId))
@@ -103,8 +105,12 @@ export async function POST(req: NextRequest) {
       const k = ms.length ? ms.map((m: { group_id: string; status: string }) => `${gAbbr.get(String(m.group_id))}:${m.status}`).sort().join('+') : 'sin carrusel'
       porCarrusel[k] = (porCarrusel[k] ?? 0) + 1
       if (colAula && c !== colAula && c !== 'sin colección' && ejemplosOtraCol.length < 10) { const st = [...byExternal.values()].find((x: { id: string }) => String(x.id) === sid); ejemplosOtraCol.push(`${st?.first_name ?? ''} ${st?.last_name ?? ''} (${c})`) }
+      if (detalle && colAula && c !== colAula && activos && activos.has(uidDeSid.get(sid) ?? -1)) {
+        const st = [...byExternal.values()].find((x: { id: string }) => String(x.id) === sid)
+        cruzados.push({ student_id: sid, moodle_user_id: uidDeSid.get(sid), documento: st?.document_number ?? null, nombre: `${st?.first_name ?? ''} ${st?.last_name ?? ''}`.trim(), coleccion_cargada: c, matricula_status: e[0]?.status ?? null, carrusel: k })
+      }
     }
-    return NextResponse.json({ aula: soloAula, asignatura: link?.academic_courses?.code ?? null, coleccion_del_aula: colAula, matriculados_moodle: users.size, matriculas_activas_en_aula: activos ? activos.size : null, activos_por_coleccion_cargada: activos ? porColeccionActivos : null, con_puente: sids.length, sin_puente: sinPuente.length, ejemplos_sin_puente: sinPuente.slice(0, 5), por_coleccion_cargada: porColeccion, por_carrusel: porCarrusel, ejemplos_otra_coleccion: ejemplosOtraCol })
+    return NextResponse.json({ aula: soloAula, asignatura: link?.academic_courses?.code ?? null, coleccion_del_aula: colAula, matriculados_moodle: users.size, matriculas_activas_en_aula: activos ? activos.size : null, activos_por_coleccion_cargada: activos ? porColeccionActivos : null, con_puente: sids.length, sin_puente: sinPuente.length, ejemplos_sin_puente: sinPuente.slice(0, 5), por_coleccion_cargada: porColeccion, por_carrusel: porCarrusel, ejemplos_otra_coleccion: ejemplosOtraCol, ...(detalle ? { cruzados_activos: cruzados } : {}) })
   }
   if (isFinite(soloAula)) {
     if (!aulaIds.includes(soloAula)) {
