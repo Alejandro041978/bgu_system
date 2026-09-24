@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
         cruzados.push({ student_id: sid, moodle_user_id: uidDeSid.get(sid), documento: st?.document_number ?? null, nombre: `${st?.first_name ?? ''} ${st?.last_name ?? ''}`.trim(), coleccion_cargada: c, matricula_status: e[0]?.status ?? null, carrusel: k })
       }
     }
-    return NextResponse.json({ aula: soloAula, asignatura: link?.academic_courses?.code ?? null, coleccion_del_aula: colAula, matriculados_moodle: users.size, matriculas_activas_en_aula: activos ? activos.size : null, activos_por_coleccion_cargada: activos ? porColeccionActivos : null, con_puente: sids.length, sin_puente: sinPuente.length, ejemplos_sin_puente: sinPuente.slice(0, 5), por_coleccion_cargada: porColeccion, por_carrusel: porCarrusel, ejemplos_otra_coleccion: ejemplosOtraCol, ...(detalle ? { cruzados_activos: cruzados } : {}) })
+    return NextResponse.json({ aula: soloAula, asignatura: link?.academic_courses?.code ?? null, coleccion_del_aula: colAula, matriculados_moodle: users.size, matriculas_activas_en_aula: activos ? activos.size : null, activos_por_coleccion_cargada: activos ? porColeccionActivos : null, con_puente: sids.length, sin_puente: sinPuente.length, ejemplos_sin_puente: sinPuente.slice(0, 5), por_coleccion_cargada: porColeccion, por_carrusel: porCarrusel, ejemplos_otra_coleccion: ejemplosOtraCol, ...(detalle ? { cruzados_activos: cruzados, activos_moodle_ids: activos ? [...activos] : null } : {}) })
   }
   if (isFinite(soloAula)) {
     if (!aulaIds.includes(soloAula)) {
