@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { moodleConfigured } from '@/lib/moodle'
+import { moodleConfigured, moodleCall } from '@/lib/moodle'
 import { importAula, loadStudentsByExternal, enrolledMap, CRON_ACTOR_UUID } from '@/lib/moodle-import'
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
@@ -70,6 +70,13 @@ export async function POST(req: NextRequest) {
   // cuya mediana es 12).
   if (isFinite(soloAula) && req.nextUrl.searchParams.get('censo') === '1') {
     const users = await enrolledMap(soloAula, 120_000)
+    // Matrículas ACTIVAS en el aula (las suspendidas por avance de carrusel no cuentan como acceso vigente)
+    let activos: Set<number> | null = null
+    try {
+      const act = await moodleCall('core_enrol_get_enrolled_users', { courseid: soloAula, options: [{ name: 'onlyactive', value: 1 }] }, { timeoutMs: 120_000 })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      activos = new Set(((Array.isArray(act) ? act : []) as any[]).map(u => Number(u.id)))
+    } catch { /* sin permiso para la opción: se informa null */ }
     const byExternal = await loadStudentsByExternal(sb)
     const { data: link } = await sb.from('moodle_course_links').select('collection_id, course_id, academic_courses(program_id, code)').eq('aula_id', soloAula).eq('kind', 'asignatura').is('replaced_at', null).limit(1).maybeSingle()
     const programId = link?.academic_courses?.program_id ?? null
@@ -83,18 +90,21 @@ export async function POST(req: NextRequest) {
     const gAbbr = new Map((gs ?? []).map((g: { id: string; abbreviation: string }) => [String(g.id), g.abbreviation]))
     const { data: mem } = sids.length && (gs ?? []).length ? await sb.from('academic_group_students').select('student_id, group_id, status').in('student_id', sids).in('group_id', (gs ?? []).map((g: { id: string }) => g.id)) : { data: [] }
     const porColeccion: Record<string, number> = {}, porCarrusel: Record<string, number> = {}
+    const porColeccionActivos: Record<string, number> = {}
+    const uidDeSid = new Map<string, number>(); for (const [uid, u] of users) { const st = u.idnumber ? byExternal.get(u.idnumber) : null; if (st?.id) uidDeSid.set(String(st.id), uid) }
     const ejemplosOtraCol: string[] = []
     const colAula = link?.collection_id ? colName.get(String(link.collection_id)) : null
     for (const sid of sids) {
       const e = (enrs ?? []).filter((x: { student_id: string; program_id: string | null }) => x.student_id === sid && (!programId || x.program_id === programId))
       const c: string = e[0]?.collection_id ? String(colName.get(String(e[0].collection_id)) ?? 'otra') : (e.length ? 'sin colección' : 'sin matrícula en este programa')
       porColeccion[c] = (porColeccion[c] ?? 0) + 1
+      if (activos && activos.has(uidDeSid.get(sid) ?? -1)) porColeccionActivos[c] = (porColeccionActivos[c] ?? 0) + 1
       const ms = (mem ?? []).filter((m: { student_id: string }) => m.student_id === sid)
       const k = ms.length ? ms.map((m: { group_id: string; status: string }) => `${gAbbr.get(String(m.group_id))}:${m.status}`).sort().join('+') : 'sin carrusel'
       porCarrusel[k] = (porCarrusel[k] ?? 0) + 1
       if (colAula && c !== colAula && c !== 'sin colección' && ejemplosOtraCol.length < 10) { const st = [...byExternal.values()].find((x: { id: string }) => String(x.id) === sid); ejemplosOtraCol.push(`${st?.first_name ?? ''} ${st?.last_name ?? ''} (${c})`) }
     }
-    return NextResponse.json({ aula: soloAula, asignatura: link?.academic_courses?.code ?? null, coleccion_del_aula: colAula, matriculados_moodle: users.size, con_puente: sids.length, sin_puente: sinPuente.length, ejemplos_sin_puente: sinPuente.slice(0, 5), por_coleccion_cargada: porColeccion, por_carrusel: porCarrusel, ejemplos_otra_coleccion: ejemplosOtraCol })
+    return NextResponse.json({ aula: soloAula, asignatura: link?.academic_courses?.code ?? null, coleccion_del_aula: colAula, matriculados_moodle: users.size, matriculas_activas_en_aula: activos ? activos.size : null, activos_por_coleccion_cargada: activos ? porColeccionActivos : null, con_puente: sids.length, sin_puente: sinPuente.length, ejemplos_sin_puente: sinPuente.slice(0, 5), por_coleccion_cargada: porColeccion, por_carrusel: porCarrusel, ejemplos_otra_coleccion: ejemplosOtraCol })
   }
   if (isFinite(soloAula)) {
     if (!aulaIds.includes(soloAula)) {
