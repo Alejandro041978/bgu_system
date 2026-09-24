@@ -1,0 +1,282 @@
+{
+ "fecha": "2026-09-24T09:41:06.991Z",
+ "motivo": "Regla del usuario: 20 convalidadas en el BSBA = Upgrade → colección BBA Upgrade ES. Autorizado el 24/09/2026.",
+ "antes": [
+  {
+   "enrollment_id": "0bd3c8ee-0998-486f-a4ce-1ada67b90eb1",
+   "student_id": "0eab7da2-82a5-4cbf-946e-e3f3f29bbcfb",
+   "antes": "BBA Full ES",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "e12b0357-61cc-4f7b-a65d-e5046ca15e4c",
+   "student_id": "6db8246a-9bae-4b63-9275-cc24617c47d0",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "57cca7c3-7026-42d3-8299-9ec158e0b121",
+   "student_id": "7f7c7d16-022a-4fd1-b622-c9843362057b",
+   "antes": "BBA Full ES",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "25550aec-da83-411f-b3a7-080b3c789924",
+   "student_id": "631c6c4d-c626-40de-b775-b7cdcf91b413",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "6782cf1b-26da-42a3-adf5-3a9df069f1d1",
+   "student_id": "1cd38623-77b8-4c95-9e8d-ee6899b9c2a7",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "e7b51c7b-6e4c-411f-b5b3-ceefdc6d963c",
+   "student_id": "0ac6157c-bf2b-461e-8fbf-8c0c82e393f7",
+   "antes": "BBA Full ES",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "f5c8df7f-e830-4ce0-90b5-4b7682b694b7",
+   "student_id": "08d49b02-cffa-4533-b93e-29553a51179d",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "f6a56f31-0c68-428d-a962-b999c1534ffe",
+   "student_id": "5c930d4e-b882-4de7-8bbf-eac67da1e0c6",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "966b40b8-9b06-4588-b17e-311584efc41a",
+   "student_id": "9a4249a8-71b1-44fd-8ecf-b84afedc67df",
+   "antes": "sin colección",
+   "convalidadas": 28
+  },
+  {
+   "enrollment_id": "f1590c49-3d46-4583-9755-4384fe40e001",
+   "student_id": "35226ece-8ee4-426d-b3e4-69870b736bf0",
+   "antes": "BBA Full ES",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "b96b371b-6ced-4506-a562-bc405dfffc65",
+   "student_id": "a7c8217b-f65a-4c57-aa5a-9adf2a70bdf0",
+   "antes": "BBA Full ES",
+   "convalidadas": 27
+  },
+  {
+   "enrollment_id": "019cb60a-8c77-745e-b9b5-d104fe520e57",
+   "student_id": "8b64fe22-6a45-426a-8182-48a04af644e7",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "019c0a0e-1f69-7dc8-b7ee-cf8efd62500a",
+   "student_id": "ed336ece-5d93-4dfa-a579-693adef9b8f9",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "019caf0d-8ba2-733e-a853-261bebb2ec86",
+   "student_id": "914cb49b-f35e-4441-857c-d0f6878b9353",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "04d56bc3-5f8c-4291-adb5-7559b5720966",
+   "student_id": "0faae187-f840-44da-bca8-d13bcf0a2f91",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "0760444c-1944-43a9-b951-ded303a2dc19",
+   "student_id": "881e8516-3b40-4951-8f62-491e1b04c8bd",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "0e25673c-68d5-489a-9d0e-724abcea5dc0",
+   "student_id": "52916eef-cedc-472a-80fd-9ef464087334",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "1b6811e9-ba6f-4385-8e47-65c154134073",
+   "student_id": "bf7277da-04f9-4c48-811b-eeac4107d77a",
+   "antes": "BBA Full ES",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "182e7c0b-6ce1-4714-be9e-716a44f0d6b0",
+   "student_id": "a8cc6e41-e320-409c-8a69-bb89d76d0d6e",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "2000ce8a-13ef-49f7-ba96-ee42a9b23602",
+   "student_id": "c918016f-018d-416d-b387-16333a649a71",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "1eb0c11b-e84b-4ef4-8fc3-f35c9c137760",
+   "student_id": "d14d4d5e-f63e-4088-a0df-4a200b5ca402",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "2bf3b772-4adf-4971-bb41-e35143a61373",
+   "student_id": "cb00d0e0-2c61-4538-adb1-b30c628490b1",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "3d216491-371d-4f15-9e55-535a23125fa8",
+   "student_id": "16344a21-c1c2-4bc8-b6a6-6371020531c3",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "43ddc79f-2c41-4f79-9cb1-4e641d44240f",
+   "student_id": "0cf4541c-420e-4fa5-a685-cf1c9fc8a2d5",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "4d8142c0-b50d-4086-9f48-57b93db4576d",
+   "student_id": "ab27af78-fb6c-406d-8684-089cd453e19c",
+   "antes": "BBA Full ES",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "5483e34e-e387-4c40-9c02-74c75e06a286",
+   "student_id": "31b4f031-6fce-4cd6-8399-3cb35505eaf3",
+   "antes": "BBA Full ES",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "5460d84d-5e10-43ba-8d3d-e0c0e788486f",
+   "student_id": "255da8ce-d7dc-4dde-9a0a-db5eee7ef1f0",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "544ed76c-ba38-4e60-954e-2e152f184280",
+   "student_id": "1cff1b2c-044e-4b21-964c-23b13cec39ce",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "751cf028-e753-4f43-a4db-eaa19c2fba4b",
+   "student_id": "63668ab5-d130-4e8a-8e66-8d80db82dbae",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "72f395cb-9a14-4545-88ac-e430c23748e8",
+   "student_id": "6bf6c9d7-1569-4fad-8ace-a169f522f86f",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "75558db6-0898-46e2-bdca-920c02d70e42",
+   "student_id": "a3d3f81e-2520-4849-87e8-7739a8740f2d",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "7cf3f3fe-ae47-44ff-8eb7-c6fff115f336",
+   "student_id": "75a5099d-f373-43c4-bcd7-50cc4be337c3",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "7e2967aa-a0a8-4824-90aa-a7453ebdb753",
+   "student_id": "6e1199b8-fff3-40b8-b5ea-06d58321ee80",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "7f77938e-d73c-4de6-8e8c-3b6c2e5c0691",
+   "student_id": "32859a65-5c2b-4656-a6d3-4e935fff7621",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "91986c22-2e01-418f-817a-68c8fab2b2c9",
+   "student_id": "c709aa80-8d83-4556-b6ff-7a4355e8e098",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "9b087aea-d1e1-464c-a22e-fc93b31bb178",
+   "student_id": "2dc4bf44-40d5-4b3b-a0c5-a14e54ceaf7a",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "a802f6cb-e7c8-43b5-b756-80b50583ee65",
+   "student_id": "72b9c074-2fee-4b5b-9826-af637789385d",
+   "antes": "BBA Full ES",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "a46966b8-c7c2-479f-ab15-002bd8e3ab87",
+   "student_id": "91725601-d8a9-4620-96f7-f49d6cbc7d56",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "a1dec38d-d796-4c4c-865d-174df2bcc39b",
+   "student_id": "837af24b-b680-4d4d-84b2-0ca827bb5790",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "aeee7779-18bb-4eba-83d9-6117ebcfbdd3",
+   "student_id": "77b4fd79-2b4e-461b-9700-82c1c4766eec",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "bb33d80e-f05d-43be-b69e-d7c6739e0c06",
+   "student_id": "46d7b0e4-8d90-4581-855e-54b6d0456bdf",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "d13c68d5-81fb-4b6b-9a7e-e4c9a042e425",
+   "student_id": "4abf5f3c-e94e-4507-928d-d27f902c58f0",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "e598ef38-11c5-4378-a90e-853be7364351",
+   "student_id": "d2181617-77ce-4558-8060-9850d2e93244",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "e96eed20-15aa-4119-b826-41c1922e333c",
+   "student_id": "0f959fb2-762b-4775-a424-449d6e1dd30a",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "f4a8452f-a237-40da-8ba6-24e46361c2e6",
+   "student_id": "8460261c-3b97-4a0f-9fb6-6287b33c94b7",
+   "antes": "sin colección",
+   "convalidadas": 20
+  },
+  {
+   "enrollment_id": "f5c151b6-0349-44df-85b5-dd09bc935b50",
+   "student_id": "4f12732c-e531-4e62-b590-bf23d2e4ec9b",
+   "antes": "sin colección",
+   "convalidadas": 20
+  }
+ ]
+}

@@ -1,0 +1,55 @@
+{
+ "fecha": "2026-09-24T09:43:55.100Z",
+ "motivo": "Reversión: 7 estudiantes de la cadena Full ES/CVC (ADM_SP) con 20+ convalidadas habían pasado a Upgrade por la regla; se devuelven a su colección anterior. 24/09/2026.",
+ "revertidos": [
+  {
+   "enrollment_id": "966b40b8-9b06-4588-b17e-311584efc41a",
+   "student_id": "9a4249a8-71b1-44fd-8ecf-b84afedc67df",
+   "antes": "sin colección",
+   "convalidadas": 28,
+   "revertido_a": "sin colección"
+  },
+  {
+   "enrollment_id": "b96b371b-6ced-4506-a562-bc405dfffc65",
+   "student_id": "a7c8217b-f65a-4c57-aa5a-9adf2a70bdf0",
+   "antes": "BBA Full ES",
+   "convalidadas": 27,
+   "revertido_a": "BBA Full ES"
+  },
+  {
+   "enrollment_id": "2453200d-f0a6-4949-9f33-f81c30b11150",
+   "student_id": "16160312-fc39-4593-bcf9-97466ee60f12",
+   "antes": "BBA Full ES",
+   "convalidadas": 20,
+   "revertido_a": "BBA Full ES"
+  },
+  {
+   "enrollment_id": "276a1182-cd62-4e81-9722-ab89a40318e9",
+   "student_id": "412a97ff-9991-429f-8a6c-254b3fb75f2e",
+   "antes": "sin colección",
+   "convalidadas": 23,
+   "revertido_a": "sin colección"
+  },
+  {
+   "enrollment_id": "3a820194-63c1-452e-9496-ec74649459ed",
+   "student_id": "2115d97c-c638-4b0f-aec3-fec40ab1ba29",
+   "antes": "BBA CVC ES",
+   "convalidadas": 29,
+   "revertido_a": "BBA CVC ES"
+  },
+  {
+   "enrollment_id": "ee1361fc-103e-43df-8b2c-8e3c77a82627",
+   "student_id": "ca260b60-9661-4a94-b05d-3c2831053349",
+   "antes": "BBA Full ES",
+   "convalidadas": 28,
+   "revertido_a": "BBA Full ES"
+  },
+  {
+   "enrollment_id": "fd000306-bb67-46d5-a09e-279df713617c",
+   "student_id": "d379dfdc-f4f9-439e-af04-e27ef47db4d3",
+   "antes": "BBA Full ES",
+   "convalidadas": 32,
+   "revertido_a": "BBA Full ES"
+  }
+ ]
+}
