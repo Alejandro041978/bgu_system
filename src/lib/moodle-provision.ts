@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { getUserByEmail, getUserByIdnumber, getCourseByCode, enrolUser, enrolUsersBulk, unenrolUser, unenrolUsersBulk, moodleConfigured, getMoodleUsersByIds, setUserIdnumber } from './moodle'
+import { getUserByEmail, getUserByIdnumber, getCourseByCode, enrolUser, enrolUsersBulk, unenrolUser, unenrolUsersBulk, moodleConfigured, getMoodleUsersByIds, setUserIdnumber, moodleCall } from './moodle'
 import { crearCuentaMoodle, notificarCuentaMoodle } from './moodle-account'
 import { asignaturasDeGrupo } from './group-courses'
 
@@ -22,7 +22,26 @@ export interface SyncResult {
   // El grupo es de un programa de campus aliado: el aprovisionamiento no lo
   // toca (ni cuentas, ni credenciales, ni matrículas) — 10/09/2026.
   campus_socio?: boolean
+  // Paso 2 del hallazgo 3 (24/09/2026): accesos a aulas de la MISMA asignatura
+  // en OTRAS colecciones del MISMO programa. En modo ensayo se listan y no se
+  // tocan; en modo aplicar se suspenden.
+  retiros_otras_colecciones?: RetirosOtrasColecciones
 }
+
+export interface RetirosOtrasColecciones {
+  modo: 'ensayo' | 'aplicar'
+  // Pares (estudiante, aula ajena) detectados con acceso que sobra
+  pares: number
+  suspendidos: number
+  ejemplos: string[]
+  // Resguardo: estudiantes con más de una colección en este programa. No se
+  // elige por ellos: se saltan y se nombran.
+  revision_manual: string[]
+}
+
+// Modo del retiro de accesos a otras colecciones. 'ensayo' = solo informa.
+// Se cambia a 'aplicar' únicamente con autorización expresa del usuario.
+export const MODO_RETIRO_OTRAS_COLECCIONES: RetirosOtrasColecciones['modo'] = 'ensayo'
 
 interface StudentRow {
   id: string
@@ -349,6 +368,22 @@ async function esGrupoDeCampusSocio(sb: any, groupId: string): Promise<boolean> 
   return !!p?.partner_campus
 }
 
+// Ids Moodle con matrícula ACTIVA en un aula. Caché de 5 minutos: en una
+// corrida del reconciliador varios carruseles del mismo programa comparten las
+// mismas aulas ajenas y no hace falta releerlas por cada uno.
+const cacheActivos = new Map<number, { at: number; ids: Set<number> }>()
+async function activosEnAula(aula: number): Promise<Set<number> | null> {
+  const c = cacheActivos.get(aula)
+  if (c && Date.now() - c.at < 5 * 60_000) return c.ids
+  try {
+    const act = await moodleCall('core_enrol_get_enrolled_users', { courseid: aula, options: [{ name: 'onlyactive', value: 1 }] }, { timeoutMs: 120_000 })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ids = new Set(((Array.isArray(act) ? act : []) as any[]).map(u => Number(u.id)))
+    cacheActivos.set(aula, { at: Date.now(), ids })
+    return ids
+  } catch { return null }
+}
+
 // Matricula/desmatricula UN estudiante en las aulas del grupo. Best-effort.
 //
 // La BAJA se sigue llamando en el momento —quien completó un carrusel no debe
@@ -434,6 +469,40 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
     const externosGrupo = await externosDeEstudiantes(sb, students.map((s: { id: string }) => String(s.id)))
     const bajasExternos: { userid: number; courseid: number }[] = []
 
+    // ---- Paso 2 (hallazgo 3): aulas de la misma asignatura en OTRAS colecciones
+    // del MISMO programa. El ámbito es el programa del carrusel, nunca el
+    // estudiante: quien lleva dos programas tiene una colección en cada uno y
+    // ninguna de las dos toca a la otra (regla del usuario, 24/09/2026).
+    const { data: gProg } = await sb.from('academic_groups').select('program_id').eq('id', groupId).maybeSingle()
+    const programId: string | null = gProg?.program_id ?? null
+    const ajenasPorCurso = new Map<string, { aula: number; col: string }[]>()   // course_id → aulas de cada colección del programa
+    const coleccionesDelEstudiante = new Map<string, Set<string>>()             // student_id → colecciones (no nulas) en este programa
+    if (programId) {
+      const { data: colsProg } = await sb.from('moodle_collections').select('id').eq('program_id', programId)
+      const colIds = ((colsProg ?? []) as { id: string }[]).map(c => String(c.id))
+      if (colIds.length) {
+        const { data: linksProg } = await sb.from('moodle_course_links')
+          .select('aula_id, course_id, collection_id').in('collection_id', colIds).eq('kind', 'asignatura').is('replaced_at', null)
+        for (const l of (linksProg ?? []) as { aula_id: number; course_id: string; collection_id: string }[]) {
+          const k = String(l.course_id)
+          if (!ajenasPorCurso.has(k)) ajenasPorCurso.set(k, [])
+          ajenasPorCurso.get(k)!.push({ aula: Number(l.aula_id), col: String(l.collection_id) })
+        }
+      }
+      const sids = students.map((s: { id: string }) => String(s.id))
+      for (let i = 0; i < sids.length; i += 200) {
+        const { data: enrs } = await sb.from('academic_student_enrollments')
+          .select('student_id, collection_id').eq('program_id', programId).in('student_id', sids.slice(i, i + 200)).not('collection_id', 'is', null)
+        for (const e of (enrs ?? []) as { student_id: string; collection_id: string }[]) {
+          const k = String(e.student_id)
+          if (!coleccionesDelEstudiante.has(k)) coleccionesDelEstudiante.set(k, new Set())
+          coleccionesDelEstudiante.get(k)!.add(String(e.collection_id))
+        }
+      }
+    }
+    const retiros: RetirosOtrasColecciones = { modo: MODO_RETIRO_OTRAS_COLECCIONES, pares: 0, suspendidos: 0, ejemplos: [], revision_manual: [] }
+    const candidatosOtrasColecciones: { userid: number; courseid: number; quien: string }[] = []
+
     const enrolments: { userid: number; courseid: number }[] = []
     for (const s of students) {
       const uid = await ensureMoodleUser(sb, s, result)
@@ -442,6 +511,21 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
       const col = await coleccionDe(sb, groupId, s.id)
       if (!col) result.sin_coleccion++
       const suyas = await cargar(col)
+      // Retiro de aulas ajenas: solo con colección declarada (resguardo 2) y
+      // solo si el estudiante tiene UNA colección en este programa (resguardo 1).
+      if (col && programId) {
+        const cols = coleccionesDelEstudiante.get(String(s.id)) ?? new Set([col])
+        if (cols.size > 1) {
+          retiros.revision_manual.push(`${[s.first_name, s.last_name].filter(Boolean).join(' ')} (${cols.size} colecciones en el programa)`)
+        } else {
+          for (const [cursoId] of suyas.aulaDeCurso) {
+            for (const a of ajenasPorCurso.get(String(cursoId)) ?? []) {
+              if (a.col === col) continue
+              candidatosOtrasColecciones.push({ userid: uid, courseid: a.aula, quien: [s.first_name, s.last_name].filter(Boolean).join(' ') })
+            }
+          }
+        }
+      }
       const fuera = externosGrupo.get(String(s.id))
       const aulasFuera = new Set<number>()
       if (fuera?.size) for (const [cursoId, aula] of suyas.aulaDeCurso) if (fuera.has(cursoId)) aulasFuera.add(aula)
@@ -479,6 +563,25 @@ export async function syncGroup(groupId: string): Promise<SyncResult> {
     }
     // Las bajas de campus externo viajan en las mismas olas de desmatrícula.
     unenrolments.push(...bajasExternos)
+    // Paso 2: las aulas ajenas se suspenden SOLO en modo aplicar. Son
+    // candidatas: quien nunca estuvo en el aula no cambia (suspender a un no
+    // matriculado es inocuo en enrol_manual_enrol_users).
+    // Se releen las aulas ajenas y solo cuenta quien HOY tiene acceso activo:
+    // así el ensayo informa accesos reales y el modo aplicar no gasta llamadas
+    // en quien nunca estuvo.
+    const bajasOtrasColecciones: { userid: number; courseid: number }[] = []
+    for (const aula of new Set(candidatosOtrasColecciones.map(c => c.courseid))) {
+      const activos = await activosEnAula(aula)
+      if (!activos) continue   // no se pudo leer: no se afirma nada de esa aula
+      for (const c of candidatosOtrasColecciones) {
+        if (c.courseid !== aula || !activos.has(c.userid)) continue
+        bajasOtrasColecciones.push({ userid: c.userid, courseid: c.courseid })
+        if (retiros.ejemplos.length < 20) retiros.ejemplos.push(`${c.quien} → aula ${aula}`)
+      }
+    }
+    retiros.pares = bajasOtrasColecciones.length
+    if (retiros.modo === 'aplicar') { unenrolments.push(...bajasOtrasColecciones); retiros.suspendidos = bajasOtrasColecciones.length }
+    if (retiros.pares || retiros.revision_manual.length) result.retiros_otras_colecciones = retiros
     for (let i = 0; i < unenrolments.length; i += 300) {
       try { await unenrolUsersBulk(unenrolments.slice(i, i + 300)) }
       catch { /* best effort: desmatricular a quien no está matriculado puede fallar sin consecuencia */ }

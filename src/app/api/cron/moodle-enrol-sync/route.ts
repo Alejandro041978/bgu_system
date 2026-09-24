@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       matriculas += r.enrol_ops
       cuentasCreadas += r.accounts_created
       if (r.errors.length) errores.push(...r.errors.map(e => `${g.name}: ${e}`))
-      if (r.enrol_ops || r.accounts_created || r.courses_unmapped.length || r.sin_coleccion) {
+      if (r.enrol_ops || r.accounts_created || r.courses_unmapped.length || r.sin_coleccion || r.retiros_otras_colecciones) {
         detalle.push({
           grupo: g.name, estudiantes: r.students_total,
           altas: r.enrol_ops, cuentas_creadas: r.accounts_created,
@@ -91,6 +91,9 @@ export async function POST(req: NextRequest) {
           // matrícula no tiene colección. Mientras este número no sea cero, el
           // respaldo sigue haciendo falta y no se puede retirar.
           sin_coleccion: r.sin_coleccion,
+          // Paso 2 del hallazgo 3: accesos a aulas de otras colecciones del
+          // mismo programa (ensayo: se listan; aplicar: se suspenden).
+          ...(r.retiros_otras_colecciones ? { retiros_otras_colecciones: r.retiros_otras_colecciones } : {}),
         })
       }
     } catch (e) {
