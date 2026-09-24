@@ -3378,5 +3378,34 @@
    "carrusel": "ADM_UP1:completado+ADM_UP2:activo",
    "tanda": "1_ahora"
   }
- ]
+ ],
+ "aplicado": {
+  "tanda_1": {
+   "cuando": "2026-09-24 ~10:44 UTC",
+   "resultado": {
+    "dry_run": false,
+    "pares": 209,
+    "aulas": 29,
+    "activos_antes": 209,
+    "ya_inactivos": 0,
+    "suspendidos": 209,
+    "siguen_activos": [],
+    "errores": []
+   }
+  },
+  "tanda_2": {
+   "cuando": "2026-09-24 ~10:55 UTC",
+   "previo": "reconciliador corrido tras corregir el corte de 1000: los 5 de SP1 con sus 10 aulas CVC verificadas",
+   "resultado": {
+    "dry_run": false,
+    "pares": 49,
+    "aulas": 10,
+    "activos_antes": 49,
+    "ya_inactivos": 0,
+    "suspendidos": 49,
+    "siguen_activos": [],
+    "errores": []
+   }
+  }
+ }
 }
