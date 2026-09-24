@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { moodleConfigured, moodleCall } from '@/lib/moodle'
-import { importAula, loadStudentsByExternal, enrolledMap, CRON_ACTOR_UUID } from '@/lib/moodle-import'
+import { importAula, loadStudentsByExternal, enrolledMap, CRON_ACTOR_UUID, courseTotal } from '@/lib/moodle-import'
+import { resolveImportTarget, stableUuid } from '@/lib/grades-write'
 import { computeGraduates } from '@/lib/graduates'
 import { recomputeSituations } from '@/lib/withdrawals'
 import { advanceCarousels } from '@/lib/carousel'
@@ -68,6 +69,86 @@ export async function POST(req: NextRequest) {
   // (activo/completado) y programa. Para detectar estudiantes en el aula de
   // OTRA colección (24/09/2026: aula 722 con 233 matriculados en una colección
   // cuya mediana es 12).
+  // ?aula=N&diag_doc=DOC → SOLO diagnóstico por estudiante (no importa): qué
+  // recibe el importador de Moodle para ESA persona en ESA aula — si está
+  // matriculada, si cruza el puente, qué total y qué ítems reporta el aula, y
+  // qué haría resolveImportTarget con las filas que ya tiene. Nació el
+  // 24/09/2026 para seis casos de "la nota no se actualiza aunque sincronice".
+  // Con &escala=1 además lee el máximo del total de curso de los primeros 8
+  // matriculados con puente: la política del aula juzga la escala por el
+  // PRIMER reporte que llega, y en Natural ese máximo puede variar por alumno.
+  if (isFinite(soloAula) && req.nextUrl.searchParams.get('diag_doc')) {
+    const doc = String(req.nextUrl.searchParams.get('diag_doc'))
+    const users = await enrolledMap(soloAula, 120_000)
+    let activos: Set<number> | null = null
+    try {
+      const act = await moodleCall('core_enrol_get_enrolled_users', { courseid: soloAula, options: [{ name: 'onlyactive', value: 1 }] }, { timeoutMs: 120_000 })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      activos = new Set(((Array.isArray(act) ? act : []) as any[]).map(u => Number(u.id)))
+    } catch { /* se informa null */ }
+    const { data: st } = await sb.from('academic_students').select('id, first_name, last_name, document_number, external_id, moodle_user_id').eq('document_number', doc).maybeSingle()
+    if (!st) return NextResponse.json({ error: 'estudiante no encontrado por documento' }, { status: 404 })
+    const byExternal = await loadStudentsByExternal(sb)
+    const enMoodle = [...users.entries()].find(([uid, u]) => uid === Number(st.moodle_user_id) || (u.idnumber && (u.idnumber === st.external_id || u.idnumber === st.id)))
+    const out: Record<string, unknown> = {
+      aula: soloAula, estudiante: `${st.first_name ?? ''} ${st.last_name ?? ''}`.trim(), documento: doc, student_id: st.id, external_id: st.external_id, moodle_user_id_erp: st.moodle_user_id,
+      matriculado_en_aula: !!enMoodle, matricula_activa_en_aula: enMoodle ? (activos ? activos.has(enMoodle[0]) : null) : null,
+      idnumber_moodle: enMoodle?.[1].idnumber ?? null, puente_ok: enMoodle ? byExternal.has(enMoodle[1].idnumber) : null,
+    }
+    const { data: link } = await sb.from('moodle_course_links').select('course_id, academic_courses(id, code, name, program_id, academic_programs(category_id))').eq('aula_id', soloAula).eq('kind', 'asignatura').is('replaced_at', null).limit(1).maybeSingle()
+    const curso = link?.academic_courses ?? null
+    out.asignatura = curso ? `${curso.code} · ${curso.name}` : null
+    const { data: prev } = await sb.from('academic_grades').select('external_id, course_id, course_code, course_name, final_grade, retake_grade, source, intento, semester_id, edited_at, edited_by, locked_at, moodle_course_id, passing_score').eq('student_id', st.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filasAsig = ((prev ?? []) as any[]).filter(g => curso && (g.course_id === curso.id || g.course_code === curso.code))
+    out.filas_de_la_asignatura_en_erp = filasAsig
+    const { data: ce } = curso ? await sb.from('academic_course_enrollments').select('attempt, status, semester_id').eq('student_id', st.id).eq('course_id', curso.id) : { data: [] }
+    out.inscripciones = ce ?? []
+    if (enMoodle) {
+      const uid = enMoodle[0]
+      const r = await moodleCall('gradereport_user_get_grade_items', { courseid: soloAula, userid: uid }, { timeoutMs: 60_000 })
+      const ug = r?.usergrades?.[0]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items = ((ug?.gradeitems ?? []) as any[])
+      const courseItem = items.find(i => i.itemtype === 'course')
+      out.reporte_moodle = {
+        usergrades: r?.usergrades?.length ?? 0, items: items.length,
+        total_curso: courseItem ? { graderaw: courseItem.graderaw, grademax: courseItem.grademax, gradeformatted: courseItem.gradeformatted, percentageformatted: courseItem.percentageformatted } : null,
+        total_calculado: courseTotal(items),
+        items_mod_con_nota: items.filter(i => i.itemtype === 'mod' && i.graderaw != null).length,
+        items_mod_con_peso: items.filter(i => i.itemtype === 'mod' && (i.weightraw ?? 0) > 0).length,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        primeros_items: items.filter(i => i.itemtype === 'mod').slice(0, 6).map((i: any) => ({ nombre: i.itemname, nota: i.graderaw, max: i.grademax, peso: i.weightraw, fecha: i.gradedategraded })),
+      }
+      let passing: number | null = null
+      if (curso?.academic_programs?.category_id) {
+        const { data: cat } = await sb.from('academic_programs_category').select('passing_score').eq('id', curso.academic_programs.category_id).maybeSingle()
+        passing = cat?.passing_score ?? null
+      }
+      if (curso) {
+        const total = courseTotal(items)
+        out.decision_import = total == null
+          ? 'sinTotal: el aula no reporta total de curso para este alumno → se salta'
+          : resolveImportTarget(prev ?? [], { id: curso.id, code: curso.code, name: curso.name }, stableUuid(`moodle:${soloAula}:${uid}`), passing, { valor: total, rendido_pct: null, semester_start: null, semester_id: null }, null)
+      }
+    }
+    if (req.nextUrl.searchParams.get('escala') === '1') {
+      const conPuente = [...users.entries()].filter(([, u]) => u.idnumber && byExternal.has(u.idnumber)).slice(0, 8)
+      const escalas: Record<string, unknown>[] = []
+      for (const [uid, u] of conPuente) {
+        try {
+          const r = await moodleCall('gradereport_user_get_grade_items', { courseid: soloAula, userid: uid }, { timeoutMs: 30_000 })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const ci = ((r?.usergrades?.[0]?.gradeitems ?? []) as any[]).find(i => i.itemtype === 'course')
+          escalas.push({ uid, nombre: u.fullname, grademax_total: ci?.grademax ?? null, graderaw_total: ci?.graderaw ?? null })
+        } catch (e) { escalas.push({ uid, error: e instanceof Error ? e.message : 'error' }) }
+      }
+      out.escala_primeros_8 = escalas
+    }
+    const { data: aud } = await sb.from('moodle_aula_audit').select('reject_since, reject_reason, escala_total, suma_coeficientes, matriculados, last_import_at, import_cursor').eq('aula_id', soloAula).maybeSingle()
+    out.auditoria_aula = aud ?? null
+    return NextResponse.json(out)
+  }
   if (isFinite(soloAula) && req.nextUrl.searchParams.get('censo') === '1') {
     const users = await enrolledMap(soloAula, 120_000)
     // Matrículas ACTIVAS en el aula (las suspendidas por avance de carrusel no cuentan como acceso vigente)
