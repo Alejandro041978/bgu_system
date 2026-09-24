@@ -1,0 +1,60 @@
+{
+ "fecha": "2026-09-24T09:55:01.594Z",
+ "motivo": "Hallazgo 2: estudiantes CVC (convalidación de origen CVC, notas en aulas CVC) etiquetados Full ES o sin colección → BBA CVC ES. Autorizado el 24/09/2026. Zelada queda aparte.",
+ "antes": [
+  {
+   "enrollment_id": "01da834a-9e93-4ee5-a4ba-e5cb7855faa1",
+   "estudiante": "Melanie Sharon Villalva Sanchez ",
+   "documento": "62602988",
+   "coleccion_antes": "BBA Full ES"
+  },
+  {
+   "enrollment_id": "b96b371b-6ced-4506-a562-bc405dfffc65",
+   "estudiante": "Alexandra Doris Velasquez Arias ",
+   "documento": "75477620",
+   "coleccion_antes": "BBA Full ES"
+  },
+  {
+   "enrollment_id": "2453200d-f0a6-4949-9f33-f81c30b11150",
+   "estudiante": "Carlos Oswaldo Venturo Orbegoso ",
+   "documento": "17804130",
+   "coleccion_antes": "BBA Full ES"
+  },
+  {
+   "enrollment_id": "276a1182-cd62-4e81-9722-ab89a40318e9",
+   "estudiante": "Eddie Alberto Andreu Salas ",
+   "documento": "10791020",
+   "coleccion_antes": "sin colección"
+  },
+  {
+   "enrollment_id": "3278867d-ca03-4cd6-a431-47e76a2fe21e",
+   "estudiante": "Kony Luby Duran Llaro ",
+   "documento": "18227474",
+   "coleccion_antes": "BBA Full ES"
+  },
+  {
+   "enrollment_id": "5691eff4-6879-4d50-9bf2-aa3f2e468cb8",
+   "estudiante": "Osmar Jose Carlos Medina Palma ",
+   "documento": "47235806",
+   "coleccion_antes": "BBA Full ES"
+  },
+  {
+   "enrollment_id": "7de3268c-d645-47db-b761-f589664e8144",
+   "estudiante": "Noelia Milagros Yep Gamarra ",
+   "documento": "41684802",
+   "coleccion_antes": "BBA Full ES"
+  },
+  {
+   "enrollment_id": "ee1361fc-103e-43df-8b2c-8e3c77a82627",
+   "estudiante": "Lauralinda Leonor Cavero Egúsquiza Vargas ",
+   "documento": "08879583",
+   "coleccion_antes": "BBA Full ES"
+  },
+  {
+   "enrollment_id": "fd000306-bb67-46d5-a09e-279df713617c",
+   "estudiante": "Giancarlo Mariano Mancarella Valladares ",
+   "documento": "40685109",
+   "coleccion_antes": "BBA Full ES"
+  }
+ ]
+}
