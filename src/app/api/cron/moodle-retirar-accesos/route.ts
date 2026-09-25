@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   }
   if (!moodleConfigured()) return NextResponse.json({ error: 'Moodle no configurado' }, { status: 400 })
 
-  const body = await req.json().catch(() => ({})) as { pares?: Par[]; dry_run?: boolean }
+  const body = await req.json().catch(() => ({})) as { pares?: Par[]; dry_run?: boolean; modo?: 'notas' }
   const pares = (body.pares ?? [])
     .map(p => ({ userid: Number(p.userid), courseid: Number(p.courseid) }))
     .filter(p => Number.isFinite(p.userid) && p.userid > 0 && Number.isFinite(p.courseid) && p.courseid > 0)
@@ -35,6 +35,32 @@ export async function POST(req: NextRequest) {
   if (pares.length > 1000) return NextResponse.json({ error: 'Máximo 1000 pares por llamada' }, { status: 400 })
 
   const aulas = [...new Set(pares.map(p => p.courseid))]
+
+  // modo 'notas' → SOLO LECTURA: ¿qué tiene calificado cada par en esa aula?
+  // Sirve para comprobar, antes o después de un retiro, que ninguno de esos
+  // accesos era un aula donde el estudiante estaba rindiendo de verdad
+  // (pregunta del usuario, 25/09/2026).
+  if (body.modo === 'notas') {
+    const salida: Record<string, unknown>[] = []
+    let idx = 0
+    const worker = async () => {
+      while (idx < pares.length) {
+        const p = pares[idx++]
+        try {
+          const r = await moodleCall('gradereport_user_get_grade_items', { courseid: p.courseid, userid: p.userid }, { timeoutMs: 30_000 })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const items = ((r?.usergrades?.[0]?.gradeitems ?? []) as any[])
+          const ci = items.find(i => i.itemtype === 'course')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fechas = items.filter(i => i.itemtype === 'mod' && i.gradedategraded).map((i: any) => Number(i.gradedategraded))
+          salida.push({ ...p, items_con_nota: items.filter(i => i.itemtype === 'mod' && i.graderaw != null).length, total: ci?.graderaw ?? null, ultima_calificacion: fechas.length ? new Date(Math.max(...fechas) * 1000).toISOString().slice(0, 10) : null })
+        } catch (e) { salida.push({ ...p, error: e instanceof Error ? e.message : 'error' }) }
+      }
+    }
+    await Promise.all(Array.from({ length: 6 }, worker))
+    const conNotas = salida.filter(x => Number(x.items_con_nota ?? 0) > 0)
+    return NextResponse.json({ modo: 'notas', pares: pares.length, con_notas: conNotas.length, sin_notas: salida.length - conNotas.length - salida.filter(x => x.error).length, errores: salida.filter(x => x.error).length, detalle_con_notas: conNotas, detalle: salida })
+  }
 
   // Estado previo: qué pares están hoy activos en su aula
   const activosPorAula = new Map<number, Set<number>>()
